@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PadMagnet — Swipe Your Way Home | Martin & St. Lucie County Rentals</title>
+  <meta name="description" content="The smarter way to find long-term rentals in Martin and St. Lucie County, FL. Swipe through listings, match with landlords, move in. Join the waitlist." />
+  <meta property="og:title" content="PadMagnet — Swipe Your Way Home" />
+  <meta property="og:description" content="Tinder-style rental matching for Martin & St. Lucie County, FL. Free for tenants. Join the waitlist." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://padmagnet.com" />
+  <link rel="canonical" href="https://padmagnet.com" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --coral: #F06449;
+      --coral-light: #FF8A75;
+      --coral-glow: rgba(240, 100, 73, 0.15);
+      --navy: #1B2138;
+      --navy-light: #2A3155;
+      --cream: #FFF9F5;
+      --cream-dark: #F5EDE6;
+      --sage: #7EC8A0;
+      --sage-light: #A8DDBF;
+      --text: #1B2138;
+      --text-muted: #6B7394;
+      --white: #FFFFFF;
+      --shadow-soft: 0 4px 24px rgba(27, 33, 56, 0.08);
+      --shadow-card: 0 8px 40px rgba(27, 33, 56, 0.12);
+      --shadow-elevated: 0 20px 60px rgba(27, 33, 56, 0.15);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      background: var(--cream);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.15;
+    }
+
+    /* ========== NAV ========== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(255, 249, 245, 0.92);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-soft);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--coral);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      box-shadow: 0 2px 12px rgba(240, 100, 73, 0.35);
+    }
+    .logo-text {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--navy);
+      letter-spacing: -0.5px;
+    }
+    .nav-cta {
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      padding: 10px 22px;
+      border-radius: 50px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+    .nav-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(27, 33, 56, 0.25);
+    }
+
+    /* ========== HERO ========== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 100px 24px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--coral-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -10%;
+      left: -10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(126, 200, 160, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    .hero-content { position: relative; z-index: 2; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white);
+      border: 1px solid var(--cream-dark);
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--coral);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+    .hero-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--sage);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.3); }
+    }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 900;
+      color: var(--navy);
+      margin-bottom: 20px;
+      letter-spacing: -1.5px;
+    }
+    .hero h1 span {
+      color: var(--coral);
+      position: relative;
+    }
+    .hero h1 span::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: var(--coral-glow);
+      border-radius: 3px;
+    }
+    .hero-sub {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      max-width: 460px;
+      line-height: 1.7;
+    }
+    .hero-form {
+      display: flex;
+      gap: 10px;
+      max-width: 460px;
+    }
+    .hero-form input {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid var(--cream-dark);
+      border-radius: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      background: var(--white);
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .hero-form input::placeholder { color: #B0B5C9; }
+    .hero-form input:focus {
+      border-color: var(--coral);
+      box-shadow: 0 0 0 4px var(--coral-glow);
+    }
+    .hero-form button {
+      padding: 16px 28px;
+      background: var(--coral);
+      color: var(--white);
+      border: none;
+      border-radius: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+    .hero-form button:hover {
+      background: var(--coral-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(240, 100, 73, 0.35);
+    }
+    .hero-form button:active { transform: translateY(0); }
+    .hero-form button.submitted {
+      background: var(--sage);
+      pointer-events: none;
+    }
+    .hero-trust {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Phone mockup */
+    .hero-visual {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+    }
+    .phone-frame {
+      width: 280px;
+      height: 560px;
+      background: var(--navy);
+      border-radius: 36px;
+      padding: 12px;
+      box-shadow: var(--shadow-elevated), 0 0 0 1px rgba(255,255,255,0.1) inset;
+      position: relative;
+      overflow: hidden;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 28px;
+      background: var(--navy);
+      border-radius: 0 0 16px 16px;
+      z-index: 10;
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: var(--cream);
+      border-radius: 26px;
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-header {
+      padding: 40px 16px 12px;
+      text-align: center;
+    }
+    .phone-header-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Swipe cards inside phone */
+    .swipe-stack {
+      position: relative;
+      width: 220px;
+      height: 300px;
+      margin: 8px auto 0;
+    }
+    .swipe-card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s;
+    }
+    .swipe-card-bg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .card-1 {
+      background: linear-gradient(135deg, #4a90d9 0%, #667eea 100%);
+    }
+    .card-2 {
+      background: linear-gradient(135deg, var(--sage) 0%, #45b7aa 100%);
+    }
+    .card-3 {
+      background: linear-gradient(135deg, var(--coral) 0%, #e8a87c 100%);
+    }
+    /* Card stack positions driven by JS */
+    .swipe-card[data-pos="0"] {
+      z-index: 3;
+      transform: translateX(0) rotate(0deg) scale(1);
+      opacity: 1;
+    }
+    .swipe-card[data-pos="1"] {
+      z-index: 2;
+      transform: translateX(0) rotate(0deg) scale(0.94) translateY(12px);
+      opacity: 1;
+    }
+    .swipe-card[data-pos="2"] {
+      z-index: 1;
+      transform: translateX(0) rotate(0deg) scale(0.88) translateY(24px);
+      opacity: 1;
+    }
+    .swipe-card.swiping {
+      z-index: 4;
+      transform: translateX(140px) rotate(14deg) scale(1) !important;
+      opacity: 0 !important;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease-out !important;
+    }
+    .swipe-card-content {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: white;
+    }
+    .swipe-card-price {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+    }
+    .swipe-card-address {
+      font-size: 11px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+    .swipe-card-tags {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .swipe-tag {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* Card swipe animation handled by JS */
+
+    .phone-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .phone-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .phone-btn.nope { background: var(--white); color: var(--coral); border: 2px solid #FFE0D9; }
+    .phone-btn.like { background: var(--coral); color: var(--white); border: none; }
+
+    /* ========== SECTIONS ========== */
+    section { padding: 100px 24px; }
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--coral);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(32px, 4.5vw, 48px);
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+    .section-sub {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    /* How it works */
+    .how-it-works { background: var(--white); }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 56px;
+    }
+    .step-card {
+      background: var(--cream);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      position: relative;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .step-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+    }
+    .step-number {
+      font-family: 'Outfit', sans-serif;
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--coral);
+      opacity: 0.12;
+      position: absolute;
+      top: 16px;
+      right: 24px;
+      line-height: 1;
+    }
+    .step-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .step-icon.coral { background: #FFE8E3; }
+    .step-icon.sage { background: #DFF3E7; }
+    .step-icon.navy { background: #E3E6F0; }
+    .step-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--navy);
+    }
+    .step-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* Dual audience */
+    .audience { background: var(--cream); }
+    .audience-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-top: 56px;
+    }
+    .audience-card {
+      border-radius: var(--radius);
+      padding: 44px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .audience-card.tenant {
+      background: var(--navy);
+      color: var(--white);
+    }
+    .audience-card.landlord {
+      background: var(--white);
+      border: 2px solid var(--cream-dark);
+      color: var(--navy);
+    }
+    .audience-card-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+    .tenant .audience-card-label { color: var(--coral-light); }
+    .landlord .audience-card-label { color: var(--sage); }
+    .audience-card h3 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .audience-card p {
+      font-size: 15px;
+      line-height: 1.7;
+      opacity: 0.85;
+      margin-bottom: 24px;
+    }
+    .audience-perks {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .audience-perks li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .perk-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .tenant .perk-check { background: rgba(240, 100, 73, 0.2); color: var(--coral-light); }
+    .landlord .perk-check { background: rgba(126, 200, 160, 0.2); color: var(--sage); }
+
+    /* Location */
+    .location-section { background: var(--white); }
+    .location-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      margin-top: 48px;
+    }
+    .location-map {
+      background: var(--cream);
+      border-radius: var(--radius);
+      height: 340px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid var(--cream-dark);
+    }
+    .map-placeholder {
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .map-placeholder svg { margin-bottom: 12px; }
+    .location-details h3 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .location-details p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    .county-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .county-tag {
+      background: var(--cream);
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      border: 1px solid var(--cream-dark);
+    }
+
+    /* CTA / Waitlist bottom */
+    .cta-section {
+      background: var(--navy);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(240, 100, 73, 0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-section .section-inner { position: relative; z-index: 2; }
+    .cta-section .section-title {
+      color: var(--white);
+      max-width: 600px;
+      margin: 0 auto 16px;
+    }
+    .cta-section .section-sub {
+      color: rgba(255,255,255,0.6);
+      margin: 0 auto 40px;
+      text-align: center;
+    }
+    .cta-form {
+      display: flex;
+      gap: 10px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .cta-form input {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid var(--navy-light);
+      border-radius: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      background: var(--navy-light);
+      color: var(--white);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .cta-form input::placeholder { color: #6B7394; }
+    .cta-form input:focus {
+      border-color: var(--coral);
+      box-shadow: 0 0 0 4px rgba(240, 100, 73, 0.15);
+    }
+    .cta-form button {
+      padding: 16px 32px;
+      background: var(--coral);
+      color: var(--white);
+      border: none;
+      border-radius: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+    .cta-form button:hover {
+      background: var(--coral-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(240, 100, 73, 0.35);
+    }
+    .cta-form button.submitted {
+      background: var(--sage);
+      pointer-events: none;
+    }
+    .cta-role-select {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .role-btn {
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid var(--navy-light);
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+    }
+    .role-btn.active {
+      border-color: var(--coral);
+      background: rgba(240, 100, 73, 0.12);
+      color: var(--coral-light);
+    }
+
+    /* Footer */
+    footer {
+      background: var(--navy);
+      border-top: 1px solid var(--navy-light);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    footer p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+    }
+    footer a {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: var(--navy);
+      color: var(--white);
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      box-shadow: var(--shadow-elevated);
+      z-index: 1000;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast-check {
+      width: 24px;
+      height: 24px;
+      background: var(--sage);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 48px;
+      }
+      .hero-sub { margin-left: auto; margin-right: auto; }
+      .hero-form {
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .hero-trust { justify-content: center; }
+      .steps-grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
+      .audience-grid { grid-template-columns: 1fr; }
+      .location-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .hero-form, .cta-form {
+        flex-direction: column;
+      }
+      .hero-form button, .cta-form button {
+        width: 100%;
+      }
+      section { padding: 72px 20px; }
+      .audience-card { padding: 32px 24px; }
+      .phone-frame { width: 240px; height: 480px; }
+      .swipe-stack { width: 190px; height: 260px; }
+    }
+
+    /* Scroll animations */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M12 2C8 2 4 5 4 10c0 7 8 12 8 12s8-5 8-12c0-5-4-8-8-8z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+      <span class="logo-text">PadMagnet</span>
+    </a>
+    <a href="#waitlist" class="nav-cta">Join Waitlist</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Coming soon — Martin & St. Lucie County
+        </div>
+        <h1>
+          <span>Swipe</span> right<br/>on your next home.
+        </h1>
+        <p class="hero-sub">
+          Rental matching for Florida's Treasure Coast — powered by live MLS data.
+          Browse homes like a dating app. Swipe, match, move in.
+          No stale listings. No broker runaround.
+        </p>
+        <form class="hero-form" id="heroForm">
+          <input type="email" placeholder="Enter your email" required />
+          <button type="submit">Join Waitlist</button>
+        </form>
+        <p class="hero-trust">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Free for tenants. Always.
+        </p>
+      </div>
+      <div class="hero-visual">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-header">
+              <span class="phone-header-text">Near You</span>
+            </div>
+            <!-- SWAP IMAGES: Replace the img src URLs below with your own MLS photos for best results.
+                 Ideal size: 440x600px or similar portrait crop. -->
+            <div class="swipe-stack">
+              <!-- Card 1 (top) -->
+              <div class="swipe-card card-1">
+                <img src="images/card1.jpg" alt="Rental home in Stuart, FL" style="width:100%;height:100%;object-fit:cover;" loading="eager" />
+                <div class="swipe-card-content">
+                  <div class="swipe-card-price">$2,100/mo</div>
+                  <div class="swipe-card-address">3 bd · 2 ba · Stuart, FL</div>
+                  <div class="swipe-card-tags">
+                    <span class="swipe-tag">🏊 Pool</span>
+                    <span class="swipe-tag">🐕 Pets OK</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Card 2 -->
+              <div class="swipe-card card-2">
+                <img src="images/card2.jpg" alt="Rental home in Port St. Lucie, FL" style="width:100%;height:100%;object-fit:cover;" loading="eager" />
+                <div class="swipe-card-content">
+                  <div class="swipe-card-price">$1,850/mo</div>
+                  <div class="swipe-card-address">2 bd · 2 ba · PSL, FL</div>
+                  <div class="swipe-card-tags">
+                    <span class="swipe-tag">🏠 Garage</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Card 3 -->
+              <div class="swipe-card card-3">
+                <img src="images/card3.jpg" alt="Rental home in Hobe Sound, FL" style="width:100%;height:100%;object-fit:cover;" loading="eager" />
+                <div class="swipe-card-content">
+                  <div class="swipe-card-price">$2,400/mo</div>
+                  <div class="swipe-card-address">4 bd · 3 ba · Hobe Sound</div>
+                  <div class="swipe-card-tags">
+                    <span class="swipe-tag">🌴 Yard</span>
+                    <span class="swipe-tag">🏊 Pool</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone-actions">
+              <div class="phone-btn nope">✕</div>
+              <div class="phone-btn like">♥</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-it-works">
+    <div class="section-inner">
+      <div class="fade-up">
+        <p class="section-label">How It Works</p>
+        <h2 class="section-title">Find your place in three moves.</h2>
+        <p class="section-sub">Forget endless scrolling through stale listings on Zillow. PadMagnet shows you one rental at a time — swipe right to save it, left to skip. It's that simple.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card fade-up">
+          <span class="step-number">1</span>
+          <div class="step-icon coral">🎯</div>
+          <h3 class="step-title">Set your criteria</h3>
+          <p class="step-desc">Tell us your budget, preferred bedrooms, pet needs, and target area across Martin or St. Lucie County. We'll curate your deck.</p>
+        </div>
+        <div class="step-card fade-up">
+          <span class="step-number">2</span>
+          <div class="step-icon sage">👆</div>
+          <h3 class="step-title">Swipe through rentals</h3>
+          <p class="step-desc">Browse real MLS-powered listings one card at a time. Swipe right to save your favorites, left to pass. It's fast and visual.</p>
+        </div>
+        <div class="step-card fade-up">
+          <span class="step-number">3</span>
+          <div class="step-icon navy">🤝</div>
+          <h3 class="step-title">Get matched</h3>
+          <p class="step-desc">When you swipe right, the landlord sees your profile. If it's a fit, you connect directly — no middleman, no mystery.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIENCE -->
+  <section class="audience">
+    <div class="section-inner">
+      <div class="fade-up">
+        <p class="section-label">Built for Both Sides</p>
+        <h2 class="section-title">Whether you're looking or listing.</h2>
+      </div>
+      <div class="audience-grid">
+        <div class="audience-card tenant fade-up">
+          <p class="audience-card-label">For Tenants</p>
+          <h3>Your next home is one swipe away.</h3>
+          <p>Ditch the Craigslist chaos and the Zillow rabbit hole. PadMagnet pulls live rental data and lets you browse like a dating app — one gorgeous card at a time.</p>
+          <ul class="audience-perks">
+            <li><span class="perk-check">✓</span> Always 100% free to use</li>
+            <li><span class="perk-check">✓</span> Real-time MLS-powered listings</li>
+            <li><span class="perk-check">✓</span> Swipe, save, and compare favorites</li>
+            <li><span class="perk-check">✓</span> Connect directly with landlords</li>
+          </ul>
+        </div>
+        <div class="audience-card landlord fade-up">
+          <p class="audience-card-label">For Landlords</p>
+          <h3>Stop paying for yard signs and praying.</h3>
+          <p>PadMagnet puts your vacancy in front of tenants who are actively searching in your area, at your price point. Less downtime. More qualified leads. No guesswork.</p>
+          <ul class="audience-perks">
+            <li><span class="perk-check">✓</span> Free during our launch period</li>
+            <li><span class="perk-check">✓</span> See which tenants are interested</li>
+            <li><span class="perk-check">✓</span> Tenant profiles with budget & preferences</li>
+            <li><span class="perk-check">✓</span> Fill vacancies faster</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOCATION -->
+  <section class="location-section">
+    <div class="section-inner">
+      <div class="location-grid">
+        <div class="location-map fade-up">
+          <div class="map-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.5" opacity="0.5">
+              <path d="M12 2C8 2 4 5 4 10c0 7 8 12 8 12s8-5 8-12c0-5-4-8-8-8z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <p style="font-size:14px;font-weight:600;">Florida's Treasure Coast</p>
+            <p style="font-size:12px;margin-top:4px;">Martin & St. Lucie Counties</p>
+          </div>
+        </div>
+        <div class="location-details fade-up">
+          <p class="section-label">Our Coverage</p>
+          <h3>Hyperlocal by design.</h3>
+          <p>We're not trying to be Zillow. PadMagnet serves one market and serves it well — Florida's Treasure Coast. Every listing is real, every landlord is local, and the data comes straight from the MLS.</p>
+          <div class="county-tags">
+            <span class="county-tag">Stuart</span>
+            <span class="county-tag">Port St. Lucie</span>
+            <span class="county-tag">Jensen Beach</span>
+            <span class="county-tag">Hobe Sound</span>
+            <span class="county-tag">Palm City</span>
+            <span class="county-tag">Fort Pierce</span>
+            <span class="county-tag">Tradition</span>
+            <span class="county-tag">Indiantown</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM CTA -->
+  <section class="cta-section" id="waitlist">
+    <div class="section-inner">
+      <div class="fade-up">
+        <h2 class="section-title">Don't miss your match.</h2>
+        <p class="section-sub">We're launching soon on the Treasure Coast. Get early access and be first to swipe when we go live.</p>
+        <div class="cta-role-select">
+          <button class="role-btn active" data-role="tenant" onclick="selectRole(this)">🏠 I'm a Tenant</button>
+          <button class="role-btn" data-role="landlord" onclick="selectRole(this)">🔑 I'm a Landlord</button>
+        </div>
+        <form class="cta-form" id="ctaForm">
+          <input type="email" placeholder="Enter your email" required />
+          <button type="submit">Join Waitlist</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>&copy; 2026 PadMagnet. Long-term rental matching for Florida's Treasure Coast.</p>
+  </footer>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <span class="toast-check">✓</span>
+    <span id="toastMsg">You're on the list!</span>
+  </div>
+
+  <script>
+    /* PadMagnet Waitlist — connected to Supabase */
+
+    const SUPABASE_URL = 'https://darizrcswflrpyvtldii.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhcml6cmNzd2ZscnB5dnRsZGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NjM4NTgsImV4cCI6MjA4NzUzOTg1OH0.2ah3SbJNr3JOa2DERjFqNGWm8sC84J2CG3w-eqLeo4k';
+
+    let selectedRole = 'tenant';
+
+    function selectRole(btn) {
+      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedRole = btn.dataset.role;
+    }
+
+    async function submitWaitlist(email, role, form) {
+      const button = form.querySelector('button');
+      const originalText = button.textContent;
+      button.textContent = 'Joining...';
+      button.disabled = true;
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ email, role })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          // Handle duplicate email gracefully
+          if (res.status === 409 || (errData.code === '23505')) {
+            showToast('You\'re already on the list! We\'ll be in touch soon.');
+            button.textContent = '✓ Already signed up';
+            button.classList.add('submitted');
+            form.querySelector('input').value = '';
+            setTimeout(() => {
+              button.textContent = originalText;
+              button.classList.remove('submitted');
+              button.disabled = false;
+            }, 4000);
+            return;
+          }
+          throw new Error('Signup failed');
+        }
+
+        // Success state
+        button.textContent = '✓ You\'re in!';
+        button.classList.add('submitted');
+        form.querySelector('input').value = '';
+        showToast(role === 'landlord'
+          ? 'Welcome! We\'ll notify you when landlord tools are ready.'
+          : 'You\'re on the list! We\'ll let you know when it\'s time to swipe.'
+        );
+      } catch (err) {
+        console.error(err);
+        button.textContent = 'Try Again';
+        button.disabled = false;
+        showToast('Something went wrong — please try again.');
+      }
+
+      // Reset button after delay
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.classList.remove('submitted');
+        button.disabled = false;
+      }, 4000);
+    }
+
+    // Hero form
+    document.getElementById('heroForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = this.querySelector('input').value;
+      submitWaitlist(email, 'tenant', this);
+    });
+
+    // CTA form
+    document.getElementById('ctaForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = this.querySelector('input').value;
+      submitWaitlist(email, selectedRole, this);
+    });
+
+    // Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // Nav scroll effect
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // Scroll fade-in animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // === PHONE MOCKUP CARD CYCLING ===
+    (function() {
+      const cards = document.querySelectorAll('.swipe-card');
+      if (!cards.length) return;
+
+      // Set initial positions
+      const order = [0, 1, 2]; // indices into cards array
+      function applyPositions() {
+        order.forEach((cardIdx, pos) => {
+          cards[cardIdx].setAttribute('data-pos', pos);
+          cards[cardIdx].classList.remove('swiping');
+        });
+      }
+      applyPositions();
+
+      function cycleCards() {
+        const topCardIdx = order[0];
+        const topCard = cards[topCardIdx];
+
+        // Swipe the top card away
+        topCard.classList.add('swiping');
+
+        // After a short delay, promote remaining cards
+        setTimeout(() => {
+          // Rotate: top card goes to back
+          order.push(order.shift());
+          // Briefly disable transition on the card coming from back
+          // so it doesn't animate from the swipe-away position
+          const newBackCard = cards[order[2]];
+          newBackCard.style.transition = 'none';
+          applyPositions();
+
+          // Re-enable transitions after a frame
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              newBackCard.style.transition = '';
+            });
+          });
+        }, 500);
+      }
+
+      // Cycle every 3 seconds
+      setInterval(cycleCards, 3000);
+    })();
+  </script>
+</body>
+</html>
