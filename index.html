@@ -1028,29 +1028,10 @@
   </div>
 
   <script>
-    /*
-     * =========================================================
-     * WAITLIST BACKEND CONNECTION
-     * =========================================================
-     * 
-     * OPTION A: Supabase (recommended — set up in 5 minutes)
-     * 1. Create a free project at https://supabase.com
-     * 2. Create a table called "waitlist" with columns:
-     *    - id (uuid, primary key, default gen_random_uuid())
-     *    - email (text, unique)
-     *    - role (text) — "tenant" or "landlord"
-     *    - created_at (timestamptz, default now())
-     * 3. Uncomment the Supabase code below and add your credentials
-     * 4. In Supabase dashboard, go to Settings → API to find your URL and anon key
-     *
-     * OPTION B: Google Sheets via a free service like SheetDB or Google Apps Script
-     * OPTION C: Formspree.io (just change the form action)
-     * =========================================================
-     */
+    /* PadMagnet Waitlist — connected to Supabase */
 
-    // === SUPABASE CONFIG (uncomment when ready) ===
-    // const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-    // const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+    const SUPABASE_URL = 'https://darizrcswflrpyvtldii.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhcml6cmNzd2ZscnB5dnRsZGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NjM4NTgsImV4cCI6MjA4NzUzOTg1OH0.2ah3SbJNr3JOa2DERjFqNGWm8sC84J2CG3w-eqLeo4k';
 
     let selectedRole = 'tenant';
 
@@ -1067,7 +1048,6 @@
       button.disabled = true;
 
       try {
-        /* === SUPABASE SUBMISSION (uncomment when ready) ===
         const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
           method: 'POST',
           headers: {
@@ -1078,15 +1058,23 @@
           },
           body: JSON.stringify({ email, role })
         });
-        if (!res.ok) throw new Error('Signup failed');
-        */
-
-        // === TEMPORARY: Store locally until backend is connected ===
-        const waitlist = JSON.parse(localStorage.getItem('padmagnet_waitlist') || '[]');
-        waitlist.push({ email, role, timestamp: new Date().toISOString() });
-        localStorage.setItem('padmagnet_waitlist', JSON.stringify(waitlist));
-        console.log('Waitlist signup:', { email, role });
-        console.log('All signups:', waitlist);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          // Handle duplicate email gracefully
+          if (res.status === 409 || (errData.code === '23505')) {
+            showToast('You\'re already on the list! We\'ll be in touch soon.');
+            button.textContent = '✓ Already signed up';
+            button.classList.add('submitted');
+            form.querySelector('input').value = '';
+            setTimeout(() => {
+              button.textContent = originalText;
+              button.classList.remove('submitted');
+              button.disabled = false;
+            }, 4000);
+            return;
+          }
+          throw new Error('Signup failed');
+        }
 
         // Success state
         button.textContent = '✓ You\'re in!';
