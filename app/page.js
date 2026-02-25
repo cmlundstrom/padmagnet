@@ -31,7 +31,7 @@ async function submitToWaitlist(email, role) {
   return { success: true };
 }
 
-function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false }) {
+function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false, theme = 'dark' }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState(defaultRole);
   const [state, setState] = useState('idle');
@@ -65,11 +65,11 @@ function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false
   return (
     <div>
       {showRoleSelector && (
-        <div className="cta-role-select">
-          <button type="button" className={`role-btn ${role === 'tenant' ? 'active' : ''}`} onClick={() => setRole('tenant')}>
+        <div className={`cta-role-select ${theme === 'light' ? 'role-select-light' : ''}`}>
+          <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'tenant' ? 'active' : ''}`} onClick={() => setRole('tenant')}>
             🏠 I&apos;m a Tenant
           </button>
-          <button type="button" className={`role-btn ${role === 'landlord' ? 'active' : ''}`} onClick={() => setRole('landlord')}>
+          <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'landlord' ? 'active' : ''}`} onClick={() => setRole('landlord')}>
             🔑 I&apos;m a Landlord
           </button>
         </div>
@@ -198,7 +198,7 @@ export default function LandingPage() {
               Browse homes like a dating app. Swipe, match, move in.
               No stale listings. No broker runaround.
             </p>
-            <WaitlistForm formId="hero" defaultRole="tenant" />
+            <WaitlistForm formId="hero" defaultRole="tenant" showRoleSelector={true} theme="light" />
             <p className="hero-trust">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
