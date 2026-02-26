@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "../../lib/supabase";
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  PADMAGNET ADMIN DASHBOARD v1                                   ║
@@ -860,30 +861,61 @@ function SupportPanel() {
 // WAITLIST PANEL
 // ============================================================
 function WaitlistPanel() {
-  // SUPABASE: SELECT * FROM waitlist ORDER BY created_at DESC
-  const [entries] = useState([
-    { id: 1, email: "maria.gonzalez@gmail.com", role: "landlord", created_at: "2026-02-25T14:30:00Z" },
-    { id: 2, email: "james.t.wilson@yahoo.com", role: "tenant", created_at: "2026-02-25T13:15:00Z" },
-    { id: 3, email: "sarah.k@outlook.com", role: "landlord", created_at: "2026-02-25T11:00:00Z" },
-    { id: 4, email: "carlos.m.psl@gmail.com", role: "tenant", created_at: "2026-02-24T16:45:00Z" },
-    { id: 5, email: "jenny.chen88@gmail.com", role: "tenant", created_at: "2026-02-24T10:20:00Z" },
-    { id: 6, email: "bobsmith_rentals@gmail.com", role: "landlord", created_at: "2026-02-24T14:00:00Z" },
-    { id: 7, email: "anika.patel@live.com", role: "tenant", created_at: "2026-02-23T09:30:00Z" },
-    { id: 8, email: "martin.realty.group@gmail.com", role: "landlord", created_at: "2026-02-22T15:10:00Z" },
-  ]);
+  const [entries, setEntries] = useState([]);
   const [roleFilter, setRoleFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchWaitlist() {
+      setLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from("waitlist")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (fetchError) {
+        setError(fetchError.message);
+      } else {
+        setEntries(data || []);
+      }
+      setLoading(false);
+    }
+    fetchWaitlist();
+  }, []);
 
   const filtered = entries.filter(e => roleFilter === "all" || e.role === roleFilter);
   const tenantCount = entries.filter(e => e.role === "tenant").length;
   const landlordCount = entries.filter(e => e.role === "landlord").length;
 
+  const exportCSV = useCallback(() => {
+    if (entries.length === 0) return;
+    const header = "Email,Role,Signed Up\n";
+    const rows = entries.map(e => `${e.email},${e.role},${e.created_at}`).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `padmagnet-waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [entries]);
+
+  if (loading) {
+    return <p style={{ color: COLORS.textMuted, padding: 40, textAlign: "center" }}>Loading waitlist…</p>;
+  }
+
+  if (error) {
+    return <p style={{ color: COLORS.red, padding: 40, textAlign: "center" }}>Error loading waitlist: {error}</p>;
+  }
+
   return (
     <div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Signups" value={entries.length} sub="Since launch" accent={COLORS.brand} />
-        <StatCard label="Tenants" value={tenantCount} sub={`${Math.round(tenantCount / entries.length * 100)}% of signups`} accent={COLORS.green} />
-        <StatCard label="Landlords" value={landlordCount} sub={`${Math.round(landlordCount / entries.length * 100)}% of signups`} accent={COLORS.purple} />
-        <StatCard label="Last Signup" value={timeAgo(entries[0]?.created_at)} sub={entries[0]?.email?.split("@")[0] + "…"} accent={COLORS.amber} />
+        <StatCard label="Tenants" value={tenantCount} sub={entries.length > 0 ? `${Math.round(tenantCount / entries.length * 100)}% of signups` : "—"} accent={COLORS.green} />
+        <StatCard label="Landlords" value={landlordCount} sub={entries.length > 0 ? `${Math.round(landlordCount / entries.length * 100)}% of signups` : "—"} accent={COLORS.purple} />
+        <StatCard label="Last Signup" value={entries[0] ? timeAgo(entries[0].created_at) : "—"} sub={entries[0]?.email?.split("@")[0] + "…" || "—"} accent={COLORS.amber} />
       </div>
 
       {/* Filters */}
@@ -902,7 +934,7 @@ function WaitlistPanel() {
           </button>
         ))}
         <div style={{ marginLeft: "auto" }}>
-          <button style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>
+          <button onClick={exportCSV} style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>
             📋 Export CSV
           </button>
         </div>
@@ -917,6 +949,11 @@ function WaitlistPanel() {
         }}>
           <span>Email</span><span>Role</span><span>Signed Up</span>
         </div>
+        {filtered.length === 0 && (
+          <div style={{ padding: "24px 16px", textAlign: "center", color: COLORS.textDim, fontSize: "13px" }}>
+            No signups yet
+          </div>
+        )}
         {filtered.map((entry, i) => (
           <div key={entry.id} style={{
             display: "grid", gridTemplateColumns: "1fr 100px 180px",
@@ -929,10 +966,6 @@ function WaitlistPanel() {
           </div>
         ))}
       </div>
-
-      <p style={{ fontSize: "12px", color: COLORS.textDim, marginTop: 12, fontStyle: "italic" }}>
-        Wire to Supabase: SELECT * FROM waitlist ORDER BY created_at DESC
-      </p>
     </div>
   );
 }
