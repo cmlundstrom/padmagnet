@@ -173,12 +173,7 @@ export default function LandingPage() {
       {/* NAV */}
       <nav id="nav" className={navScrolled ? 'scrolled' : ''}>
         <a href="#" className="logo">
-          <div className="logo-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M12 2C8 2 4 5 4 10c0 7 8 12 8 12s8-5 8-12c0-5-4-8-8-8z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-          </div>
+          <img src="/logo/padmagnet-icon-120.png" alt="PadMagnet" width={38} height={38} className="logo-icon-img" />
           <span className="logo-text">PadMagnet</span>
         </a>
         <a href="#waitlist" className="nav-cta">Join Waitlist</a>
@@ -309,6 +304,7 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer>
+        <img src="/logo/padmagnet-icon-120.png" alt="PadMagnet" width={28} height={28} style={{ borderRadius: 6, marginBottom: 8 }} />
         <p>&copy; 2026 PadMagnet. Long-term rental matching for Florida&apos;s Treasure Coast.</p>
       </footer>
     </>

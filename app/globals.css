@@ -4,17 +4,17 @@
    ============================================================ */
 
 :root {
-  --coral: #F06449;
+  --coral: #E8603C;
   --coral-light: #FF8A75;
-  --coral-glow: rgba(240, 100, 73, 0.15);
-  --navy: #1B2138;
-  --navy-light: #2A3155;
-  --cream: #FFF9F5;
+  --coral-glow: rgba(232, 96, 60, 0.15);
+  --navy: #1A1A2E;
+  --navy-light: #2A2A42;
+  --cream: #FFF7F5;
   --cream-dark: #F5EDE6;
   --sage: #7EC8A0;
   --sage-light: #A8DDBF;
-  --text: #1B2138;
-  --text-muted: #6B7394;
+  --text: #1A1A2E;
+  --text-muted: #6B7280;
   --white: #FFFFFF;
   --shadow-soft: 0 4px 24px rgba(27, 33, 56, 0.08);
   --shadow-card: 0 8px 40px rgba(27, 33, 56, 0.12);
@@ -78,7 +78,11 @@ nav.scrolled {
   justify-content: center;
   color: white;
   font-size: 20px;
-  box-shadow: 0 2px 12px rgba(240, 100, 73, 0.35);
+  box-shadow: 0 2px 12px rgba(232, 96, 60, 0.35);
+}
+.logo-icon-img {
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(232, 96, 60, 0.35);
 }
 .logo-text {
   font-family: 'Outfit', sans-serif;
