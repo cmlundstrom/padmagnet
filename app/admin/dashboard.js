@@ -2116,15 +2116,13 @@ export default function PadMagnetAdmin() {
           display: "flex", alignItems: "center", gap: 10,
           cursor: "pointer",
         }} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
-          <div style={{
-            width: 32, height: 32, borderRadius: "8px",
-            background: `linear-gradient(135deg, ${COLORS.brand}, ${COLORS.blue})`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "16px", fontWeight: 900, color: "#000",
-            flexShrink: 0,
-          }}>
-            P
-          </div>
+          <img
+            src="/logo/padmagnet-icon-120.png"
+            alt="PadMagnet"
+            width={32}
+            height={32}
+            style={{ borderRadius: "8px", flexShrink: 0 }}
+          />
           {!sidebarCollapsed && (
             <div>
               <div style={{ fontSize: "15px", fontWeight: 800, color: COLORS.text, letterSpacing: "-0.02em" }}>PadMagnet</div>

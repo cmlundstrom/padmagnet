@@ -54,13 +54,13 @@ export default function AdminLoginPage() {
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: 'linear-gradient(135deg, #22d3ee, #3b82f6)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, fontWeight: 900, color: '#000',
-            marginBottom: 12,
-          }}>P</div>
+          <img
+            src="/logo/padmagnet-icon-120.png"
+            alt="PadMagnet"
+            width={48}
+            height={48}
+            style={{ borderRadius: 12, marginBottom: 12 }}
+          />
           <h1 style={{
             fontFamily: "'Outfit', sans-serif",
             fontSize: 22, fontWeight: 800, color: '#e2e8f0',
