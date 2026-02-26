@@ -1637,6 +1637,7 @@ function UsersPanel() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showInviteForm, setShowInviteForm] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -1662,6 +1663,26 @@ function UsersPanel() {
     });
     fetchUsers();
   }, [fetchUsers]);
+
+  const handleInvite = useCallback(async (values) => {
+    const res = await fetch("/api/admin/users/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: values.email, display_name: values.display_name }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(`Invite failed: ${result.error}`);
+      return;
+    }
+    setShowInviteForm(false);
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const inviteFormFields = useMemo(() => [
+    { key: "display_name", label: "First Name", type: "text", required: true, placeholder: "e.g. Sarah" },
+    { key: "email", label: "Email Address", type: "text", required: true, placeholder: "e.g. sarah@company.com" },
+  ], []);
 
   const superAdminCount = users.filter(u => u.role === "super_admin").length;
   const adminCount = users.filter(u => u.role === "admin").length;
@@ -1740,14 +1761,41 @@ function UsersPanel() {
         <StatCard label="Last Added" value={users.length > 0 ? timeAgo(users[users.length - 1]?.created_at) : "—"} sub={users[users.length - 1]?.display_name || "—"} accent={COLORS.amber} />
       </div>
 
-      <div style={{
-        padding: "10px 14px", marginBottom: 16, borderRadius: 8,
-        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-        fontSize: "13px", color: COLORS.textMuted,
-      }}>
-        Users are created via Supabase Authentication. Profiles are auto-generated for each new auth user.
-        Double-click any cell to edit. Changes are saved immediately and logged to the audit trail.
+      {/* Invite Button + Info */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <button
+          onClick={() => setShowInviteForm(!showInviteForm)}
+          style={{
+            padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+            background: showInviteForm ? COLORS.surface : COLORS.amber,
+            color: showInviteForm ? COLORS.text : "#000",
+            fontWeight: 600, fontSize: "13px",
+          }}
+        >
+          {showInviteForm ? "Cancel" : "+ Invite Admin"}
+        </button>
+        <span style={{ fontSize: "13px", color: COLORS.textMuted }}>
+          Double-click any cell to edit. Changes are saved immediately and logged to the audit trail.
+        </span>
       </div>
+
+      {/* Invite Form */}
+      {showInviteForm && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{
+            padding: "10px 14px", marginBottom: 12, borderRadius: 8,
+            background: "#1a1400", border: `1px solid ${COLORS.amber}33`,
+            fontSize: "13px", color: COLORS.amber,
+          }}>
+            An invite email will be sent. The new user will be created as a regular Admin (not Super Admin).
+          </div>
+          <AddEntryForm
+            fields={inviteFormFields}
+            onSave={handleInvite}
+            onCancel={() => setShowInviteForm(false)}
+          />
+        </div>
+      )}
 
       {/* Admin Table */}
       <AdminTable
@@ -1804,6 +1852,7 @@ function AuditLogPanel() {
     update: { bg: "#0c1e3a", text: "#60a5fa", border: "#1e40af" },
     delete: { bg: "#450a0a", text: "#f87171", border: "#991b1b" },
     reply: { bg: "#1a1040", text: "#c4b5fd", border: "#5b21b6" },
+    invite: { bg: "#052e16", text: "#4ade80", border: "#166534" },
     suppress: { bg: "#451a03", text: "#fbbf24", border: "#92400e" },
     unsuppress: { bg: "#042f2e", text: "#22d3ee", border: "#0e7490" },
   };
@@ -1825,6 +1874,7 @@ function AuditLogPanel() {
           <option value="update">Update</option>
           <option value="delete">Delete</option>
           <option value="reply">Reply</option>
+          <option value="invite">Invite</option>
           <option value="suppress">Suppress</option>
           <option value="unsuppress">Unsuppress</option>
         </select>
