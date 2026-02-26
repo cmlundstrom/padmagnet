@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowser } from "../../lib/supabase-browser";
 import AdminTable from "./components/AdminTable";
 import AddEntryForm from "./components/AddEntryForm";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -1303,6 +1305,14 @@ const NAV_ITEMS = [
 export default function PadMagnetAdmin() {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = useCallback(async () => {
+    const supabase = createSupabaseBrowser();
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+    router.refresh();
+  }, [router]);
 
   const panels = {
     overview: <OverviewPanel />,
@@ -1402,6 +1412,13 @@ export default function PadMagnetAdmin() {
           <div style={{ padding: "12px 20px", borderTop: `1px solid ${COLORS.border}`, fontSize: "11px", color: COLORS.textDim }}>
             <div>Supabase: <span style={{ color: COLORS.green }}>●</span> Connected</div>
             <div style={{ marginTop: 2 }}>v1.0 · Feb 2026</div>
+            <button onClick={handleLogout} style={{
+              ...baseButton, width: "100%", marginTop: 10,
+              background: COLORS.border, color: COLORS.textMuted,
+              fontSize: "11px", padding: "6px 0",
+            }}>
+              Sign Out
+            </button>
           </div>
         )}
       </div>
