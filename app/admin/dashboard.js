@@ -1168,7 +1168,7 @@ function BillingPanel() {
 // ── Audit Log default view ──────────────────────────────────
 // Change these anytime to set what the panel shows on load.
 const AUDIT_DEFAULTS = {
-  table: "",          // "" = all tables, or "waitlist", "listings", "idx_feeds"
+  table: "waitlist",  // "" = all tables, or "waitlist", "listings", "idx_feeds"
   action: "",         // "" = all actions, or "create", "update", "delete", "suppress", "unsuppress"
   limit: 50,          // 25, 50, or 100
 };
