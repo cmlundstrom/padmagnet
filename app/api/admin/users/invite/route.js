@@ -41,7 +41,7 @@ export async function POST(request) {
     // Send invite via Supabase Auth
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: { display_name },
-      redirectTo: 'https://padmagnet.com/auth/callback',
+      redirectTo: 'https://padmagnet.com/auth/callback?next=/admin/set-password',
     });
 
     if (error) {
