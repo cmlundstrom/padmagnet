@@ -918,8 +918,15 @@ input[type="range"]::-moz-range-thumb {
   gap: 4px;
 }
 .at-sort-arrow {
-  font-size: 9px;
+  font-size: 10px;
+  color: #475569;
+  transition: color 0.15s;
+}
+.at-sort-arrow.active {
   color: #22d3ee;
+}
+.at-th.sortable:hover .at-sort-arrow {
+  color: #94a3b8;
 }
 .at-td {
   padding: 10px 14px;

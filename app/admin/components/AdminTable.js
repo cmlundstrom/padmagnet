@@ -144,13 +144,16 @@ export default function AdminTable({
                     key={header.id}
                     className={`at-th ${header.column.getCanSort() ? 'sortable' : ''}`}
                     style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
-                    onClick={header.column.getToggleSortingHandler()}
+                    onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
                   >
                     {header.isPlaceholder ? null : (
                       <div className="at-th-content">
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === 'asc' && <span className="at-sort-arrow"> ▲</span>}
-                        {header.column.getIsSorted() === 'desc' && <span className="at-sort-arrow"> ▼</span>}
+                        {header.column.getCanSort() && (
+                          <span className={`at-sort-arrow ${header.column.getIsSorted() ? 'active' : ''}`}>
+                            {header.column.getIsSorted() === 'asc' ? ' ▲' : header.column.getIsSorted() === 'desc' ? ' ▼' : ' ⇅'}
+                          </span>
+                        )}
                       </div>
                     )}
                   </th>
