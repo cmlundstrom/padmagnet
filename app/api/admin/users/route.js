@@ -1,8 +1,25 @@
 import { createServiceClient } from '../../../../lib/supabase';
+import { createSupabaseServer } from '../../../../lib/supabase-server';
 import { writeAuditLog, writeAuditLogBatch } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+// Helper: get the requesting user's profile (role check)
+async function getRequestingUser() {
+  const authClient = createSupabaseServer();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) return null;
+
+  const supabase = createServiceClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  return profile || { id: user.id, email: user.email, role: 'admin' };
+}
 
 // GET /api/admin/users — list all profiles (or single by ?id=)
 export async function GET(request) {
@@ -40,7 +57,7 @@ export async function GET(request) {
   }
 }
 
-// PATCH /api/admin/users — update profile fields
+// PATCH /api/admin/users — update profile fields (with role guards)
 export async function PATCH(request) {
   try {
     const body = await request.json();
@@ -51,8 +68,9 @@ export async function PATCH(request) {
     }
 
     const supabase = createServiceClient();
+    const requestor = await getRequestingUser();
 
-    // Fetch current rows for audit diff
+    // Fetch target rows
     const { data: oldRows, error: fetchErr } = await supabase
       .from('profiles')
       .select('*')
@@ -60,6 +78,35 @@ export async function PATCH(request) {
 
     if (fetchErr) {
       return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+    }
+
+    // === ROLE GUARDS ===
+    const isSuperAdmin = requestor?.role === 'super_admin';
+
+    for (const target of oldRows) {
+      // Guard 1: Regular admins cannot edit super_admin profiles (except their own)
+      if (target.role === 'super_admin' && !isSuperAdmin && target.id !== requestor?.id) {
+        return NextResponse.json(
+          { error: 'Only super admins can modify super admin profiles' },
+          { status: 403 }
+        );
+      }
+
+      // Guard 2: Only super_admins can change anyone's role
+      if (changes.role && !isSuperAdmin) {
+        return NextResponse.json(
+          { error: 'Only super admins can change user roles' },
+          { status: 403 }
+        );
+      }
+
+      // Guard 3: Regular admins can only edit their own profile
+      if (!isSuperAdmin && target.id !== requestor?.id) {
+        return NextResponse.json(
+          { error: 'You can only edit your own profile' },
+          { status: 403 }
+        );
+      }
     }
 
     // Apply update
@@ -86,6 +133,7 @@ export async function PATCH(request) {
             fieldChanged: field,
             oldValue: oldVal,
             newValue: newVal,
+            adminUser: requestor?.email || 'admin',
           });
         }
       }
@@ -98,7 +146,7 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE /api/admin/users — delete profile (use with caution)
+// DELETE /api/admin/users — super_admin only
 export async function DELETE(request) {
   try {
     const body = await request.json();
@@ -108,7 +156,25 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'ids[] is required' }, { status: 400 });
     }
 
+    const requestor = await getRequestingUser();
+
+    // Only super_admins can delete profiles
+    if (requestor?.role !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Only super admins can delete user profiles' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createServiceClient();
+
+    // Prevent deleting your own profile
+    if (ids.includes(requestor.id)) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own profile' },
+        { status: 403 }
+      );
+    }
 
     // Snapshot before deletion
     const { data: rows, error: fetchErr } = await supabase
@@ -135,6 +201,7 @@ export async function DELETE(request) {
       action: 'delete',
       oldValue: JSON.stringify(row),
       metadata: { snapshot: row },
+      adminUser: requestor?.email || 'admin',
     }));
     await writeAuditLogBatch(auditEntries);
 
