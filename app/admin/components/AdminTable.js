@@ -21,6 +21,7 @@ export default function AdminTable({
   tableName,
   onSave,
   onBulkDelete,
+  onBulkClose,
   onBulkSuppress,
   onBulkUnsuppress,
   emptyMessage = 'No data',
@@ -112,6 +113,11 @@ export default function AdminTable({
       {selectedCount > 0 && (
         <div className="at-bulk-bar">
           <span className="at-bulk-count">{selectedCount} selected</span>
+          {onBulkClose && (
+            <button className="at-bulk-btn close" onClick={() => onBulkClose(selectedIds)}>
+              Close
+            </button>
+          )}
           {onBulkSuppress && (
             <button className="at-bulk-btn suppress" onClick={() => onBulkSuppress(selectedIds)}>
               Suppress
@@ -128,7 +134,7 @@ export default function AdminTable({
             </button>
           )}
           <button className="at-bulk-btn clear" onClick={() => setRowSelection({})}>
-            Clear
+            Deselect
           </button>
         </div>
       )}

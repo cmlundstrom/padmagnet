@@ -881,6 +881,7 @@ input[type="range"]::-moz-range-thumb {
   transition: opacity 0.15s;
 }
 .at-bulk-btn:hover { opacity: 0.85; }
+.at-bulk-btn.close { background: #0c1e3a; color: #60a5fa; border: 1px solid #1e40af; }
 .at-bulk-btn.suppress { background: #92400e; color: #fbbf24; }
 .at-bulk-btn.unsuppress { background: #042f2e; color: #22d3ee; }
 .at-bulk-btn.delete { background: #991b1b; color: #f87171; }

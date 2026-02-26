@@ -699,12 +699,30 @@ function SupportPanel({ onTicketChange }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAdminForm, setShowAdminForm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [replyChannel, setReplyChannel] = useState("web");
   const [replySending, setReplySending] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [adminUser, setAdminUser] = useState(null);
+
+  // Fetch admin user profile from Supabase Auth session
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      const supabase = createSupabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setAdminUser({
+          email: user.email,
+          display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "Admin",
+          phone: user.user_metadata?.phone || "",
+        });
+      }
+    };
+    fetchAdmin();
+  }, []);
 
   const channelIcons = { sms: "📱", web: "🌐", email: "📧", phone: "📞" };
   const priorityColors = { low: "gray", normal: "blue", high: "amber", urgent: "red" };
@@ -770,9 +788,25 @@ function SupportPanel({ onTicketChange }) {
     });
     if (res.ok) {
       setShowAddForm(false);
+      setShowAdminForm(false);
       fetchTickets();
     }
   }, [fetchTickets]);
+
+  // Admin quick-add: pre-fill contact from logged-in admin
+  const handleAdminTicket = useCallback(async (values) => {
+    const merged = {
+      ...values,
+      contact_name: adminUser?.display_name || "Admin",
+      contact_email: adminUser?.email || "",
+      contact_phone: adminUser?.phone || "",
+    };
+    // Default subject if empty
+    if (!merged.subject?.trim()) {
+      merged.subject = `Admin report — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    await handleAddTicket(merged);
+  }, [adminUser, handleAddTicket]);
 
   const handleSave = useCallback(async (ids, changes) => {
     await fetch("/api/admin/tickets", {
@@ -783,11 +817,16 @@ function SupportPanel({ onTicketChange }) {
     fetchTickets();
   }, [fetchTickets]);
 
+  // Close tickets (set status to closed)
+  const handleBulkClose = useCallback((ids) => {
+    handleSave(ids, { status: "closed" });
+  }, [handleSave]);
+
   const handleBulkDelete = useCallback((ids) => {
     setConfirmAction({
       type: "delete",
       ids,
-      message: `Permanently delete ${ids.length} ticket${ids.length > 1 ? "s" : ""}?`,
+      message: `You are about to delete ${ids.length} ticket${ids.length > 1 ? "s" : ""} permanently.`,
       showReason: false,
     });
   }, []);
@@ -805,9 +844,12 @@ function SupportPanel({ onTicketChange }) {
     handleSave(ids, { suppressed: false });
   }, [handleSave]);
 
-  const confirmExecute = useCallback(async (reason) => {
+  const confirmExecute = useCallback(async (action) => {
     if (!confirmAction) return;
-    if (confirmAction.type === "delete") {
+    if (action === "close") {
+      // Close instead of delete
+      await handleSave(confirmAction.ids, { status: "closed" });
+    } else if (action === "delete" || confirmAction.type === "delete") {
       await fetch("/api/admin/tickets", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -1101,33 +1143,46 @@ function SupportPanel({ onTicketChange }) {
     );
   }, [selectedTicket, messages, messagesLoading, replyText, replyChannel, replySending, handleReply]);
 
+  const categoryOptions = [
+    { value: "general", label: "General" },
+    { value: "listings", label: "Listings" },
+    { value: "access", label: "Access" },
+    { value: "billing", label: "Billing" },
+    { value: "bug", label: "Bug" },
+    { value: "privacy", label: "Privacy" },
+    { value: "unsubscribe", label: "Unsubscribe" },
+  ];
+  const channelOptions = [
+    { value: "web", label: "Web" },
+    { value: "sms", label: "SMS" },
+    { value: "email", label: "Email" },
+    { value: "phone", label: "Phone" },
+  ];
+  const priorityOptions = [
+    { value: "low", label: "Low" },
+    { value: "normal", label: "Normal" },
+    { value: "high", label: "High" },
+    { value: "urgent", label: "Urgent" },
+  ];
+
   const addFormFields = [
     { key: "subject", label: "Subject", type: "text", placeholder: "Brief description of the issue", required: true },
     { key: "contact_name", label: "Contact Name", type: "text", placeholder: "Customer name" },
     { key: "contact_email", label: "Contact Email", type: "email", placeholder: "customer@example.com" },
     { key: "contact_phone", label: "Contact Phone", type: "text", placeholder: "+1 (555) 000-0000" },
-    { key: "channel", label: "Channel", type: "select", options: [
-      { value: "web", label: "Web" },
-      { value: "sms", label: "SMS" },
-      { value: "email", label: "Email" },
-      { value: "phone", label: "Phone" },
-    ]},
-    { key: "category", label: "Category", type: "select", options: [
-      { value: "general", label: "General" },
-      { value: "listings", label: "Listings" },
-      { value: "access", label: "Access" },
-      { value: "billing", label: "Billing" },
-      { value: "bug", label: "Bug" },
-      { value: "privacy", label: "Privacy" },
-      { value: "unsubscribe", label: "Unsubscribe" },
-    ]},
-    { key: "priority", label: "Priority", type: "select", options: [
-      { value: "low", label: "Low" },
-      { value: "normal", label: "Normal" },
-      { value: "high", label: "High" },
-      { value: "urgent", label: "Urgent" },
-    ]},
+    { key: "channel", label: "Channel", type: "select", options: channelOptions },
+    { key: "category", label: "Category", type: "select", options: categoryOptions },
+    { key: "priority", label: "Priority", type: "select", options: priorityOptions },
     { key: "body", label: "Initial Message", type: "textarea", placeholder: "Describe the issue…" },
+  ];
+
+  // Admin quick-add form — fewer fields, contact auto-filled
+  const adminFormFields = [
+    { key: "subject", label: "Subject", type: "text", placeholder: "Quick bug note (optional — auto-generates if blank)" },
+    { key: "category", label: "Category", type: "select", defaultValue: "bug", options: categoryOptions },
+    { key: "priority", label: "Priority", type: "select", defaultValue: "normal", options: priorityOptions },
+    { key: "channel", label: "Channel", type: "select", defaultValue: "web", options: channelOptions },
+    { key: "body", label: "Details", type: "textarea", placeholder: "What did you find? (optional)" },
   ];
 
   return (
@@ -1156,7 +1211,12 @@ function SupportPanel({ onTicketChange }) {
           </button>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={() => setShowAddForm(!showAddForm)} style={{
+          <button onClick={() => { setShowAdminForm(!showAdminForm); setShowAddForm(false); }} style={{
+            ...baseButton, background: COLORS.amber + "22", color: COLORS.amber, border: `1px solid ${COLORS.amber}44`, fontWeight: 700,
+          }}>
+            + Admin Ticket
+          </button>
+          <button onClick={() => { setShowAddForm(!showAddForm); setShowAdminForm(false); }} style={{
             ...baseButton, background: COLORS.brand, color: "#000", fontWeight: 700,
           }}>
             + New Ticket
@@ -1167,7 +1227,25 @@ function SupportPanel({ onTicketChange }) {
         </div>
       </div>
 
-      {/* Add Entry Form */}
+      {/* Admin Quick-Add Form */}
+      {showAdminForm && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{
+            padding: "8px 14px", marginBottom: 0, borderRadius: "8px 8px 0 0",
+            background: COLORS.amber + "12", border: `1px solid ${COLORS.amber}33`, borderBottom: "none",
+            fontSize: "12px", color: COLORS.amber, fontWeight: 600,
+          }}>
+            Filing as: {adminUser?.display_name || "Admin"} ({adminUser?.email || "—"})
+          </div>
+          <AddEntryForm
+            fields={adminFormFields}
+            onSave={handleAdminTicket}
+            onCancel={() => setShowAdminForm(false)}
+          />
+        </div>
+      )}
+
+      {/* Add Entry Form (full) */}
       {showAddForm && (
         <AddEntryForm
           fields={addFormFields}
@@ -1185,18 +1263,46 @@ function SupportPanel({ onTicketChange }) {
         tableName="tickets"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
+        onBulkClose={handleBulkClose}
         onBulkSuppress={handleBulkSuppress}
         onBulkUnsuppress={handleBulkUnsuppress}
         emptyMessage="No tickets yet — create one with the + New Ticket button above"
         renderExpandedRow={renderExpandedRow}
       />
 
-      {/* Confirm Dialog */}
-      {confirmAction && (
+      {/* Ticket Confirm Dialog — custom with Close + Delete options */}
+      {confirmAction && confirmAction.type === "delete" && (
+        <div className="confirm-overlay" onClick={() => setConfirmAction(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+            <p className="confirm-message">{confirmAction.message}</p>
+            <p style={{ fontSize: "13px", color: COLORS.textMuted, lineHeight: 1.6, margin: "0 0 16px" }}>
+              Closing is recommended over deleting. Closed tickets remain in your history
+              for tracking bugs and issues resolved over time. Deletion is permanent and
+              cannot be undone.
+            </p>
+            <div className="confirm-actions" style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="confirm-btn cancel" onClick={() => setConfirmAction(null)}>Cancel</button>
+              <button
+                className="confirm-btn"
+                style={{ background: COLORS.brand + "22", color: COLORS.brand, border: `1px solid ${COLORS.brand}44` }}
+                onClick={() => confirmExecute("close")}
+              >
+                Close Ticket{confirmAction.ids.length > 1 ? "s" : ""}
+              </button>
+              <button className="confirm-btn confirm" onClick={() => confirmExecute("delete")}>
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suppress Confirm Dialog — uses standard ConfirmDialog */}
+      {confirmAction && confirmAction.type === "suppress" && (
         <ConfirmDialog
           message={confirmAction.message}
           showReason={confirmAction.showReason}
-          onConfirm={confirmExecute}
+          onConfirm={(reason) => { handleSave(confirmAction.ids, { suppressed: true }); setConfirmAction(null); fetchTickets(); }}
           onCancel={() => setConfirmAction(null)}
         />
       )}
