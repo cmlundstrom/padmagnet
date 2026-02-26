@@ -1165,12 +1165,21 @@ function BillingPanel() {
 // ============================================================
 // AUDIT LOG PANEL
 // ============================================================
+// ── Audit Log default view ──────────────────────────────────
+// Change these anytime to set what the panel shows on load.
+const AUDIT_DEFAULTS = {
+  table: "",          // "" = all tables, or "waitlist", "listings", "idx_feeds"
+  action: "",         // "" = all actions, or "create", "update", "delete", "suppress", "unsuppress"
+  limit: 50,          // 25, 50, or 100
+};
+// ────────────────────────────────────────────────────────────
+
 function AuditLogPanel() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tableFilter, setTableFilter] = useState("");
-  const [actionFilter, setActionFilter] = useState("");
-  const [limit, setLimit] = useState(50);
+  const [tableFilter, setTableFilter] = useState(AUDIT_DEFAULTS.table);
+  const [actionFilter, setActionFilter] = useState(AUDIT_DEFAULTS.action);
+  const [limit, setLimit] = useState(AUDIT_DEFAULTS.limit);
 
   const fetchAuditLog = useCallback(async () => {
     setLoading(true);
