@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function AddEntryForm({ fields, onSave, onCancel }) {
+export default function AddEntryForm({ fields, onSave, onCancel, submitLabel = 'Save', savingLabel = 'Saving…' }) {
   const [values, setValues] = useState(() => {
     const initial = {};
     fields.forEach(f => { initial[f.key] = f.defaultValue || ''; });
@@ -67,7 +67,7 @@ export default function AddEntryForm({ fields, onSave, onCancel }) {
       </div>
       <div className="add-entry-actions">
         <button type="submit" className="add-entry-btn save" disabled={saving}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? savingLabel : submitLabel}
         </button>
         <button type="button" className="add-entry-btn cancel" onClick={onCancel}>Cancel</button>
       </div>

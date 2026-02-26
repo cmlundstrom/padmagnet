@@ -51,7 +51,25 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    // Enrich with auth status (last_sign_in_at, invited_at)
+    const { data: authData } = await supabase.auth.admin.listUsers();
+    const authMap = {};
+    if (authData?.users) {
+      for (const u of authData.users) {
+        authMap[u.id] = {
+          last_sign_in_at: u.last_sign_in_at || null,
+          invited_at: u.invited_at || null,
+          email_confirmed_at: u.email_confirmed_at || null,
+        };
+      }
+    }
+
+    const enriched = data.map(profile => ({
+      ...profile,
+      auth_status: authMap[profile.id] || null,
+    }));
+
+    return NextResponse.json(enriched);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -186,13 +204,12 @@ export async function DELETE(request) {
       return NextResponse.json({ error: fetchErr.message }, { status: 500 });
     }
 
-    const { error: deleteErr } = await supabase
-      .from('profiles')
-      .delete()
-      .in('id', ids);
-
-    if (deleteErr) {
-      return NextResponse.json({ error: deleteErr.message }, { status: 500 });
+    // Delete auth users first (this cascades to profiles via FK)
+    for (const id of ids) {
+      const { error: authErr } = await supabase.auth.admin.deleteUser(id);
+      if (authErr) {
+        return NextResponse.json({ error: `Failed to delete auth user: ${authErr.message}` }, { status: 500 });
+      }
     }
 
     const auditEntries = rows.map(row => ({
