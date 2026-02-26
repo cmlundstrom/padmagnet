@@ -705,160 +705,479 @@ function ListingsPanel() {
 }
 
 // ============================================================
-// SUPPORT PANEL
+// SUPPORT PANEL (CRUD-enabled with AdminTable)
 // ============================================================
 function SupportPanel() {
+  const [tickets, setTickets] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("open");
   const [replyText, setReplyText] = useState("");
+  const [replyChannel, setReplyChannel] = useState("web");
+  const [replySending, setReplySending] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
-  const filtered = DEMO_TICKETS.filter(t => statusFilter === "all" || t.status === statusFilter);
+  const channelIcons = { sms: "📱", web: "🌐", email: "📧", phone: "📞" };
   const priorityColors = { low: "gray", normal: "blue", high: "amber", urgent: "red" };
-  const channelIcons = { sms: "📱", web: "🌐", email: "📧", system: "⚙️" };
+  const statusColors = { open: "green", in_progress: "cyan", resolved: "blue", closed: "gray" };
+  const categoryColors = { general: "gray", listings: "blue", access: "cyan", billing: "purple", bug: "red", privacy: "amber", unsubscribe: "amber" };
 
-  return (
-    <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
-      {/* Ticket List */}
-      <div style={{ flex: "0 0 380px" }}>
-        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {["open", "pending", "closed", "all"].map(s => (
-            <button key={s} onClick={() => { setStatusFilter(s); setSelectedTicket(null); }} style={{
-              ...baseButton, fontSize: "11px", padding: "4px 10px",
-              background: statusFilter === s ? COLORS.brand + "22" : "transparent",
-              color: statusFilter === s ? COLORS.brand : COLORS.textDim,
-              border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : "transparent"}`,
-            }}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-              <span style={{ marginLeft: 4, opacity: 0.6 }}>
-                {DEMO_TICKETS.filter(t => s === "all" || t.status === s).length}
+  const fetchTickets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/tickets");
+      if (!res.ok) throw new Error("Failed to load tickets");
+      const data = await res.json();
+      setTickets(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+
+  const fetchMessages = useCallback(async (ticketId) => {
+    setMessagesLoading(true);
+    try {
+      const res = await fetch(`/api/admin/tickets/messages?ticket_id=${ticketId}`);
+      if (res.ok) setMessages(await res.json());
+    } catch {
+      // silent
+    }
+    setMessagesLoading(false);
+  }, []);
+
+  // When a ticket is selected, load its messages
+  useEffect(() => {
+    if (selectedTicket) {
+      fetchMessages(selectedTicket);
+      setReplyText("");
+    } else {
+      setMessages([]);
+    }
+  }, [selectedTicket, fetchMessages]);
+
+  const filtered = useMemo(() => {
+    return tickets.filter(t => {
+      if (statusFilter !== "all" && t.status !== statusFilter) return false;
+      return true;
+    });
+  }, [tickets, statusFilter]);
+
+  const openCount = tickets.filter(t => t.status === "open").length;
+  const inProgressCount = tickets.filter(t => t.status === "in_progress").length;
+  const resolvedCount = tickets.filter(t => t.status === "resolved").length;
+  const smsCount = tickets.filter(t => t.channel === "sms").length;
+
+  // CRUD handlers
+  const handleAddTicket = useCallback(async (values) => {
+    const res = await fetch("/api/admin/tickets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (res.ok) {
+      setShowAddForm(false);
+      fetchTickets();
+    }
+  }, [fetchTickets]);
+
+  const handleSave = useCallback(async (ids, changes) => {
+    await fetch("/api/admin/tickets", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, changes }),
+    });
+    fetchTickets();
+  }, [fetchTickets]);
+
+  const handleBulkDelete = useCallback((ids) => {
+    setConfirmAction({
+      type: "delete",
+      ids,
+      message: `Permanently delete ${ids.length} ticket${ids.length > 1 ? "s" : ""}?`,
+      showReason: false,
+    });
+  }, []);
+
+  const handleBulkSuppress = useCallback((ids) => {
+    setConfirmAction({
+      type: "suppress",
+      ids,
+      message: `Suppress ${ids.length} ticket${ids.length > 1 ? "s" : ""}?`,
+      showReason: true,
+    });
+  }, []);
+
+  const handleBulkUnsuppress = useCallback((ids) => {
+    handleSave(ids, { suppressed: false });
+  }, [handleSave]);
+
+  const confirmExecute = useCallback(async (reason) => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "delete") {
+      await fetch("/api/admin/tickets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: confirmAction.ids }),
+      });
+    } else if (confirmAction.type === "suppress") {
+      await handleSave(confirmAction.ids, { suppressed: true });
+    }
+    setConfirmAction(null);
+    fetchTickets();
+  }, [confirmAction, handleSave, fetchTickets]);
+
+  const handleReply = useCallback(async () => {
+    if (!selectedTicket || !replyText.trim()) return;
+    setReplySending(true);
+    const res = await fetch("/api/admin/tickets/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ticket_id: selectedTicket,
+        body: replyText.trim(),
+        channel: replyChannel,
+      }),
+    });
+    if (res.ok) {
+      setReplyText("");
+      fetchMessages(selectedTicket);
+      fetchTickets(); // refresh updated_at
+    }
+    setReplySending(false);
+  }, [selectedTicket, replyText, replyChannel, fetchMessages, fetchTickets]);
+
+  const handleExportCSV = useCallback(() => {
+    const cols = [
+      { accessorKey: "subject", header: "Subject" },
+      { accessorKey: "status", header: "Status" },
+      { accessorKey: "priority", header: "Priority" },
+      { accessorKey: "channel", header: "Channel" },
+      { accessorKey: "category", header: "Category" },
+      { accessorKey: "contact_name", header: "Contact Name" },
+      { accessorKey: "contact_email", header: "Contact Email" },
+      { accessorKey: "contact_phone", header: "Contact Phone" },
+      { accessorKey: "assignee", header: "Assignee" },
+      { accessorKey: "created_at", header: "Created" },
+    ];
+    exportCSV(cols, filtered, `padmagnet-tickets-${new Date().toISOString().slice(0, 10)}.csv`);
+  }, [filtered]);
+
+  // Column defs for AdminTable
+  const columns = useMemo(() => [
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        const label = v === "in_progress" ? "In Progress" : v.charAt(0).toUpperCase() + v.slice(1);
+        return <Badge color={statusColors[v] || "gray"}>{label}</Badge>;
+      },
+      size: 110,
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={priorityColors[v] || "blue"}>{v}</Badge>;
+      },
+      size: 90,
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "subject",
+      header: "Subject",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600 }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "contact_name",
+      header: "Contact",
+      cell: ({ getValue, row }) => {
+        const name = getValue();
+        const email = row.original.contact_email;
+        const phone = row.original.contact_phone;
+        return (
+          <span>
+            <span style={{ fontWeight: 500 }}>{name || "—"}</span>
+            {(email || phone) && (
+              <span style={{ fontSize: "11px", color: COLORS.textDim, display: "block" }}>
+                {email || phone}
               </span>
-            </button>
-          ))}
+            )}
+          </span>
+        );
+      },
+      size: 160,
+    },
+    {
+      accessorKey: "channel",
+      header: "Channel",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return (
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span>{channelIcons[v] || "🌐"}</span>
+            <span style={{ fontSize: "11px", textTransform: "uppercase", color: COLORS.textMuted }}>{v}</span>
+          </span>
+        );
+      },
+      size: 90,
+    },
+    {
+      accessorKey: "category",
+      header: "Category",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={categoryColors[v] || "gray"}>{v}</Badge>;
+      },
+      size: 110,
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "assignee",
+      header: "Assignee",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: getValue() ? COLORS.text : COLORS.textDim }}>
+          {getValue() || "Unassigned"}
+        </span>
+      ),
+      size: 110,
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{timeAgo(getValue())}</span>
+      ),
+      size: 100,
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Updated",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{timeAgo(getValue())}</span>
+      ),
+      size: 100,
+    },
+  ], []);
+
+  // Custom expanded row: ticket thread view
+  const renderExpandedRow = useCallback((ticket) => {
+    const isSelected = selectedTicket === ticket.id;
+    if (!isSelected) {
+      // Auto-select on first expansion
+      setSelectedTicket(ticket.id);
+    }
+    const ticketMessages = isSelected ? messages : [];
+    const isLoading = isSelected && messagesLoading;
+
+    return (
+      <div className="ticket-expanded">
+        {/* Thread Header */}
+        <div className="ticket-thread-header">
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: COLORS.text }}>{ticket.subject}</div>
+            <div style={{ fontSize: "12px", color: COLORS.textDim, marginTop: 2 }}>
+              {ticket.contact_name || "Unknown"} · {ticket.contact_email || ticket.contact_phone || "No contact"} · {(ticket.channel || "web").toUpperCase()}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <Badge color={statusColors[ticket.status] || "gray"}>
+              {ticket.status === "in_progress" ? "In Progress" : ticket.status}
+            </Badge>
+            <Badge color={priorityColors[ticket.priority] || "blue"}>{ticket.priority}</Badge>
+          </div>
         </div>
 
-        {filtered.map(ticket => (
-          <div key={ticket.id} onClick={() => setSelectedTicket(ticket.id)} style={{
-            padding: "12px 14px", borderRadius: "8px", marginBottom: 6, cursor: "pointer",
-            background: selectedTicket === ticket.id ? COLORS.surfaceHover : COLORS.surface,
-            border: `1px solid ${selectedTicket === ticket.id ? COLORS.brand + "33" : COLORS.border}`,
-            transition: "all 0.1s",
+        {/* Messages */}
+        <div className="ticket-thread">
+          {isLoading ? (
+            <div style={{ padding: 20, textAlign: "center", color: COLORS.textDim }}>Loading messages…</div>
+          ) : ticketMessages.length === 0 ? (
+            <div style={{ padding: 20, textAlign: "center", color: COLORS.textDim }}>No messages yet</div>
+          ) : (
+            ticketMessages.map(msg => (
+              <div key={msg.id} className={`ticket-message ${msg.direction}`}>
+                <div className="ticket-message-bubble">
+                  <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: 1.5 }}>{msg.body}</div>
+                  <div className="ticket-message-meta">
+                    <span>{msg.sender_name || (msg.direction === "outbound" ? "Agent" : "Customer")}</span>
+                    <span>{(msg.channel || "web").toUpperCase()}</span>
+                    <span>{formatDate(msg.created_at)}</span>
+                    {msg.direction === "outbound" && (
+                      <span style={{ color: msg.delivery_status === "delivered" ? COLORS.green : COLORS.amber }}>
+                        {msg.delivery_status === "delivered" ? "✓✓" : "✓"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Reply Box */}
+        <div className="ticket-reply-box">
+          <div style={{ display: "flex", gap: 8 }}>
+            <select
+              value={replyChannel}
+              onChange={e => setReplyChannel(e.target.value)}
+              style={{
+                padding: "6px 8px", background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+                borderRadius: 6, color: COLORS.brand, fontSize: "12px", fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              <option value="web">🌐 Web</option>
+              <option value="sms">📱 SMS</option>
+              <option value="email">📧 Email</option>
+            </select>
+            <input
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              placeholder="Type your reply…"
+              onKeyDown={e => { if (e.key === "Enter" && replyText.trim() && !replySending) handleReply(); }}
+              style={{
+                flex: 1, padding: "8px 14px", background: COLORS.bg,
+                border: `1px solid ${COLORS.border}`, borderRadius: "6px",
+                color: COLORS.text, fontSize: "13px", outline: "none",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            />
+            <button
+              onClick={handleReply}
+              disabled={replySending || !replyText.trim()}
+              style={{
+                ...baseButton,
+                background: replySending || !replyText.trim() ? COLORS.border : COLORS.brand,
+                color: replySending || !replyText.trim() ? COLORS.textDim : "#000",
+                fontWeight: 700,
+              }}
+            >
+              {replySending ? "Sending…" : "Send"}
+            </button>
+          </div>
+          {replyChannel === "sms" && replyText.length > 0 && (
+            <div style={{ fontSize: "11px", color: replyText.length > 160 ? COLORS.amber : COLORS.textDim, marginTop: 4 }}>
+              {replyText.length}/160 chars {replyText.length > 160 && `(${Math.ceil(replyText.length / 160)} SMS segments)`}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }, [selectedTicket, messages, messagesLoading, replyText, replyChannel, replySending, handleReply]);
+
+  const addFormFields = [
+    { key: "subject", label: "Subject", type: "text", placeholder: "Brief description of the issue", required: true },
+    { key: "contact_name", label: "Contact Name", type: "text", placeholder: "Customer name" },
+    { key: "contact_email", label: "Contact Email", type: "email", placeholder: "customer@example.com" },
+    { key: "contact_phone", label: "Contact Phone", type: "text", placeholder: "+1 (555) 000-0000" },
+    { key: "channel", label: "Channel", type: "select", options: [
+      { value: "web", label: "Web" },
+      { value: "sms", label: "SMS" },
+      { value: "email", label: "Email" },
+      { value: "phone", label: "Phone" },
+    ]},
+    { key: "category", label: "Category", type: "select", options: [
+      { value: "general", label: "General" },
+      { value: "listings", label: "Listings" },
+      { value: "access", label: "Access" },
+      { value: "billing", label: "Billing" },
+      { value: "bug", label: "Bug" },
+      { value: "privacy", label: "Privacy" },
+      { value: "unsubscribe", label: "Unsubscribe" },
+    ]},
+    { key: "priority", label: "Priority", type: "select", options: [
+      { value: "low", label: "Low" },
+      { value: "normal", label: "Normal" },
+      { value: "high", label: "High" },
+      { value: "urgent", label: "Urgent" },
+    ]},
+    { key: "body", label: "Initial Message", type: "textarea", placeholder: "Describe the issue…" },
+  ];
+
+  return (
+    <div>
+      {/* Stat Cards */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+        <StatCard label="Open Tickets" value={openCount} sub={`${tickets.length} total`} accent={COLORS.green} />
+        <StatCard label="In Progress" value={inProgressCount} sub="Being worked on" accent={COLORS.brand} />
+        <StatCard label="Resolved" value={resolvedCount} sub="Completed" accent={COLORS.blue} />
+        <StatCard label="SMS Tickets" value={smsCount} sub={`${tickets.length > 0 ? Math.round(smsCount / tickets.length * 100) : 0}% of total`} accent={COLORS.amber} />
+      </div>
+
+      {/* Filters & Actions Bar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+        {["all", "open", "in_progress", "resolved", "closed"].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={{
+            ...baseButton,
+            background: statusFilter === s ? COLORS.brand + "22" : COLORS.surface,
+            color: statusFilter === s ? COLORS.brand : COLORS.textMuted,
+            border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : COLORS.border}`,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: "14px" }}>{channelIcons[ticket.origin_channel]}</span>
-              <Badge color={priorityColors[ticket.priority]}>{ticket.priority}</Badge>
-              <Badge color="gray">{ticket.category}</Badge>
-              <span style={{ marginLeft: "auto", fontSize: "11px", color: COLORS.textDim }}>{timeAgo(ticket.last_message_at)}</span>
-            </div>
-            <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600, marginBottom: 2 }}>{ticket.subject}</div>
-            <div style={{ fontSize: "12px", color: COLORS.textDim }}>
-              {ticket.participant_name} · {ticket.participant_type} · {ticket.message_count} messages
-            </div>
-          </div>
+            {s === "all" ? "All" : s === "in_progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
+            <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>
+              {s === "all" ? tickets.length : tickets.filter(t => t.status === s).length}
+            </span>
+          </button>
         ))}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <button onClick={() => setShowAddForm(!showAddForm)} style={{
+            ...baseButton, background: COLORS.brand, color: "#000", fontWeight: 700,
+          }}>
+            + New Ticket
+          </button>
+          <button onClick={handleExportCSV} style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>
+            Export CSV
+          </button>
+        </div>
       </div>
 
-      {/* Thread View */}
-      <div style={{ flex: 1, background: COLORS.surface, borderRadius: "10px", border: `1px solid ${COLORS.border}`, display: "flex", flexDirection: "column" }}>
-        {!selectedTicket ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.textDim }}>
-            Select a ticket to view the conversation
-          </div>
-        ) : (() => {
-          const ticket = DEMO_TICKETS.find(t => t.id === selectedTicket);
-          const messages = DEMO_MESSAGES[selectedTicket] || [];
-          return (
-            <>
-              {/* Thread Header */}
-              <div style={{ padding: "14px 18px", borderBottom: `1px solid ${COLORS.border}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: "15px", color: COLORS.text }}>{ticket.subject}</h3>
-                    <div style={{ fontSize: "12px", color: COLORS.textDim, marginTop: 2 }}>
-                      {ticket.participant_name} · {ticket.participant_phone} · {ticket.origin_channel.toUpperCase()}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <select style={{
-                      padding: "4px 8px", background: COLORS.bg, border: `1px solid ${COLORS.border}`,
-                      borderRadius: 4, color: COLORS.text, fontSize: "12px", fontFamily: "'DM Sans', sans-serif",
-                    }}>
-                      <option>Open</option><option>Pending</option><option>Closed</option>
-                    </select>
-                    <select style={{
-                      padding: "4px 8px", background: COLORS.bg, border: `1px solid ${COLORS.border}`,
-                      borderRadius: 4, color: COLORS.text, fontSize: "12px", fontFamily: "'DM Sans', sans-serif",
-                    }}>
-                      <option>Normal</option><option>High</option><option>Urgent</option><option>Low</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+      {/* Add Entry Form */}
+      {showAddForm && (
+        <AddEntryForm
+          fields={addFormFields}
+          onSave={handleAddTicket}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
 
-              {/* Messages */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
-                {messages.map(msg => (
-                  <div key={msg.id} style={{
-                    display: "flex",
-                    justifyContent: msg.direction === "outbound" ? "flex-end" : "flex-start",
-                    marginBottom: 12,
-                  }}>
-                    <div style={{
-                      maxWidth: "75%", padding: "10px 14px", borderRadius: "12px",
-                      background: msg.direction === "outbound" ? COLORS.brand + "22" : COLORS.bg,
-                      border: `1px solid ${msg.direction === "outbound" ? COLORS.brand + "33" : COLORS.border}`,
-                    }}>
-                      <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: 1.5 }}>{msg.body}</div>
-                      <div style={{ display: "flex", gap: 8, marginTop: 6, justifyContent: "flex-end" }}>
-                        <span style={{ fontSize: "10px", color: COLORS.textDim }}>{msg.channel.toUpperCase()}</span>
-                        <span style={{ fontSize: "10px", color: COLORS.textDim }}>{formatDate(msg.created_at)}</span>
-                        {msg.direction === "outbound" && (
-                          <span style={{ fontSize: "10px", color: msg.delivery_status === "delivered" ? COLORS.green : COLORS.amber }}>
-                            {msg.delivery_status === "delivered" ? "✓✓" : "✓"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Admin Table */}
+      <AdminTable
+        columns={columns}
+        data={filtered}
+        loading={loading}
+        error={error}
+        tableName="tickets"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        onBulkSuppress={handleBulkSuppress}
+        onBulkUnsuppress={handleBulkUnsuppress}
+        emptyMessage="No tickets yet — create one with the + New Ticket button above"
+        renderExpandedRow={renderExpandedRow}
+      />
 
-              {/* Reply */}
-              <div style={{ padding: "12px 18px", borderTop: `1px solid ${COLORS.border}` }}>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 4, padding: "0 8px",
-                    background: COLORS.bg, borderRadius: 6, border: `1px solid ${COLORS.border}`,
-                    fontSize: "12px", color: COLORS.brand,
-                  }}>
-                    📱 SMS
-                  </div>
-                  <input
-                    value={replyText} onChange={e => setReplyText(e.target.value)}
-                    placeholder="Type your reply…"
-                    onKeyDown={e => { if (e.key === "Enter" && replyText.trim()) { setReplyText(""); } }}
-                    style={{
-                      flex: 1, padding: "8px 14px", background: COLORS.bg,
-                      border: `1px solid ${COLORS.border}`, borderRadius: "6px",
-                      color: COLORS.text, fontSize: "13px", outline: "none",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  />
-                  <button onClick={() => setReplyText("")} style={{
-                    ...baseButton, background: COLORS.brand, color: "#000", fontWeight: 700,
-                  }}>
-                    Send
-                  </button>
-                </div>
-                {replyText.length > 0 && (
-                  <div style={{ fontSize: "11px", color: replyText.length > 160 ? COLORS.amber : COLORS.textDim, marginTop: 4 }}>
-                    {replyText.length}/160 chars {replyText.length > 160 && `(${Math.ceil(replyText.length / 160)} SMS segments)`}
-                  </div>
-                )}
-              </div>
-            </>
-          );
-        })()}
-      </div>
+      {/* Confirm Dialog */}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          showReason={confirmAction.showReason}
+          onConfirm={confirmExecute}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1214,6 +1533,7 @@ function AuditLogPanel() {
         <select className="audit-panel-select" value={tableFilter} onChange={e => setTableFilter(e.target.value)}>
           <option value="">All Tables</option>
           <option value="waitlist">Waitlist</option>
+          <option value="tickets">Tickets</option>
           <option value="listings">Listings</option>
           <option value="idx_feeds">IDX Feeds</option>
         </select>
@@ -1222,6 +1542,7 @@ function AuditLogPanel() {
           <option value="create">Create</option>
           <option value="update">Update</option>
           <option value="delete">Delete</option>
+          <option value="reply">Reply</option>
           <option value="suppress">Suppress</option>
           <option value="unsuppress">Unsuppress</option>
         </select>
