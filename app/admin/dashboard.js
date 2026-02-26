@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../../lib/supabase";
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  PADMAGNET ADMIN DASHBOARD v1                                   ║
@@ -869,15 +868,13 @@ function WaitlistPanel() {
   useEffect(() => {
     async function fetchWaitlist() {
       setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from("waitlist")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (fetchError) {
-        setError(fetchError.message);
-      } else {
-        setEntries(data || []);
+      try {
+        const res = await fetch("/api/admin/waitlist");
+        if (!res.ok) throw new Error("Failed to load waitlist");
+        const data = await res.json();
+        setEntries(data);
+      } catch (err) {
+        setError(err.message);
       }
       setLoading(false);
     }
