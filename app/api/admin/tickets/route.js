@@ -173,7 +173,7 @@ export async function PATCH(request) {
           auditEntries.push({
             tableName: 'tickets',
             rowId: oldRow.id,
-            action: field === 'status' ? `status_${newVal}` : 'update',
+            action: 'update',
             fieldChanged: field,
             oldValue: oldVal,
             newValue: newVal,

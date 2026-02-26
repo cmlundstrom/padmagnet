@@ -181,18 +181,45 @@ export default function AdminTable({
                       return (
                         <td key={cell.id} className="at-td">
                           {isEditing ? (
-                            <input
-                              className="at-edit-input"
-                              value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              onBlur={commitEdit}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') commitEdit();
-                                if (e.key === 'Escape') cancelEdit();
-                              }}
-                              autoFocus
-                              onClick={e => e.stopPropagation()}
-                            />
+                            cell.column.columnDef.meta?.editOptions ? (
+                              <select
+                                className="at-edit-input"
+                                value={editValue}
+                                onChange={e => {
+                                  setEditValue(e.target.value);
+                                  // Auto-commit on select change
+                                  const newVal = e.target.value;
+                                  if (editingCell && onSave) {
+                                    onSave([editingCell.rowId], { [editingCell.columnId]: newVal });
+                                    setEditingCell(null);
+                                    setEditValue('');
+                                  }
+                                }}
+                                onBlur={cancelEdit}
+                                onKeyDown={e => {
+                                  if (e.key === 'Escape') cancelEdit();
+                                }}
+                                autoFocus
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {cell.column.columnDef.meta.editOptions.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                className="at-edit-input"
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onBlur={commitEdit}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') commitEdit();
+                                  if (e.key === 'Escape') cancelEdit();
+                                }}
+                                autoFocus
+                                onClick={e => e.stopPropagation()}
+                              />
+                            )
                           ) : (
                             <span
                               className={isEditable ? 'at-editable-cell' : ''}

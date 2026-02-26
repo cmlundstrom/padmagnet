@@ -44,21 +44,6 @@ const DEMO_LISTINGS = [
   { id: "p5", mls_number: "RX-10995500", address_line1: "777 NE Dixie Hwy", city: "Stuart", state: "FL", zip: "34994", property_type: "apartment", rent_amount: 1500, beds: 1, baths: 1, sqft: 650, display_status: "suppressed", quality_score: 28, days_on_market: 95, pet_policy: "not_allowed", fenced_yard: false, list_date: "2025-11-22", suppressed_reason: "Photos missing, stale listing" },
 ];
 
-const DEMO_TICKETS = [
-  { id: "t1", status: "open", priority: "high", category: "listings", origin_channel: "sms", subject: "Photos not showing on my listing", market_state: "FL", created_at: "2026-02-25T10:15:00Z", last_message_at: "2026-02-25T14:02:00Z", participant_name: "Maria G.", participant_phone: "+17725551234", participant_type: "landlord", message_count: 4 },
-  { id: "t2", status: "open", priority: "normal", category: "access", origin_channel: "sms", subject: "Can't log into my account", market_state: "FL", created_at: "2026-02-25T11:30:00Z", last_message_at: "2026-02-25T13:45:00Z", participant_name: "James T.", participant_phone: "+15615559876", participant_type: "tenant", message_count: 2 },
-  { id: "t3", status: "pending", priority: "normal", category: "billing", origin_channel: "web", subject: "When does my free trial end?", market_state: "FL", created_at: "2026-02-24T16:00:00Z", last_message_at: "2026-02-24T16:30:00Z", participant_name: "Sarah K.", participant_phone: "+17725553456", participant_type: "landlord", message_count: 3 },
-  { id: "t4", status: "closed", priority: "low", category: "bug", origin_channel: "sms", subject: "App crashed when swiping", market_state: "FL", created_at: "2026-02-23T09:00:00Z", last_message_at: "2026-02-23T11:00:00Z", participant_name: "Carlos M.", participant_phone: "+15615557890", participant_type: "tenant", message_count: 5 },
-];
-
-const DEMO_MESSAGES = {
-  t1: [
-    { id: "m1", direction: "inbound", channel: "sms", body: "Hi I just listed my property on PadMagnet but the photos aren't showing up. MLS# RX-10998455", delivery_status: "delivered", created_at: "2026-02-25T10:15:00Z" },
-    { id: "m2", direction: "outbound", channel: "sms", body: "Hi Maria! Thanks for reaching out. Let me check on that listing for you right now.", delivery_status: "delivered", created_at: "2026-02-25T10:18:00Z" },
-    { id: "m3", direction: "outbound", channel: "sms", body: "I see the issue — the MLS photo sync had a partial failure on your listing. I've triggered a manual re-sync. Photos should appear within 15 minutes.", delivery_status: "delivered", created_at: "2026-02-25T10:25:00Z" },
-    { id: "m4", direction: "inbound", channel: "sms", body: "Still no photos showing. Can you check again?", delivery_status: "delivered", created_at: "2026-02-25T14:02:00Z" },
-  ],
-};
 
 const DEFAULT_PADSCORE = {
   budget_over: { enabled: true, weight: 35, label: "Over Budget", desc: "Penalty when rent exceeds tenant max" },
@@ -169,10 +154,10 @@ function formatDate(dateStr) {
 // ============================================================
 // OVERVIEW PANEL
 // ============================================================
-function OverviewPanel() {
+function OverviewPanel({ openTicketCount = 0 }) {
   const activeListings = DEMO_LISTINGS.filter(l => l.display_status === "active").length;
   const reviewListings = DEMO_LISTINGS.filter(l => l.display_status === "review").length;
-  const openTickets = DEMO_TICKETS.filter(t => t.status === "open").length;
+  const openTickets = openTicketCount;
   const lastSync = DEMO_FEEDS[0]?.last_sync_at;
 
   return (
@@ -707,7 +692,7 @@ function ListingsPanel() {
 // ============================================================
 // SUPPORT PANEL (CRUD-enabled with AdminTable)
 // ============================================================
-function SupportPanel() {
+function SupportPanel({ onTicketChange }) {
   const [tickets, setTickets] = useState([]);
   const [messages, setMessages] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -738,7 +723,8 @@ function SupportPanel() {
       setError(err.message);
     }
     setLoading(false);
-  }, []);
+    onTicketChange?.();
+  }, [onTicketChange]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 
@@ -881,7 +867,15 @@ function SupportPanel() {
         return <Badge color={statusColors[v] || "gray"}>{label}</Badge>;
       },
       size: 110,
-      meta: { editable: true },
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "open", label: "Open" },
+          { value: "in_progress", label: "In Progress" },
+          { value: "resolved", label: "Resolved" },
+          { value: "closed", label: "Closed" },
+        ],
+      },
     },
     {
       accessorKey: "priority",
@@ -891,7 +885,15 @@ function SupportPanel() {
         return <Badge color={priorityColors[v] || "blue"}>{v}</Badge>;
       },
       size: 90,
-      meta: { editable: true },
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "low", label: "Low" },
+          { value: "normal", label: "Normal" },
+          { value: "high", label: "High" },
+          { value: "urgent", label: "Urgent" },
+        ],
+      },
     },
     {
       accessorKey: "subject",
@@ -934,6 +936,15 @@ function SupportPanel() {
         );
       },
       size: 90,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "web", label: "🌐 Web" },
+          { value: "sms", label: "📱 SMS" },
+          { value: "email", label: "📧 Email" },
+          { value: "phone", label: "📞 Phone" },
+        ],
+      },
     },
     {
       accessorKey: "category",
@@ -943,7 +954,18 @@ function SupportPanel() {
         return <Badge color={categoryColors[v] || "gray"}>{v}</Badge>;
       },
       size: 110,
-      meta: { editable: true },
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "general", label: "General" },
+          { value: "listings", label: "Listings" },
+          { value: "access", label: "Access" },
+          { value: "billing", label: "Billing" },
+          { value: "bug", label: "Bug" },
+          { value: "privacy", label: "Privacy" },
+          { value: "unsubscribe", label: "Unsubscribe" },
+        ],
+      },
     },
     {
       accessorKey: "assignee",
@@ -1523,6 +1545,7 @@ function AuditLogPanel() {
     create: { bg: "#052e16", text: "#4ade80", border: "#166534" },
     update: { bg: "#0c1e3a", text: "#60a5fa", border: "#1e40af" },
     delete: { bg: "#450a0a", text: "#f87171", border: "#991b1b" },
+    reply: { bg: "#1a1040", text: "#c4b5fd", border: "#5b21b6" },
     suppress: { bg: "#451a03", text: "#fbbf24", border: "#92400e" },
     unsuppress: { bg: "#042f2e", text: "#22d3ee", border: "#0e7490" },
   };
@@ -1626,7 +1649,33 @@ const NAV_ITEMS = [
 export default function PadMagnetAdmin() {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [openTicketCount, setOpenTicketCount] = useState(0);
   const router = useRouter();
+
+  // Fetch open ticket count for sidebar badge + overview
+  const refreshTicketCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/tickets?status=open");
+      if (res.ok) {
+        const data = await res.json();
+        setOpenTicketCount(data.length);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    refreshTicketCount();
+    // Refresh every 60 seconds
+    const interval = setInterval(refreshTicketCount, 60000);
+    return () => clearInterval(interval);
+  }, [refreshTicketCount]);
+
+  // Also refresh when switching to/from support tab
+  useEffect(() => {
+    if (activeTab === "support" || activeTab === "overview") {
+      refreshTicketCount();
+    }
+  }, [activeTab, refreshTicketCount]);
 
   const handleLogout = useCallback(async () => {
     const supabase = createSupabaseBrowser();
@@ -1636,12 +1685,12 @@ export default function PadMagnetAdmin() {
   }, [router]);
 
   const panels = {
-    overview: <OverviewPanel />,
+    overview: <OverviewPanel openTicketCount={openTicketCount} />,
     waitlist: <WaitlistPanel />,
     feeds: <FeedsPanel />,
     padscore: <PadScorePanel />,
     listings: <ListingsPanel />,
-    support: <SupportPanel />,
+    support: <SupportPanel onTicketChange={refreshTicketCount} />,
     billing: <BillingPanel />,
     audit: <AuditLogPanel />,
   };
@@ -1692,7 +1741,6 @@ export default function PadMagnetAdmin() {
           {NAV_ITEMS.map(item => {
             const isActive = activeTab === item.id;
             const isSupport = item.id === "support";
-            const openCount = DEMO_TICKETS.filter(t => t.status === "open").length;
             return (
               <div key={item.id} onClick={() => setActiveTab(item.id)} style={{
                 display: "flex", alignItems: "center", gap: 10,
@@ -1709,7 +1757,7 @@ export default function PadMagnetAdmin() {
               }}>
                 <span style={{ fontSize: "16px", width: 24, textAlign: "center" }}>{item.icon}</span>
                 {!sidebarCollapsed && <span>{item.label}</span>}
-                {isSupport && openCount > 0 && (
+                {isSupport && openTicketCount > 0 && (
                   <span style={{
                     position: sidebarCollapsed ? "absolute" : "relative",
                     top: sidebarCollapsed ? 4 : "auto",
@@ -1720,7 +1768,7 @@ export default function PadMagnetAdmin() {
                     width: 18, height: 18, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    {openCount}
+                    {openTicketCount}
                   </span>
                 )}
               </div>
