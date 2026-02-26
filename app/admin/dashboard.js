@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import AdminTable from "./components/AdminTable";
+import AddEntryForm from "./components/AddEntryForm";
+import ConfirmDialog from "./components/ConfirmDialog";
+import AuditHistory from "./components/AuditHistory";
+import exportCSV from "./components/CSVExport";
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  PADMAGNET ADMIN DASHBOARD v1                                   ║
@@ -857,57 +862,173 @@ function SupportPanel() {
 }
 
 // ============================================================
-// WAITLIST PANEL
+// WAITLIST PANEL (CRUD-enabled with AdminTable)
 // ============================================================
 function WaitlistPanel() {
   const [entries, setEntries] = useState([]);
   const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active"); // active | suppressed | all
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // { type, ids, message, showReason }
 
-  useEffect(() => {
-    async function fetchWaitlist() {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/admin/waitlist");
-        if (!res.ok) throw new Error("Failed to load waitlist");
-        const data = await res.json();
-        setEntries(data);
-      } catch (err) {
-        setError(err.message);
-      }
-      setLoading(false);
+  const fetchWaitlist = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/waitlist");
+      if (!res.ok) throw new Error("Failed to load waitlist");
+      const data = await res.json();
+      setEntries(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
     }
-    fetchWaitlist();
+    setLoading(false);
   }, []);
 
-  const filtered = entries.filter(e => roleFilter === "all" || e.role === roleFilter);
+  useEffect(() => { fetchWaitlist(); }, [fetchWaitlist]);
+
+  const filtered = useMemo(() => {
+    return entries.filter(e => {
+      if (roleFilter !== "all" && e.role !== roleFilter) return false;
+      if (statusFilter === "active" && e.suppressed) return false;
+      if (statusFilter === "suppressed" && !e.suppressed) return false;
+      return true;
+    });
+  }, [entries, roleFilter, statusFilter]);
+
   const tenantCount = entries.filter(e => e.role === "tenant").length;
   const landlordCount = entries.filter(e => e.role === "landlord").length;
+  const suppressedCount = entries.filter(e => e.suppressed).length;
 
-  const exportCSV = useCallback(() => {
-    if (entries.length === 0) return;
-    const header = "Email,Role,Signed Up\n";
-    const rows = entries.map(e => `${e.email},${e.role},${e.created_at}`).join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `padmagnet-waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [entries]);
+  // CRUD handlers
+  const handleAddEntry = useCallback(async (values) => {
+    const res = await fetch("/api/admin/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (res.ok) {
+      setShowAddForm(false);
+      fetchWaitlist();
+    }
+  }, [fetchWaitlist]);
 
-  if (loading) {
-    return <p style={{ color: COLORS.textMuted, padding: 40, textAlign: "center" }}>Loading waitlist…</p>;
-  }
+  const handleSave = useCallback(async (ids, changes) => {
+    await fetch("/api/admin/waitlist", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, changes }),
+    });
+    fetchWaitlist();
+  }, [fetchWaitlist]);
 
-  if (error) {
-    return <p style={{ color: COLORS.red, padding: 40, textAlign: "center" }}>Error loading waitlist: {error}</p>;
-  }
+  const handleBulkDelete = useCallback((ids) => {
+    setConfirmAction({
+      type: "delete",
+      ids,
+      message: `Permanently delete ${ids.length} waitlist entry${ids.length > 1 ? "ies" : "y"}?`,
+      showReason: false,
+    });
+  }, []);
+
+  const handleBulkSuppress = useCallback((ids) => {
+    setConfirmAction({
+      type: "suppress",
+      ids,
+      message: `Suppress ${ids.length} waitlist entry${ids.length > 1 ? "ies" : "y"}? They will be hidden from active view.`,
+      showReason: true,
+    });
+  }, []);
+
+  const handleBulkUnsuppress = useCallback((ids) => {
+    handleSave(ids, { suppressed: false, suppressed_reason: null });
+  }, [handleSave]);
+
+  const confirmExecute = useCallback(async (reason) => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "delete") {
+      await fetch("/api/admin/waitlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: confirmAction.ids }),
+      });
+    } else if (confirmAction.type === "suppress") {
+      await handleSave(confirmAction.ids, { suppressed: true, suppressed_reason: reason || null });
+    }
+    setConfirmAction(null);
+    fetchWaitlist();
+  }, [confirmAction, handleSave, fetchWaitlist]);
+
+  const handleExportCSV = useCallback(() => {
+    const cols = [
+      { accessorKey: "email", header: "Email" },
+      { accessorKey: "role", header: "Role" },
+      { accessorKey: "suppressed", header: "Suppressed" },
+      { accessorKey: "notes", header: "Notes" },
+      { accessorKey: "tags", header: "Tags" },
+      { accessorKey: "created_at", header: "Signed Up" },
+    ];
+    exportCSV(cols, filtered, `padmagnet-waitlist-${new Date().toISOString().slice(0, 10)}.csv`);
+  }, [filtered]);
+
+  // Column defs for AdminTable
+  const columns = useMemo(() => [
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 500 }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={v === "landlord" ? "purple" : "cyan"}>{v}</Badge>;
+      },
+      size: 100,
+    },
+    {
+      accessorKey: "suppressed",
+      header: "Status",
+      cell: ({ getValue, row }) => {
+        if (getValue()) {
+          return (
+            <span title={row.original.suppressed_reason || ""} className="suppressed-badge">
+              Suppressed
+            </span>
+          );
+        }
+        return <Badge color="green">Active</Badge>;
+      },
+      size: 100,
+    },
+    {
+      accessorKey: "created_at",
+      header: "Signed Up",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
+      ),
+      size: 180,
+    },
+  ], []);
+
+  const addFormFields = [
+    { key: "email", label: "Email", type: "email", placeholder: "user@example.com", required: true },
+    { key: "role", label: "Role", type: "select", required: true, options: [
+      { value: "tenant", label: "Tenant" },
+      { value: "landlord", label: "Landlord" },
+    ]},
+    { key: "notes", label: "Notes", type: "textarea", placeholder: "Optional notes…" },
+  ];
 
   return (
     <div>
+      {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Signups" value={entries.length} sub="Since launch" accent={COLORS.brand} />
         <StatCard label="Tenants" value={tenantCount} sub={entries.length > 0 ? `${Math.round(tenantCount / entries.length * 100)}% of signups` : "—"} accent={COLORS.green} />
@@ -915,8 +1036,8 @@ function WaitlistPanel() {
         <StatCard label="Last Signup" value={entries[0] ? timeAgo(entries[0].created_at) : "—"} sub={entries[0]?.email?.split("@")[0] + "…" || "—"} accent={COLORS.amber} />
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center" }}>
+      {/* Filters & Actions Bar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
         {["all", "tenant", "landlord"].map(r => (
           <button key={r} onClick={() => setRoleFilter(r)} style={{
             ...baseButton,
@@ -930,39 +1051,62 @@ function WaitlistPanel() {
             </span>
           </button>
         ))}
-        <div style={{ marginLeft: "auto" }}>
-          <button onClick={exportCSV} style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>
-            📋 Export CSV
+        <div style={{ width: 1, height: 20, background: COLORS.border, margin: "0 4px" }} />
+        {["active", "suppressed", "all"].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={{
+            ...baseButton,
+            background: statusFilter === s ? (s === "suppressed" ? COLORS.amberDim + "44" : COLORS.brand + "22") : COLORS.surface,
+            color: statusFilter === s ? (s === "suppressed" ? COLORS.amber : COLORS.brand) : COLORS.textMuted,
+            border: `1px solid ${statusFilter === s ? (s === "suppressed" ? COLORS.amber + "44" : COLORS.brand + "44") : COLORS.border}`,
+          }}>
+            {s === "all" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === "suppressed" && <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{suppressedCount}</span>}
+          </button>
+        ))}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <button onClick={() => setShowAddForm(!showAddForm)} style={{
+            ...baseButton, background: COLORS.brand, color: "#000", fontWeight: 700,
+          }}>
+            + Add Signup
+          </button>
+          <button onClick={handleExportCSV} style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>
+            Export CSV
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ background: COLORS.surface, borderRadius: "10px", border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
-        <div style={{
-          display: "grid", gridTemplateColumns: "1fr 100px 180px",
-          gap: 8, padding: "10px 16px", borderBottom: `1px solid ${COLORS.border}`,
-          fontSize: "11px", fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.05em",
-        }}>
-          <span>Email</span><span>Role</span><span>Signed Up</span>
-        </div>
-        {filtered.length === 0 && (
-          <div style={{ padding: "24px 16px", textAlign: "center", color: COLORS.textDim, fontSize: "13px" }}>
-            No signups yet
-          </div>
-        )}
-        {filtered.map((entry, i) => (
-          <div key={entry.id} style={{
-            display: "grid", gridTemplateColumns: "1fr 100px 180px",
-            gap: 8, padding: "12px 16px",
-            borderBottom: i < filtered.length - 1 ? `1px solid ${COLORS.border}22` : "none",
-          }}>
-            <span style={{ fontSize: "13px", color: COLORS.text, fontWeight: 500 }}>{entry.email}</span>
-            <Badge color={entry.role === "landlord" ? "purple" : "cyan"}>{entry.role}</Badge>
-            <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(entry.created_at)}</span>
-          </div>
-        ))}
-      </div>
+      {/* Add Entry Form */}
+      {showAddForm && (
+        <AddEntryForm
+          fields={addFormFields}
+          onSave={handleAddEntry}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
+
+      {/* Admin Table */}
+      <AdminTable
+        columns={columns}
+        data={filtered}
+        loading={loading}
+        error={error}
+        tableName="waitlist"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        onBulkSuppress={handleBulkSuppress}
+        onBulkUnsuppress={handleBulkUnsuppress}
+        emptyMessage="No waitlist entries"
+      />
+
+      {/* Confirm Dialog */}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          showReason={confirmAction.showReason}
+          onConfirm={confirmExecute}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1019,6 +1163,121 @@ function BillingPanel() {
 }
 
 // ============================================================
+// AUDIT LOG PANEL
+// ============================================================
+function AuditLogPanel() {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tableFilter, setTableFilter] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
+  const [limit, setLimit] = useState(50);
+
+  const fetchAuditLog = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (tableFilter) params.set("table", tableFilter);
+      if (actionFilter) params.set("action", actionFilter);
+      params.set("limit", String(limit));
+      const res = await fetch(`/api/admin/audit-log?${params}`);
+      if (res.ok) setEntries(await res.json());
+    } catch {
+      // silent
+    }
+    setLoading(false);
+  }, [tableFilter, actionFilter, limit]);
+
+  useEffect(() => { fetchAuditLog(); }, [fetchAuditLog]);
+
+  const actionColors = {
+    create: { bg: "#052e16", text: "#4ade80", border: "#166534" },
+    update: { bg: "#0c1e3a", text: "#60a5fa", border: "#1e40af" },
+    delete: { bg: "#450a0a", text: "#f87171", border: "#991b1b" },
+    suppress: { bg: "#451a03", text: "#fbbf24", border: "#92400e" },
+    unsuppress: { bg: "#042f2e", text: "#22d3ee", border: "#0e7490" },
+  };
+
+  return (
+    <div>
+      <div className="audit-panel-filters">
+        <select className="audit-panel-select" value={tableFilter} onChange={e => setTableFilter(e.target.value)}>
+          <option value="">All Tables</option>
+          <option value="waitlist">Waitlist</option>
+          <option value="listings">Listings</option>
+          <option value="idx_feeds">IDX Feeds</option>
+        </select>
+        <select className="audit-panel-select" value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
+          <option value="">All Actions</option>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+          <option value="suppress">Suppress</option>
+          <option value="unsuppress">Unsuppress</option>
+        </select>
+        <select className="audit-panel-select" value={limit} onChange={e => setLimit(Number(e.target.value))}>
+          <option value={25}>Last 25</option>
+          <option value={50}>Last 50</option>
+          <option value={100}>Last 100</option>
+        </select>
+        <button onClick={fetchAuditLog} style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>
+          Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p style={{ color: COLORS.textMuted, padding: 40, textAlign: "center" }}>Loading audit log…</p>
+      ) : entries.length === 0 ? (
+        <p style={{ color: COLORS.textDim, padding: 40, textAlign: "center" }}>No audit log entries yet. Actions taken in admin panels will appear here.</p>
+      ) : (
+        <div className="audit-panel-table">
+          <div className="audit-panel-header">
+            <span>Table</span>
+            <span>Action</span>
+            <span>Row ID</span>
+            <span>Details</span>
+            <span>Time</span>
+          </div>
+          {entries.map(entry => {
+            const ac = actionColors[entry.action] || { bg: "#1e293b", text: "#94a3b8", border: "#334155" };
+            return (
+              <div key={entry.id} className="audit-panel-row">
+                <span style={{ fontSize: "12px", color: COLORS.brand, fontFamily: "monospace" }}>{entry.table_name}</span>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", padding: "2px 7px",
+                  borderRadius: 4, fontSize: "10px", fontWeight: 700,
+                  background: ac.bg, color: ac.text, border: `1px solid ${ac.border}`,
+                  textTransform: "uppercase", letterSpacing: "0.03em", width: "fit-content",
+                }}>
+                  {entry.action}
+                </span>
+                <span style={{ fontSize: "11px", color: COLORS.textDim, fontFamily: "monospace" }}>
+                  {entry.row_id?.slice(0, 8)}…
+                </span>
+                <span style={{ fontSize: "12px", color: COLORS.textMuted }}>
+                  {entry.field_changed ? (
+                    <>
+                      <span style={{ color: COLORS.text }}>{entry.field_changed}</span>
+                      {entry.old_value && entry.new_value && (
+                        <>: <span style={{ color: COLORS.red, textDecoration: "line-through" }}>{entry.old_value?.slice(0, 30)}</span> → <span style={{ color: COLORS.green }}>{entry.new_value?.slice(0, 30)}</span></>
+                      )}
+                    </>
+                  ) : entry.action === "create" ? (
+                    <span style={{ color: COLORS.green }}>New entry created</span>
+                  ) : entry.action === "delete" ? (
+                    <span style={{ color: COLORS.red }}>Entry deleted</span>
+                  ) : "—"}
+                </span>
+                <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(entry.created_at)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN DASHBOARD
 // ============================================================
 const NAV_ITEMS = [
@@ -1029,6 +1288,7 @@ const NAV_ITEMS = [
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "support", label: "Support", icon: "💬" },
   { id: "billing", label: "Billing", icon: "💳" },
+  { id: "audit", label: "Audit Log", icon: "📝" },
 ];
 
 export default function PadMagnetAdmin() {
@@ -1043,6 +1303,7 @@ export default function PadMagnetAdmin() {
     listings: <ListingsPanel />,
     support: <SupportPanel />,
     billing: <BillingPanel />,
+    audit: <AuditLogPanel />,
   };
 
   return (
