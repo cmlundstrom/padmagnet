@@ -708,17 +708,36 @@ function SupportPanel({ onTicketChange }) {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
 
-  // Fetch admin user profile from Supabase Auth session
+  // Fetch admin user profile from profiles table
   useEffect(() => {
     const fetchAdmin = async () => {
       const supabase = createSupabaseBrowser();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setAdminUser({
-          email: user.email,
-          display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "Admin",
-          phone: user.user_metadata?.phone || "",
-        });
+        try {
+          const res = await fetch(`/api/admin/users?id=${user.id}`);
+          if (res.ok) {
+            const profile = await res.json();
+            setAdminUser({
+              email: profile.email || user.email,
+              display_name: profile.display_name || user.email?.split("@")[0] || "Admin",
+              phone: profile.phone || "",
+            });
+          } else {
+            // Fallback to auth user if profile not found
+            setAdminUser({
+              email: user.email,
+              display_name: user.email?.split("@")[0] || "Admin",
+              phone: "",
+            });
+          }
+        } catch {
+          setAdminUser({
+            email: user.email,
+            display_name: user.email?.split("@")[0] || "Admin",
+            phone: "",
+          });
+        }
       }
     };
     fetchAdmin();
@@ -1612,6 +1631,139 @@ function BillingPanel() {
 }
 
 // ============================================================
+// USERS PANEL (Admin Profiles — CRUD-enabled with AdminTable)
+// ============================================================
+function UsersPanel() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error("Failed to load users");
+      const data = await res.json();
+      setUsers(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  const handleSave = useCallback(async (ids, changes) => {
+    await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, changes }),
+    });
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const superAdminCount = users.filter(u => u.role === "super_admin").length;
+  const adminCount = users.filter(u => u.role === "admin").length;
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: "display_name",
+      header: "Display Name",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600 }}>{getValue() || "—"}</span>
+      ),
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 500 }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "13px", color: getValue() ? COLORS.text : COLORS.textDim }}>
+          {getValue() || "Not set"}
+        </span>
+      ),
+      meta: { editable: true },
+      size: 140,
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={v === "super_admin" ? "purple" : "cyan"}>
+          {v === "super_admin" ? "Super Admin" : "Admin"}
+        </Badge>;
+      },
+      size: 120,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "admin", label: "Admin" },
+          { value: "super_admin", label: "Super Admin" },
+        ],
+      },
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
+      ),
+      size: 160,
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Updated",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{timeAgo(getValue())}</span>
+      ),
+      size: 100,
+    },
+  ], []);
+
+  return (
+    <div>
+      {/* Stat Cards */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+        <StatCard label="Total Users" value={users.length} sub="Admin accounts" accent={COLORS.brand} />
+        <StatCard label="Super Admins" value={superAdminCount} sub="Full access" accent={COLORS.purple} />
+        <StatCard label="Admins" value={adminCount} sub="Standard access" accent={COLORS.green} />
+        <StatCard label="Last Added" value={users.length > 0 ? timeAgo(users[users.length - 1]?.created_at) : "—"} sub={users[users.length - 1]?.display_name || "—"} accent={COLORS.amber} />
+      </div>
+
+      <div style={{
+        padding: "10px 14px", marginBottom: 16, borderRadius: 8,
+        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+        fontSize: "13px", color: COLORS.textMuted,
+      }}>
+        Users are created via Supabase Authentication. Profiles are auto-generated for each new auth user.
+        Double-click any cell to edit. Changes are saved immediately and logged to the audit trail.
+      </div>
+
+      {/* Admin Table */}
+      <AdminTable
+        columns={columns}
+        data={users}
+        loading={loading}
+        error={error}
+        tableName="profiles"
+        onSave={handleSave}
+        emptyMessage="No user profiles yet"
+      />
+    </div>
+  );
+}
+
+// ============================================================
 // AUDIT LOG PANEL
 // ============================================================
 // ── Audit Log default view ──────────────────────────────────
@@ -1663,6 +1815,7 @@ function AuditLogPanel() {
           <option value="">All Tables</option>
           <option value="waitlist">Waitlist</option>
           <option value="tickets">Tickets</option>
+          <option value="profiles">Users</option>
           <option value="listings">Listings</option>
           <option value="idx_feeds">IDX Feeds</option>
         </select>
@@ -1749,6 +1902,7 @@ const NAV_ITEMS = [
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "support", label: "Support", icon: "💬" },
   { id: "billing", label: "Billing", icon: "💳" },
+  { id: "users", label: "Users", icon: "👤" },
   { id: "audit", label: "Audit Log", icon: "📝" },
 ];
 
@@ -1798,6 +1952,7 @@ export default function PadMagnetAdmin() {
     listings: <ListingsPanel />,
     support: <SupportPanel onTicketChange={refreshTicketCount} />,
     billing: <BillingPanel />,
+    users: <UsersPanel />,
     audit: <AuditLogPanel />,
   };
 
