@@ -168,7 +168,7 @@ function LocationMap() {
       const L = window.L;
 
       const map = L.map(mapRef.current, {
-        center: [27.1975, -80.2528], // 34997 — Stuart, FL
+        center: [27.1576, -80.2090], // 34994 — Stuart, FL
         zoom: 11,
         zoomControl: false,
         attributionControl: false,
