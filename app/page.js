@@ -147,6 +147,61 @@ function PhoneMockup() {
   );
 }
 
+function LocationMap() {
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+
+  useEffect(() => {
+    if (mapInstance.current) return;
+
+    // Load Leaflet CSS
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    // Load Leaflet JS
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => {
+      if (!mapRef.current || mapInstance.current) return;
+      const L = window.L;
+
+      const map = L.map(mapRef.current, {
+        center: [27.1975, -80.2528], // 34997 — Stuart, FL
+        zoom: 11,
+        zoomControl: false,
+        attributionControl: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        dragging: true,
+        touchZoom: false,
+      });
+
+      // Muted grayscale tiles for minimal look
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 16,
+        minZoom: 9,
+      }).addTo(map);
+
+      mapInstance.current = map;
+
+      // Fix tile rendering after container becomes visible
+      setTimeout(() => map.invalidateSize(), 200);
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, []);
+
+  return <div ref={mapRef} className="leaflet-map" />;
+}
+
 function FadeUp({ children }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
@@ -267,14 +322,7 @@ export default function LandingPage() {
           <div className="location-grid">
             <FadeUp>
               <div className="location-map">
-                <div className="map-placeholder">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#F06449" strokeWidth="1.5" opacity="0.5">
-                    <path d="M12 2C8 2 4 5 4 10c0 7 8 12 8 12s8-5 8-12c0-5-4-8-8-8z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <p style={{ fontSize: '14px', fontWeight: 600 }}>Florida&apos;s Treasure Coast</p>
-                  <p style={{ fontSize: '12px', marginTop: '4px' }}>Martin &amp; St. Lucie Counties</p>
-                </div>
+                <LocationMap />
               </div>
             </FadeUp>
             <FadeUp>
