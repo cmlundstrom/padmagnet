@@ -85,7 +85,7 @@ nav.scrolled {
   box-shadow: 0 2px 12px rgba(232, 96, 60, 0.35);
 }
 .logo-header-img {
-  height: 63px;
+  height: 85px;
   width: auto;
 }
 .logo-text {
@@ -809,7 +809,7 @@ footer a {
   .location-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .logo-header-img { height: 48px; }
+  .logo-header-img { height: 64px; }
 }
 @media (max-width: 520px) {
   .hero-form, .cta-form {
