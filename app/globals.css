@@ -84,6 +84,10 @@ nav.scrolled {
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(232, 96, 60, 0.35);
 }
+.logo-header-img {
+  height: 42px;
+  width: auto;
+}
 .logo-text {
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
@@ -803,6 +807,9 @@ footer a {
   .steps-grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
   .audience-grid { grid-template-columns: 1fr; }
   .location-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .logo-header-img { height: 32px; }
 }
 @media (max-width: 520px) {
   .hero-form, .cta-form {
