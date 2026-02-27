@@ -168,8 +168,8 @@ function LocationMap() {
       const L = window.L;
 
       const map = L.map(mapRef.current, {
-        center: [27.1576, -80.2090], // 34994 — Stuart, FL
-        zoom: 11,
+        center: [27.1975, -80.2528], // 34997 — Stuart, FL
+        zoom: 10,
         zoomControl: false,
         attributionControl: false,
         scrollWheelZoom: false,
@@ -178,8 +178,8 @@ function LocationMap() {
         touchZoom: false,
       });
 
-      // Muted grayscale tiles for minimal look
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      // Voyager tiles — minimal land with blue water
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 16,
         minZoom: 9,
       }).addTo(map);
