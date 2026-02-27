@@ -391,6 +391,17 @@ nav.scrolled {
   gap: 16px;
   margin-top: 14px;
 }
+.phone-branding {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  padding-bottom: 4px;
+}
+.phone-branding-img {
+  height: 28px;
+  width: auto;
+  opacity: 0.7;
+}
 .phone-btn {
   width: 44px;
   height: 44px;

@@ -138,6 +138,9 @@ function PhoneMockup() {
             <div className="phone-btn nope">✕</div>
             <div className="phone-btn like">♥</div>
           </div>
+          <div className="phone-branding">
+            <img src="/logo/padmagnet-header.png" alt="PadMagnet" className="phone-branding-img" />
+          </div>
         </div>
       </div>
     </div>
