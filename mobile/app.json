@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "PadMagnet",
+    "slug": "padmagnet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "padmagnet",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1D3A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.padmagnet.app"
+    },
+    "android": {
+      "package": "com.padmagnet.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1D3A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
