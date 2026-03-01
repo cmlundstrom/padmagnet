@@ -24,7 +24,15 @@ export default function useListings() {
       setHasMore(data.hasMore);
       setPage(pageNum);
     } catch (err) {
-      setError(err.message);
+      // Don't show auth errors as errors — user may not be signed in yet
+      if (err.message?.includes('Authorization') || err.message?.includes('Unauthorized')) {
+        setError(null);
+        setHasMore(false);
+        setLoading(false);
+        return;
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

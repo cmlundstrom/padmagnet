@@ -9,14 +9,17 @@ export default function usePreferences() {
   const fetchPreferences = useCallback(async () => {
     try {
       setLoading(true);
+      // Try local cache first, then API
+      const local = await getPreferences();
+      if (local) setPreferences(local);
+
       const data = await apiFetch('/api/preferences');
       setPreferences(data);
-      // Cache locally
       if (data && Object.keys(data).length > 0) {
         await saveLocal(data);
       }
     } catch {
-      // Fall back to local cache
+      // Fall back to local cache (already loaded above)
       const local = await getPreferences();
       if (local) setPreferences(local);
     } finally {

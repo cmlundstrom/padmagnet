@@ -3,8 +3,7 @@ import { View, Text, Pressable, Switch, ScrollView, StyleSheet, Alert } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Input, Button } from '../components/ui';
-import usePreferences from '../hooks/usePreferences';
-import { setOnboarded } from '../lib/storage';
+import { setOnboarded, savePreferences } from '../lib/storage';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
@@ -16,7 +15,6 @@ const CITIES = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { updatePreferences } = usePreferences();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -40,7 +38,8 @@ export default function OnboardingScreen() {
   const handleFinish = async () => {
     setSaving(true);
     try {
-      await updatePreferences({
+      // Save locally — will sync to server after user signs in
+      await savePreferences({
         budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
         preferred_cities: form.preferred_cities,
