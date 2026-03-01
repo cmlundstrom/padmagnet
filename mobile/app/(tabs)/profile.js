@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { signOut } from '../../lib/auth';
 import { useAuth } from '../../hooks/useAuth';
 import { COLORS } from '../../constants/colors';
+import { FONTS, FONT_SIZES } from '../../constants/fonts';
+import { LAYOUT } from '../../constants/layout';
 
 export default function ProfileScreen() {
   const { user } = useAuth();
@@ -14,7 +16,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Text style={styles.header}>Profile</Text>
 
       <View style={styles.card}>
@@ -24,6 +26,7 @@ export default function ProfileScreen() {
 
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/preferences')}>
         <Text style={styles.menuText}>Preferences</Text>
+        <Text style={styles.menuHint}>Budget, location, pets, features</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/notifications')}>
@@ -32,6 +35,18 @@ export default function ProfileScreen() {
 
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/verification')}>
         <Text style={styles.menuText}>Verification Status</Text>
+      </TouchableOpacity>
+
+      {/* Owner Tools */}
+      <Text style={styles.sectionLabel}>Owner Tools</Text>
+
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/owner/listings')}>
+        <Text style={styles.menuText}>My Listings</Text>
+        <Text style={styles.menuHint}>Create and manage your rental listings</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[styles.menuItem, styles.createItem]} onPress={() => router.push('/owner/create')}>
+        <Text style={styles.createText}>+ Create Listing</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -45,52 +60,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
+    padding: LAYOUT.padding.md,
   },
   header: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginBottom: 16,
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.text,
+    marginBottom: LAYOUT.padding.md,
   },
   card: {
     backgroundColor: COLORS.card,
-    borderRadius: 16,
+    borderRadius: LAYOUT.radius.lg,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   name: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.white,
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.text,
     marginBottom: 4,
   },
   email: {
-    fontSize: 14,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+  },
+  sectionLabel: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   menuItem: {
     backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.md,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   menuText: {
-    fontSize: 16,
-    color: COLORS.white,
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+  },
+  menuHint: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    marginTop: 2,
+  },
+  createItem: {
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accent + '11',
+  },
+  createText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.accent,
   },
   signOutButton: {
     marginTop: 'auto',
-    padding: 16,
+    padding: LAYOUT.padding.md,
     alignItems: 'center',
   },
   signOutText: {
-    fontSize: 16,
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.md,
     color: COLORS.danger,
-    fontWeight: '600',
   },
 });

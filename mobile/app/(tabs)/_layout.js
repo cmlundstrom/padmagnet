@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { FONTS, FONT_SIZES } from '../../constants/fonts';
 
-// Simple text-based tab icons (replace with proper icons later)
 function TabIcon({ label, focused }) {
   const icons = { Swipe: '◇', Saved: '♡', Messages: '✉', Profile: '●' };
   return (
@@ -28,8 +28,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.slate,
         tabBarLabelStyle: {
+          fontFamily: FONTS.body.medium,
           fontSize: 11,
-          fontWeight: '500',
         },
       }}
     >

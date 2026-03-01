@@ -1,0 +1,52 @@
+import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../lib/api';
+
+export default function useListings() {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchListings = useCallback(async (pageNum = 1, append = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiFetch(`/api/listings?page=${pageNum}&limit=20`);
+      const newListings = data.listings || [];
+
+      if (append) {
+        setListings(prev => [...prev, ...newListings]);
+      } else {
+        setListings(newListings);
+      }
+
+      setHasMore(data.hasMore);
+      setPage(pageNum);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchListings(1);
+  }, [fetchListings]);
+
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      fetchListings(page + 1, true);
+    }
+  }, [loading, hasMore, page, fetchListings]);
+
+  const refresh = useCallback(() => {
+    fetchListings(1);
+  }, [fetchListings]);
+
+  const removeFromDeck = useCallback((listingId) => {
+    setListings(prev => prev.filter(l => l.id !== listingId));
+  }, []);
+
+  return { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck };
+}

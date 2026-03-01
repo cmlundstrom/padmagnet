@@ -1,25 +1,159 @@
-// PadScore™ — Deterministic preference-matching engine
+// PadScore™ — Client-side deterministic preference-matching engine
+// Mirrors the server-side algorithm in lib/padscore.js exactly
 // Rule-based weighted scoring (NOT AI/ML — per MLS agreement compliance)
-// See padscore-compliance.md for legal defense documentation
-//
-// Inputs: tenant preferences + listing attributes
-// Output: 0-100 score + plain-language explanation
-//
-// Implementation will be built when IDX data is available.
-// This file is the single source of truth for scoring logic.
+
+const WEIGHTS = {
+  budget_over: 35,
+  property_type: 25,
+  beds_short: 18,
+  baths_short: 12,
+  location_inside_radius: 14,
+  location_outside_radius: 40,
+  pets_not_allowed: 50,
+  pets_unknown: 10,
+  fenced_yard_bonus: 8,
+  fenced_yard_missing: 12,
+  hoa_mismatch: 8,
+  furnished_mismatch: 6,
+  lease_too_short: 35,
+  stale_listing_major: 5,
+  stale_listing_minor: 2,
+};
+
+const MAX_PENALTY = Object.values(WEIGHTS).reduce((sum, w) => sum + w, 0);
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  if (!lat1 || !lng1 || !lat2 || !lng2) return null;
+  const R = 3959;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export function calculatePadScore(preferences, listing) {
-  // TODO: Implement when Bridge API data flows in
-  // Each factor: compare preference vs listing attribute → 0-1 match ratio
-  // Weighted sum → normalize to 0-100
-  // Log: inputs, weights, output, timestamp, hashed user ID
-  return { score: 0, explanation: '', factors: [] };
+  if (!preferences) return { score: 50, factors: [], explanation: 'Set your preferences for personalized scores.' };
+
+  const factors = [];
+  let totalPenalty = 0;
+  let totalBonus = 0;
+
+  // Budget
+  if (preferences.budget_max && listing.list_price > preferences.budget_max) {
+    const overBy = listing.list_price - preferences.budget_max;
+    const severity = Math.min(overBy / preferences.budget_max, 1);
+    const penalty = WEIGHTS.budget_over * severity;
+    totalPenalty += penalty;
+    factors.push({ key: 'budget_over', label: 'Over Budget', impact: -penalty, match: false });
+  } else if (preferences.budget_max) {
+    factors.push({ key: 'budget_over', label: 'Within Budget', impact: 0, match: true });
+  }
+
+  // Property type
+  if (preferences.property_types?.length > 0 && listing.property_sub_type) {
+    if (!preferences.property_types.includes(listing.property_sub_type)) {
+      totalPenalty += WEIGHTS.property_type;
+      factors.push({ key: 'property_type', label: 'Wrong Type', impact: -WEIGHTS.property_type, match: false });
+    } else {
+      factors.push({ key: 'property_type', label: 'Right Type', impact: 0, match: true });
+    }
+  }
+
+  // Bedrooms
+  if (preferences.beds_min && listing.bedrooms_total < preferences.beds_min) {
+    const shortBy = preferences.beds_min - listing.bedrooms_total;
+    const penalty = WEIGHTS.beds_short * Math.min(shortBy / preferences.beds_min, 1);
+    totalPenalty += penalty;
+    factors.push({ key: 'beds_short', label: 'Too Few Beds', impact: -penalty, match: false });
+  } else if (preferences.beds_min) {
+    factors.push({ key: 'beds_short', label: 'Enough Beds', impact: 0, match: true });
+  }
+
+  // Bathrooms
+  if (preferences.baths_min && listing.bathrooms_total < preferences.baths_min) {
+    totalPenalty += WEIGHTS.baths_short;
+    factors.push({ key: 'baths_short', label: 'Too Few Baths', impact: -WEIGHTS.baths_short, match: false });
+  } else if (preferences.baths_min) {
+    factors.push({ key: 'baths_short', label: 'Enough Baths', impact: 0, match: true });
+  }
+
+  // Location distance
+  const dist = haversineDistance(preferences.center_lat, preferences.center_lng, listing.latitude, listing.longitude);
+  if (dist !== null && preferences.radius_miles) {
+    if (dist <= preferences.radius_miles) {
+      const falloff = dist / preferences.radius_miles;
+      const penalty = WEIGHTS.location_inside_radius * falloff;
+      totalPenalty += penalty;
+      factors.push({ key: 'location', label: `${dist.toFixed(1)} mi away`, impact: -penalty, match: true });
+    } else {
+      const overBy = (dist - preferences.radius_miles) / preferences.radius_miles;
+      const penalty = WEIGHTS.location_outside_radius * Math.min(overBy, 1);
+      totalPenalty += penalty;
+      factors.push({ key: 'location', label: `${dist.toFixed(1)} mi (outside radius)`, impact: -penalty, match: false });
+    }
+  }
+
+  // Pets
+  if (preferences.pets_required) {
+    if (listing.pets_allowed === false) {
+      totalPenalty += WEIGHTS.pets_not_allowed;
+      factors.push({ key: 'pets', label: 'No Pets Allowed', impact: -WEIGHTS.pets_not_allowed, match: false });
+    } else if (listing.pets_allowed === null || listing.pets_allowed === undefined) {
+      totalPenalty += WEIGHTS.pets_unknown;
+      factors.push({ key: 'pets', label: 'Pet Policy Unknown', impact: -WEIGHTS.pets_unknown, match: false });
+    } else {
+      factors.push({ key: 'pets', label: 'Pets Allowed', impact: 0, match: true });
+    }
+
+    if (listing.fenced_yard === true) {
+      totalBonus += WEIGHTS.fenced_yard_bonus;
+      factors.push({ key: 'fenced_yard', label: 'Fenced Yard', impact: WEIGHTS.fenced_yard_bonus, match: true });
+    } else if (preferences.fenced_yard_required && !listing.fenced_yard) {
+      totalPenalty += WEIGHTS.fenced_yard_missing;
+      factors.push({ key: 'fenced_yard', label: 'No Fenced Yard', impact: -WEIGHTS.fenced_yard_missing, match: false });
+    }
+  }
+
+  // HOA
+  if (preferences.max_hoa != null && listing.hoa_fee > preferences.max_hoa) {
+    totalPenalty += WEIGHTS.hoa_mismatch;
+    factors.push({ key: 'hoa', label: 'HOA Too High', impact: -WEIGHTS.hoa_mismatch, match: false });
+  }
+
+  // Furnished
+  if (preferences.furnished_preferred != null && listing.furnished != null && listing.furnished !== preferences.furnished_preferred) {
+    totalPenalty += WEIGHTS.furnished_mismatch;
+    factors.push({ key: 'furnished', label: 'Furnished Mismatch', impact: -WEIGHTS.furnished_mismatch, match: false });
+  }
+
+  // Stale listing
+  if (listing.created_at) {
+    const dom = Math.floor((Date.now() - new Date(listing.created_at).getTime()) / 86400000);
+    if (dom > 60) {
+      totalPenalty += WEIGHTS.stale_listing_major;
+      factors.push({ key: 'stale', label: `${dom}d on market`, impact: -WEIGHTS.stale_listing_major, match: false });
+    } else if (dom > 30) {
+      totalPenalty += WEIGHTS.stale_listing_minor;
+      factors.push({ key: 'stale', label: `${dom}d on market`, impact: -WEIGHTS.stale_listing_minor, match: false });
+    }
+  }
+
+  const normalizedPenalty = (totalPenalty / MAX_PENALTY) * 100;
+  const score = Math.max(0, Math.min(100, Math.round(100 - normalizedPenalty + totalBonus)));
+
+  const matched = factors.filter(f => f.match).map(f => f.label.toLowerCase());
+  const explanation = matched.length > 0
+    ? `Matches your ${matched.slice(0, 3).join(', ')}${matched.length > 3 ? ` +${matched.length - 3} more` : ''}.`
+    : 'Limited match with your preferences.';
+
+  return { score, factors, explanation };
 }
 
 export function explainScore(factors) {
-  // Generate plain-language explanation
-  // e.g. "Shown because it matches your budget and location"
-  const matched = factors.filter(f => f.match > 0.5).map(f => f.label);
+  const matched = factors.filter(f => f.match).map(f => f.label);
   if (matched.length === 0) return 'Limited match with your preferences.';
   return `Shown because it matches your ${matched.join(', ')}.`;
 }
