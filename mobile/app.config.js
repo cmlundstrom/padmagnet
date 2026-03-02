@@ -1,0 +1,65 @@
+export default {
+  expo: {
+    name: "PadMagnet",
+    slug: "padmagnet",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "dark",
+    scheme: "padmagnet",
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#0B1D3A",
+    },
+    ios: {
+      supportsTablet: false,
+      bundleIdentifier: "com.padmagnet.app",
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription:
+          "PadMagnet uses your location to show nearby rental listings on the map.",
+        NSPhotoLibraryUsageDescription:
+          "PadMagnet needs photo access to add images to your listing.",
+        NSCameraUsageDescription:
+          "PadMagnet needs camera access to take photos of your property.",
+      },
+    },
+    android: {
+      package: "com.padmagnet.app",
+      adaptiveIcon: {
+        backgroundColor: "#0B1D3A",
+        foregroundImage: "./assets/android-icon-foreground.png",
+        backgroundImage: "./assets/android-icon-background.png",
+        monochromeImage: "./assets/android-icon-monochrome.png",
+      },
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      },
+      permissions: [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "CAMERA",
+      ],
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+      bundler: "metro",
+    },
+    plugins: [
+      "expo-router",
+      "expo-font",
+      "expo-image-picker",
+      [
+        "expo-location",
+        {
+          locationWhenInUsePermission:
+            "PadMagnet uses your location to show nearby rental listings.",
+        },
+      ],
+      "expo-web-browser",
+    ],
+  },
+};

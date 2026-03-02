@@ -55,7 +55,9 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         >
+          <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+          <Stack.Screen name="auth-callback" options={{ animation: 'none' }} />
         </Stack>
       </AuthProvider>
     </ErrorBoundary>

@@ -4,48 +4,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Input, Button } from '../../components/ui';
-import { signUp } from '../../lib/auth';
+import { signIn, updateUserRole } from '../../lib/auth';
 import { saveUserRole } from '../../lib/storage';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-export default function RegisterScreen() {
+export default function PasswordScreen() {
   const { email, role } = useLocalSearchParams();
-  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const subtitleText = role === 'owner'
-    ? 'List your first property in minutes'
-    : 'Free for tenants. Always.';
-
-  async function handleRegister() {
-    if (!name.trim()) {
-      Alert.alert('Missing name', 'Please enter your first name.');
-      return;
-    }
-    if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Mismatch', 'Passwords do not match.');
-      return;
-    }
-
+  async function handleSignIn() {
+    if (!password) return;
     setLoading(true);
     try {
-      await signUp(email, password, { display_name: name.trim(), role: role || 'tenant' });
-      if (role) await saveUserRole(role);
-      Alert.alert(
-        'Check your email',
-        'We sent a verification link to ' + email + '. Please confirm your email to continue.',
-        [{ text: 'OK', onPress: () => router.push({ pathname: '/(auth)/password', params: { email, role } }) }],
-      );
+      await signIn(email, password);
+      // Save role locally and in user metadata
+      if (role) {
+        await saveUserRole(role);
+        await updateUserRole(role).catch(() => {}); // non-critical
+      }
+      // Auth state listener will handle navigation
     } catch (err) {
-      Alert.alert('Registration failed', err.message);
+      Alert.alert('Sign in failed', err.message);
     } finally {
       setLoading(false);
     }
@@ -66,46 +48,41 @@ export default function RegisterScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.subtitle}>{subtitleText}</Text>
-
-        {/* Email chip (readonly) */}
-        <View style={styles.emailChip}>
-          <Text style={styles.emailChipText}>{email}</Text>
-        </View>
-
-        <Input
-          label="First Name"
-          value={name}
-          onChangeText={setName}
-          placeholder="Your first name"
-          autoCapitalize="words"
-        />
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.subtitle}>{email}</Text>
 
         <Input
           label="Password"
           value={password}
           onChangeText={setPassword}
-          placeholder="Min. 8 characters"
-          secureTextEntry
-        />
-
-        <Input
-          label="Confirm Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Repeat password"
+          placeholder="Enter your password"
           secureTextEntry
         />
 
         <Button
-          title="Create Account"
+          title="Sign In"
           variant="primary"
           size="lg"
-          onPress={handleRegister}
+          onPress={handleSignIn}
           loading={loading}
-          style={styles.createButton}
+          style={styles.signInButton}
         />
+
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { email } })}
+          style={styles.forgotLink}
+        >
+          <Text style={styles.forgotText}>Forgot Password?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.replace({ pathname: '/(auth)/register', params: { email, role } })}
+          style={styles.registerLink}
+        >
+          <Text style={styles.registerText}>
+            Don't have an account? <Text style={styles.registerBold}>Sign Up</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -163,26 +140,33 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.md,
-    color: COLORS.accent,
-    marginBottom: 24,
+    color: COLORS.textSecondary,
+    marginBottom: 32,
   },
-  emailChip: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.full,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignSelf: 'flex-start',
-    marginBottom: 20,
+  signInButton: {
+    width: '100%',
+    marginTop: 8,
   },
-  emailChipText: {
+  forgotLink: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  forgotText: {
     fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+  },
+  registerLink: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  registerText: {
+    fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
-  createButton: {
-    width: '100%',
-    marginTop: 8,
+  registerBold: {
+    fontFamily: FONTS.body.semiBold,
+    color: COLORS.accent,
   },
 });

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Input, Button } from '../components/ui';
 import { setOnboarded, savePreferences } from '../lib/storage';
+import { useAuth } from '../hooks/useAuth';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
@@ -15,6 +17,7 @@ const CITIES = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -38,14 +41,32 @@ export default function OnboardingScreen() {
   const handleFinish = async () => {
     setSaving(true);
     try {
-      // Save locally — will sync to server after user signs in
-      await savePreferences({
+      const prefs = {
         budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
         preferred_cities: form.preferred_cities,
         pets_required: form.pets_required,
-      });
+      };
+      await savePreferences(prefs);
       await setOnboarded();
+
+      // Sync to server if authenticated
+      if (session?.access_token) {
+        try {
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+          await fetch(`${apiUrl}/api/preferences`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify(prefs),
+          });
+        } catch {
+          // Non-critical — local save succeeded
+        }
+      }
+
       router.replace('/(tabs)/swipe');
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -59,7 +80,11 @@ export default function OnboardingScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {step === 0 && (
           <>
-            <Text style={styles.emoji}>🏠</Text>
+            <Image
+              source={require('../assets/images/padmagnet-header.png')}
+              style={styles.wordmark}
+              contentFit="contain"
+            />
             <Text style={styles.title}>Welcome to PadMagnet</Text>
             <Text style={styles.subtitle}>
               Find your perfect rental on Florida's Treasure Coast. Let's set up a few preferences so we can personalize your experience.
@@ -165,9 +190,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: LAYOUT.padding.lg,
   },
-  emoji: {
-    fontSize: 56,
-    textAlign: 'center',
+  wordmark: {
+    width: 180,
+    height: 40,
+    alignSelf: 'center',
     marginBottom: 16,
   },
   title: {

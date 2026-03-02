@@ -12,7 +12,7 @@ export default function ProfileScreen() {
 
   async function handleSignOut() {
     await signOut();
-    router.replace('/(auth)/login');
+    router.replace('/welcome');
   }
 
   return (

@@ -2,7 +2,7 @@
 export const COLORS = {
   // Primary
   navy: '#0B1D3A',
-  accent: '#00C2FF',
+  accent: '#3B82F6',
   white: '#FFFFFF',
 
   // Supporting
@@ -13,12 +13,12 @@ export const COLORS = {
   danger: '#EF4444',
 
   // Semantic
-  background: '#0B1D3A',
-  surface: '#122847',
-  card: '#1A3358',
+  background: '#1A3358',
+  surface: '#234170',
+  card: '#2C5288',
   text: '#FFFFFF',
-  textSecondary: '#94A3B8',
-  border: '#1E3A5F',
+  textSecondary: '#B0BEC5',
+  border: '#3464A0',
 
   // PadScore gradient stops
   padscoreLow: '#EF4444',
