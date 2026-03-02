@@ -25,7 +25,8 @@ export default function PasswordScreen() {
         await saveUserRole(role);
         await updateUserRole(role).catch(() => {}); // non-critical
       }
-      // Auth state listener will handle navigation
+      // Navigate to the main app
+      router.replace('/');
     } catch (err) {
       Alert.alert('Sign in failed', err.message);
     } finally {
