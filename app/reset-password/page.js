@@ -33,30 +33,38 @@ export default function ResetPasswordPage() {
     const supabase = createSupabaseBrowser();
 
     async function initSession() {
-      // 1. Check for PKCE code in query params
+      // 1. Check for hash tokens (recovery flow)
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!sessionError) {
+            setState('ready');
+            window.history.replaceState({}, '', '/reset-password');
+            return;
+          }
+        }
+      }
+
+      // 2. Check for PKCE code in query params
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (!exchangeError) {
           setState('ready');
-          // Clean the URL
           window.history.replaceState({}, '', '/reset-password');
           return;
         }
       }
 
-      // 2. Check for hash tokens (non-PKCE flow)
-      if (window.location.hash) {
-        // Supabase client auto-detects hash tokens
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setState('ready');
-          return;
-        }
-      }
-
-      // 3. Check existing session (e.g., cookies from callback)
+      // 3. Check existing session
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setState('ready');
