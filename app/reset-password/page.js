@@ -3,9 +3,29 @@
 import { useState, useEffect } from 'react';
 import { createSupabaseBrowser } from '../../lib/supabase-browser';
 
+function EyeIcon({ open }) {
+  if (open) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [state, setState] = useState('loading'); // loading | ready | success | error
   const [error, setError] = useState('');
 
@@ -77,23 +97,41 @@ export default function ResetPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit}>
             <label style={styles.label}>New Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 8 characters"
-              style={styles.input}
-              autoFocus
-            />
+            <div style={styles.inputWrapper}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                style={styles.input}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+              >
+                <EyeIcon open={showPassword} />
+              </button>
+            </div>
 
             <label style={styles.label}>Confirm Password</label>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repeat password"
-              style={styles.input}
-            />
+            <div style={styles.inputWrapper}>
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Repeat password"
+                style={styles.input}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                style={styles.eyeButton}
+              >
+                <EyeIcon open={showConfirm} />
+              </button>
+            </div>
 
             {error && <p style={styles.error}>{error}</p>}
 
@@ -143,17 +181,32 @@ const styles = {
     textAlign: 'left',
     marginBottom: 8,
   },
+  inputWrapper: {
+    position: 'relative',
+    marginBottom: 20,
+  },
   input: {
     width: '100%',
-    padding: '14px 16px',
+    padding: '14px 48px 14px 16px',
     borderRadius: 8,
     border: '1px solid #1E3A5F',
     backgroundColor: '#1A3358',
     color: '#FFFFFF',
     fontSize: 18,
-    marginBottom: 20,
     outline: 'none',
     boxSizing: 'border-box',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 4,
+    display: 'flex',
+    alignItems: 'center',
   },
   button: {
     width: '100%',
