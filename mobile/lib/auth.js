@@ -29,7 +29,7 @@ export async function signOut() {
 
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://padmagnet.com/auth/callback?type=recovery',
+    redirectTo: 'https://padmagnet.com/reset-password',
   });
   if (error) throw error;
 }
