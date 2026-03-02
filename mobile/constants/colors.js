@@ -20,6 +20,15 @@ export const COLORS = {
   textSecondary: '#B0BEC5',
   border: '#3464A0',
 
+  // Brand accent
+  brandOrange: '#F95E0C',
+  frostedGlass: 'rgba(255,255,255,0.12)',
+
+  // Social sign-in
+  socialGoogle: '#DB4437',
+  socialFacebook: '#1877F2',
+  socialTextDark: '#333333',
+
   // PadScore gradient stops
   padscoreLow: '#EF4444',
   padscoreMid: '#F59E0B',

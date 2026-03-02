@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
-import { Input, Button } from '../../components/ui';
+import { Input, Button, AuthHeader } from '../../components/ui';
 import { signIn, updateUserRole } from '../../lib/auth';
-import { saveUserRole } from '../../lib/storage';
+import { saveUserRole, hasOnboarded } from '../../lib/storage';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function PasswordScreen() {
   const { email, role } = useLocalSearchParams();
+  const alert = useAlert();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,10 +26,15 @@ export default function PasswordScreen() {
         await saveUserRole(role);
         await updateUserRole(role).catch(() => {}); // non-critical
       }
-      // Navigate to the main app
-      router.replace('/');
+      // Navigate directly to destination (skip index.js spinner)
+      const onboarded = await hasOnboarded();
+      if (role === 'tenant' && !onboarded) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/(tabs)/swipe');
+      }
     } catch (err) {
-      Alert.alert('Sign in failed', err.message);
+      alert('Sign in failed', err.message);
     } finally {
       setLoading(false);
     }
@@ -36,17 +42,7 @@ export default function PasswordScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backPill}>
-          <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.headerBrand}>
-          <Text style={styles.headerPad}>Pad</Text>
-          <Text style={styles.headerMagnet}>Magnet</Text>
-        </View>
-        <View style={styles.backSpacer} />
-      </View>
+      <AuthHeader />
 
       <View style={styles.content}>
         <Text style={styles.title}>Welcome back</Text>
@@ -93,39 +89,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: 12,
-  },
-  backPill: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backSpacer: {
-    width: 40,
-    height: 40,
-  },
-  headerBrand: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  headerPad: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: COLORS.white,
-  },
-  headerMagnet: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: '#F95E0C',
   },
   content: {
     flex: 1,

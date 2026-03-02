@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
+import { FONTS, FONT_SIZES } from '../../constants/fonts';
+import { LAYOUT } from '../../constants/layout';
 
 // Trust Layer verification status — email, SMS, identity
 export default function VerificationScreen() {
@@ -16,16 +18,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
+    padding: LAYOUT.padding.md,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.white,
+    fontSize: FONT_SIZES.xl,
+    fontFamily: FONTS.heading.bold,
+    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.body.regular,
     color: COLORS.textSecondary,
   },
 });

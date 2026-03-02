@@ -1,4 +1,5 @@
 import './globals.css';
+import './app-theme.css';
 
 export const metadata = {
   title: 'PadMagnet — Swipe to Find Your Next Home',

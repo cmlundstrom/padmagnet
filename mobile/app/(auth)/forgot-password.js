@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
-import { Input, Button } from '../../components/ui';
+import { Input, Button, AuthHeader } from '../../components/ui';
 import { resetPassword } from '../../lib/auth';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function ForgotPasswordScreen() {
   const { email: prefillEmail } = useLocalSearchParams();
+  const alert = useAlert();
   const [email, setEmail] = useState(prefillEmail || '');
   const [loading, setLoading] = useState(false);
 
@@ -19,9 +20,9 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       await resetPassword(email.trim().toLowerCase());
-      Alert.alert('Check your email', 'If an account exists, we sent a password reset link.');
+      alert('Check your email', 'If an account exists, we sent a password reset link.');
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     } finally {
       setLoading(false);
     }
@@ -29,17 +30,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backPill}>
-          <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.headerBrand}>
-          <Text style={styles.headerPad}>Pad</Text>
-          <Text style={styles.headerMagnet}>Magnet</Text>
-        </View>
-        <View style={styles.backSpacer} />
-      </View>
+      <AuthHeader />
 
       <View style={styles.content}>
         <Text style={styles.title}>Reset Password</Text>
@@ -78,39 +69,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: 12,
-  },
-  backPill: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backSpacer: {
-    width: 40,
-    height: 40,
-  },
-  headerBrand: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  headerPad: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: COLORS.white,
-  },
-  headerMagnet: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: '#F95E0C',
   },
   content: {
     flex: 1,

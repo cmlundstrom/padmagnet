@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
-import { Input, Button } from '../../components/ui';
+import { Input, Button, AuthHeader } from '../../components/ui';
 import { signUp } from '../../lib/auth';
 import { saveUserRole } from '../../lib/storage';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function RegisterScreen() {
   const { email, role } = useLocalSearchParams();
+  const alert = useAlert();
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,15 +24,15 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!name.trim()) {
-      Alert.alert('Missing name', 'Please enter your first name.');
+      alert('Missing name', 'Please enter your first name.');
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      alert('Weak password', 'Password must be at least 8 characters.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Mismatch', 'Passwords do not match.');
+      alert('Mismatch', 'Passwords do not match.');
       return;
     }
 
@@ -39,13 +40,13 @@ export default function RegisterScreen() {
     try {
       await signUp(email, password, { display_name: name.trim(), role: role || 'tenant' });
       if (role) await saveUserRole(role);
-      Alert.alert(
+      alert(
         'Check your email',
         'We sent a verification link to ' + email + '. Please confirm your email to continue.',
         [{ text: 'OK', onPress: () => router.push({ pathname: '/(auth)/password', params: { email, role } }) }],
       );
     } catch (err) {
-      Alert.alert('Registration failed', err.message);
+      alert('Registration failed', err.message);
     } finally {
       setLoading(false);
     }
@@ -53,17 +54,7 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backPill}>
-          <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.headerBrand}>
-          <Text style={styles.headerPad}>Pad</Text>
-          <Text style={styles.headerMagnet}>Magnet</Text>
-        </View>
-        <View style={styles.backSpacer} />
-      </View>
+      <AuthHeader />
 
       <View style={styles.content}>
         <Text style={styles.title}>Create your account</Text>
@@ -115,39 +106,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: 12,
-  },
-  backPill: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backSpacer: {
-    width: 40,
-    height: 40,
-  },
-  headerBrand: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  headerPad: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: COLORS.white,
-  },
-  headerMagnet: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: '#F95E0C',
   },
   content: {
     flex: 1,

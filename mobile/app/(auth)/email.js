@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { Input, Button } from '../../components/ui';
+import { Input, Button, AuthHeader } from '../../components/ui';
 import { signInWithMagicLink, signInWithGoogle } from '../../lib/auth';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function EmailScreen() {
   const { role } = useLocalSearchParams();
+  const alert = useAlert();
   const [email, setEmail] = useState('');
   const [magicLoading, setMagicLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function EmailScreen() {
   function handleEmailContinue() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes('@')) {
-      Alert.alert('Invalid email', 'Please enter a valid email address.');
+      alert('Invalid email', 'Please enter a valid email address.');
       return;
     }
     router.push({ pathname: '/(auth)/password', params: { email: trimmed, role } });
@@ -31,18 +33,18 @@ export default function EmailScreen() {
   async function handleMagicLink() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes('@')) {
-      Alert.alert('Invalid email', 'Please enter a valid email address.');
+      alert('Invalid email', 'Please enter a valid email address.');
       return;
     }
     setMagicLoading(true);
     try {
       await signInWithMagicLink(trimmed);
-      Alert.alert(
+      alert(
         'Check your email',
         'We sent you a magic link. Tap it to sign in instantly.',
       );
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     } finally {
       setMagicLoading(false);
     }
@@ -55,7 +57,7 @@ export default function EmailScreen() {
       // Auth state listener will handle navigation
     } catch (err) {
       if (!err.message.includes('cancelled')) {
-        Alert.alert('Error', err.message);
+        alert('Error', err.message);
       }
     } finally {
       setGoogleLoading(false);
@@ -63,22 +65,12 @@ export default function EmailScreen() {
   }
 
   function handleFacebook() {
-    Alert.alert('Coming Soon', 'Facebook sign-in will be available in a future update.');
+    alert('Coming Soon', 'Facebook sign-in will be available in a future update.');
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/welcome')} style={styles.backPill}>
-          <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.headerBrand}>
-          <Text style={styles.headerPad}>Pad</Text>
-          <Text style={styles.headerMagnet}>Magnet</Text>
-        </View>
-        <View style={styles.backSpacer} />
-      </View>
+      <AuthHeader onBack={() => router.replace('/welcome')} />
 
       <View style={styles.content}>
         <Text style={styles.title}>What's your email?</Text>
@@ -126,9 +118,9 @@ export default function EmailScreen() {
           activeOpacity={0.8}
         >
           {googleLoading ? (
-            <ActivityIndicator size="small" color="#333" />
+            <ActivityIndicator size="small" color={COLORS.socialTextDark} />
           ) : (
-            <FontAwesome name="google" size={28} color="#DB4437" style={styles.socialIcon} />
+            <FontAwesome name="google" size={28} color={COLORS.socialGoogle} style={styles.socialIcon} />
           )}
           <Text style={styles.socialText}>Continue with Google</Text>
         </TouchableOpacity>
@@ -138,7 +130,7 @@ export default function EmailScreen() {
           onPress={handleFacebook}
           activeOpacity={0.8}
         >
-          <FontAwesome name="facebook" size={28} color="#FFFFFF" style={styles.socialIcon} />
+          <FontAwesome name="facebook" size={28} color={COLORS.white} style={styles.socialIcon} />
           <Text style={[styles.socialText, styles.facebookText]}>Continue with Facebook</Text>
         </TouchableOpacity>
       </View>
@@ -150,39 +142,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: 12,
-  },
-  backPill: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backSpacer: {
-    width: 40,
-    height: 40,
-  },
-  headerBrand: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  headerPad: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: COLORS.white,
-  },
-  headerMagnet: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 18,
-    color: '#F95E0C',
   },
   content: {
     flex: 1,
@@ -232,7 +191,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     borderRadius: 6,
     height: 46,
     minHeight: 46,
@@ -242,13 +201,13 @@ const styles = StyleSheet.create({
   socialText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
-    color: '#333333',
+    color: COLORS.socialTextDark,
   },
   facebookButton: {
-    backgroundColor: '#1877F2',
+    backgroundColor: COLORS.socialFacebook,
   },
   facebookText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   socialIcon: {
     width: 28,

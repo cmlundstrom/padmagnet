@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { FONTS, FONT_SIZES } from '../../constants/fonts';
+import { LAYOUT } from '../../constants/layout';
 
 // Placeholder — will integrate Twilio Verify for SMS + email verification
 export default function VerifyScreen() {
@@ -16,17 +18,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: LAYOUT.padding.lg,
     backgroundColor: COLORS.background,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.white,
+    fontSize: FONT_SIZES.xl,
+    fontFamily: FONTS.heading.bold,
+    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.body.regular,
     color: COLORS.textSecondary,
   },
 });
