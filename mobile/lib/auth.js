@@ -28,7 +28,9 @@ export async function signOut() {
 }
 
 export async function resetPassword(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://padmagnet.com/auth/callback?type=recovery',
+  });
   if (error) throw error;
 }
 
