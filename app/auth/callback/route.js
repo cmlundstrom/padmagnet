@@ -8,8 +8,16 @@ export async function GET(request) {
   const type = searchParams.get('type');
   const next = searchParams.get('next') || '/admin';
 
-  const redirectTo = type === 'recovery' ? '/reset-password' : next;
-  const response = NextResponse.redirect(new URL(redirectTo, request.url));
+  // For recovery, pass the code to the reset page to exchange client-side
+  if (type === 'recovery' && code) {
+    const resetUrl = new URL('/reset-password', request.url);
+    resetUrl.searchParams.set('code', code);
+    return NextResponse.redirect(resetUrl);
+  }
+
+  // For other flows, exchange server-side and redirect
+  const redirectUrl = new URL(next, request.url);
+  const response = NextResponse.redirect(redirectUrl);
 
   if (code) {
     const cookieStore = cookies();

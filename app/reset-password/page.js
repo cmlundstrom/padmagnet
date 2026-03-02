@@ -30,26 +30,55 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Supabase will auto-detect the recovery token from the URL hash
-    // and set up the session. We just need to wait for it.
     const supabase = createSupabaseBrowser();
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+
+    async function initSession() {
+      // 1. Check for PKCE code in query params
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!exchangeError) {
+          setState('ready');
+          // Clean the URL
+          window.history.replaceState({}, '', '/reset-password');
+          return;
+        }
+      }
+
+      // 2. Check for hash tokens (non-PKCE flow)
+      if (window.location.hash) {
+        // Supabase client auto-detects hash tokens
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setState('ready');
+          return;
+        }
+      }
+
+      // 3. Check existing session (e.g., cookies from callback)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setState('ready');
+        return;
+      }
+    }
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setState('ready');
       }
     });
 
-    // If already in a session (e.g., page refreshed), allow reset
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setState('ready');
+    initSession().then(() => {
+      // Fallback if nothing worked after 3s
+      setTimeout(() => {
+        setState((prev) => (prev === 'loading' ? 'ready' : prev));
+      }, 3000);
     });
 
-    // Timeout fallback if no event fires
-    const timeout = setTimeout(() => {
-      setState((prev) => (prev === 'loading' ? 'ready' : prev));
-    }, 3000);
-
-    return () => clearTimeout(timeout);
+    return () => subscription.unsubscribe();
   }, []);
 
   async function handleSubmit(e) {
