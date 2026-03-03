@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { AppState } from 'react-native';
+import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -15,12 +16,64 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
-import { AuthProvider } from '../providers/AuthProvider';
+import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
 import { COLORS } from '../constants/colors';
+import { useContext } from 'react';
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Route guard — runs inside AuthProvider so it can read auth context.
+ * Redirects users to the correct tab group when:
+ *   - App resumes from background (AppState change)
+ *   - Auth state changes (login/logout)
+ */
+function RouteGuard({ children }) {
+  const { session, role, loading } = useContext(AuthContext);
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const inTenant = segments[0] === '(tenant)';
+    const inOwner = segments[0] === '(owner)';
+    const inApp = inTenant || inOwner;
+
+    if (!session && inApp) {
+      // Logged out but still on an app screen → go to welcome
+      router.replace('/welcome');
+    } else if (session && role === 'owner' && inTenant) {
+      // Owner stuck in tenant tab group → redirect
+      router.replace('/(owner)/listings');
+    } else if (session && role !== 'owner' && inOwner) {
+      // Tenant stuck in owner tab group → redirect
+      router.replace('/(tenant)/swipe');
+    }
+  }, [session, role, loading, segments]);
+
+  // Also re-check when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' || loading || !session) return;
+
+      const inTenant = segments[0] === '(tenant)';
+      const inOwner = segments[0] === '(owner)';
+
+      if (role === 'owner' && inTenant) {
+        router.replace('/(owner)/listings');
+      } else if (role !== 'owner' && inOwner) {
+        router.replace('/(tenant)/swipe');
+      }
+    });
+
+    return () => sub.remove();
+  }, [session, role, loading, segments]);
+
+  return children;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -48,6 +101,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <AuthProvider>
         <AlertProvider>
+        <RouteGuard>
         <StatusBar style="light" />
         <OfflineBanner />
         <Stack
@@ -64,7 +118,8 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="auth-callback" options={{ animation: 'none' }} />
         </Stack>
-      </AlertProvider>
+        </RouteGuard>
+        </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
