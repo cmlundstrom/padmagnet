@@ -148,7 +148,7 @@ function timeAgo(dateStr) {
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 }
 
 // ============================================================
@@ -1918,19 +1918,19 @@ function ProductsPanel() {
     },
     {
       accessorKey: "description",
-      header: "Description",
+      header: "Public Product Description",
       cell: ({ getValue }) => {
         const val = getValue() || "";
         const charCount = val.length;
         return (
-          <span style={{ fontSize: "13px", color: COLORS.textMuted, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }}>
-            {val ? val.replace(/\\n/g, " ") : "—"}
-            {val && <span style={{ marginLeft: 6, fontSize: "11px", color: COLORS.textDim }}>{charCount}/200</span>}
-          </span>
+          <div style={{ fontSize: "13px", color: COLORS.textMuted, whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.4 }}>
+            {val ? val.replace(/\\n/g, "\n") : "—"}
+            {val && <span style={{ display: "block", fontSize: "11px", color: COLORS.textDim, marginTop: 2 }}>{charCount}/200</span>}
+          </div>
         );
       },
       meta: { editable: true },
-      size: 250,
+      size: 320,
     },
     {
       accessorKey: "app_path",
@@ -2104,6 +2104,7 @@ function ProductsPanel() {
         onBulkDelete={handleBulkDelete}
         onBulkHardDelete={handleBulkHardDelete}
         emptyMessage="No owner products in catalog yet"
+        renderExpandedRow={(row) => <AuditHistory tableName="products" rowId={row.id} />}
       />
 
       {/* Tenant Products Section */}
@@ -2121,6 +2122,7 @@ function ProductsPanel() {
         onBulkDelete={handleBulkDelete}
         onBulkHardDelete={handleBulkHardDelete}
         emptyMessage="No tenant products yet"
+        renderExpandedRow={(row) => <AuditHistory tableName="products" rowId={row.id} />}
       />
 
       {/* Soft Delete Confirmation */}
