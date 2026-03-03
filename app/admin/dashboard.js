@@ -1580,6 +1580,313 @@ function WaitlistPanel() {
 }
 
 // ============================================================
+// PRODUCTS PANEL
+// ============================================================
+function ProductsPanel() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/products");
+      if (!res.ok) throw new Error("Failed to load products");
+      const data = await res.json();
+      setProducts(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  const handleSave = useCallback(async (ids, changes) => {
+    // Convert dollar string → cents for price_cents
+    if (changes.price_cents !== undefined) {
+      const dollars = parseFloat(changes.price_cents);
+      if (!isNaN(dollars)) {
+        changes.price_cents = Math.round(dollars * 100);
+      }
+    }
+    await fetch("/api/admin/products", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, changes }),
+    });
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleToggle = useCallback(async (id, field, currentValue) => {
+    await fetch("/api/admin/products", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [id], changes: { [field]: !currentValue } }),
+    });
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleAdd = useCallback(async (values) => {
+    const priceCents = Math.round(parseFloat(values.price) * 100);
+    if (isNaN(priceCents) || priceCents <= 0) {
+      alert("Price must be a positive number");
+      return;
+    }
+    const res = await fetch("/api/admin/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: values.name,
+        description: values.description || null,
+        price_cents: priceCents,
+        type: values.type || "one_time",
+        recurring_interval: values.type === "recurring" ? (values.recurring_interval || "month") : null,
+        sort_order: parseInt(values.sort_order, 10) || 0,
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(`Create failed: ${result.error}`);
+      return;
+    }
+    setShowAddForm(false);
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleBulkDelete = useCallback((ids) => {
+    const names = ids.map(id => {
+      const p = products.find(p => p.id === id);
+      return p ? p.name : id;
+    }).join(", ");
+    setConfirmDelete({ ids, names });
+  }, [products]);
+
+  const executeDelete = useCallback(async () => {
+    if (!confirmDelete) return;
+    for (const id of confirmDelete.ids) {
+      await fetch("/api/admin/products", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    }
+    setConfirmDelete(null);
+    fetchProducts();
+  }, [confirmDelete, fetchProducts]);
+
+  const addFormFields = useMemo(() => [
+    { key: "name", label: "Product Name", type: "text", required: true, placeholder: "e.g. Premium 30-Day Listing" },
+    { key: "description", label: "Description", type: "text", placeholder: "Short description of what this product includes" },
+    { key: "price", label: "Price ($)", type: "text", required: true, placeholder: "e.g. 29.99" },
+    { key: "type", label: "Type", type: "select", options: [{ value: "one_time", label: "One-Time" }, { value: "recurring", label: "Recurring" }] },
+    { key: "recurring_interval", label: "Interval", type: "select", options: [{ value: "month", label: "Monthly" }, { value: "year", label: "Yearly" }] },
+    { key: "sort_order", label: "Sort Order", type: "text", placeholder: "0" },
+  ], []);
+
+  const activeCount = products.filter(p => p.is_active).length;
+  const implementedCount = products.filter(p => p.is_implemented).length;
+  const avgPrice = products.length > 0
+    ? (products.reduce((sum, p) => sum + p.price_cents, 0) / products.length / 100).toFixed(2)
+    : "0.00";
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: "name",
+      header: "Product",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600 }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "13px", color: COLORS.textMuted, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }}>
+          {getValue() || "—"}
+        </span>
+      ),
+      meta: { editable: true },
+      size: 250,
+    },
+    {
+      accessorKey: "price_cents",
+      header: "Price",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600, fontFamily: "monospace" }}>
+          ${(getValue() / 100).toFixed(2)}
+        </span>
+      ),
+      meta: { editable: true },
+      size: 100,
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={v === "one_time" ? "blue" : "purple"}>
+          {v === "one_time" ? "One-Time" : "Recurring"}
+        </Badge>;
+      },
+      size: 110,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "one_time", label: "One-Time" },
+          { value: "recurring", label: "Recurring" },
+        ],
+      },
+    },
+    {
+      accessorKey: "is_active",
+      header: "Active",
+      cell: ({ row }) => {
+        const val = row.original.is_active;
+        return (
+          <span
+            onClick={() => handleToggle(row.original.id, "is_active", val)}
+            style={{
+              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              fontSize: "11px", fontWeight: 700, cursor: "pointer",
+              background: val ? "#052e16" : "#1e293b",
+              color: val ? COLORS.green : COLORS.textDim,
+              border: `1px solid ${val ? COLORS.green + "44" : COLORS.border}`,
+              userSelect: "none",
+            }}
+          >
+            {val ? "ON" : "OFF"}
+          </span>
+        );
+      },
+      size: 80,
+      enableSorting: false,
+    },
+    {
+      accessorKey: "is_implemented",
+      header: "Wired",
+      cell: ({ row }) => {
+        const val = row.original.is_implemented;
+        return (
+          <span
+            onClick={() => handleToggle(row.original.id, "is_implemented", val)}
+            style={{
+              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              fontSize: "11px", fontWeight: 700, cursor: "pointer",
+              background: val ? "#052e16" : "#450a0a",
+              color: val ? COLORS.green : COLORS.red,
+              border: `1px solid ${val ? COLORS.green + "44" : COLORS.red + "44"}`,
+              userSelect: "none",
+            }}
+          >
+            {val ? "LIVE" : "NOT WIRED"}
+          </span>
+        );
+      },
+      size: 110,
+      enableSorting: false,
+    },
+    {
+      accessorKey: "sort_order",
+      header: "Order",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "13px", color: COLORS.textMuted }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+      size: 70,
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
+      ),
+      size: 160,
+    },
+  ], [handleToggle]);
+
+  return (
+    <div>
+      {/* Stat Cards */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+        <StatCard label="Total Products" value={products.length} sub="In catalog" accent={COLORS.brand} />
+        <StatCard label="Active" value={activeCount} sub="Available for purchase" accent={COLORS.green} />
+        <StatCard label="Implemented" value={implementedCount} sub="Wired into app" accent={COLORS.purple} />
+        <StatCard label="Avg Price" value={`$${avgPrice}`} sub="Across all products" accent={COLORS.amber} />
+      </div>
+
+      {/* Add Button */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          style={{
+            padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+            background: showAddForm ? COLORS.surface : COLORS.brand,
+            color: showAddForm ? COLORS.text : "#000",
+            fontWeight: 600, fontSize: "13px",
+          }}
+        >
+          {showAddForm ? "Cancel" : "+ Add Product"}
+        </button>
+        <span style={{ fontSize: "13px", color: COLORS.textMuted }}>
+          Click toggles to flip Active/Wired. Double-click name, description, price, or order to edit inline.
+        </span>
+      </div>
+
+      {/* Add Form */}
+      {showAddForm && (
+        <div style={{ marginBottom: 20 }}>
+          <AddEntryForm
+            fields={addFormFields}
+            onSave={handleAdd}
+            onCancel={() => setShowAddForm(false)}
+            submitLabel="Create Product"
+            savingLabel="Creating…"
+          />
+        </div>
+      )}
+
+      {/* Products Table */}
+      <AdminTable
+        columns={columns}
+        data={products}
+        loading={loading}
+        error={error}
+        tableName="products"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        emptyMessage="No products in catalog yet"
+      />
+
+      {/* Delete Confirmation */}
+      {confirmDelete && (
+        <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px" }}>
+              Deactivate {confirmDelete.ids.length} product{confirmDelete.ids.length > 1 ? "s" : ""}?
+            </p>
+            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
+              {confirmDelete.names}
+            </p>
+            <p style={{ fontSize: "12px", color: COLORS.textDim, marginBottom: 16 }}>
+              Products will be deactivated (soft delete), not permanently removed.
+            </p>
+            <div className="confirm-actions">
+              <button className="confirm-btn cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="confirm-btn confirm" onClick={executeDelete}>Deactivate</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // BILLING PANEL (stub — schema ready, wires to Stripe later)
 // ============================================================
 function BillingPanel() {
@@ -2037,6 +2344,7 @@ const NAV_ITEMS = [
   { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "support", label: "Support", icon: "💬" },
+  { id: "products", label: "Products", icon: "📦" },
   { id: "billing", label: "Billing", icon: "💳" },
   { id: "users", label: "Users", icon: "👤" },
   { id: "audit", label: "Audit Log", icon: "📝" },
@@ -2087,6 +2395,7 @@ export default function PadMagnetAdmin() {
     padscore: <PadScorePanel />,
     listings: <ListingsPanel />,
     support: <SupportPanel onTicketChange={refreshTicketCount} />,
+    products: <ProductsPanel />,
     billing: <BillingPanel />,
     users: <UsersPanel />,
     audit: <AuditLogPanel />,
