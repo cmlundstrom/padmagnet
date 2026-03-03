@@ -130,7 +130,16 @@ export default function ResetPasswordPage() {
         {state === 'success' ? (
           <div>
             <p className={styles.success}>Password updated successfully.</p>
-            <p className={styles.hint}>Switch back to the app and sign in with your new password.</p>
+            <p className={styles.hint}>Sign in with your new password.</p>
+            <button
+              onClick={() => window.close()}
+              className={styles.button}
+            >
+              Back to App
+            </button>
+            <p className={styles.hintSmall}>
+              If the button doesn&apos;t close this page, just switch back to the app manually.
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
