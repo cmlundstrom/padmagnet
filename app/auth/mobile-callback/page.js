@@ -8,60 +8,78 @@ import { useEffect, useState } from 'react';
  * Flow:
  * 1. Supabase verifies the magic link token
  * 2. Supabase redirects here with tokens in the URL hash fragment
- * 3. This page attempts to open the mobile app via deep link
- * 4. If the app doesn't open, shows manual "Open App" buttons
+ * 3. This page opens the mobile app via Android Intent URI or iOS scheme
+ * 4. If the app doesn't open, shows a manual link
  *
- * Deep link schemes:
- * - Expo Go (dev): exp+padmagnet://auth-callback
- * - Standalone (prod): padmagnet://auth-callback
+ * Android Chrome blocks custom schemes from JS — must use Intent URIs.
+ * Expo Go package: host.exp.exponent (Android)
+ * Standalone package: com.padmagnet.app (Android)
  */
 export default function MobileCallbackPage() {
   const [status, setStatus] = useState('redirecting');
-  const [hash, setHash] = useState('');
+  const [tokens, setTokens] = useState(null);
 
   useEffect(() => {
     // Supabase appends tokens as hash fragment:
     // #access_token=...&refresh_token=...&type=magiclink
-    const h = window.location.hash;
-    if (!h) {
+    const hash = window.location.hash;
+    if (!hash) {
       setStatus('error');
       return;
     }
-    setHash(h);
 
-    // Try Expo Go scheme first (dev), then standalone scheme (prod).
-    // On a device with the standalone app installed, padmagnet:// will work.
-    // On a device running Expo Go, exp+padmagnet:// will work.
-    // We try both with a short delay between them.
-    const expoUrl = `exp+padmagnet://auth-callback${h}`;
-    const standaloneUrl = `padmagnet://auth-callback${h}`;
+    // Parse tokens from hash
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
 
-    // Try Expo Go scheme first (most likely during development)
-    window.location.href = expoUrl;
+    if (!accessToken || !refreshToken) {
+      setStatus('error');
+      return;
+    }
 
-    // After a short delay, try standalone scheme as fallback
-    const fallbackTimer = setTimeout(() => {
-      window.location.href = standaloneUrl;
-    }, 1000);
+    setTokens({ accessToken, refreshToken });
 
-    // If we're still here after 3 seconds, neither worked
-    const manualTimer = setTimeout(() => {
+    // Build query string with tokens (Intent URIs can't use hash fragments)
+    const tokenQuery = `access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
+
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      // Android: Use Intent URI — the ONLY reliable way to open apps from Chrome
+      // Try Expo Go first (dev testing)
+      const intentUrl = `intent://auth-callback?${tokenQuery}#Intent;scheme=exp+padmagnet;package=host.exp.exponent;end`;
+      window.location.href = intentUrl;
+    } else if (isIOS) {
+      // iOS: Safari handles custom schemes from JS
+      window.location.href = `exp+padmagnet://auth-callback?${tokenQuery}`;
+    }
+
+    // If still here after 3 seconds, show manual options
+    const timer = setTimeout(() => {
       setStatus('manual');
     }, 3000);
 
-    return () => {
-      clearTimeout(fallbackTimer);
-      clearTimeout(manualTimer);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleOpenExpo = () => {
-    window.location.href = `exp+padmagnet://auth-callback${hash}`;
-  };
+  // Build the Intent/scheme URLs for manual buttons
+  function getOpenUrl(target) {
+    if (!tokens) return '#';
+    const tokenQuery = `access_token=${encodeURIComponent(tokens.accessToken)}&refresh_token=${encodeURIComponent(tokens.refreshToken)}`;
+    const isAndroid = /android/i.test(navigator.userAgent);
 
-  const handleOpenStandalone = () => {
-    window.location.href = `padmagnet://auth-callback${hash}`;
-  };
+    if (target === 'expo') {
+      return isAndroid
+        ? `intent://auth-callback?${tokenQuery}#Intent;scheme=exp+padmagnet;package=host.exp.exponent;end`
+        : `exp+padmagnet://auth-callback?${tokenQuery}`;
+    }
+    // standalone
+    return isAndroid
+      ? `intent://auth-callback?${tokenQuery}#Intent;scheme=padmagnet;package=com.padmagnet.app;end`
+      : `padmagnet://auth-callback?${tokenQuery}`;
+  }
 
   return (
     <div style={{
@@ -79,24 +97,27 @@ export default function MobileCallbackPage() {
         <>
           <h2 style={{ marginBottom: 8 }}>Signed in!</h2>
           <p style={{ color: '#8899aa', marginBottom: 24, textAlign: 'center' }}>
-            If the app didn&apos;t open automatically, tap a button below.
+            Tap below to open the app.
           </p>
-          <button onClick={handleOpenExpo} style={{
-            background: '#6c5ce7', color: '#fff', border: 'none', borderRadius: 8,
-            padding: '14px 32px', fontSize: 16, fontWeight: 600, cursor: 'pointer',
+          {/* Use <a> tags — Chrome trusts href navigation more than JS onclick */}
+          <a href={getOpenUrl('expo')} style={{
+            display: 'block', textAlign: 'center', textDecoration: 'none',
+            background: '#6c5ce7', color: '#fff', borderRadius: 8,
+            padding: '14px 32px', fontSize: 16, fontWeight: 600,
             marginBottom: 12, width: 260,
           }}>
             Open in Expo Go
-          </button>
-          <button onClick={handleOpenStandalone} style={{
+          </a>
+          <a href={getOpenUrl('standalone')} style={{
+            display: 'block', textAlign: 'center', textDecoration: 'none',
             background: 'transparent', color: '#8899aa', border: '1px solid #334',
-            borderRadius: 8, padding: '12px 32px', fontSize: 14, cursor: 'pointer',
+            borderRadius: 8, padding: '12px 32px', fontSize: 14,
             width: 260,
           }}>
             Open PadMagnet App
-          </button>
+          </a>
           <p style={{ color: '#556', fontSize: 12, marginTop: 16, textAlign: 'center' }}>
-            Use &quot;Expo Go&quot; during testing, or &quot;PadMagnet App&quot; for the standalone app.
+            Use &quot;Expo Go&quot; during testing.
           </p>
         </>
       )}
