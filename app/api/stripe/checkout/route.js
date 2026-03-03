@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic';
 
 // POST — create Stripe Checkout session for listing purchase
 export async function POST(request) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+  }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   try {
     const { user, error: authError, status } = await getAuthUser(request);
