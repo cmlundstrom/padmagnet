@@ -536,37 +536,285 @@ function PadScorePanel() {
 // LISTINGS PANEL
 // ============================================================
 function ListingsPanel() {
+  const [listings, setListings] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedListing, setSelectedListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
-  const filtered = DEMO_LISTINGS.filter(l => {
-    if (statusFilter !== "all" && l.display_status !== statusFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (l.mls_number?.toLowerCase().includes(q) || l.address_line1?.toLowerCase().includes(q) || l.city?.toLowerCase().includes(q));
+  const fetchListings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/listings");
+      if (!res.ok) throw new Error("Failed to load listings");
+      const data = await res.json();
+      setListings(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
     }
-    return true;
-  });
+    setLoading(false);
+  }, []);
 
-  const statusColors = { active: "green", review: "amber", suppressed: "red", inactive: "gray" };
-  const typeLabels = { sfh: "Single Family", apartment: "Apartment", duplex_plus: "Duplex+" };
+  useEffect(() => { fetchListings(); }, [fetchListings]);
+
+  const TYPE_ABBREV = { "Single Family Residence": "SFR", "Condominium": "Condo", "Townhouse": "TH", "Duplex": "Duplex", "Apartment": "Apt", "Mobile Home": "MH" };
+
+  const STATUS_FILTERS = ["all", "active", "draft", "expired", "leased", "archived", "suppressed"];
+
+  const enriched = useMemo(() => {
+    return listings.map(l => {
+      const dom = l.created_at ? Math.floor((Date.now() - new Date(l.created_at).getTime()) / 86400000) : 0;
+      return {
+        ...l,
+        address: [l.street_number, l.street_name].filter(Boolean).join(" ") || "—",
+        address_city: [l.city, l.state_or_province, l.postal_code].filter(Boolean).join(", "),
+        days_on_market: dom,
+        beds_baths: `${l.bedrooms_total ?? "—"}/${l.bathrooms_total ?? "—"}`,
+        suppressed: !l.is_active,
+      };
+    });
+  }, [listings]);
+
+  const filtered = useMemo(() => {
+    return enriched.filter(l => {
+      if (statusFilter === "suppressed") {
+        if (l.is_active) return false;
+      } else if (statusFilter !== "all") {
+        if (l.status !== statusFilter) return false;
+        if (!l.is_active) return false;
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          l.listing_id?.toLowerCase().includes(q) ||
+          l.address?.toLowerCase().includes(q) ||
+          l.city?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [enriched, statusFilter, search]);
+
+  // Stat counts
+  const totalCount = listings.length;
+  const mlsCount = listings.filter(l => l.source === "mls" || l.source === "bridge").length;
+  const ownerCount = listings.filter(l => l.source === "owner").length;
+  const activeCount = listings.filter(l => l.status === "active" && l.is_active).length;
+  const draftCount = listings.filter(l => l.status === "draft").length;
+  const suppressedCount = listings.filter(l => !l.is_active).length;
+
+  const statusCountFor = (s) => {
+    if (s === "all") return enriched.length;
+    if (s === "suppressed") return suppressedCount;
+    return enriched.filter(l => l.status === s && l.is_active).length;
+  };
+
+  // CRUD handlers
+  const handleSave = useCallback(async (ids, changes) => {
+    await fetch("/api/admin/listings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, changes }),
+    });
+    fetchListings();
+  }, [fetchListings]);
+
+  const handleBulkDelete = useCallback((ids) => {
+    setConfirmAction({
+      type: "delete",
+      ids,
+      message: `Archive ${ids.length} listing${ids.length > 1 ? "s" : ""}? They will be set to inactive/archived.`,
+    });
+  }, []);
+
+  const handleBulkSuppress = useCallback((ids) => {
+    setConfirmAction({
+      type: "suppress",
+      ids,
+      message: `Suppress ${ids.length} listing${ids.length > 1 ? "s" : ""}? They will be hidden from tenants.`,
+    });
+  }, []);
+
+  const handleBulkUnsuppress = useCallback((ids) => {
+    handleSave(ids, { is_active: true, status: "active" });
+  }, [handleSave]);
+
+  const confirmExecute = useCallback(async () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "delete") {
+      await fetch("/api/admin/listings", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: confirmAction.ids }),
+      });
+    } else if (confirmAction.type === "suppress") {
+      await handleSave(confirmAction.ids, { is_active: false });
+    }
+    setConfirmAction(null);
+    fetchListings();
+  }, [confirmAction, handleSave, fetchListings]);
+
+  // Column defs
+  const columns = useMemo(() => [
+    {
+      accessorKey: "listing_id",
+      header: "MLS#",
+      cell: ({ getValue }) => (
+        <span style={{ fontFamily: "monospace", color: COLORS.brand, fontWeight: 600, fontSize: "12px" }}>
+          {getValue() || "—"}
+        </span>
+      ),
+      size: 120,
+    },
+    {
+      accessorKey: "address",
+      header: "Address",
+      cell: ({ row }) => (
+        <div>
+          <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600 }}>{row.original.address}</div>
+          <div style={{ fontSize: "11px", color: COLORS.textDim }}>{row.original.address_city}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "property_sub_type",
+      header: "Type",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <span style={{ fontSize: "12px", color: COLORS.textMuted }}>{TYPE_ABBREV[v] || v || "—"}</span>;
+      },
+      size: 80,
+    },
+    {
+      accessorKey: "list_price",
+      header: "Rent",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <span style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600 }}>{v ? `$${Number(v).toLocaleString()}` : "—"}</span>;
+      },
+      size: 90,
+    },
+    {
+      accessorKey: "beds_baths",
+      header: "Bd/Ba",
+      cell: ({ getValue }) => <span style={{ fontSize: "13px" }}>{getValue()}</span>,
+      size: 70,
+    },
+    {
+      accessorKey: "source",
+      header: "Source",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        const isMLS = v === "mls" || v === "bridge";
+        return <Badge color={isMLS ? "blue" : "purple"}>{isMLS ? "MLS" : "OWNER"}</Badge>;
+      },
+      size: 80,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        const statusColors = { active: "green", draft: "amber", expired: "red", leased: "blue", archived: "gray" };
+        return <Badge color={statusColors[v] || "gray"}>{v}</Badge>;
+      },
+      size: 90,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "active", label: "Active" },
+          { value: "draft", label: "Draft" },
+          { value: "expired", label: "Expired" },
+          { value: "leased", label: "Leased" },
+          { value: "archived", label: "Archived" },
+        ],
+      },
+    },
+    {
+      accessorKey: "days_on_market",
+      header: "DOM",
+      cell: ({ getValue }) => {
+        const dom = getValue();
+        const color = dom <= 7 ? COLORS.green : dom <= 30 ? COLORS.text : dom <= 60 ? COLORS.amber : COLORS.red;
+        return <span style={{ fontSize: "12px", color }}>{dom}d</span>;
+      },
+      size: 70,
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
+      ),
+      size: 150,
+    },
+  ], []);
+
+  // Expanded row
+  const renderExpandedRow = useCallback((row) => {
+    const handleSuppress = () => handleSave([row.id], { is_active: false });
+    const handleUnsuppress = () => handleSave([row.id], { is_active: true, status: "active" });
+    const handleApprove = () => handleSave([row.id], { status: "active", is_active: true });
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+          {[
+            ["Rent", row.list_price ? `$${Number(row.list_price).toLocaleString()}/mo` : "—"],
+            ["Type", row.property_sub_type || row.property_type || "—"],
+            ["Beds/Baths", `${row.bedrooms_total ?? "—"} / ${row.bathrooms_total ?? "—"}`],
+            ["Sqft", row.living_area ? Number(row.living_area).toLocaleString() : "—"],
+            ["Pets", row.pets_allowed || "—"],
+            ["Fenced Yard", row.fenced_yard ? "Yes" : "No"],
+            ["Source", row.source || "—"],
+            ["DOM", `${row.days_on_market} days`],
+            ["Views", row.view_count ?? 0],
+            ["Inquiries", row.inquiry_count ?? 0],
+            ["Photos", Array.isArray(row.photos) ? row.photos.length : 0],
+            ["Boosted", row.is_boosted ? "Yes" : "No"],
+          ].map(([label, val]) => (
+            <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px" }}>
+              <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+              <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600, marginTop: 2 }}>{val}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {row.is_active && (
+            <button onClick={handleSuppress} style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
+          )}
+          {!row.is_active && (
+            <button onClick={handleUnsuppress} style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Unsuppress</button>
+          )}
+          {row.status === "draft" && (
+            <button onClick={handleApprove} style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Approve</button>
+          )}
+        </div>
+        <AuditHistory tableName="listings" rowId={row.id} />
+      </div>
+    );
+  }, [handleSave]);
 
   return (
     <div>
+      {/* Stat Cards */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+        <StatCard label="Total Listings" value={totalCount} sub={`${mlsCount} MLS / ${ownerCount} owner`} accent={COLORS.brand} />
+        <StatCard label="Active" value={activeCount} sub={totalCount > 0 ? `${Math.round(activeCount / totalCount * 100)}% of total` : "—"} accent={COLORS.green} />
+        <StatCard label="Drafts" value={draftCount} sub="Pending review" accent={COLORS.amber} />
+        <StatCard label="Suppressed" value={suppressedCount} sub="Hidden from tenants" accent={COLORS.red} />
+      </div>
+
       {/* Search & Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search MLS#, address, city…"
-          style={{
-            flex: "1 1 240px", padding: "8px 14px", background: COLORS.surface,
-            border: `1px solid ${COLORS.border}`, borderRadius: "6px",
-            color: COLORS.text, fontSize: "13px", outline: "none",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
+          className="audit-panel-input"
+          style={{ flex: "1 1 240px" }}
         />
-        {["all", "active", "review", "suppressed"].map(s => (
+        {STATUS_FILTERS.map(s => (
           <button key={s} onClick={() => setStatusFilter(s)} style={{
             ...baseButton,
             background: statusFilter === s ? COLORS.brand + "22" : COLORS.surface,
@@ -574,117 +822,32 @@ function ListingsPanel() {
             border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : COLORS.border}`,
           }}>
             {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
-            <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>
-              {s === "all" ? DEMO_LISTINGS.length : DEMO_LISTINGS.filter(l => l.display_status === s).length}
-            </span>
+            <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{statusCountFor(s)}</span>
           </button>
         ))}
       </div>
 
-      {/* Listing Table */}
-      <div style={{ background: COLORS.surface, borderRadius: "10px", border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
-        {/* Header */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "110px 1fr 90px 70px 60px 80px 80px 90px",
-          gap: 8, padding: "10px 16px", borderBottom: `1px solid ${COLORS.border}`,
-          fontSize: "11px", fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.05em",
-        }}>
-          <span>MLS#</span><span>Address</span><span>Type</span><span>Rent</span><span>Beds</span><span>Score</span><span>DOM</span><span>Status</span>
-        </div>
+      <AdminTable
+        columns={columns}
+        data={filtered}
+        loading={loading}
+        error={error}
+        tableName="listings"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        onBulkSuppress={handleBulkSuppress}
+        onBulkUnsuppress={handleBulkUnsuppress}
+        emptyMessage="No listings match your filters"
+        renderExpandedRow={renderExpandedRow}
+      />
 
-        {/* Rows */}
-        {filtered.map(listing => (
-          <div key={listing.id} onClick={() => setSelectedListing(selectedListing === listing.id ? null : listing.id)} style={{
-            display: "grid", gridTemplateColumns: "110px 1fr 90px 70px 60px 80px 80px 90px",
-            gap: 8, padding: "10px 16px",
-            borderBottom: `1px solid ${COLORS.border}22`,
-            cursor: "pointer",
-            background: selectedListing === listing.id ? COLORS.surfaceHover : "transparent",
-            transition: "background 0.1s",
-          }}>
-            <span style={{ fontSize: "12px", color: COLORS.brand, fontFamily: "monospace", fontWeight: 600 }}>{listing.mls_number}</span>
-            <div>
-              <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600 }}>{listing.address_line1}</div>
-              <div style={{ fontSize: "11px", color: COLORS.textDim }}>{listing.city}, {listing.state} {listing.zip}</div>
-            </div>
-            <span style={{ fontSize: "12px", color: COLORS.textMuted }}>{typeLabels[listing.property_type]}</span>
-            <span style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600 }}>${listing.rent_amount?.toLocaleString()}</span>
-            <span style={{ fontSize: "13px", color: COLORS.text }}>{listing.beds}/{listing.baths}</span>
-            <span style={{
-              fontSize: "14px", fontWeight: 800,
-              color: listing.quality_score >= 80 ? COLORS.green : listing.quality_score >= 60 ? COLORS.amber : COLORS.textDim,
-            }}>{listing.quality_score}%</span>
-            <span style={{
-              fontSize: "12px",
-              color: listing.days_on_market <= 7 ? COLORS.green : listing.days_on_market <= 30 ? COLORS.text : listing.days_on_market <= 60 ? COLORS.amber : COLORS.red,
-            }}>
-              {listing.days_on_market <= 7 ? "🔥 " : ""}{listing.days_on_market}d
-            </span>
-            <Badge color={statusColors[listing.display_status]}>{listing.display_status}</Badge>
-          </div>
-        ))}
-
-        {filtered.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: COLORS.textDim }}>No listings match your filters</div>
-        )}
-      </div>
-
-      {/* Detail Panel */}
-      {selectedListing && (() => {
-        const listing = DEMO_LISTINGS.find(l => l.id === selectedListing);
-        if (!listing) return null;
-        return (
-          <div style={{
-            background: COLORS.surface, borderRadius: "10px", border: `1px solid ${COLORS.border}`,
-            padding: 20, marginTop: 12,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 16 }}>
-              <div>
-                <h3 style={{ color: COLORS.text, margin: 0, fontSize: "16px" }}>{listing.address_line1}</h3>
-                <p style={{ color: COLORS.textDim, margin: "4px 0", fontSize: "13px" }}>{listing.city}, {listing.state} {listing.zip} · MLS# {listing.mls_number}</p>
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {listing.display_status === "active" && (
-                  <button style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
-                )}
-                {listing.display_status === "suppressed" && (
-                  <button style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Unsuppress</button>
-                )}
-                {listing.display_status === "review" && (
-                  <>
-                    <button style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Approve</button>
-                    <button style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
-                  </>
-                )}
-              </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-              {[
-                ["Rent", `$${listing.rent_amount?.toLocaleString()}/mo`],
-                ["Type", typeLabels[listing.property_type]],
-                ["Beds/Baths", `${listing.beds} / ${listing.baths}`],
-                ["Sqft", listing.sqft?.toLocaleString()],
-                ["Pets", listing.pet_policy],
-                ["Fenced Yard", listing.fenced_yard ? "Yes" : "No"],
-                ["List Date", listing.list_date],
-                ["DOM", `${listing.days_on_market} days`],
-                ["Quality Score", `${listing.quality_score}%`],
-              ].map(([label, val]) => (
-                <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-                  <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600, marginTop: 2 }}>{val}</div>
-                </div>
-              ))}
-            </div>
-            {listing.suppressed_reason && (
-              <div style={{ marginTop: 12, padding: "8px 12px", background: COLORS.redDim + "44", borderRadius: 6, border: `1px solid ${COLORS.red}22` }}>
-                <span style={{ fontSize: "12px", color: COLORS.red, fontWeight: 600 }}>Suppression reason: </span>
-                <span style={{ fontSize: "12px", color: COLORS.text }}>{listing.suppressed_reason}</span>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={confirmExecute}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2216,6 +2379,11 @@ const AUDIT_DEFAULTS = {
 };
 // ────────────────────────────────────────────────────────────
 
+const AUDIT_ACTION_BADGE_COLORS = {
+  create: "green", invite: "green", update: "blue", delete: "red",
+  reply: "purple", suppress: "amber", unsuppress: "cyan",
+};
+
 function AuditLogPanel() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2240,15 +2408,80 @@ function AuditLogPanel() {
 
   useEffect(() => { fetchAuditLog(); }, [fetchAuditLog]);
 
-  const actionColors = {
-    create: { bg: "#052e16", text: "#4ade80", border: "#166534" },
-    update: { bg: "#0c1e3a", text: "#60a5fa", border: "#1e40af" },
-    delete: { bg: "#450a0a", text: "#f87171", border: "#991b1b" },
-    reply: { bg: "#1a1040", text: "#c4b5fd", border: "#5b21b6" },
-    invite: { bg: "#052e16", text: "#4ade80", border: "#166534" },
-    suppress: { bg: "#451a03", text: "#fbbf24", border: "#92400e" },
-    unsuppress: { bg: "#042f2e", text: "#22d3ee", border: "#0e7490" },
-  };
+  const columns = useMemo(() => [
+    {
+      accessorKey: "table_name",
+      header: "Table",
+      cell: ({ getValue }) => (
+        <span style={{ fontFamily: "monospace", color: COLORS.brand, fontSize: "12px" }}>{getValue()}</span>
+      ),
+      size: 100,
+    },
+    {
+      accessorKey: "action",
+      header: "Action",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={AUDIT_ACTION_BADGE_COLORS[v] || "gray"}>{v}</Badge>;
+      },
+      size: 100,
+    },
+    {
+      accessorKey: "row_id",
+      header: "Row ID",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <span style={{ fontFamily: "monospace", fontSize: "11px", color: COLORS.textDim }}>{v?.slice(0, 8)}…</span>;
+      },
+      size: 110,
+    },
+    {
+      id: "details",
+      header: "Details",
+      cell: ({ row }) => {
+        const entry = row.original;
+        if (entry.field_changed) {
+          return (
+            <span style={{ fontSize: "12px", color: COLORS.textMuted }}>
+              <span style={{ color: COLORS.text }}>{entry.field_changed}</span>
+              {entry.old_value && entry.new_value && (
+                <>: <span style={{ color: COLORS.red, textDecoration: "line-through" }}>{entry.old_value?.slice(0, 30)}</span> → <span style={{ color: COLORS.green }}>{entry.new_value?.slice(0, 30)}</span></>
+              )}
+            </span>
+          );
+        }
+        if (entry.action === "create" || entry.action === "invite") return <span style={{ fontSize: "12px", color: COLORS.green }}>New entry created</span>;
+        if (entry.action === "delete") return <span style={{ fontSize: "12px", color: COLORS.red }}>Entry deleted</span>;
+        return <span style={{ fontSize: "12px", color: COLORS.textDim }}>—</span>;
+      },
+    },
+    {
+      accessorKey: "created_at",
+      header: "Time",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
+      ),
+      size: 160,
+    },
+  ], []);
+
+  const renderExpandedRow = useCallback((entry) => (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+      {[
+        ["Row ID", entry.row_id || "—"],
+        ["Admin User", entry.admin_user_id || "system"],
+        ["Field Changed", entry.field_changed || "—"],
+        ["Old Value", entry.old_value || "—"],
+        ["New Value", entry.new_value || "—"],
+        ["Metadata", entry.metadata ? JSON.stringify(entry.metadata) : "—"],
+      ].map(([label, val]) => (
+        <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px" }}>
+          <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+          <div style={{ fontSize: "12px", color: COLORS.text, marginTop: 2, wordBreak: "break-all" }}>{val}</div>
+        </div>
+      ))}
+    </div>
+  ), []);
 
   return (
     <div>
@@ -2281,55 +2514,14 @@ function AuditLogPanel() {
         </button>
       </div>
 
-      {loading ? (
-        <p style={{ color: COLORS.textMuted, padding: 40, textAlign: "center" }}>Loading audit log…</p>
-      ) : entries.length === 0 ? (
-        <p style={{ color: COLORS.textDim, padding: 40, textAlign: "center" }}>No audit log entries yet. Actions taken in admin panels will appear here.</p>
-      ) : (
-        <div className="audit-panel-table">
-          <div className="audit-panel-header">
-            <span>Table</span>
-            <span>Action</span>
-            <span>Row ID</span>
-            <span>Details</span>
-            <span>Time</span>
-          </div>
-          {entries.map(entry => {
-            const ac = actionColors[entry.action] || { bg: "#1e293b", text: "#94a3b8", border: "#334155" };
-            return (
-              <div key={entry.id} className="audit-panel-row">
-                <span style={{ fontSize: "12px", color: COLORS.brand, fontFamily: "monospace" }}>{entry.table_name}</span>
-                <span style={{
-                  display: "inline-flex", alignItems: "center", padding: "2px 7px",
-                  borderRadius: 4, fontSize: "10px", fontWeight: 700,
-                  background: ac.bg, color: ac.text, border: `1px solid ${ac.border}`,
-                  textTransform: "uppercase", letterSpacing: "0.03em", width: "fit-content",
-                }}>
-                  {entry.action}
-                </span>
-                <span style={{ fontSize: "11px", color: COLORS.textDim, fontFamily: "monospace" }}>
-                  {entry.row_id?.slice(0, 8)}…
-                </span>
-                <span style={{ fontSize: "12px", color: COLORS.textMuted }}>
-                  {entry.field_changed ? (
-                    <>
-                      <span style={{ color: COLORS.text }}>{entry.field_changed}</span>
-                      {entry.old_value && entry.new_value && (
-                        <>: <span style={{ color: COLORS.red, textDecoration: "line-through" }}>{entry.old_value?.slice(0, 30)}</span> → <span style={{ color: COLORS.green }}>{entry.new_value?.slice(0, 30)}</span></>
-                      )}
-                    </>
-                  ) : entry.action === "create" ? (
-                    <span style={{ color: COLORS.green }}>New entry created</span>
-                  ) : entry.action === "delete" ? (
-                    <span style={{ color: COLORS.red }}>Entry deleted</span>
-                  ) : "—"}
-                </span>
-                <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(entry.created_at)}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <AdminTable
+        columns={columns}
+        data={entries}
+        loading={loading}
+        tableName="admin_audit_log"
+        emptyMessage="No audit log entries yet. Actions taken in admin panels will appear here."
+        renderExpandedRow={renderExpandedRow}
+      />
     </div>
   );
 }

@@ -953,6 +953,22 @@ input[type="range"]::-moz-range-thumb {
 .at-th.sortable:hover .at-sort-arrow {
   color: #94a3b8;
 }
+.at-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  background: transparent;
+  transition: background 0.15s;
+}
+.at-resize-handle:hover,
+.at-resize-handle.resizing {
+  background: #22d3ee;
+}
 .at-td {
   padding: 10px 14px;
   color: #e2e8f0;
@@ -1329,34 +1345,6 @@ input[type="range"]::-moz-range-thumb {
 .audit-panel-input:focus {
   border-color: #22d3ee;
 }
-.audit-panel-table {
-  background: #111827;
-  border-radius: 10px;
-  border: 1px solid #1e293b;
-  overflow: hidden;
-}
-.audit-panel-header {
-  display: grid;
-  grid-template-columns: 100px 90px 120px 1fr 160px;
-  gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #1e293b;
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.audit-panel-row {
-  display: grid;
-  grid-template-columns: 100px 90px 120px 1fr 160px;
-  gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(30, 41, 59, 0.3);
-  font-size: 13px;
-  align-items: center;
-}
-.audit-panel-row:last-child { border-bottom: none; }
 
 /* ========== SUPPRESSED BADGE (inline in table cells) ========== */
 .suppressed-badge {
@@ -1450,14 +1438,6 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 768px) {
   .at-expanded-default {
     grid-template-columns: 1fr;
-  }
-  .audit-panel-header,
-  .audit-panel-row {
-    grid-template-columns: 80px 70px 1fr 120px;
-  }
-  .audit-panel-header > :nth-child(3),
-  .audit-panel-row > :nth-child(3) {
-    display: none;
   }
   .ticket-thread-header {
     flex-direction: column;

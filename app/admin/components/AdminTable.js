@@ -74,6 +74,8 @@ export default function AdminTable({
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: () => true,
     enableRowSelection: true,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
     initialState: {
       pagination: { pageSize: 25 },
     },
@@ -141,7 +143,7 @@ export default function AdminTable({
 
       {/* Table */}
       <div className="at-table-container">
-        <table className="at-table">
+        <table className="at-table" style={{ width: table.getCenterTotalSize() }}>
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
@@ -149,7 +151,7 @@ export default function AdminTable({
                   <th
                     key={header.id}
                     className={`at-th ${header.column.getCanSort() ? 'sortable' : ''}`}
-                    style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                    style={{ width: header.getSize(), position: 'relative' }}
                     onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
                   >
                     {header.isPlaceholder ? null : (
@@ -161,6 +163,14 @@ export default function AdminTable({
                           </span>
                         )}
                       </div>
+                    )}
+                    {header.column.getCanResize() && (
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        onClick={e => e.stopPropagation()}
+                        className={`at-resize-handle ${header.column.getIsResizing() ? 'resizing' : ''}`}
+                      />
                     )}
                   </th>
                 ))}
