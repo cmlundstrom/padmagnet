@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FlatList, View, Text, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
+import { FlatList, View, Text, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { EmptyState } from '../ui';
@@ -7,8 +7,7 @@ import { ConversationItem } from '../messaging';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
-import { FONTS, FONT_SIZES } from '../../constants/fonts';
-import { LAYOUT } from '../../constants/layout';
+import { SCREEN } from '../../constants/screenStyles';
 
 export default function MessagesScreen({ emptySubtitle }) {
   const router = useRouter();
@@ -65,7 +64,7 @@ export default function MessagesScreen({ emptySubtitle }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={SCREEN.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
       </SafeAreaView>
     );
@@ -73,8 +72,8 @@ export default function MessagesScreen({ emptySubtitle }) {
 
   if (error && conversations.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.header}>Messages</Text>
+      <SafeAreaView style={SCREEN.containerFlush}>
+        <Text style={SCREEN.pageTitleFlush}>Messages</Text>
         <EmptyState
           icon="!"
           title="Something went wrong"
@@ -87,8 +86,8 @@ export default function MessagesScreen({ emptySubtitle }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.header}>Messages</Text>
+    <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
+      <Text style={SCREEN.pageTitleFlush}>Messages</Text>
 
       {conversations.length === 0 ? (
         <EmptyState
@@ -120,22 +119,3 @@ export default function MessagesScreen({ emptySubtitle }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centered: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.text,
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: LAYOUT.padding.sm,
-  },
-});

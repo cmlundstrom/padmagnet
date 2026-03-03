@@ -1,64 +1,45 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
-import { FONTS } from '../../constants/fonts';
-
-function TabIcon({ label, focused }) {
-  const icons = { Swipe: '◇', Saved: '♡', Messages: '✉', Profile: '●' };
-  return (
-    <Text style={{ fontSize: 20, color: focused ? COLORS.accent : COLORS.slate }}>
-      {icons[label] || '○'}
-    </Text>
-  );
-}
+import { TAB_SCREEN_OPTIONS, TAB_ICON_SIZE } from '../../constants/screenStyles';
 
 export default function TenantTabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.border,
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 60,
-        },
-        tabBarActiveTintColor: COLORS.accent,
-        tabBarInactiveTintColor: COLORS.slate,
-        tabBarLabelStyle: {
-          fontFamily: FONTS.body.medium,
-          fontSize: 11,
-        },
-      }}
-    >
+    <Tabs screenOptions={TAB_SCREEN_OPTIONS}>
       <Tabs.Screen
         name="swipe"
         options={{
           title: 'Swipe',
-          tabBarIcon: ({ focused }) => <TabIcon label="Swipe" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome name="th-large" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+          ),
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
           title: 'Saved',
-          tabBarIcon: ({ focused }) => <TabIcon label="Saved" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome name="heart" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+          ),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ focused }) => <TabIcon label="Messages" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome name="user" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+          ),
         }}
       />
     </Tabs>

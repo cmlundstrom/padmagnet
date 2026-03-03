@@ -5,8 +5,8 @@ import { EmptyState } from '../../components/ui';
 import { ListingCard } from '../../components/listing';
 import { apiFetch } from '../../lib/api';
 import { COLORS } from '../../constants/colors';
-import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+import { SCREEN } from '../../constants/screenStyles';
 
 export default function SavedScreen() {
   const [savedListings, setSavedListings] = useState([]);
@@ -59,7 +59,7 @@ export default function SavedScreen() {
 
   if (loading && savedListings.length === 0) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={SCREEN.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
       </SafeAreaView>
     );
@@ -67,8 +67,8 @@ export default function SavedScreen() {
 
   if (error && savedListings.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.header}>Saved</Text>
+      <SafeAreaView style={SCREEN.containerFlush}>
+        <Text style={SCREEN.pageTitleFlush}>Saved</Text>
         <EmptyState
           icon="!"
           title="Something went wrong"
@@ -81,8 +81,8 @@ export default function SavedScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.header}>Saved</Text>
+    <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
+      <Text style={SCREEN.pageTitleFlush}>Saved</Text>
 
       {savedListings.length === 0 ? (
         <EmptyState
@@ -125,23 +125,6 @@ export default function SavedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centered: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.text,
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: LAYOUT.padding.sm,
-  },
   listContent: {
     paddingHorizontal: LAYOUT.padding.md,
     paddingBottom: LAYOUT.padding.lg,

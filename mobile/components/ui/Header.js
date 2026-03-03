@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -11,8 +12,8 @@ export default function Header({ title, showBack = false, rightAction, style }) 
     <View style={[styles.container, style]}>
       <View style={styles.left}>
         {showBack && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>{'<'}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backPill}>
+            <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
           </TouchableOpacity>
         )}
       </View>
@@ -50,12 +51,12 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlign: 'center',
   },
-  backButton: {
-    padding: 4,
-  },
-  backText: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.accent,
+  backPill: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.frostedGlass,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

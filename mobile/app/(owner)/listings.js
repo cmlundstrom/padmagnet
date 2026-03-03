@@ -10,6 +10,7 @@ import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+import { SCREEN } from '../../constants/screenStyles';
 
 export default function OwnerListingsTab() {
   const router = useRouter();
@@ -63,14 +64,14 @@ export default function OwnerListingsTab() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={SCREEN.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Listings</Text>
         <Pressable onPress={() => router.push('/owner/create')}>
@@ -203,16 +204,6 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centered: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

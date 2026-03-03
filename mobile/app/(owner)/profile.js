@@ -1,12 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { signOut } from '../../lib/auth';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileCard from '../../components/screens/ProfileCard';
-import { COLORS } from '../../constants/colors';
-import { FONTS, FONT_SIZES } from '../../constants/fonts';
-import { LAYOUT } from '../../constants/layout';
+import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
 export default function OwnerProfileScreen() {
   const { user } = useAuth();
@@ -17,59 +15,22 @@ export default function OwnerProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.header}>Profile</Text>
+    <SafeAreaView style={SCREEN.container} edges={['top']}>
+      <Text style={SCREEN.pageTitle}>Profile</Text>
 
       <ProfileCard user={user} fallbackName="Owner" />
 
-      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/notifications')}>
-        <Text style={styles.menuText}>Notifications</Text>
+      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/notifications')}>
+        <Text style={MENU.text}>Notifications</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/verification')}>
-        <Text style={styles.menuText}>Verification Status</Text>
+      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/verification')}>
+        <Text style={MENU.text}>Verification Status</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
+      <TouchableOpacity style={SIGN_OUT.button} onPress={handleSignOut}>
+        <Text style={SIGN_OUT.text}>Sign Out</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: LAYOUT.padding.md,
-  },
-  header: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.text,
-    marginBottom: LAYOUT.padding.md,
-  },
-  menuItem: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  menuText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text,
-  },
-  signOutButton: {
-    marginTop: 'auto',
-    padding: LAYOUT.padding.md,
-    alignItems: 'center',
-  },
-  signOutText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.danger,
-  },
-});
