@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
-import { hasOnboarded, getUserRole } from '../lib/storage';
+import { resolvePostLoginDestination } from '../lib/routing';
 import { COLORS } from '../constants/colors';
 
 export default function Index() {
@@ -13,25 +13,10 @@ export default function Index() {
   useEffect(() => {
     if (loading) return;
 
-    async function resolveDestination() {
-      if (!session) {
-        setDestination('/welcome');
-        setChecking(false);
-        return;
-      }
-
-      const role = session.user?.user_metadata?.role || await getUserRole();
-      const onboarded = await hasOnboarded();
-
-      if (role === 'tenant' && !onboarded) {
-        setDestination('/onboarding');
-      } else {
-        setDestination('/(tabs)/swipe');
-      }
+    resolvePostLoginDestination(session).then((dest) => {
+      setDestination(dest);
       setChecking(false);
-    }
-
-    resolveDestination();
+    });
   }, [session, loading]);
 
   if (loading || checking) {

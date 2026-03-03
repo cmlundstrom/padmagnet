@@ -69,7 +69,7 @@ export default function OnboardingScreen() {
         }
       }
 
-      router.replace('/(tabs)/swipe');
+      router.replace('/(tenant)/swipe');
     } catch (err) {
       alert('Error', err.message);
     } finally {
@@ -170,7 +170,7 @@ export default function OnboardingScreen() {
           <Pressable
             onPress={async () => {
               await setOnboarded();
-              router.replace('/(tabs)/swipe');
+              router.replace('/(tenant)/swipe');
             }}
             style={styles.skipLink}
           >

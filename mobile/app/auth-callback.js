@@ -3,7 +3,7 @@ import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { useURL } from 'expo-linking';
 import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { hasOnboarded, getUserRole } from '../lib/storage';
+import { resolvePostLoginDestination } from '../lib/routing';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 
@@ -33,18 +33,8 @@ export default function AuthCallbackScreen() {
 
         // Wait briefly for auth state to propagate
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const role = session.user?.user_metadata?.role || await getUserRole();
-          const onboarded = await hasOnboarded();
-
-          if (role === 'tenant' && !onboarded) {
-            router.replace('/onboarding');
-          } else {
-            router.replace('/(tabs)/swipe');
-          }
-        } else {
-          router.replace('/welcome');
-        }
+        const dest = await resolvePostLoginDestination(session);
+        router.replace(dest);
       } catch (err) {
         console.error('Auth callback error:', err);
         router.replace('/welcome');

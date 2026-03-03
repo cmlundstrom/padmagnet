@@ -4,11 +4,10 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-// Stripe billing management for owner listings
-export default function BillingScreen() {
+export default function ServicesScreen() {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Billing</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Text style={styles.title}>Services</Text>
       <Text style={styles.subtitle}>Manage your subscription and payments</Text>
     </SafeAreaView>
   );

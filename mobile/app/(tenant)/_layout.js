@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
 import { COLORS } from '../../constants/colors';
-import { FONTS, FONT_SIZES } from '../../constants/fonts';
+import { FONTS } from '../../constants/fonts';
 
 function TabIcon({ label, focused }) {
   const icons = { Swipe: '◇', Saved: '♡', Messages: '✉', Profile: '●' };
@@ -12,7 +12,7 @@ function TabIcon({ label, focused }) {
   );
 }
 
-export default function TabLayout() {
+export default function TenantTabLayout() {
   return (
     <Tabs
       screenOptions={{

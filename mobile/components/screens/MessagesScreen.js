@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { FlatList, View, Text, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { EmptyState } from '../../components/ui';
-import { ConversationItem } from '../../components/messaging';
+import { EmptyState } from '../ui';
+import { ConversationItem } from '../messaging';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-export default function MessagesScreen() {
+export default function MessagesScreen({ emptySubtitle }) {
   const router = useRouter();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,6 @@ export default function MessagesScreen() {
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
 
-  // Get current user id for unread badge logic
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUserId(session.user.id);
@@ -42,7 +41,6 @@ export default function MessagesScreen() {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Supabase Realtime: listen for new messages to update conversation list
   useEffect(() => {
     const channel = supabase
       .channel('messages-inbox')
@@ -50,7 +48,6 @@ export default function MessagesScreen() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         () => {
-          // Refetch conversations when any new message arrives
           fetchConversations();
         }
       )
@@ -97,7 +94,7 @@ export default function MessagesScreen() {
         <EmptyState
           icon="💬"
           title="No conversations yet"
-          subtitle="Contact a landlord from a listing to start chatting."
+          subtitle={emptySubtitle || 'Start a conversation to see it here.'}
         />
       ) : (
         <FlatList

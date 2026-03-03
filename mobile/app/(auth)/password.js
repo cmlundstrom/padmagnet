@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Input, Button, AuthHeader } from '../../components/ui';
 import { signIn, updateUserRole } from '../../lib/auth';
-import { saveUserRole, hasOnboarded } from '../../lib/storage';
+import { saveUserRole } from '../../lib/storage';
+import { resolvePostLoginDestination } from '../../lib/routing';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -20,19 +21,15 @@ export default function PasswordScreen() {
     if (!password) return;
     setLoading(true);
     try {
-      await signIn(email, password);
+      const data = await signIn(email, password);
       // Save role locally and in user metadata
       if (role) {
         await saveUserRole(role);
         await updateUserRole(role).catch(() => {}); // non-critical
       }
       // Navigate directly to destination (skip index.js spinner)
-      const onboarded = await hasOnboarded();
-      if (role === 'tenant' && !onboarded) {
-        router.replace('/onboarding');
-      } else {
-        router.replace('/(tabs)/swipe');
-      }
+      const dest = await resolvePostLoginDestination(data?.session);
+      router.replace(dest);
     } catch (err) {
       alert('Sign in failed', err.message);
     } finally {

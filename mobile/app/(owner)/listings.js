@@ -3,7 +3,7 @@ import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, Sty
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { Header, Button, EmptyState } from '../../components/ui';
+import { EmptyState } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
 import { useAlert } from '../../providers/AlertProvider';
@@ -11,7 +11,7 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-export default function OwnerListingsScreen() {
+export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
   const [listings, setListings] = useState([]);
@@ -71,15 +71,12 @@ export default function OwnerListingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Header
-        title="My Listings"
-        showBack
-        rightAction={
-          <Pressable onPress={() => router.push('/owner/create')}>
-            <Text style={styles.addButton}>+ New</Text>
-          </Pressable>
-        }
-      />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Listings</Text>
+        <Pressable onPress={() => router.push('/owner/create')}>
+          <Text style={styles.addButton}>+ New</Text>
+        </Pressable>
+      </View>
 
       {listings.length === 0 ? (
         <EmptyState
@@ -215,6 +212,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingVertical: LAYOUT.padding.sm,
+  },
+  headerTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.text,
   },
   addButton: {
     fontFamily: FONTS.body.semiBold,
