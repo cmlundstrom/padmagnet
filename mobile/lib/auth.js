@@ -41,7 +41,9 @@ export async function getSession() {
 }
 
 export async function signInWithMagicLink(email) {
-  const redirectUrl = makeRedirectUri({ scheme: 'padmagnet', path: 'auth-callback' });
+  // Use web intermediary page that deep-links back to the app.
+  // This works in both Expo Go and standalone builds, unlike padmagnet:// direct.
+  const redirectUrl = 'https://padmagnet.com/auth/mobile-callback';
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: redirectUrl },
