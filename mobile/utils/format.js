@@ -27,3 +27,12 @@ export function formatBedsBaths(beds, baths) {
   const b = beds === 0 ? 'Studio' : `${beds} bed`;
   return `${b} · ${baths} bath`;
 }
+
+export function formatPriceCents(cents) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}

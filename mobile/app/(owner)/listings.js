@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { EmptyState } from '../../components/ui';
+import ProductCard from '../../components/ProductCard';
+import useProducts from '../../hooks/useProducts';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
 import { useAlert } from '../../providers/AlertProvider';
@@ -18,6 +20,12 @@ export default function OwnerListingsTab() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { products } = useProducts('owner');
+  const featuredProduct = products.find(p => p.app_path === '/my-listings');
+
+  const handlePurchase = () => {
+    alert('Coming Soon', 'Stripe checkout is not yet configured. This feature will be available once payment processing is set up.');
+  };
 
   const fetchListings = useCallback(async () => {
     try {
@@ -80,13 +88,25 @@ export default function OwnerListingsTab() {
       </View>
 
       {listings.length === 0 ? (
-        <EmptyState
-          icon="🏠"
-          title="No listings yet"
-          subtitle="Create your first rental listing to start receiving inquiries."
-          actionLabel="Create Listing"
-          onAction={() => router.push('/owner/create')}
-        />
+        <View style={styles.emptyWrapper}>
+          {featuredProduct && (
+            <View style={styles.featuredWrap}>
+              <Text style={styles.featuredLabel}>Get started with a listing package</Text>
+              <ProductCard
+                product={featuredProduct}
+                onPurchase={handlePurchase}
+                featured
+              />
+            </View>
+          )}
+          <EmptyState
+            icon="🏠"
+            title="No listings yet"
+            subtitle="Create your first rental listing to start receiving inquiries."
+            actionLabel="Create Listing"
+            onAction={() => router.push('/owner/create')}
+          />
+        </View>
       ) : (
         <FlatList
           data={listings}
@@ -220,6 +240,19 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
+  },
+  emptyWrapper: {
+    flex: 1,
+  },
+  featuredWrap: {
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingTop: LAYOUT.padding.md,
+  },
+  featuredLabel: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
   },
   listContent: {
     padding: LAYOUT.padding.md,
