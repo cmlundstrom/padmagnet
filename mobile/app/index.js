@@ -6,18 +6,18 @@ import { resolvePostLoginDestination } from '../lib/routing';
 import { COLORS } from '../constants/colors';
 
 export default function Index() {
-  const { session, loading } = useAuth();
+  const { session, role, loading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [destination, setDestination] = useState(null);
 
   useEffect(() => {
     if (loading) return;
 
-    resolvePostLoginDestination(session).then((dest) => {
+    resolvePostLoginDestination(session, role).then((dest) => {
       setDestination(dest);
       setChecking(false);
     });
-  }, [session, loading]);
+  }, [session, role, loading]);
 
   if (loading || checking) {
     return (

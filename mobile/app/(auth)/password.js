@@ -28,7 +28,7 @@ export default function PasswordScreen() {
         await updateUserRole(role).catch(() => {}); // non-critical
       }
       // Navigate directly to destination (skip index.js spinner)
-      const dest = await resolvePostLoginDestination(data?.session);
+      const dest = await resolvePostLoginDestination(data?.session, role);
       router.replace(dest);
     } catch (err) {
       alert('Sign in failed', err.message);
