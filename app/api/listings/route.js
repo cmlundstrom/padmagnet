@@ -1,6 +1,7 @@
 import { createServiceClient } from '../../../lib/supabase';
 import { getAuthUser } from '../../../lib/auth-helpers';
 import { calculatePadScore } from '../../../lib/padscore';
+import { matchesCoreFields } from '../../../lib/core-match';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -39,11 +40,20 @@ export async function GET(request) {
       .eq('user_id', user.id);
     const swipedIds = (swipedRows || []).map(s => s.listing_id);
 
-    // Build query
+    // Fetch core match field configs (for boost eligibility)
+    const { data: coreFields } = await supabase
+      .from('listing_field_configs')
+      .select('field_key')
+      .eq('is_core_match_field', true);
+
+    // Get boosted listing + position from DB (fairness hash in SQL)
+    const { data: boostedId } = await supabase.rpc('select_boosted_listing', { p_tenant_id: user.id });
+    const { data: boostPos } = await supabase.rpc('get_boost_position', { p_tenant_id: user.id });
+
+    // Build query — use tenant_active_listings view
     let query = supabase
-      .from('listings')
-      .select('*', { count: 'exact' })
-      .eq('is_active', true);
+      .from('tenant_active_listings')
+      .select('*', { count: 'exact' });
 
     if (city) query = query.eq('city', city);
     if (minPrice) query = query.gte('list_price', parseFloat(minPrice));
@@ -73,15 +83,27 @@ export async function GET(request) {
 
     scored.sort((a, b) => b.padScore.score - a.padScore.score);
 
-    // Paginate after scoring
-    const paginated = scored.slice(offset, offset + limit);
+    // Inject boosted listing at deterministic position if it passes core-match
+    let result = scored;
+    if (boostedId) {
+      const boosted = scored.find(l => l.id === boostedId);
+      if (boosted && matchesCoreFields(boosted, prefs, coreFields || [])) {
+        const regular = scored.filter(l => l.id !== boostedId);
+        const pos = Math.min(boostPos ?? 0, regular.length);
+        regular.splice(pos, 0, { ...boosted, _boosted: true });
+        result = regular;
+      }
+    }
+
+    // Paginate after scoring + boost injection
+    const paginated = result.slice(offset, offset + limit);
 
     return NextResponse.json({
       listings: paginated,
-      total: count || scored.length,
+      total: count || result.length,
       page,
       limit,
-      hasMore: offset + limit < scored.length,
+      hasMore: offset + limit < result.length,
     });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

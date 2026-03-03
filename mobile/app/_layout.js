@@ -16,6 +16,7 @@ import {
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import { AuthProvider } from '../providers/AuthProvider';
+import { AlertProvider } from '../providers/AlertProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
 import { COLORS } from '../constants/colors';
 
@@ -46,6 +47,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <AlertProvider>
         <StatusBar style="light" />
         <OfflineBanner />
         <Stack
@@ -59,6 +61,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="auth-callback" options={{ animation: 'none' }} />
         </Stack>
+      </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

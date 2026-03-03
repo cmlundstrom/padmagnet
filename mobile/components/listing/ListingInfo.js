@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Linking, Pressable } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import { formatCurrency, formatBedsBaths, formatDate } from '../../utils/format';
+import { parseAutolinks } from '../../utils/autolink';
 
 export default function ListingInfo({ listing }) {
   if (!listing) return null;
@@ -70,6 +71,14 @@ export default function ListingInfo({ listing }) {
         </View>
       )}
 
+      {/* Contact instructions (owner listings) */}
+      {listing.tenant_contact_instructions && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contact</Text>
+          <AutolinkedText text={listing.tenant_contact_instructions} />
+        </View>
+      )}
+
       {/* Listing meta */}
       {listing.created_at && (
         <View style={styles.section}>
@@ -80,6 +89,24 @@ export default function ListingInfo({ listing }) {
         </View>
       )}
     </View>
+  );
+}
+
+function AutolinkedText({ text }) {
+  const segments = parseAutolinks(text);
+  return (
+    <Text style={styles.description}>
+      {segments.map((seg, i) => {
+        if (seg.type === 'url' || seg.type === 'phone') {
+          return (
+            <Text key={i} style={styles.link} onPress={() => Linking.openURL(seg.href)}>
+              {seg.text}
+            </Text>
+          );
+        }
+        return seg.text;
+      })}
+    </Text>
   );
 }
 
@@ -168,5 +195,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
+  },
+  link: {
+    color: COLORS.accent,
+    textDecorationLine: 'underline',
   },
 });

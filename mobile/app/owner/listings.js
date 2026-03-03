@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, Alert, StyleSheet } from 'react-native';
+import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Header, Button, EmptyState } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function OwnerListingsScreen() {
   const router = useRouter();
+  const alert = useAlert();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,7 +23,7 @@ export default function OwnerListingsScreen() {
       const data = await apiFetch('/api/owner/listings');
       setListings(data || []);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -38,7 +40,7 @@ export default function OwnerListingsScreen() {
   }, [fetchListings]);
 
   const handleDeactivate = (listing) => {
-    Alert.alert(
+    alert(
       'Deactivate Listing',
       `Are you sure you want to deactivate "${[listing.street_number, listing.street_name].filter(Boolean).join(' ')}"?`,
       [
@@ -51,7 +53,7 @@ export default function OwnerListingsScreen() {
               await apiFetch(`/api/owner/listings/${listing.id}`, { method: 'DELETE' });
               setListings(prev => prev.filter(l => l.id !== listing.id));
             } catch (err) {
-              Alert.alert('Error', err.message);
+              alert('Error', err.message);
             }
           },
         },
@@ -104,6 +106,8 @@ export default function OwnerListingsScreen() {
               listing={item}
               onEdit={() => router.push(`/listing/${item.id}`)}
               onDeactivate={() => handleDeactivate(item)}
+              onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
+              onRelist={() => router.push(`/owner/relist?listing_id=${item.id}`)}
             />
           )}
         />
@@ -112,10 +116,30 @@ export default function OwnerListingsScreen() {
   );
 }
 
-function OwnerListingRow({ listing, onEdit, onDeactivate }) {
+function getStatusColor(status) {
+  switch (status) {
+    case 'active': return COLORS.success;
+    case 'draft': return COLORS.warning;
+    case 'expired': return COLORS.danger;
+    case 'leased': return COLORS.accent;
+    default: return COLORS.slate;
+  }
+}
+
+function getExpiresLabel(expiresAt) {
+  if (!expiresAt) return null;
+  const days = Math.ceil((new Date(expiresAt) - Date.now()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return 'Expired';
+  if (days === 1) return '1 day left';
+  return `${days} days left`;
+}
+
+function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRelist }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
   const firstPhoto = listing.photos?.[0]?.url;
+  const status = listing.status || (listing.is_active ? 'active' : 'archived');
+  const expiresLabel = listing.source === 'owner' ? getExpiresLabel(listing.expires_at) : null;
 
   return (
     <View style={styles.listingRow}>
@@ -130,22 +154,52 @@ function OwnerListingRow({ listing, onEdit, onDeactivate }) {
           )}
         </View>
         <View style={styles.listingInfo}>
-          <Text style={styles.listingPrice}>{formatCurrency(listing.list_price)}/mo</Text>
-          <Text style={styles.listingAddress} numberOfLines={1}>{address}</Text>
+          <Text style={styles.listingPrice}>
+            {listing.list_price ? `${formatCurrency(listing.list_price)}/mo` : 'Draft'}
+          </Text>
+          <Text style={styles.listingAddress} numberOfLines={1}>{address || 'No address'}</Text>
           <Text style={styles.listingCity} numberOfLines={1}>{cityLine}</Text>
           <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: listing.is_active ? COLORS.success : COLORS.slate }]} />
-            <Text style={styles.statusText}>{listing.is_active ? 'Active' : 'Inactive'}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
+              <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Text>
+            </View>
+            {expiresLabel && (
+              <Text style={styles.expiresLabel}>{expiresLabel}</Text>
+            )}
           </View>
+          {(listing.view_count > 0 || listing.inquiry_count > 0) && (
+            <Text style={styles.statsText}>
+              {listing.view_count || 0} views · {listing.inquiry_count || 0} inquiries
+            </Text>
+          )}
         </View>
       </Pressable>
       <View style={styles.listingActions}>
-        <Pressable style={styles.actionBtn} onPress={onEdit}>
-          <Text style={styles.actionBtnText}>View</Text>
-        </Pressable>
-        <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
-          <Text style={[styles.actionBtnText, styles.dangerBtnText]}>Remove</Text>
-        </Pressable>
+        {status === 'draft' ? (
+          <Pressable style={styles.actionBtn} onPress={onContinueDraft}>
+            <Text style={styles.actionBtnText}>Continue</Text>
+          </Pressable>
+        ) : status === 'expired' ? (
+          <>
+            <Pressable style={styles.actionBtn} onPress={onRelist}>
+              <Text style={styles.actionBtnText}>Re-list</Text>
+            </Pressable>
+            <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
+              <Text style={[styles.actionBtnText, styles.dangerBtnText]}>Archive</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable style={styles.actionBtn} onPress={onEdit}>
+              <Text style={styles.actionBtnText}>Edit</Text>
+            </Pressable>
+            <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
+              <Text style={[styles.actionBtnText, styles.dangerBtnText]}>Archive</Text>
+            </Pressable>
+          </>
+        )}
       </View>
     </View>
   );
@@ -221,17 +275,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-    gap: 4,
+    gap: 6,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: LAYOUT.radius.full,
   },
-  statusText: {
+  statusBadgeText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: 10,
+  },
+  expiresLabel: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
+  },
+  statsText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    marginTop: 2,
   },
   listingActions: {
     flexDirection: 'row',

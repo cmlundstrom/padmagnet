@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { getAuthUser } from '../../../../lib/auth-helpers';
+import { geocodeAddress } from '../../../../lib/geocode';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
@@ -10,6 +11,7 @@ const ALLOWED_FIELDS = [
   'latitude', 'longitude',
   'property_type', 'property_sub_type', 'list_price', 'bedrooms_total', 'bathrooms_total',
   'living_area', 'lot_size_area', 'year_built',
+  'public_remarks', 'tenant_contact_instructions',
   'lease_term', 'available_date',
   'pets_allowed', 'pets_deposit', 'fenced_yard', 'furnished', 'hoa_fee', 'parking_spaces', 'pool',
   'photos', 'virtual_tour_url',
@@ -42,7 +44,7 @@ export async function GET(request) {
   }
 }
 
-// POST — create a new owner listing
+// POST — create a new owner listing (supports draft and full create)
 export async function POST(request) {
   try {
     const { user, error: authError, status } = await getAuthUser(request);
@@ -51,9 +53,10 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+    const isDraft = body.status === 'draft';
 
-    // Validate required fields
-    if (!body.street_name || !body.city || !body.list_price) {
+    // Only validate required fields for non-draft submissions
+    if (!isDraft && (!body.street_name || !body.city || !body.list_price)) {
       return NextResponse.json(
         { error: 'street_name, city, and list_price are required' },
         { status: 400 }
@@ -67,12 +70,23 @@ export async function POST(request) {
       owner_user_id: user.id,
       property_type: 'Residential Lease',
       state_or_province: 'FL',
-      is_active: true,
+      is_active: isDraft ? false : true,
+      status: isDraft ? 'draft' : 'active',
     };
 
     for (const field of ALLOWED_FIELDS) {
       if (body[field] !== undefined) {
         listing[field] = body[field];
+      }
+    }
+
+    // Server-side geocoding (skip for drafts without address)
+    if (!isDraft && listing.street_name && listing.city) {
+      const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+      const coords = await geocodeAddress(street, listing.city, listing.state_or_province, listing.postal_code);
+      if (coords.latitude) {
+        listing.latitude = coords.latitude;
+        listing.longitude = coords.longitude;
       }
     }
 

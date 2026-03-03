@@ -14,9 +14,12 @@
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "sharp": "^0.34.5"
+    "resend": "^4.8.0",
+    "sharp": "^0.34.5",
+    "stripe": "^17.7.0"
   },
   "devDependencies": {
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.3.1",
+    "postgres": "^3.4.8"
   }
 }

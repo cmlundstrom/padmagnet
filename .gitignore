@@ -17,6 +17,13 @@ out/
 *.tgz
 npm-debug.log*
 
+# secrets / loose key files
+*.key
+*.secret
+*api_key*
+*secret*key*
+credentials*.json
+
 # vercel
 .vercel
 

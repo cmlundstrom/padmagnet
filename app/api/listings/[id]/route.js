@@ -34,6 +34,13 @@ export async function GET(request, { params }) {
 
     const padScore = calculatePadScore(prefs, listing);
 
+    // Increment view count (fire-and-forget, non-blocking)
+    supabase
+      .from('listings')
+      .update({ view_count: (listing.view_count || 0) + 1 })
+      .eq('id', id)
+      .then(() => {}, () => {});
+
     return NextResponse.json({ ...listing, padScore });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

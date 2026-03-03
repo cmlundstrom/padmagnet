@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../../../lib/supabase';
 import { getAuthUser } from '../../../../../lib/auth-helpers';
+import { geocodeAddress } from '../../../../../lib/geocode';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -9,12 +10,15 @@ const ALLOWED_FIELDS = [
   'latitude', 'longitude',
   'property_type', 'property_sub_type', 'list_price', 'bedrooms_total', 'bathrooms_total',
   'living_area', 'lot_size_area', 'year_built',
+  'public_remarks', 'tenant_contact_instructions',
   'lease_term', 'available_date',
   'pets_allowed', 'pets_deposit', 'fenced_yard', 'furnished', 'hoa_fee', 'parking_spaces', 'pool',
   'photos', 'virtual_tour_url',
   'listing_agent_name', 'listing_office_name', 'listing_agent_phone', 'listing_agent_email',
-  'is_active',
+  'is_active', 'status',
 ];
+
+const ADDRESS_FIELDS = ['street_number', 'street_name', 'city', 'state_or_province', 'postal_code'];
 
 // PUT — update an owner listing
 export async function PUT(request, { params }) {
@@ -32,7 +36,7 @@ export async function PUT(request, { params }) {
     // Verify ownership
     const { data: existing, error: fetchErr } = await supabase
       .from('listings')
-      .select('id, owner_user_id, source')
+      .select('id, owner_user_id, source, street_number, street_name, city, state_or_province, postal_code')
       .eq('id', id)
       .single();
 
@@ -54,6 +58,22 @@ export async function PUT(request, { params }) {
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+    }
+
+    // Re-geocode if any address field changed
+    const addressChanged = ADDRESS_FIELDS.some(f => updates[f] !== undefined);
+    if (addressChanged) {
+      const street = [updates.street_number ?? existing.street_number, updates.street_name ?? existing.street_name].filter(Boolean).join(' ');
+      const city = updates.city ?? existing.city;
+      const state = updates.state_or_province ?? existing.state_or_province ?? 'FL';
+      const zip = updates.postal_code ?? existing.postal_code;
+      if (street && city) {
+        const coords = await geocodeAddress(street, city, state, zip);
+        if (coords.latitude) {
+          updates.latitude = coords.latitude;
+          updates.longitude = coords.longitude;
+        }
+      }
     }
 
     const { data, error } = await supabase

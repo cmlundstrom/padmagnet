@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ScrollView, View, Text, Pressable, Switch, StyleSheet, Alert } from 'react-native';
+import { ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header, Button, Input } from '../../components/ui';
 import usePreferences from '../../hooks/usePreferences';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -20,6 +21,7 @@ const PET_TYPES = ['dog', 'cat', 'both'];
 
 export default function PreferencesScreen() {
   const { preferences, loading, updatePreferences } = usePreferences();
+  const alert = useAlert();
   const [form, setForm] = useState({
     budget_min: '',
     budget_max: '',
@@ -87,9 +89,9 @@ export default function PreferencesScreen() {
         min_lease_months: form.min_lease_months ? parseInt(form.min_lease_months, 10) : null,
         max_hoa: form.max_hoa ? parseFloat(form.max_hoa) : null,
       });
-      Alert.alert('Saved', 'Your preferences have been updated. PadScores will refresh on your next swipe.');
+      alert('Saved', 'Your preferences have been updated. PadScores will refresh on your next swipe.');
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     } finally {
       setSaving(false);
     }

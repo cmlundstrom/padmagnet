@@ -3,6 +3,14 @@
     {
       "path": "/api/bridge/sync",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/expire",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/expiry-emails",
+      "schedule": "0 14 * * *"
     }
   ]
 }

@@ -1,16 +1,20 @@
-import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, Switch, Alert, StyleSheet } from 'react-native';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ScrollView, View, Text, Pressable, Switch, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Header, Button, Input } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-const STEPS = ['Address', 'Details', 'Lease', 'Features', 'Photos', 'Review'];
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
+
+const STEPS = ['Address', 'Details', 'Description', 'Lease', 'Features', 'Photos', 'Contact', 'Review'];
 
 const PROPERTY_TYPES = ['Apartment', 'Condo', 'Townhouse', 'Single Family', 'Duplex'];
 
@@ -25,6 +29,7 @@ const INITIAL_FORM = {
   bathrooms_total: '',
   living_area: '',
   year_built: '',
+  public_remarks: '',
   lease_term: '',
   available_date: '',
   pets_allowed: null,
@@ -34,6 +39,7 @@ const INITIAL_FORM = {
   parking_spaces: '',
   pool: false,
   photos: [],
+  tenant_contact_instructions: '',
   listing_agent_name: '',
   listing_agent_phone: '',
   listing_agent_email: '',
@@ -41,21 +47,86 @@ const INITIAL_FORM = {
 
 export default function CreateListingScreen() {
   const router = useRouter();
+  const alert = useAlert();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [draftId, setDraftId] = useState(null);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const autoSaveTimer = useRef(null);
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-  const nextStep = () => {
+  // Build payload from form state
+  const buildPayload = useCallback((statusOverride) => ({
+    street_number: form.street_number || null,
+    street_name: form.street_name || null,
+    city: form.city || null,
+    postal_code: form.postal_code || null,
+    state_or_province: 'FL',
+    property_sub_type: form.property_sub_type || null,
+    list_price: form.list_price ? parseFloat(form.list_price) : null,
+    bedrooms_total: form.bedrooms_total ? parseInt(form.bedrooms_total, 10) : null,
+    bathrooms_total: form.bathrooms_total ? parseFloat(form.bathrooms_total) : null,
+    living_area: form.living_area ? parseFloat(form.living_area) : null,
+    year_built: form.year_built ? parseInt(form.year_built, 10) : null,
+    public_remarks: form.public_remarks || null,
+    lease_term: form.lease_term || null,
+    available_date: form.available_date || null,
+    pets_allowed: form.pets_allowed,
+    fenced_yard: form.fenced_yard,
+    furnished: form.furnished,
+    hoa_fee: form.hoa_fee ? parseFloat(form.hoa_fee) : null,
+    parking_spaces: form.parking_spaces ? parseInt(form.parking_spaces, 10) : null,
+    pool: form.pool,
+    photos: form.photos.filter(p => p.url.startsWith('http')),
+    tenant_contact_instructions: form.tenant_contact_instructions || null,
+    listing_agent_name: form.listing_agent_name || null,
+    listing_agent_phone: form.listing_agent_phone || null,
+    listing_agent_email: form.listing_agent_email || null,
+    ...(statusOverride ? { status: statusOverride } : {}),
+  }), [form]);
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (!draftId) return;
+    autoSaveTimer.current = setInterval(async () => {
+      try {
+        await apiFetch(`/api/owner/listings/${draftId}`, {
+          method: 'PUT',
+          body: JSON.stringify(buildPayload()),
+        });
+        setDraftSaved(true);
+        setTimeout(() => setDraftSaved(false), 2000);
+      } catch { /* silent auto-save failure */ }
+    }, 30000);
+    return () => clearInterval(autoSaveTimer.current);
+  }, [draftId, buildPayload]);
+
+  // Create draft on first next from step 0
+  const createDraft = async () => {
+    if (draftId) return;
+    try {
+      const data = await apiFetch('/api/owner/listings', {
+        method: 'POST',
+        body: JSON.stringify({ ...buildPayload('draft'), status: 'draft' }),
+      });
+      setDraftId(data.id);
+    } catch { /* non-blocking — draft creation is optional */ }
+  };
+
+  const nextStep = async () => {
     if (step === 0 && (!form.street_name || !form.city)) {
-      Alert.alert('Required', 'Street name and city are required.');
+      alert('Required', 'Street name and city are required.');
       return;
     }
     if (step === 1 && !form.list_price) {
-      Alert.alert('Required', 'Monthly rent is required.');
+      alert('Required', 'Monthly rent is required.');
       return;
     }
+    // Create draft on leaving step 0
+    if (step === 0) await createDraft();
     if (step < STEPS.length - 1) setStep(step + 1);
   };
 
@@ -63,67 +134,103 @@ export default function CreateListingScreen() {
     if (step > 0) setStep(step - 1);
   };
 
+  // Upload photos to Supabase Storage via API
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
-      selectionLimit: 10,
+      selectionLimit: 10 - form.photos.length,
     });
 
-    if (!result.canceled) {
-      const newPhotos = result.assets.map((asset, i) => ({
-        url: asset.uri,
+    if (result.canceled || !result.assets?.length) return;
+
+    setUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const formData = new FormData();
+      result.assets.forEach((asset) => {
+        const ext = asset.uri.split('.').pop() || 'jpg';
+        formData.append('photos', {
+          uri: asset.uri,
+          type: asset.mimeType || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          name: `photo.${ext}`,
+        });
+      });
+
+      const res = await fetch(`${API_BASE}/api/owner/photos`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Upload failed (${res.status})`);
+      }
+
+      const uploaded = await res.json();
+      const newPhotos = uploaded.map((p, i) => ({
+        url: p.url,
         caption: '',
         order: form.photos.length + i,
       }));
       update('photos', [...form.photos, ...newPhotos]);
+    } catch (err) {
+      alert('Upload Error', err.message);
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removePhoto = (index) => {
+  const removePhoto = async (index) => {
+    const photo = form.photos[index];
+    // Delete from storage if it's a remote URL
+    if (photo.url.startsWith('http')) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        await fetch(`${API_BASE}/api/owner/photos`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ urls: [photo.url] }),
+        });
+      } catch { /* best-effort delete */ }
+    }
     update('photos', form.photos.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const payload = {
-        street_number: form.street_number || null,
-        street_name: form.street_name,
-        city: form.city,
-        postal_code: form.postal_code || null,
-        state_or_province: 'FL',
-        property_sub_type: form.property_sub_type || null,
-        list_price: parseFloat(form.list_price),
-        bedrooms_total: form.bedrooms_total ? parseInt(form.bedrooms_total, 10) : null,
-        bathrooms_total: form.bathrooms_total ? parseFloat(form.bathrooms_total) : null,
-        living_area: form.living_area ? parseFloat(form.living_area) : null,
-        year_built: form.year_built ? parseInt(form.year_built, 10) : null,
-        lease_term: form.lease_term || null,
-        available_date: form.available_date || null,
-        pets_allowed: form.pets_allowed,
-        fenced_yard: form.fenced_yard,
-        furnished: form.furnished,
-        hoa_fee: form.hoa_fee ? parseFloat(form.hoa_fee) : null,
-        parking_spaces: form.parking_spaces ? parseInt(form.parking_spaces, 10) : null,
-        pool: form.pool,
-        photos: form.photos,
-        listing_agent_name: form.listing_agent_name || null,
-        listing_agent_phone: form.listing_agent_phone || null,
-        listing_agent_email: form.listing_agent_email || null,
-      };
+      const payload = buildPayload('pending_payment');
 
-      await apiFetch('/api/owner/listings', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      if (draftId) {
+        // Update existing draft → pending_payment
+        await apiFetch(`/api/owner/listings/${draftId}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Create new listing directly
+        await apiFetch('/api/owner/listings', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
 
-      Alert.alert('Success', 'Your listing has been created!', [
+      alert('Success', 'Your listing has been created!', [
         { text: 'OK', onPress: () => router.replace('/owner/listings') },
       ]);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     } finally {
       setSubmitting(false);
     }
@@ -144,6 +251,13 @@ export default function CreateListingScreen() {
           </View>
         ))}
       </View>
+
+      {/* Draft saved indicator */}
+      {draftSaved && (
+        <View style={styles.draftBanner}>
+          <Text style={styles.draftBannerText}>Draft saved</Text>
+        </View>
+      )}
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Step 0: Address */}
@@ -187,8 +301,25 @@ export default function CreateListingScreen() {
           </>
         )}
 
-        {/* Step 2: Lease */}
+        {/* Step 2: Description */}
         {step === 2 && (
+          <>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={styles.hint}>Describe your property to potential tenants. Mention unique features, nearby amenities, or anything that makes your place special.</Text>
+            <Input
+              label="Property Description"
+              value={form.public_remarks}
+              onChangeText={v => update('public_remarks', v)}
+              placeholder="Spacious 3-bed home with updated kitchen, close to downtown..."
+              multiline
+              numberOfLines={6}
+              style={styles.textArea}
+            />
+          </>
+        )}
+
+        {/* Step 3: Lease */}
+        {step === 3 && (
           <>
             <Text style={styles.sectionTitle}>Lease Details</Text>
             <Input label="Lease Term (months)" value={form.lease_term} onChangeText={v => update('lease_term', v)} keyboardType="numeric" placeholder="12" />
@@ -197,8 +328,8 @@ export default function CreateListingScreen() {
           </>
         )}
 
-        {/* Step 3: Features */}
-        {step === 3 && (
+        {/* Step 4: Features */}
+        {step === 4 && (
           <>
             <Text style={styles.sectionTitle}>Features</Text>
             <Text style={styles.label}>Pets Allowed</Text>
@@ -229,11 +360,17 @@ export default function CreateListingScreen() {
           </>
         )}
 
-        {/* Step 4: Photos */}
-        {step === 4 && (
+        {/* Step 5: Photos */}
+        {step === 5 && (
           <>
             <Text style={styles.sectionTitle}>Photos</Text>
-            <Text style={styles.hint}>Add up to 10 photos of your property.</Text>
+            <Text style={styles.hint}>Add up to 10 photos of your property. Photos are uploaded immediately.</Text>
+            {uploading && (
+              <View style={styles.uploadingRow}>
+                <ActivityIndicator size="small" color={COLORS.accent} />
+                <Text style={styles.uploadingText}>Uploading...</Text>
+              </View>
+            )}
             <View style={styles.photoGrid}>
               {form.photos.map((photo, index) => (
                 <View key={index} style={styles.photoItem}>
@@ -243,7 +380,7 @@ export default function CreateListingScreen() {
                   </Pressable>
                 </View>
               ))}
-              {form.photos.length < 10 && (
+              {form.photos.length < 10 && !uploading && (
                 <Pressable style={styles.addPhotoBtn} onPress={pickImages}>
                   <Text style={styles.addPhotoText}>+</Text>
                   <Text style={styles.addPhotoLabel}>Add</Text>
@@ -253,8 +390,28 @@ export default function CreateListingScreen() {
           </>
         )}
 
-        {/* Step 5: Review */}
-        {step === 5 && (
+        {/* Step 6: Contact */}
+        {step === 6 && (
+          <>
+            <Text style={styles.sectionTitle}>Contact Information</Text>
+            <Text style={styles.hint}>How should tenants reach you? Add contact instructions, a phone number, or agent details.</Text>
+            <Input
+              label="Contact Instructions"
+              value={form.tenant_contact_instructions}
+              onChangeText={v => update('tenant_contact_instructions', v)}
+              placeholder="Call or text 555-123-4567, or email me at owner@email.com"
+              multiline
+              numberOfLines={3}
+              style={styles.textArea}
+            />
+            <Input label="Agent Name (optional)" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Jane Smith" />
+            <Input label="Agent Phone (optional)" value={form.listing_agent_phone} onChangeText={v => update('listing_agent_phone', v)} placeholder="555-123-4567" keyboardType="phone-pad" />
+            <Input label="Agent Email (optional)" value={form.listing_agent_email} onChangeText={v => update('listing_agent_email', v)} placeholder="agent@email.com" keyboardType="email-address" />
+          </>
+        )}
+
+        {/* Step 7: Review */}
+        {step === 7 && (
           <>
             <Text style={styles.sectionTitle}>Review Your Listing</Text>
             <View style={styles.reviewCard}>
@@ -263,10 +420,12 @@ export default function CreateListingScreen() {
               <ReviewRow label="Type" value={form.property_sub_type || '—'} />
               <ReviewRow label="Beds / Baths" value={`${form.bedrooms_total || '—'} / ${form.bathrooms_total || '—'}`} />
               <ReviewRow label="Sqft" value={form.living_area || '—'} />
+              <ReviewRow label="Description" value={form.public_remarks ? `${form.public_remarks.slice(0, 60)}...` : '—'} />
               <ReviewRow label="Lease" value={form.lease_term ? `${form.lease_term} months` : '—'} />
               <ReviewRow label="Pets" value={form.pets_allowed === true ? 'Yes' : form.pets_allowed === false ? 'No' : 'Unknown'} />
               <ReviewRow label="Furnished" value={form.furnished ? 'Yes' : 'No'} />
               <ReviewRow label="Photos" value={`${form.photos.length} photo${form.photos.length !== 1 ? 's' : ''}`} />
+              <ReviewRow label="Contact" value={form.tenant_contact_instructions ? 'Provided' : form.listing_agent_name || '—'} />
             </View>
           </>
         )}
@@ -482,6 +641,31 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  uploadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: LAYOUT.padding.md,
+  },
+  uploadingText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  draftBanner: {
+    backgroundColor: COLORS.success + '22',
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  draftBannerText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.success,
   },
   reviewCard: {
     backgroundColor: COLORS.surface,

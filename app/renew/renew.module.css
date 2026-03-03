@@ -1,0 +1,120 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pm-background, #F5F7FA);
+  padding: var(--pm-spacing-md, 16px);
+}
+
+.card {
+  background: var(--pm-white, #fff);
+  border-radius: var(--pm-radius-md, 12px);
+  padding: var(--pm-spacing-xl, 32px);
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.title {
+  font-family: var(--pm-font-heading, 'Outfit');
+  font-size: var(--pm-font-2xl, 28px);
+  color: var(--pm-navy, #0F2B46);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.listingInfo {
+  background: var(--pm-light, #F5F7FA);
+  border-radius: var(--pm-radius-sm, 8px);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.address {
+  font-family: var(--pm-font-body, 'DM Sans');
+  font-weight: 600;
+  color: var(--pm-text, #1A1A2E);
+  margin: 0;
+}
+
+.price {
+  font-family: var(--pm-font-heading, 'Outfit');
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pm-accent, #FF6B35);
+  margin: 4px 0 0;
+}
+
+.description {
+  font-family: var(--pm-font-body, 'DM Sans');
+  font-size: 14px;
+  color: var(--pm-slate, #6B7C93);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.renewBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--pm-accent, #FF6B35);
+  color: white;
+  border: none;
+  border-radius: var(--pm-radius-sm, 8px);
+  font-family: var(--pm-font-body, 'DM Sans');
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.renewBtn:hover {
+  opacity: 0.9;
+}
+
+.message {
+  text-align: center;
+  font-family: var(--pm-font-body, 'DM Sans');
+  color: var(--pm-slate, #6B7C93);
+  padding: 24px 0;
+}
+
+.successBox {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.successBox h2 {
+  font-family: var(--pm-font-heading, 'Outfit');
+  color: var(--pm-success, #28A745);
+  margin-bottom: 8px;
+}
+
+.successBox p {
+  font-family: var(--pm-font-body, 'DM Sans');
+  color: var(--pm-slate, #6B7C93);
+  margin-bottom: 16px;
+}
+
+.link {
+  color: var(--pm-accent, #FF6B35);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.errorBox {
+  text-align: center;
+  padding: 16px 0;
+  color: var(--pm-danger, #DC3545);
+}
+
+.retryBtn {
+  margin-top: 12px;
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid var(--pm-accent, #FF6B35);
+  color: var(--pm-accent, #FF6B35);
+  border-radius: var(--pm-radius-sm, 8px);
+  font-family: var(--pm-font-body, 'DM Sans');
+  cursor: pointer;
+}

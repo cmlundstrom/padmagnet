@@ -69,6 +69,7 @@ function mapBridgeToListing(prop) {
     modification_timestamp: prop.ModificationTimestamp,
     photos,
     is_active: true,
+    status: 'active',
   };
 }
 
@@ -126,6 +127,9 @@ export async function POST(request) {
 }
 
 async function handleSync(request) {
+  const startTime = Date.now();
+  let syncLogId = null;
+
   try {
     if (!BRIDGE_TOKEN) {
       return NextResponse.json({ error: 'BRIDGE_SERVER_TOKEN not configured' }, { status: 500 });
@@ -133,12 +137,21 @@ async function handleSync(request) {
 
     const supabase = createServiceClient();
 
+    // Create sync log entry (status: running)
+    const { data: syncLog } = await supabase
+      .from('sync_logs')
+      .insert({ feed_name: 'bridge', status: 'running', started_at: new Date().toISOString() })
+      .select('id')
+      .single();
+    syncLogId = syncLog?.id;
+
     // Fetch all rental listings from Bridge
     const properties = await fetchAllFromBridge();
     const listings = properties.map(mapBridgeToListing);
 
     let added = 0;
     let updated = 0;
+    let skipped = 0;
 
     // Upsert in batches of 50
     for (let i = 0; i < listings.length; i += 50) {
@@ -150,6 +163,7 @@ async function handleSync(request) {
 
       if (error) {
         console.error('Upsert batch error:', error.message);
+        skipped += batch.length;
         continue;
       }
 
@@ -161,25 +175,44 @@ async function handleSync(request) {
       }
     }
 
-    // Deactivate MLS listings not in this sync
+    // Deactivate MLS listings not in this sync — also set status='expired'
+    let deactivatedCount = 0;
     const activeKeys = listings.map(l => l.listing_key);
     if (activeKeys.length > 0) {
       const { data: deactivated } = await supabase
         .from('listings')
-        .update({ is_active: false })
+        .update({ is_active: false, status: 'expired' })
         .eq('source', 'mls')
         .eq('is_active', true)
         .not('listing_key', 'in', `(${activeKeys.map(k => `"${k}"`).join(',')})`)
         .select('id');
 
-      var deactivatedCount = deactivated?.length || 0;
+      deactivatedCount = deactivated?.length || 0;
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    // Update sync log with results
+    if (syncLogId) {
+      await supabase
+        .from('sync_logs')
+        .update({
+          status: 'success',
+          completed_at: new Date().toISOString(),
+          listings_added: added,
+          listings_updated: updated,
+          listings_deactivated: deactivatedCount,
+          listings_skipped: skipped,
+          duration_ms: durationMs,
+        })
+        .eq('id', syncLogId);
     }
 
     await writeAuditLog({
       tableName: 'listings',
       rowId: 'bridge_sync',
       action: 'sync',
-      newValue: JSON.stringify({ fetched: properties.length, added, updated, deactivated: deactivatedCount || 0 }),
+      newValue: JSON.stringify({ fetched: properties.length, added, updated, deactivated: deactivatedCount }),
       adminUser: 'bridge_sync',
     });
 
@@ -187,10 +220,26 @@ async function handleSync(request) {
       fetched: properties.length,
       added,
       updated,
-      deactivated: deactivatedCount || 0,
+      deactivated: deactivatedCount,
+      duration_ms: durationMs,
     });
   } catch (err) {
     console.error('Bridge sync error:', err);
+
+    // Update sync log with failure
+    if (syncLogId) {
+      const supabase = createServiceClient();
+      await supabase
+        .from('sync_logs')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          duration_ms: Date.now() - startTime,
+          error_message: err.message,
+        })
+        .eq('id', syncLogId);
+    }
+
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

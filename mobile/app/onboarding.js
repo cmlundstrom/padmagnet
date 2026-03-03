@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, Pressable, Switch, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, Switch, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Input, Button } from '../components/ui';
 import { setOnboarded, savePreferences } from '../lib/storage';
 import { useAuth } from '../hooks/useAuth';
+import { useAlert } from '../providers/AlertProvider';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
@@ -17,6 +18,7 @@ const CITIES = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const alert = useAlert();
   const { session } = useAuth();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -69,7 +71,7 @@ export default function OnboardingScreen() {
 
       router.replace('/(tabs)/swipe');
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     } finally {
       setSaving(false);
     }

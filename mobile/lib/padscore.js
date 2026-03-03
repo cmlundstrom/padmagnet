@@ -129,6 +129,17 @@ export function calculatePadScore(preferences, listing) {
     factors.push({ key: 'furnished', label: 'Furnished Mismatch', impact: -WEIGHTS.furnished_mismatch, match: false });
   }
 
+  // Lease term too short
+  if (preferences.min_lease_months && listing.lease_term) {
+    const months = parseInt(listing.lease_term, 10);
+    if (!isNaN(months) && months < preferences.min_lease_months) {
+      totalPenalty += WEIGHTS.lease_too_short;
+      factors.push({ key: 'lease_too_short', label: 'Lease Too Short', impact: -WEIGHTS.lease_too_short, match: false });
+    } else if (!isNaN(months)) {
+      factors.push({ key: 'lease_too_short', label: 'Lease Length OK', impact: 0, match: true });
+    }
+  }
+
   // Stale listing
   if (listing.created_at) {
     const dom = Math.floor((Date.now() - new Date(listing.created_at).getTime()) / 86400000);

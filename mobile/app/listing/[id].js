@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ScrollView, View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -9,12 +9,14 @@ import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
 import { calculatePadScore } from '../../lib/padscore';
 import { apiFetch } from '../../lib/api';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams();
+  const alert = useAlert();
   const router = useRouter();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function ListingDetailScreen() {
       });
       router.push(`/conversation/${result.id}`);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     }
   };
 
