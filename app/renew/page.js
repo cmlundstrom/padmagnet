@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { supabase } from '../../lib/supabase-browser';
+import { createSupabaseBrowser } from '../../lib/supabase-browser';
 import styles from './renew.module.css';
 
 export default function RenewPage() {
+  return (
+    <Suspense fallback={<div className={`app-theme ${styles.container}`}><div className={styles.card}><p className={styles.message}>Loading...</p></div></div>}>
+      <RenewContent />
+    </Suspense>
+  );
+}
+
+function RenewContent() {
   const searchParams = useSearchParams();
   const listingId = searchParams.get('listing_id');
   const [status, setStatus] = useState('loading'); // loading, ready, processing, success, error
@@ -15,6 +23,7 @@ export default function RenewPage() {
 
   useEffect(() => {
     async function init() {
+      const supabase = createSupabaseBrowser();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         // Redirect to sign-in with return URL
@@ -53,6 +62,7 @@ export default function RenewPage() {
   const handleRenew = async () => {
     setStatus('processing');
     try {
+      const supabase = createSupabaseBrowser();
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/stripe/renew', {
         method: 'POST',

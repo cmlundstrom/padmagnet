@@ -5,10 +5,9 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 // POST — create Stripe Checkout session for listing purchase
 export async function POST(request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   try {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) {

@@ -4,11 +4,10 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-
 // Stripe sends raw body — Next.js App Router handles this with request.text()
 export async function POST(request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
 
   try {
