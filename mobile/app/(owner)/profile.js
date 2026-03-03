@@ -18,7 +18,7 @@ export default function OwnerProfileScreen() {
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <Text style={SCREEN.pageTitle}>Profile</Text>
 
-      <ProfileCard user={user} fallbackName="Owner" />
+      <ProfileCard user={user} />
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/notifications')}>
         <Text style={MENU.text}>Notifications</Text>

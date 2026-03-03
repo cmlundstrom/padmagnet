@@ -60,6 +60,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tenant)" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="(owner)" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+          <Stack.Screen name="about-you" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="auth-callback" options={{ animation: 'none' }} />
         </Stack>

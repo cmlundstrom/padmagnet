@@ -18,7 +18,7 @@ export default function TenantProfileScreen() {
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <Text style={SCREEN.pageTitle}>Profile</Text>
 
-      <ProfileCard user={user} fallbackName="Tenant" />
+      <ProfileCard user={user} />
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/preferences')}>
         <Text style={MENU.text}>Preferences</Text>
