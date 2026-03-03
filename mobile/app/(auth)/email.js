@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Input, Button, AuthHeader } from '../../components/ui';
-import { signInWithMagicLink, signInWithGoogle } from '../../lib/auth';
+import { signInWithGoogle } from '../../lib/auth';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -14,7 +14,6 @@ export default function EmailScreen() {
   const { role } = useLocalSearchParams();
   const alert = useAlert();
   const [email, setEmail] = useState('');
-  const [magicLoading, setMagicLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const subtitleText = role === 'owner'
@@ -28,26 +27,6 @@ export default function EmailScreen() {
       return;
     }
     router.push({ pathname: '/(auth)/password', params: { email: trimmed, role } });
-  }
-
-  async function handleMagicLink() {
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes('@')) {
-      alert('Invalid email', 'Please enter a valid email address.');
-      return;
-    }
-    setMagicLoading(true);
-    try {
-      await signInWithMagicLink(trimmed);
-      alert(
-        'Check your email',
-        'We sent you a magic link. Tap it to sign in instantly.',
-      );
-    } catch (err) {
-      alert('Error', err.message);
-    } finally {
-      setMagicLoading(false);
-    }
   }
 
   async function handleGoogle() {
@@ -92,16 +71,6 @@ export default function EmailScreen() {
           size="lg"
           onPress={handleEmailContinue}
           style={styles.mainButton}
-        />
-
-        <Button
-          title="Send Magic Link"
-          variant="ghost"
-          size="md"
-          onPress={handleMagicLink}
-          loading={magicLoading}
-          style={styles.magicButton}
-          textStyle={styles.magicText}
         />
 
         {/* Divider */}
@@ -163,13 +132,6 @@ const styles = StyleSheet.create({
   mainButton: {
     width: '100%',
     marginTop: 8,
-  },
-  magicButton: {
-    width: '100%',
-    marginTop: 8,
-  },
-  magicText: {
-    color: COLORS.accent,
   },
   divider: {
     flexDirection: 'row',
