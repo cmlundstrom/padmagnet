@@ -130,11 +130,7 @@ export default function ResetPasswordPage() {
         {state === 'success' ? (
           <div>
             <p className={styles.success}>Password updated successfully.</p>
-            <p className={styles.hint}>You can now sign in with your new password.</p>
-            <a href="padmagnet://auth/login" className={styles.button}>
-              Open PadMagnet App
-            </a>
-            <p className={styles.hintSmall}>If the button doesn&apos;t work, switch back to the app manually.</p>
+            <p className={styles.hint}>Switch back to the app and sign in with your new password.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
