@@ -11,7 +11,7 @@ export default function OwnerTabLayout() {
         options={{
           title: 'Listings',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="home" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="home" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
@@ -20,7 +20,7 @@ export default function OwnerTabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
@@ -29,7 +29,7 @@ export default function OwnerTabLayout() {
         options={{
           title: 'Services',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="cog" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="cog" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
@@ -38,7 +38,7 @@ export default function OwnerTabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="user" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="user" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />

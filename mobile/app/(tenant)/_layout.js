@@ -11,7 +11,7 @@ export default function TenantTabLayout() {
         options={{
           title: 'Swipe',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="th-large" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="th-large" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
@@ -20,7 +20,7 @@ export default function TenantTabLayout() {
         options={{
           title: 'Saved',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="heart" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="heart" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
@@ -29,7 +29,7 @@ export default function TenantTabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
@@ -38,7 +38,7 @@ export default function TenantTabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="user" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.slate} />
+            <FontAwesome name="user" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />

@@ -11,20 +11,20 @@ export const TAB_SCREEN_OPTIONS = {
     backgroundColor: COLORS.surface,
     borderTopColor: COLORS.border,
     borderTopWidth: 1,
-    paddingBottom: 8,
+    paddingBottom: 13,
     paddingTop: 8,
-    height: 60,
+    height: 68,
   },
   tabBarActiveTintColor: COLORS.accent,
-  tabBarInactiveTintColor: COLORS.slate,
+  tabBarInactiveTintColor: COLORS.white,
   tabBarLabelStyle: {
     fontFamily: FONTS.body.medium,
-    fontSize: 11,
+    fontSize: 13,
   },
 };
 
 // Tab icon size — keeps every tab bar icon uniform.
-export const TAB_ICON_SIZE = 22;
+export const TAB_ICON_SIZE = 26;
 
 // ── Reusable screen styles ─────────────────────────────────
 export const SCREEN = StyleSheet.create({
