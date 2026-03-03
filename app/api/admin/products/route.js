@@ -29,7 +29,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, description, price_cents, type, recurring_interval, sort_order } = body;
+    const { name, description, price_cents, type, recurring_interval, sort_order, audience, app_path } = body;
 
     if (!name || !price_cents || !type) {
       return NextResponse.json({ error: 'name, price_cents, and type are required' }, { status: 400 });
@@ -69,6 +69,8 @@ export async function POST(request) {
         recurring_interval: type === 'recurring' ? recurring_interval : null,
         stripe_price_id,
         sort_order: sort_order || 0,
+        audience: audience || 'owner',
+        app_path: app_path || null,
       })
       .select()
       .single();
@@ -171,7 +173,8 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE — soft-delete (deactivate) a product
+// DELETE — soft-delete (deactivate) or hard-delete a product
+// Use ?hard=true query param for permanent removal
 export async function DELETE(request) {
   try {
     const { id } = await request.json();
@@ -179,14 +182,29 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Product id required' }, { status: 400 });
     }
 
-    const supabase = createServiceClient();
-    const { error } = await supabase
-      .from('products')
-      .update({ is_active: false })
-      .eq('id', id);
+    const { searchParams } = new URL(request.url);
+    const hard = searchParams.get('hard') === 'true';
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    const supabase = createServiceClient();
+
+    if (hard) {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+    } else {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ success: true });

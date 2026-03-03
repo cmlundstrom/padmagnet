@@ -833,6 +833,7 @@ function ListingsPanel() {
         loading={loading}
         error={error}
         tableName="listings"
+        storageKey="listings"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
         onBulkSuppress={handleBulkSuppress}
@@ -1443,6 +1444,7 @@ function SupportPanel({ onTicketChange }) {
         loading={loading}
         error={error}
         tableName="tickets"
+        storageKey="support"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
         onBulkClose={handleBulkClose}
@@ -1722,6 +1724,7 @@ function WaitlistPanel() {
         loading={loading}
         error={error}
         tableName="waitlist"
+        storageKey="waitlist"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
         onBulkSuppress={handleBulkSuppress}
@@ -1751,6 +1754,7 @@ function ProductsPanel() {
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [hardDeleteConfirm, setHardDeleteConfirm] = useState(null); // { ids, names, typedName }
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -1769,7 +1773,6 @@ function ProductsPanel() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const handleSave = useCallback(async (ids, changes) => {
-    // Convert dollar string → cents for price_cents
     if (changes.price_cents !== undefined) {
       const dollars = parseFloat(changes.price_cents);
       if (!isNaN(dollars)) {
@@ -1809,6 +1812,8 @@ function ProductsPanel() {
         type: values.type || "one_time",
         recurring_interval: values.type === "recurring" ? (values.recurring_interval || "month") : null,
         sort_order: parseInt(values.sort_order, 10) || 0,
+        audience: values.audience || "owner",
+        app_path: values.app_path || null,
       }),
     });
     const result = await res.json();
@@ -1820,6 +1825,7 @@ function ProductsPanel() {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Soft delete (deactivate)
   const handleBulkDelete = useCallback((ids) => {
     const names = ids.map(id => {
       const p = products.find(p => p.id === id);
@@ -1841,9 +1847,33 @@ function ProductsPanel() {
     fetchProducts();
   }, [confirmDelete, fetchProducts]);
 
+  // Hard delete (permanent removal)
+  const handleBulkHardDelete = useCallback((ids) => {
+    const names = ids.map(id => {
+      const p = products.find(p => p.id === id);
+      return p ? p.name : id;
+    });
+    setHardDeleteConfirm({ ids, names, typedName: "" });
+  }, [products]);
+
+  const executeHardDelete = useCallback(async () => {
+    if (!hardDeleteConfirm) return;
+    for (const id of hardDeleteConfirm.ids) {
+      await fetch("/api/admin/products?hard=true", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    }
+    setHardDeleteConfirm(null);
+    fetchProducts();
+  }, [hardDeleteConfirm, fetchProducts]);
+
   const addFormFields = useMemo(() => [
     { key: "name", label: "Product Name", type: "text", required: true, placeholder: "e.g. Premium 30-Day Listing" },
-    { key: "description", label: "Description", type: "text", placeholder: "Short description of what this product includes" },
+    { key: "audience", label: "Audience", type: "select", required: true, options: [{ value: "owner", label: "Owner" }, { value: "tenant", label: "Tenant" }], defaultValue: "owner" },
+    { key: "description", label: "Description (200 char max)", type: "textarea", placeholder: "Public-facing description. Use \\n for line breaks.", maxLength: 200 },
+    { key: "app_path", label: "In-App Path", type: "text", placeholder: "e.g. /my-listings" },
     { key: "price", label: "Price ($)", type: "text", required: true, placeholder: "e.g. 29.99" },
     { key: "type", label: "Type", type: "select", options: [{ value: "one_time", label: "One-Time" }, { value: "recurring", label: "Recurring" }] },
     { key: "recurring_interval", label: "Interval", type: "select", options: [{ value: "month", label: "Monthly" }, { value: "year", label: "Yearly" }] },
@@ -1856,6 +1886,9 @@ function ProductsPanel() {
     ? (products.reduce((sum, p) => sum + p.price_cents, 0) / products.length / 100).toFixed(2)
     : "0.00";
 
+  const ownerProducts = products.filter(p => p.audience === "owner" || !p.audience);
+  const tenantProducts = products.filter(p => p.audience === "tenant");
+
   const columns = useMemo(() => [
     {
       accessorKey: "name",
@@ -1866,15 +1899,49 @@ function ProductsPanel() {
       meta: { editable: true },
     },
     {
+      accessorKey: "audience",
+      header: "Audience",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={v === "tenant" ? "cyan" : "blue"}>
+          {(v || "owner").toUpperCase()}
+        </Badge>;
+      },
+      size: 90,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "owner", label: "Owner" },
+          { value: "tenant", label: "Tenant" },
+        ],
+      },
+    },
+    {
       accessorKey: "description",
       header: "Description",
+      cell: ({ getValue }) => {
+        const val = getValue() || "";
+        const charCount = val.length;
+        return (
+          <span style={{ fontSize: "13px", color: COLORS.textMuted, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }}>
+            {val ? val.replace(/\\n/g, " ") : "—"}
+            {val && <span style={{ marginLeft: 6, fontSize: "11px", color: COLORS.textDim }}>{charCount}/200</span>}
+          </span>
+        );
+      },
+      meta: { editable: true },
+      size: 250,
+    },
+    {
+      accessorKey: "app_path",
+      header: "App Path",
       cell: ({ getValue }) => (
-        <span style={{ fontSize: "13px", color: COLORS.textMuted, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }}>
+        <span style={{ fontSize: "12px", fontFamily: "monospace", color: COLORS.textMuted }}>
           {getValue() || "—"}
         </span>
       ),
       meta: { editable: true },
-      size: 250,
+      size: 140,
     },
     {
       accessorKey: "price_cents",
@@ -1977,9 +2044,18 @@ function ProductsPanel() {
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Products" value={products.length} sub="In catalog" accent={COLORS.brand} />
-        <StatCard label="Active" value={activeCount} sub="Available for purchase" accent={COLORS.green} />
+        <StatCard label="Active" value={activeCount} sub="Products currently available to send to the PadMagnet App. *May still need to be wired to a custom or current page." accent={COLORS.green} />
         <StatCard label="Implemented" value={implementedCount} sub="Wired into app" accent={COLORS.purple} />
         <StatCard label="Avg Price" value={`$${avgPrice}`} sub="Across all products" accent={COLORS.amber} />
+      </div>
+
+      {/* Info Banner */}
+      <div style={{
+        background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
+        padding: "12px 16px", marginBottom: 20, fontSize: "13px", color: COLORS.textMuted, lineHeight: 1.5,
+      }}>
+        Descriptions and pricing entered here flow to the PadMagnet App. Make product descriptions public-friendly and punchy.
+        Strictly respect the 200-character field length. Use <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>\n</code> for line breaks.
       </div>
 
       {/* Add Button */}
@@ -1996,7 +2072,7 @@ function ProductsPanel() {
           {showAddForm ? "Cancel" : "+ Add Product"}
         </button>
         <span style={{ fontSize: "13px", color: COLORS.textMuted }}>
-          Click toggles to flip Active/Wired. Double-click name, description, price, or order to edit inline.
+          Click toggles to flip Active/Wired. Double-click name, description, price, path, or order to edit inline.
         </span>
       </div>
 
@@ -2013,19 +2089,41 @@ function ProductsPanel() {
         </div>
       )}
 
-      {/* Products Table */}
+      {/* Owner Products Section */}
+      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "24px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
+        Property Owner Products and Services
+      </h3>
       <AdminTable
         columns={columns}
-        data={products}
+        data={ownerProducts}
         loading={loading}
         error={error}
         tableName="products"
+        storageKey="products-owner"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
-        emptyMessage="No products in catalog yet"
+        onBulkHardDelete={handleBulkHardDelete}
+        emptyMessage="No owner products in catalog yet"
       />
 
-      {/* Delete Confirmation */}
+      {/* Tenant Products Section */}
+      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "32px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
+        Tenant Products and Services
+      </h3>
+      <AdminTable
+        columns={columns}
+        data={tenantProducts}
+        loading={loading}
+        error={error}
+        tableName="products"
+        storageKey="products-tenant"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        onBulkHardDelete={handleBulkHardDelete}
+        emptyMessage="No tenant products yet"
+      />
+
+      {/* Soft Delete Confirmation */}
       {confirmDelete && (
         <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
           <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
@@ -2041,6 +2139,53 @@ function ProductsPanel() {
             <div className="confirm-actions">
               <button className="confirm-btn cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="confirm-btn confirm" onClick={executeDelete}>Deactivate</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hard Delete Confirmation — requires typing product name */}
+      {hardDeleteConfirm && (
+        <div className="confirm-overlay" onClick={() => setHardDeleteConfirm(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px", color: COLORS.red }}>
+              Permanently remove {hardDeleteConfirm.ids.length} product{hardDeleteConfirm.ids.length > 1 ? "s" : ""}?
+            </p>
+            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
+              This will permanently delete: <strong>{hardDeleteConfirm.names.join(", ")}</strong>
+            </p>
+            <p style={{ fontSize: "12px", color: COLORS.red, marginBottom: 12 }}>
+              This action cannot be undone. The product will be removed from the database.
+            </p>
+            <p style={{ fontSize: "13px", color: COLORS.textMuted, marginBottom: 6 }}>
+              Type <strong>{hardDeleteConfirm.names[0]}</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={hardDeleteConfirm.typedName}
+              onChange={e => setHardDeleteConfirm(prev => ({ ...prev, typedName: e.target.value }))}
+              style={{
+                width: "100%", padding: "8px 12px", borderRadius: 6,
+                border: `1px solid ${COLORS.border}`, background: COLORS.bg,
+                color: COLORS.text, fontSize: "14px", marginBottom: 16,
+                boxSizing: "border-box",
+              }}
+              autoFocus
+              placeholder={hardDeleteConfirm.names[0]}
+            />
+            <div className="confirm-actions">
+              <button className="confirm-btn cancel" onClick={() => setHardDeleteConfirm(null)}>Cancel</button>
+              <button
+                className="confirm-btn confirm"
+                disabled={hardDeleteConfirm.typedName !== hardDeleteConfirm.names[0]}
+                onClick={executeHardDelete}
+                style={{
+                  opacity: hardDeleteConfirm.typedName !== hardDeleteConfirm.names[0] ? 0.4 : 1,
+                  background: "#7f1d1d",
+                }}
+              >
+                Permanently Remove
+              </button>
             </div>
           </div>
         </div>
@@ -2327,6 +2472,7 @@ function UsersPanel() {
         loading={loading}
         error={error}
         tableName="profiles"
+        storageKey="users"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
         emptyMessage="No user profiles yet"
@@ -2519,6 +2665,7 @@ function AuditLogPanel() {
         data={entries}
         loading={loading}
         tableName="admin_audit_log"
+        storageKey="audit-log"
         emptyMessage="No audit log entries yet. Actions taken in admin panels will appear here."
         renderExpandedRow={renderExpandedRow}
       />
@@ -2536,7 +2683,7 @@ const NAV_ITEMS = [
   { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "support", label: "Support", icon: "💬" },
-  { id: "products", label: "Products", icon: "📦" },
+  { id: "products", label: "App Products", icon: "📦" },
   { id: "billing", label: "Billing", icon: "💳" },
   { id: "users", label: "Users", icon: "👤" },
   { id: "audit", label: "Audit Log", icon: "📝" },

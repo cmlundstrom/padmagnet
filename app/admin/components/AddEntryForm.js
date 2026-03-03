@@ -44,14 +44,22 @@ export default function AddEntryForm({ fields, onSave, onCancel, submitLabel = '
                 ))}
               </select>
             ) : field.type === 'textarea' ? (
-              <textarea
-                className="add-entry-input"
-                placeholder={field.placeholder || ''}
-                value={values[field.key]}
-                onChange={e => handleChange(field.key, e.target.value)}
-                required={field.required}
-                rows={2}
-              />
+              <div>
+                <textarea
+                  className="add-entry-input"
+                  placeholder={field.placeholder || ''}
+                  value={values[field.key]}
+                  onChange={e => handleChange(field.key, e.target.value)}
+                  required={field.required}
+                  maxLength={field.maxLength}
+                  rows={2}
+                />
+                {field.maxLength && (
+                  <span style={{ fontSize: '11px', color: '#64748b', float: 'right', marginTop: 2 }}>
+                    {(values[field.key] || '').length}/{field.maxLength}
+                  </span>
+                )}
+              </div>
             ) : (
               <input
                 className="add-entry-input"

@@ -24,14 +24,36 @@ export default function AdminTable({
   onBulkClose,
   onBulkSuppress,
   onBulkUnsuppress,
+  onBulkHardDelete,
   emptyMessage = 'No data',
   renderExpandedRow,
+  storageKey,
 }) {
   const [sorting, setSorting] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
   const [editingCell, setEditingCell] = useState(null); // { rowId, columnId }
   const [editValue, setEditValue] = useState('');
   const [globalFilter, setGlobalFilter] = useState('');
+
+  // Persistent column sizing via localStorage
+  const lsKey = storageKey ? `at-col-sizes-${storageKey}` : null;
+  const [columnSizing, setColumnSizing] = useState(() => {
+    if (!lsKey || typeof window === 'undefined') return {};
+    try {
+      const stored = localStorage.getItem(lsKey);
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+
+  const handleColumnSizingChange = useCallback((updater) => {
+    setColumnSizing(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (lsKey) {
+        try { localStorage.setItem(lsKey, JSON.stringify(next)); } catch {}
+      }
+      return next;
+    });
+  }, [lsKey]);
 
   // Prepend checkbox column
   const columns = useMemo(() => [
@@ -63,10 +85,11 @@ export default function AdminTable({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, rowSelection, globalFilter },
+    state: { sorting, rowSelection, globalFilter, columnSizing },
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnSizingChange: handleColumnSizingChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -133,6 +156,11 @@ export default function AdminTable({
           {onBulkDelete && (
             <button className="at-bulk-btn delete" onClick={() => onBulkDelete(selectedIds)}>
               Delete
+            </button>
+          )}
+          {onBulkHardDelete && (
+            <button className="at-bulk-btn delete" style={{ background: '#7f1d1d' }} onClick={() => onBulkHardDelete(selectedIds)}>
+              Permanently Remove
             </button>
           )}
           <button className="at-bulk-btn clear" onClick={() => setRowSelection({})}>
