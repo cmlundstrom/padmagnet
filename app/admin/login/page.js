@@ -76,7 +76,7 @@ function AdminLoginPage() {
       { auth: { flowType: 'implicit', persistSession: false } }
     );
     const { error: resetError } = await resetClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/reset-password?next=/admin`,
     });
 
     setLoading(false);
