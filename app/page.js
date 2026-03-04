@@ -69,8 +69,8 @@ function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false
           <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'tenant' ? 'active' : ''}`} onClick={() => setRole('tenant')}>
             🏠 I&apos;m a Tenant
           </button>
-          <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'landlord' ? 'active' : ''}`} onClick={() => setRole('landlord')}>
-            🔑 I&apos;m a Landlord
+          <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'owner' ? 'active' : ''}`} onClick={() => setRole('owner')}>
+            🔑 I&apos;m a Property Owner
           </button>
         </div>
       )}

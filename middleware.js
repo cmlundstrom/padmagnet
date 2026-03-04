@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
+const ADMIN_ROLES = ['admin', 'super_admin'];
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
@@ -37,6 +39,19 @@ export async function middleware(request) {
 
   if (!session) {
     const loginUrl = new URL('/admin/login', request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Check user has admin or super_admin role in profiles table
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+
+  if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+    const loginUrl = new URL('/admin/login', request.url);
+    loginUrl.searchParams.set('error', 'unauthorized');
     return NextResponse.redirect(loginUrl);
   }
 
