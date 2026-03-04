@@ -2026,6 +2026,15 @@ function ProductsPanel() {
       enableSorting: false,
     },
     {
+      accessorKey: "sort_order",
+      header: "App Display Order",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "13px", color: COLORS.textMuted }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+      size: 70,
+    },
+    {
       accessorKey: "updated_at",
       header: "Last Modified",
       cell: ({ getValue }) => (
