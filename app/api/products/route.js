@@ -1,4 +1,4 @@
-import { createServiceClient } from '../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const audience = searchParams.get('audience');
 
-    const supabase = createServiceClient();
+    // Service client with no-store fetch to bypass Next.js fetch cache
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        global: {
+          fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),
+        },
+      }
+    );
 
     let query = supabase
       .from('products')
