@@ -8,17 +8,12 @@ export async function GET(request) {
   const type = searchParams.get('type');
   const next = searchParams.get('next') || '/admin';
 
-  // For recovery, pass the code to the reset page to exchange client-side
-  if (type === 'recovery' && code) {
-    const resetUrl = new URL('/reset-password', request.url);
-    resetUrl.searchParams.set('code', code);
-    return NextResponse.redirect(resetUrl);
-  }
-
-  // For other flows, exchange server-side and redirect
-  const redirectUrl = new URL(next, request.url);
+  // Recovery flows go to reset-password; everything else goes to `next`
+  const destination = type === 'recovery' ? '/reset-password' : next;
+  const redirectUrl = new URL(destination, request.url);
   const response = NextResponse.redirect(redirectUrl);
 
+  // Exchange the code server-side (works for both recovery and normal flows)
   if (code) {
     const cookieStore = cookies();
     const supabase = createServerClient(
