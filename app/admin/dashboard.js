@@ -2907,6 +2907,66 @@ export default function PadMagnetAdmin() {
           {NAV_ITEMS.map(item => {
             const isActive = activeTab === item.id;
             const isSupport = item.id === "support";
+            const isBacklog = item.id === "backlog";
+            if (isBacklog) {
+              return (
+                <div key={item.id} onClick={() => setActiveTab(item.id)} style={{
+                  marginTop: 8, marginBottom: 2, borderRadius: "8px", cursor: "pointer",
+                  padding: "2px",
+                  background: isActive
+                    ? "linear-gradient(135deg, #f59e0b, #ef4444, #a855f7, #3b82f6, #22d3ee)"
+                    : "linear-gradient(135deg, #f59e0b, #ef4444, #a855f7, #3b82f6)",
+                  backgroundSize: "300% 300%",
+                  animation: "backlog-glow 3s ease infinite",
+                  boxShadow: isActive
+                    ? "0 0 20px rgba(168,85,247,0.5), 0 0 40px rgba(239,68,68,0.3)"
+                    : "0 0 12px rgba(168,85,247,0.3), 0 0 24px rgba(239,68,68,0.15)",
+                }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: sidebarCollapsed ? "10px 0" : "10px 12px",
+                    justifyContent: sidebarCollapsed ? "center" : "flex-start",
+                    borderRadius: "6px",
+                    background: isActive ? "rgba(10,14,23,0.85)" : "rgba(10,14,23,0.92)",
+                    color: isActive ? "#fff" : "#e2e8f0",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    letterSpacing: "0.02em",
+                  }}>
+                    <span style={{ fontSize: "18px", width: 24, textAlign: "center", animation: "backlog-bounce 2s ease-in-out infinite" }}>
+                      {item.icon}
+                    </span>
+                    {!sidebarCollapsed && (
+                      <span style={{
+                        background: "linear-gradient(90deg, #f59e0b, #ef4444, #a855f7, #22d3ee)",
+                        backgroundSize: "200% auto",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        animation: "backlog-text 4s linear infinite",
+                      }}>
+                        {item.label}
+                      </span>
+                    )}
+                  </div>
+                  <style>{`
+                    @keyframes backlog-glow {
+                      0%, 100% { background-position: 0% 50%; }
+                      50% { background-position: 100% 50%; }
+                    }
+                    @keyframes backlog-bounce {
+                      0%, 100% { transform: scale(1) rotate(0deg); }
+                      25% { transform: scale(1.2) rotate(-8deg); }
+                      50% { transform: scale(1) rotate(0deg); }
+                      75% { transform: scale(1.2) rotate(8deg); }
+                    }
+                    @keyframes backlog-text {
+                      0% { background-position: 0% center; }
+                      100% { background-position: 200% center; }
+                    }
+                  `}</style>
+                </div>
+              );
+            }
             return (
               <div key={item.id} onClick={() => setActiveTab(item.id)} style={{
                 display: "flex", alignItems: "center", gap: 10,
