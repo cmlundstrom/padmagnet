@@ -16,20 +16,20 @@ export default function OwnerTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ focused }) => (
-            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="services"
         options={{
           title: 'Services',
           tabBarIcon: ({ focused }) => (
             <FontAwesome name="cog" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />
