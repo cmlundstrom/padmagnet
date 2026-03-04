@@ -10,7 +10,7 @@ export default function ProductCard({ product, onPurchase, ctaLabel = 'Buy Now',
     <View style={[styles.card, featured && styles.featured]}>
       <Text style={styles.name}>{product.name}</Text>
       {product.description ? (
-        <Text style={styles.description}>{product.description}</Text>
+        <Text style={styles.description}>{product.description.replace(/\\n/g, '\n')}</Text>
       ) : null}
       <Text style={styles.price}>{formatPriceCents(product.price_cents)}</Text>
       <Button

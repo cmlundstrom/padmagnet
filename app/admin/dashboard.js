@@ -151,6 +151,11 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 }
 
+function formatDateFull(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleString("en-US", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+}
+
 // ============================================================
 // OVERVIEW PANEL
 // ============================================================
@@ -1998,7 +2003,7 @@ function ProductsPanel() {
     },
     {
       accessorKey: "is_implemented",
-      header: "Wired",
+      header: "Wired to App",
       cell: ({ row }) => {
         const val = row.original.is_implemented;
         return (
@@ -2030,12 +2035,12 @@ function ProductsPanel() {
       size: 70,
     },
     {
-      accessorKey: "created_at",
-      header: "Created",
+      accessorKey: "updated_at",
+      header: "Last Modified",
       cell: ({ getValue }) => (
-        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDateFull(getValue())}</span>
       ),
-      size: 160,
+      size: 180,
     },
   ], [handleToggle]);
 
@@ -2055,7 +2060,7 @@ function ProductsPanel() {
         padding: "12px 16px", marginBottom: 20, fontSize: "13px", color: COLORS.textMuted, lineHeight: 1.5,
       }}>
         Descriptions and pricing entered here flow to the PadMagnet App. Make product descriptions public-friendly and punchy.
-        Strictly respect the 200-character field length. Use <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>\n</code> for line breaks.
+        Strictly respect the 200-character field length. Use <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>{"\\n"}</code> for line breaks.
       </div>
 
       {/* Add Button */}
