@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { createSupabaseBrowser } from '../../../lib/supabase-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -67,9 +68,15 @@ function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const supabase = createSupabaseBrowser();
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    // Use implicit flow for password reset to avoid PKCE cookie issues.
+    // The reset-password page already handles hash-based tokens.
+    const resetClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { flowType: 'implicit', persistSession: false } }
+    );
+    const { error: resetError } = await resetClient.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     setLoading(false);
