@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import MapView, { Circle } from 'react-native-maps';
-import Slider from '@react-native-community/slider';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
@@ -136,18 +135,22 @@ export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
 
           <Text style={styles.addressText}>{result.formatted_address}</Text>
 
-          <Text style={styles.sliderLabel}>Radius: {radius} miles</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={5}
-            maximumValue={30}
-            step={1}
-            value={radius}
-            onValueChange={setRadius}
-            minimumTrackTintColor={COLORS.accent}
-            maximumTrackTintColor={COLORS.border}
-            thumbTintColor={COLORS.accent}
-          />
+          <View style={styles.radiusRow}>
+            <Text style={styles.sliderLabel}>Radius:</Text>
+            <Pressable
+              style={styles.stepperButton}
+              onPress={() => setRadius(r => Math.max(5, r - 5))}
+            >
+              <Text style={styles.stepperText}>−</Text>
+            </Pressable>
+            <Text style={styles.radiusValue}>{radius} mi</Text>
+            <Pressable
+              style={styles.stepperButton}
+              onPress={() => setRadius(r => Math.min(30, r + 5))}
+            >
+              <Text style={styles.stepperText}>+</Text>
+            </Pressable>
+          </View>
 
           <View style={styles.previewButtons}>
             <Pressable style={styles.cancelButton} onPress={() => { setResult(null); setError(null); }}>
@@ -261,14 +264,37 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
   },
+  radiusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   sliderLabel: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
-  slider: {
-    width: '100%',
-    height: 40,
+  stepperButton: {
+    width: 36,
+    height: 36,
+    borderRadius: LAYOUT.radius.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.accent,
+  },
+  radiusValue: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    minWidth: 44,
+    textAlign: 'center',
   },
   previewButtons: {
     flexDirection: 'row',
