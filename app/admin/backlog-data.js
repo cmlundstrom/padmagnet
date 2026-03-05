@@ -45,6 +45,10 @@ export const BACKLOG = [
       { id: "PM-27", title: "Delete orphaned chris@floridapm.net (auth + waitlist)", status: "done", date: "2026-03-04" },
       { id: "PM-28", title: "Replace geocode API with local service-area autocomplete in ZonePicker", status: "done", date: "2026-03-05", notes: "Static city/zip data for 5 counties, local filtering, no API calls" },
       { id: "PM-29", title: "Require at least 1 zone in onboarding step 2", status: "done", date: "2026-03-05" },
+      { id: "PM-30", title: "Onboarding overhaul: back pill, bigger logo, new copy, remove skip", status: "done", date: "2026-03-05" },
+      { id: "PM-31", title: "Onboarding step resumption (persists to AsyncStorage)", status: "done", date: "2026-03-05" },
+      { id: "PM-32", title: "Fix VirtualizedList nesting error in ZonePicker", status: "done", date: "2026-03-05" },
+      { id: "PM-33", title: "Fix keyboard covering zone search on onboarding step 2", status: "done", date: "2026-03-05" },
     ],
   },
   {
