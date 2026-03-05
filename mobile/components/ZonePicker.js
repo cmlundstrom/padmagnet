@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
@@ -72,18 +72,22 @@ export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
             autoCorrect={false}
           />
           {suggestions.length > 0 && (
-            <FlatList
-              data={suggestions}
-              keyExtractor={(item) => `${item.name}-${item.county}`}
-              keyboardShouldPersistTaps="handled"
+            <ScrollView
               style={styles.suggestionList}
-              renderItem={({ item }) => (
-                <Pressable style={styles.suggestionItem} onPress={() => handleSelect(item)}>
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              {suggestions.map(item => (
+                <Pressable
+                  key={`${item.name}-${item.county}`}
+                  style={styles.suggestionItem}
+                  onPress={() => handleSelect(item)}
+                >
                   <Text style={styles.suggestionText}>{item.name}</Text>
                   <Text style={styles.suggestionCounty}> — {item.county} County</Text>
                 </Pressable>
-              )}
-            />
+              ))}
+            </ScrollView>
           )}
           {error && <Text style={styles.errorText}>{error}</Text>}
         </>

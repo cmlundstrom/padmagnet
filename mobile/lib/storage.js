@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const KEYS = {
   PREFERENCES: 'padmagnet_preferences',
   ONBOARDED: 'padmagnet_onboarded',
+  ONBOARDING_STEP: 'padmagnet_onboarding_step',
   USER_ROLE: 'padmagnet_user_role',
   SEARCH_ZONES: '@padmagnet_search_zones',
 };
@@ -22,6 +23,16 @@ export async function hasOnboarded() {
 
 export async function setOnboarded() {
   await AsyncStorage.setItem(KEYS.ONBOARDED, 'true');
+  await AsyncStorage.removeItem(KEYS.ONBOARDING_STEP);
+}
+
+export async function getOnboardingStep() {
+  const raw = await AsyncStorage.getItem(KEYS.ONBOARDING_STEP);
+  return raw ? parseInt(raw, 10) : 0;
+}
+
+export async function saveOnboardingStep(step) {
+  await AsyncStorage.setItem(KEYS.ONBOARDING_STEP, String(step));
 }
 
 export async function saveUserRole(role) {
