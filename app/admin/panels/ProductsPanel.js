@@ -1,0 +1,455 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { COLORS, baseButton, Badge, StatCard, formatDateFull } from '../shared';
+import AdminTable from '../components/AdminTable';
+import AddEntryForm from '../components/AddEntryForm';
+import AuditHistory from '../components/AuditHistory';
+
+export default function ProductsPanel() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [hardDeleteConfirm, setHardDeleteConfirm] = useState(null); // { ids, names, typedName }
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/products");
+      if (!res.ok) throw new Error("Failed to load products");
+      const data = await res.json();
+      setProducts(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  const handleSave = useCallback(async (ids, changes) => {
+    if (changes.price_cents !== undefined) {
+      const dollars = parseFloat(changes.price_cents);
+      if (!isNaN(dollars)) {
+        changes.price_cents = Math.round(dollars * 100);
+      }
+    }
+    await fetch("/api/admin/products", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, changes }),
+    });
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleToggle = useCallback(async (id, field, currentValue) => {
+    await fetch("/api/admin/products", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [id], changes: { [field]: !currentValue } }),
+    });
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleAdd = useCallback(async (values) => {
+    const priceCents = Math.round(parseFloat(values.price) * 100);
+    if (isNaN(priceCents) || priceCents <= 0) {
+      alert("Price must be a positive number");
+      return;
+    }
+    const res = await fetch("/api/admin/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: values.name,
+        description: values.description || null,
+        price_cents: priceCents,
+        type: values.type || "one_time",
+        recurring_interval: values.type === "recurring" ? (values.recurring_interval || "month") : null,
+        sort_order: parseInt(values.sort_order, 10) || 0,
+        audience: values.audience || "owner",
+        app_path: values.app_path || null,
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(`Create failed: ${result.error}`);
+      return;
+    }
+    setShowAddForm(false);
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Soft delete (deactivate)
+  const handleBulkDelete = useCallback((ids) => {
+    const names = ids.map(id => {
+      const p = products.find(p => p.id === id);
+      return p ? p.name : id;
+    }).join(", ");
+    setConfirmDelete({ ids, names });
+  }, [products]);
+
+  const executeDelete = useCallback(async () => {
+    if (!confirmDelete) return;
+    for (const id of confirmDelete.ids) {
+      await fetch("/api/admin/products", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    }
+    setConfirmDelete(null);
+    fetchProducts();
+  }, [confirmDelete, fetchProducts]);
+
+  // Hard delete (permanent removal)
+  const handleBulkHardDelete = useCallback((ids) => {
+    const names = ids.map(id => {
+      const p = products.find(p => p.id === id);
+      return p ? p.name : id;
+    });
+    setHardDeleteConfirm({ ids, names, typedName: "" });
+  }, [products]);
+
+  const executeHardDelete = useCallback(async () => {
+    if (!hardDeleteConfirm) return;
+    for (const id of hardDeleteConfirm.ids) {
+      await fetch("/api/admin/products?hard=true", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    }
+    setHardDeleteConfirm(null);
+    fetchProducts();
+  }, [hardDeleteConfirm, fetchProducts]);
+
+  const addFormFields = useMemo(() => [
+    { key: "name", label: "Product Name", type: "text", required: true, placeholder: "e.g. Premium 30-Day Listing" },
+    { key: "audience", label: "Audience", type: "select", required: true, options: [{ value: "owner", label: "Owner" }, { value: "tenant", label: "Tenant" }], defaultValue: "owner" },
+    { key: "description", label: "Description (200 char max)", type: "textarea", placeholder: "Public-facing description. Use \\n for line breaks.", maxLength: 200 },
+    { key: "app_path", label: "In-App Path", type: "text", placeholder: "e.g. /my-listings" },
+    { key: "price", label: "Price ($)", type: "text", required: true, placeholder: "e.g. 29.99" },
+    { key: "type", label: "Type", type: "select", options: [{ value: "one_time", label: "One-Time" }, { value: "recurring", label: "Recurring" }] },
+    { key: "recurring_interval", label: "Interval", type: "select", options: [{ value: "month", label: "Monthly" }, { value: "year", label: "Yearly" }] },
+    { key: "sort_order", label: "Sort Order", type: "text", placeholder: "0" },
+  ], []);
+
+  const activeCount = products.filter(p => p.is_active).length;
+  const implementedCount = products.filter(p => p.is_implemented).length;
+  const avgPrice = products.length > 0
+    ? (products.reduce((sum, p) => sum + p.price_cents, 0) / products.length / 100).toFixed(2)
+    : "0.00";
+
+  const ownerProducts = products.filter(p => p.audience === "owner" || !p.audience);
+  const tenantProducts = products.filter(p => p.audience === "tenant");
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: "name",
+      header: "Product",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600 }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+    },
+    {
+      accessorKey: "audience",
+      header: "Audience",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={v === "tenant" ? "cyan" : "blue"}>
+          {(v || "owner").toUpperCase()}
+        </Badge>;
+      },
+      size: 90,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "owner", label: "Owner" },
+          { value: "tenant", label: "Tenant" },
+        ],
+      },
+    },
+    {
+      accessorKey: "description",
+      header: "Public Product Description",
+      cell: ({ getValue }) => {
+        const val = getValue() || "";
+        const charCount = val.length;
+        return (
+          <div style={{ fontSize: "13px", color: COLORS.textMuted, whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.4 }}>
+            {val ? val.replace(/\\n/g, "\n") : "\u2014"}
+            {val && <span style={{ display: "block", fontSize: "11px", color: COLORS.textDim, marginTop: 2 }}>{charCount}/200</span>}
+          </div>
+        );
+      },
+      meta: { editable: true },
+      size: 320,
+    },
+    {
+      accessorKey: "app_path",
+      header: "App Path",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", fontFamily: "monospace", color: COLORS.textMuted }}>
+          {getValue() || "\u2014"}
+        </span>
+      ),
+      meta: { editable: true },
+      size: 140,
+    },
+    {
+      accessorKey: "price_cents",
+      header: "Price",
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600, fontFamily: "monospace" }}>
+          ${(getValue() / 100).toFixed(2)}
+        </span>
+      ),
+      meta: { editable: true },
+      size: 100,
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return <Badge color={v === "one_time" ? "blue" : "purple"}>
+          {v === "one_time" ? "One-Time" : "Recurring"}
+        </Badge>;
+      },
+      size: 110,
+      meta: {
+        editable: true,
+        editOptions: [
+          { value: "one_time", label: "One-Time" },
+          { value: "recurring", label: "Recurring" },
+        ],
+      },
+    },
+    {
+      accessorKey: "is_active",
+      header: "Active",
+      cell: ({ row }) => {
+        const val = row.original.is_active;
+        return (
+          <span
+            onClick={() => handleToggle(row.original.id, "is_active", val)}
+            style={{
+              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              fontSize: "11px", fontWeight: 700, cursor: "pointer",
+              background: val ? "#052e16" : "#1e293b",
+              color: val ? COLORS.green : COLORS.textDim,
+              border: `1px solid ${val ? COLORS.green + "44" : COLORS.border}`,
+              userSelect: "none",
+            }}
+          >
+            {val ? "ON" : "OFF"}
+          </span>
+        );
+      },
+      size: 80,
+      enableSorting: false,
+    },
+    {
+      accessorKey: "is_implemented",
+      header: "Wired to App",
+      cell: ({ row }) => {
+        const val = row.original.is_implemented;
+        return (
+          <span
+            onClick={() => handleToggle(row.original.id, "is_implemented", val)}
+            style={{
+              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              fontSize: "11px", fontWeight: 700, cursor: "pointer",
+              background: val ? "#052e16" : "#450a0a",
+              color: val ? COLORS.green : COLORS.red,
+              border: `1px solid ${val ? COLORS.green + "44" : COLORS.red + "44"}`,
+              userSelect: "none",
+            }}
+          >
+            {val ? "LIVE" : "NOT WIRED"}
+          </span>
+        );
+      },
+      size: 110,
+      enableSorting: false,
+    },
+    {
+      accessorKey: "sort_order",
+      header: "App Display Order",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "13px", color: COLORS.textMuted }}>{getValue()}</span>
+      ),
+      meta: { editable: true },
+      size: 70,
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Last Modified",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDateFull(getValue())}</span>
+      ),
+      size: 180,
+    },
+  ], [handleToggle]);
+
+  return (
+    <div>
+      {/* Stat Cards */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+        <StatCard label="Total Products" value={products.length} sub="In catalog" accent={COLORS.brand} />
+        <StatCard label="Active" value={activeCount} sub="Products currently available to send to the PadMagnet App. *May still need to be wired to a custom or current page." accent={COLORS.green} />
+        <StatCard label="Implemented" value={implementedCount} sub="Wired into app" accent={COLORS.purple} />
+        <StatCard label="Avg Price" value={`$${avgPrice}`} sub="Across all products" accent={COLORS.amber} />
+      </div>
+
+      {/* Info Banner */}
+      <div style={{
+        background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
+        padding: "12px 16px", marginBottom: 20, fontSize: "13px", color: COLORS.textMuted, lineHeight: 1.5,
+      }}>
+        Descriptions and pricing entered here flow to the PadMagnet App. Make product descriptions public-friendly and punchy.
+        Strictly respect the 200-character field length. Use <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>{"\\n"}</code> for line breaks.
+      </div>
+
+      {/* Add Button */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          style={{
+            padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+            background: showAddForm ? COLORS.surface : COLORS.brand,
+            color: showAddForm ? COLORS.text : "#000",
+            fontWeight: 600, fontSize: "13px",
+          }}
+        >
+          {showAddForm ? "Cancel" : "+ Add Product"}
+        </button>
+        <span style={{ fontSize: "13px", color: COLORS.textMuted }}>
+          Click toggles to flip Active/Wired. Double-click name, description, price, path, or order to edit inline.
+        </span>
+      </div>
+
+      {/* Add Form */}
+      {showAddForm && (
+        <div style={{ marginBottom: 20 }}>
+          <AddEntryForm
+            fields={addFormFields}
+            onSave={handleAdd}
+            onCancel={() => setShowAddForm(false)}
+            submitLabel="Create Product"
+            savingLabel="Creating\u2026"
+          />
+        </div>
+      )}
+
+      {/* Owner Products Section */}
+      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "24px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
+        Property Owner Products and Services
+      </h3>
+      <AdminTable
+        columns={columns}
+        data={ownerProducts}
+        loading={loading}
+        error={error}
+        tableName="products"
+        storageKey="products-owner"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        onBulkHardDelete={handleBulkHardDelete}
+        emptyMessage="No owner products in catalog yet"
+        renderExpandedRow={(row) => <AuditHistory tableName="products" rowId={row.id} />}
+      />
+
+      {/* Tenant Products Section */}
+      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "32px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
+        Tenant Products and Services
+      </h3>
+      <AdminTable
+        columns={columns}
+        data={tenantProducts}
+        loading={loading}
+        error={error}
+        tableName="products"
+        storageKey="products-tenant"
+        onSave={handleSave}
+        onBulkDelete={handleBulkDelete}
+        onBulkHardDelete={handleBulkHardDelete}
+        emptyMessage="No tenant products yet"
+        renderExpandedRow={(row) => <AuditHistory tableName="products" rowId={row.id} />}
+      />
+
+      {/* Soft Delete Confirmation */}
+      {confirmDelete && (
+        <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px" }}>
+              Deactivate {confirmDelete.ids.length} product{confirmDelete.ids.length > 1 ? "s" : ""}?
+            </p>
+            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
+              {confirmDelete.names}
+            </p>
+            <p style={{ fontSize: "12px", color: COLORS.textDim, marginBottom: 16 }}>
+              Products will be deactivated (soft delete), not permanently removed.
+            </p>
+            <div className="confirm-actions">
+              <button className="confirm-btn cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="confirm-btn confirm" onClick={executeDelete}>Deactivate</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hard Delete Confirmation \u2014 requires typing product name */}
+      {hardDeleteConfirm && (
+        <div className="confirm-overlay" onClick={() => setHardDeleteConfirm(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px", color: COLORS.red }}>
+              Permanently remove {hardDeleteConfirm.ids.length} product{hardDeleteConfirm.ids.length > 1 ? "s" : ""}?
+            </p>
+            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
+              This will permanently delete: <strong>{hardDeleteConfirm.names.join(", ")}</strong>
+            </p>
+            <p style={{ fontSize: "12px", color: COLORS.red, marginBottom: 12 }}>
+              This action cannot be undone. The product will be removed from the database.
+            </p>
+            <p style={{ fontSize: "13px", color: COLORS.textMuted, marginBottom: 6 }}>
+              Type <strong>{hardDeleteConfirm.names[0]}</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={hardDeleteConfirm.typedName}
+              onChange={e => setHardDeleteConfirm(prev => ({ ...prev, typedName: e.target.value }))}
+              style={{
+                width: "100%", padding: "8px 12px", borderRadius: 6,
+                border: `1px solid ${COLORS.border}`, background: COLORS.bg,
+                color: COLORS.text, fontSize: "14px", marginBottom: 16,
+                boxSizing: "border-box",
+              }}
+              autoFocus
+              placeholder={hardDeleteConfirm.names[0]}
+            />
+            <div className="confirm-actions">
+              <button className="confirm-btn cancel" onClick={() => setHardDeleteConfirm(null)}>Cancel</button>
+              <button
+                className="confirm-btn confirm"
+                disabled={hardDeleteConfirm.typedName !== hardDeleteConfirm.names[0]}
+                onClick={executeHardDelete}
+                style={{
+                  opacity: hardDeleteConfirm.typedName !== hardDeleteConfirm.names[0] ? 0.4 : 1,
+                  background: "#7f1d1d",
+                }}
+              >
+                Permanently Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
