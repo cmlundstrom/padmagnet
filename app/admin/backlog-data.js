@@ -101,6 +101,7 @@ export const BACKLOG = [
       { id: "T-AS", title: "App Store / Play Store submission", status: "deferred", notes: "After EAS build" },
       { id: "T-AP", title: "Revisit tenant product app_path values", status: "deferred", notes: "After tenant pages defined" },
       { id: "T-GM", title: "Google Maps Android app restriction", status: "deferred", notes: "After first EAS build (needs SHA-1)" },
+      { id: "T-GE", title: "Expand Bridge sync filter to full SE Florida coverage", status: "blocked", notes: "Currently hardcoded to 9 Treasure Coast cities — needs all Gold Coast cities when Bridge API access is live" },
     ],
   },
 ];

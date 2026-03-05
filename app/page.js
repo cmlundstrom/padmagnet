@@ -168,8 +168,8 @@ function LocationMap() {
       const L = window.L;
 
       const map = L.map(mapRef.current, {
-        center: [27.1975, -80.2528], // 34997 — Stuart, FL
-        zoom: 10,
+        center: [26.35, -80.15], // Midpoint — Fort Pierce to Miami
+        zoom: 8,
         zoomControl: false,
         attributionControl: false,
         scrollWheelZoom: false,
@@ -242,13 +242,14 @@ export default function LandingPage() {
           <div className="hero-content">
             <div className="hero-badge">
               <span className="hero-badge-dot" />
-              Coming soon — Martin &amp; St. Lucie County
+              Coming soon to Florida&apos;s Treasure and Gold Coast
             </div>
             <h1><span>Swipe</span> right<br />on your next home.</h1>
             <p className="hero-sub">
-              Rental matching for Florida&apos;s Treasure Coast — powered by live MLS data.
-              Browse homes like a dating app. Swipe, match, move in.
-              No stale listings. No broker runaround.
+              Rental matching for Florida&apos;s Treasure Coast down through the entire Gold Coast, that&apos;s Fort Pierce to Miami and every town in between! — All powered by both live MLS data and Property Owner private listings!
+            </p>
+            <p className="hero-sub">
+              Browse homes like a dating app. Swipe, match, move in. No stale listings. No broker runaround.
             </p>
             <WaitlistForm formId="hero" defaultRole="tenant" showRoleSelector={true} theme="light" />
             <p className="hero-trust">
@@ -271,7 +272,7 @@ export default function LandingPage() {
             <p className="section-sub">Forget endless scrolling through stale listings on Zillow. PadMagnet shows you one rental at a time — swipe right to save it, left to skip. It&apos;s that simple.</p>
           </FadeUp>
           <div className="steps-grid">
-            <FadeUp><div className="step-card"><span className="step-number">1</span><div className="step-icon coral">🎯</div><h3 className="step-title">Set your criteria</h3><p className="step-desc">Tell us your budget, preferred bedrooms, pet needs, and target area across Martin or St. Lucie County. We&apos;ll curate your deck.</p></div></FadeUp>
+            <FadeUp><div className="step-card"><span className="step-number">1</span><div className="step-icon coral">🎯</div><h3 className="step-title">Set your criteria</h3><p className="step-desc">Tell us your budget, preferred bedrooms, pet needs, and target area anywhere from Fort Pierce to Miami. We&apos;ll curate your deck.</p></div></FadeUp>
             <FadeUp><div className="step-card"><span className="step-number">2</span><div className="step-icon sage">👆</div><h3 className="step-title">Swipe through rentals</h3><p className="step-desc">Browse real MLS-powered listings one card at a time. Swipe right to save your favorites, left to pass. It&apos;s fast and visual.</p></div></FadeUp>
             <FadeUp><div className="step-card"><span className="step-number">3</span><div className="step-icon navy">🤝</div><h3 className="step-title">Get matched</h3><p className="step-desc">When you swipe right, the landlord sees your profile. If it&apos;s a fit, you connect directly — no middleman, no mystery.</p></div></FadeUp>
           </div>
@@ -329,9 +330,9 @@ export default function LandingPage() {
               <div className="location-details">
                 <p className="section-label">Our Coverage</p>
                 <h3>Hyperlocal by design.</h3>
-                <p>We&apos;re not trying to be Zillow. PadMagnet serves one market and serves it well — Florida&apos;s Treasure Coast. Every listing is real, every landlord is local, and the data comes straight from the MLS.</p>
+                <p>We&apos;re not trying to be Zillow. PadMagnet serves one market and serves it well — Florida&apos;s Treasure and Gold Coasts. Every listing is real, every landlord is local, and the data comes straight from the MLS and private property owners.</p>
                 <div className="county-tags">
-                  {['Stuart', 'Port St. Lucie', 'Jensen Beach', 'Hobe Sound', 'Palm City', 'Fort Pierce', 'Tradition', 'Indiantown'].map(c => (
+                  {['Stuart', 'Jensen Beach', 'Hobe Sound', 'Port St. Lucie', 'Fort Pierce', 'Hollywood', 'Pembroke Pines', 'Pompano Beach', 'Coral Springs', 'Sunrise', 'Hallandale Beach', 'Miami', 'Miami Beach', 'Hialeah', 'Coral Gables', 'Homestead', 'Doral', 'Aventura', 'Kendall', 'North Miami'].map(c => (
                     <span key={c} className="county-tag">{c}</span>
                   ))}
                 </div>
@@ -346,7 +347,7 @@ export default function LandingPage() {
         <div className="section-inner">
           <FadeUp>
             <h2 className="section-title">Don&apos;t miss your match.</h2>
-            <p className="section-sub">We&apos;re launching soon on the Treasure Coast. Get early access and be first to swipe when we go live.</p>
+            <p className="section-sub">We&apos;re launching soon across South Florida. Get early access and be first to swipe when we go live.</p>
             <WaitlistForm formId="cta" showRoleSelector={true} />
           </FadeUp>
         </div>
@@ -355,7 +356,7 @@ export default function LandingPage() {
       {/* FOOTER */}
       <footer>
         <img src="/logo/padmagnet-icon-120.png" alt="PadMagnet" width={28} height={28} style={{ borderRadius: 6, marginBottom: 8 }} />
-        <p>&copy; 2026 PadMagnet. Long-term rental matching for Florida&apos;s Treasure Coast.</p>
+        <p>&copy; 2026 PadMagnet. Long-term rental matching for Florida&apos;s Treasure and Gold Coasts.</p>
       </footer>
     </>
   );
