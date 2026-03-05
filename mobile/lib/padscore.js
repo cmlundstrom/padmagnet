@@ -34,7 +34,7 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function calculatePadScore(preferences, listing) {
+export function calculatePadScore(preferences, listing, zones) {
   if (!preferences) return { score: 50, factors: [], explanation: 'Set your preferences for personalized scores.' };
 
   const factors = [];
@@ -80,20 +80,45 @@ export function calculatePadScore(preferences, listing) {
     factors.push({ key: 'baths_short', label: 'Enough Baths', impact: 0, match: true });
   }
 
-  // Location distance
-  const dist = haversineDistance(preferences.center_lat, preferences.center_lng, listing.latitude, listing.longitude);
-  if (dist !== null && preferences.radius_miles) {
-    if (dist <= preferences.radius_miles) {
-      const falloff = dist / preferences.radius_miles;
-      const penalty = WEIGHTS.location_inside_radius * falloff;
-      totalPenalty += penalty;
-      factors.push({ key: 'location', label: `${dist.toFixed(1)} mi away`, impact: -penalty, match: true });
-    } else {
-      const overBy = (dist - preferences.radius_miles) / preferences.radius_miles;
-      const penalty = WEIGHTS.location_outside_radius * Math.min(overBy, 1);
-      totalPenalty += penalty;
-      factors.push({ key: 'location', label: `${dist.toFixed(1)} mi (outside radius)`, impact: -penalty, match: false });
+  // Location distance — multi-zone: use best (lowest penalty) match across all zones
+  let bestLocPenalty = null;
+  let bestLocFactor = null;
+
+  const locSources = [];
+  if (zones && zones.length > 0) {
+    for (const zone of zones) {
+      locSources.push({ lat: zone.center_lat, lng: zone.center_lng, radius: parseFloat(zone.radius_miles), label: zone.label });
     }
+  } else if (preferences.center_lat && preferences.center_lng && preferences.radius_miles) {
+    locSources.push({ lat: preferences.center_lat, lng: preferences.center_lng, radius: preferences.radius_miles, label: null });
+  }
+
+  for (const src of locSources) {
+    const dist = haversineDistance(src.lat, src.lng, listing.latitude, listing.longitude);
+    if (dist === null) continue;
+
+    let penalty, factor;
+    if (dist <= src.radius) {
+      const falloff = dist / src.radius;
+      penalty = WEIGHTS.location_inside_radius * falloff;
+      const label = src.label ? `${dist.toFixed(1)} mi from ${src.label}` : `${dist.toFixed(1)} mi away`;
+      factor = { key: 'location', label, impact: -penalty, match: true };
+    } else {
+      const overBy = (dist - src.radius) / src.radius;
+      penalty = WEIGHTS.location_outside_radius * Math.min(overBy, 1);
+      const label = src.label ? `${dist.toFixed(1)} mi from ${src.label} (outside)` : `${dist.toFixed(1)} mi (outside radius)`;
+      factor = { key: 'location', label, impact: -penalty, match: false };
+    }
+
+    if (bestLocPenalty === null || penalty < bestLocPenalty) {
+      bestLocPenalty = penalty;
+      bestLocFactor = factor;
+    }
+  }
+
+  if (bestLocFactor) {
+    totalPenalty += bestLocPenalty;
+    factors.push(bestLocFactor);
   }
 
   // Pets

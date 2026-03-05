@@ -3,15 +3,12 @@ import { ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header, Button, Input } from '../../components/ui';
 import usePreferences from '../../hooks/usePreferences';
+import useSearchZones from '../../hooks/useSearchZones';
+import ZonePicker from '../../components/ZonePicker';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
-
-const TREASURE_COAST_CITIES = [
-  'Stuart', 'Port Saint Lucie', 'Jensen Beach',
-  'Hobe Sound', 'Palm City', 'Fort Pierce', 'Indiantown', 'Tradition',
-];
 
 const PROPERTY_TYPES = [
   'Apartment', 'Condo', 'Townhouse', 'Single Family', 'Duplex',
@@ -21,6 +18,7 @@ const PET_TYPES = ['dog', 'cat', 'both'];
 
 export default function PreferencesScreen() {
   const { preferences, loading, updatePreferences } = usePreferences();
+  const { zones, addZone, removeZone } = useSearchZones();
   const alert = useAlert();
   const [form, setForm] = useState({
     budget_min: '',
@@ -28,8 +26,6 @@ export default function PreferencesScreen() {
     beds_min: '',
     baths_min: '',
     property_types: [],
-    preferred_cities: [],
-    radius_miles: '',
     pets_required: false,
     pet_type: null,
     fenced_yard_required: false,
@@ -47,8 +43,6 @@ export default function PreferencesScreen() {
         beds_min: preferences.beds_min?.toString() || '',
         baths_min: preferences.baths_min?.toString() || '',
         property_types: preferences.property_types || [],
-        preferred_cities: preferences.preferred_cities || [],
-        radius_miles: preferences.radius_miles?.toString() || '15',
         pets_required: preferences.pets_required || false,
         pet_type: preferences.pet_type || null,
         fenced_yard_required: preferences.fenced_yard_required || false,
@@ -80,8 +74,6 @@ export default function PreferencesScreen() {
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
         baths_min: form.baths_min ? parseFloat(form.baths_min) : 1,
         property_types: form.property_types,
-        preferred_cities: form.preferred_cities,
-        radius_miles: form.radius_miles ? parseFloat(form.radius_miles) : 15,
         pets_required: form.pets_required,
         pet_type: form.pets_required ? form.pet_type : null,
         fenced_yard_required: form.pets_required ? form.fenced_yard_required : false,
@@ -161,27 +153,8 @@ export default function PreferencesScreen() {
 
         {/* Location */}
         <Text style={styles.sectionTitle}>Location</Text>
-        <Input
-          label="Search Radius (miles)"
-          value={form.radius_miles}
-          onChangeText={v => update('radius_miles', v)}
-          keyboardType="numeric"
-          placeholder="15"
-        />
-        <Text style={styles.label}>Preferred Cities</Text>
-        <View style={styles.chipRow}>
-          {TREASURE_COAST_CITIES.map(city => (
-            <Pressable
-              key={city}
-              style={[styles.chip, form.preferred_cities.includes(city) && styles.chipActive]}
-              onPress={() => toggleArrayItem('preferred_cities', city)}
-            >
-              <Text style={[styles.chipText, form.preferred_cities.includes(city) && styles.chipTextActive]}>
-                {city}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.label}>Search Zones (up to 3)</Text>
+        <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
 
         {/* Pets */}
         <Text style={styles.sectionTitle}>Pets</Text>

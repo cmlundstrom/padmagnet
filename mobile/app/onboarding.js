@@ -6,39 +6,27 @@ import { useRouter } from 'expo-router';
 import { Input, Button } from '../components/ui';
 import { setOnboarded, savePreferences } from '../lib/storage';
 import { useAuth } from '../hooks/useAuth';
+import useSearchZones from '../hooks/useSearchZones';
 import { useAlert } from '../providers/AlertProvider';
+import ZonePicker from '../components/ZonePicker';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
-
-const CITIES = [
-  'Stuart', 'Port Saint Lucie', 'Jensen Beach',
-  'Hobe Sound', 'Palm City', 'Fort Pierce', 'Indiantown', 'Tradition',
-];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { session } = useAuth();
+  const { zones, addZone, removeZone } = useSearchZones();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     budget_max: '',
     beds_min: '',
-    preferred_cities: [],
     pets_required: false,
   });
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-
-  const toggleCity = (city) => {
-    setForm(prev => ({
-      ...prev,
-      preferred_cities: prev.preferred_cities.includes(city)
-        ? prev.preferred_cities.filter(c => c !== city)
-        : [...prev.preferred_cities, city],
-    }));
-  };
 
   const handleFinish = async () => {
     setSaving(true);
@@ -46,7 +34,6 @@ export default function OnboardingScreen() {
       const prefs = {
         budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
-        preferred_cities: form.preferred_cities,
         pets_required: form.pets_required,
       };
       await savePreferences(prefs);
@@ -89,7 +76,7 @@ export default function OnboardingScreen() {
             />
             <Text style={styles.title}>Welcome to PadMagnet</Text>
             <Text style={styles.subtitle}>
-              Find your perfect rental on Florida's Treasure Coast. Let's set up a few preferences so we can personalize your experience.
+              Find your perfect rental in South Florida. Let's set up a few preferences so we can personalize your experience.
             </Text>
             <Button title="Get Started" onPress={() => setStep(1)} style={styles.mainButton} />
           </>
@@ -120,20 +107,8 @@ export default function OnboardingScreen() {
         {step === 2 && (
           <>
             <Text style={styles.stepTitle}>Where do you want to live?</Text>
-            <Text style={styles.stepHint}>Select one or more cities.</Text>
-            <View style={styles.chipRow}>
-              {CITIES.map(city => (
-                <Pressable
-                  key={city}
-                  style={[styles.chip, form.preferred_cities.includes(city) && styles.chipActive]}
-                  onPress={() => toggleCity(city)}
-                >
-                  <Text style={[styles.chipText, form.preferred_cities.includes(city) && styles.chipTextActive]}>
-                    {city}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <Text style={styles.stepHint}>Search for a city or zip code. You can add up to 3 zones.</Text>
+            <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
             <Button title="Next" onPress={() => setStep(3)} style={styles.mainButton} />
           </>
         )}
@@ -227,31 +202,6 @@ const styles = StyleSheet.create({
   },
   mainButton: {
     marginTop: 24,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
-  },
-  chipText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-  },
-  chipTextActive: {
-    color: COLORS.accent,
   },
   switchRow: {
     flexDirection: 'row',

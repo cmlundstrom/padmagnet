@@ -33,6 +33,13 @@ export async function GET(request) {
       .eq('user_id', user.id)
       .single();
 
+    // Fetch search zones for multi-zone location scoring
+    const { data: zones } = await supabase
+      .from('tenant_search_zones')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('position');
+
     // Fetch already-swiped listing IDs
     const { data: swipedRows } = await supabase
       .from('swipes')
@@ -77,7 +84,7 @@ export async function GET(request) {
 
     // Calculate PadScore for each listing and sort by score
     const scored = (listings || []).map(listing => {
-      const padScore = calculatePadScore(prefs, listing);
+      const padScore = calculatePadScore(prefs, listing, zones || []);
       return { ...listing, padScore };
     });
 
