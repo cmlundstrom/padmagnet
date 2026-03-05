@@ -21,8 +21,8 @@ export default function TenantProfileScreen() {
       <ProfileCard user={user} />
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/preferences')}>
-        <Text style={MENU.text}>Preferences</Text>
-        <Text style={MENU.hint}>Budget, location, pets, features</Text>
+        <Text style={MENU.text}>PadScore™ Preferences</Text>
+        <Text style={MENU.hint}>Budget, location, property type, pets, features</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/notifications')}>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Input, Button } from '../components/ui';
@@ -14,6 +13,10 @@ import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
 
+const PROPERTY_TYPES = [
+  'Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home',
+];
+
 export default function OnboardingScreen() {
   const router = useRouter();
   const alert = useAlert();
@@ -24,6 +27,7 @@ export default function OnboardingScreen() {
   const [form, setForm] = useState({
     budget_max: '',
     beds_min: '',
+    property_types: [],
     pets_required: false,
   });
 
@@ -40,12 +44,23 @@ export default function OnboardingScreen() {
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
+  const togglePropertyType = (type) => {
+    setForm(prev => {
+      const arr = prev.property_types;
+      return {
+        ...prev,
+        property_types: arr.includes(type) ? arr.filter(t => t !== type) : [...arr, type],
+      };
+    });
+  };
+
   const handleFinish = async () => {
     setSaving(true);
     try {
       const prefs = {
         budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
+        property_types: form.property_types,
         pets_required: form.pets_required,
       };
       await savePreferences(prefs);
@@ -79,9 +94,10 @@ export default function OnboardingScreen() {
   // Don't render until saved step is loaded
   if (step === null) return null;
 
+  // Steps: 0=welcome, 1=budget, 2=property type, 3=location, 4=pets
   return (
     <SafeAreaView style={styles.container}>
-      {/* Back pill — upper right, steps 1+ */}
+      {/* Back pill — upper left, steps 1+ */}
       {step > 0 && (
         <Pressable style={styles.backPill} onPress={() => goToStep(step - 1)}>
           <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
@@ -91,7 +107,6 @@ export default function OnboardingScreen() {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           contentContainerStyle={[
@@ -102,11 +117,10 @@ export default function OnboardingScreen() {
         >
           {step === 0 && (
             <>
-              <Image
-                source={require('../assets/images/padmagnet-header.png')}
-                style={styles.wordmark}
-                contentFit="contain"
-              />
+              <View style={styles.brandLogo}>
+                <Text style={styles.brandPad}>Pad</Text>
+                <Text style={styles.brandMagnet}>Magnet</Text>
+              </View>
               <Text style={styles.title}>Welcome to PadMagnet</Text>
               <Text style={styles.subtitle}>
                 <Text style={styles.subtitleBold}>Your next rental should fit you perfectly.</Text>
@@ -135,19 +149,56 @@ export default function OnboardingScreen() {
                 placeholder="2"
               />
               <Button title="Next" onPress={() => goToStep(2)} style={styles.mainButton} />
+              <Pressable onPress={() => goToStep(0)} style={styles.backLink}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
             </>
           )}
 
           {step === 2 && (
             <>
-              <Text style={styles.stepTitle}>Where do you want to live?</Text>
-              <Text style={styles.stepHint}>Start typing a city or zip code in our service area.</Text>
-              <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
-              <Button title="Next" onPress={() => goToStep(3)} disabled={zones.length === 0} style={styles.mainButton} />
+              <Text style={styles.stepTitle}>What kind of place feels like home?</Text>
+              <Text style={styles.stepHint}>
+                Pick one or more property types you'd consider. We'll only show listings that match your selections.
+              </Text>
+              <View style={styles.chipRow}>
+                {PROPERTY_TYPES.map(type => (
+                  <Pressable
+                    key={type}
+                    style={[styles.chip, form.property_types.includes(type) && styles.chipActive]}
+                    onPress={() => togglePropertyType(type)}
+                  >
+                    <Text style={[styles.chipText, form.property_types.includes(type) && styles.chipTextActive]}>
+                      {type}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Button
+                title="Next"
+                onPress={() => goToStep(3)}
+                disabled={form.property_types.length === 0}
+                style={styles.mainButton}
+              />
+              <Pressable onPress={() => goToStep(1)} style={styles.backLink}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
             </>
           )}
 
           {step === 3 && (
+            <>
+              <Text style={styles.stepTitle}>Where do you want to live?</Text>
+              <Text style={styles.stepHint}>Start typing a city or zip code in our service area.</Text>
+              <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
+              <Button title="Next" onPress={() => goToStep(4)} disabled={zones.length === 0} style={styles.mainButton} />
+              <Pressable onPress={() => goToStep(2)} style={styles.backLink}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
+            </>
+          )}
+
+          {step === 4 && (
             <>
               <Text style={styles.stepTitle}>Do you have pets?</Text>
               <Text style={styles.stepHint}>We'll filter out pet-unfriendly listings.</Text>
@@ -166,6 +217,9 @@ export default function OnboardingScreen() {
                 loading={saving}
                 style={styles.mainButton}
               />
+              <Pressable onPress={() => goToStep(3)} style={styles.backLink}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
             </>
           )}
         </ScrollView>
@@ -194,7 +248,7 @@ const styles = StyleSheet.create({
   backPill: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 16,
-    right: LAYOUT.padding.md,
+    left: LAYOUT.padding.md,
     zIndex: 10,
     width: 40,
     height: 40,
@@ -203,11 +257,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  wordmark: {
-    width: 360,
-    height: 80,
-    alignSelf: 'center',
+  brandLogo: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'baseline',
     marginBottom: 32,
+  },
+  brandPad: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 48,
+    color: COLORS.white,
+  },
+  brandMagnet: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 48,
+    color: COLORS.brandOrange,
   },
   title: {
     fontFamily: FONTS.heading.bold,
@@ -240,6 +304,31 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 24,
   },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: LAYOUT.radius.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chipActive: {
+    backgroundColor: COLORS.accent + '22',
+    borderColor: COLORS.accent,
+  },
+  chipText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+  },
+  chipTextActive: {
+    color: COLORS.accent,
+  },
   mainButton: {
     marginTop: 24,
   },
@@ -255,5 +344,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
+  },
+  backLink: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  backText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.accent,
   },
 });

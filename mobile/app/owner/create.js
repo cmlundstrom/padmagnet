@@ -16,7 +16,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 
 const STEPS = ['Address', 'Details', 'Description', 'Lease', 'Features', 'Photos', 'Contact', 'Review'];
 
-const PROPERTY_TYPES = ['Apartment', 'Condo', 'Townhouse', 'Single Family', 'Duplex'];
+const PROPERTY_TYPES = ['Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home'];
 
 const INITIAL_FORM = {
   street_number: '',

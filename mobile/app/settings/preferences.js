@@ -11,7 +11,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 const PROPERTY_TYPES = [
-  'Apartment', 'Condo', 'Townhouse', 'Single Family', 'Duplex',
+  'Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home',
 ];
 
 const PET_TYPES = ['dog', 'cat', 'both'];
