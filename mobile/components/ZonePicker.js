@@ -1,50 +1,37 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
-import MapView, { Circle } from 'react-native-maps';
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
-import { apiFetch } from '../lib/api';
+import { searchServiceAreas } from '../constants/service-areas';
 
 const MAX_ZONES = 3;
 
 export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
   const [query, setQuery] = useState('');
-  const [searching, setSearching] = useState(false);
-  const [result, setResult] = useState(null); // { latitude, longitude, formatted_address }
-  const [radius, setRadius] = useState(15);
+  const [suggestions, setSuggestions] = useState([]);
   const [error, setError] = useState(null);
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    setSearching(true);
+  const handleChangeText = (text) => {
+    setQuery(text);
     setError(null);
-    setResult(null);
-    try {
-      const data = await apiFetch('/api/geocode', {
-        method: 'POST',
-        body: JSON.stringify({ query: query.trim() }),
-      });
-      setResult(data);
-      setRadius(15);
-    } catch (err) {
-      setError(err.message === 'Location not found' ? 'Location not found. Try a city name or zip code.' : err.message);
-    } finally {
-      setSearching(false);
+    if (text.trim().length >= 2) {
+      setSuggestions(searchServiceAreas(text));
+    } else {
+      setSuggestions([]);
     }
   };
 
-  const handleAdd = async () => {
-    if (!result) return;
+  const handleSelect = async (city) => {
     try {
       await onAddZone({
-        label: result.formatted_address,
-        center_lat: result.latitude,
-        center_lng: result.longitude,
-        radius_miles: radius,
+        label: `${city.name}, FL`,
+        center_lat: city.lat,
+        center_lng: city.lng,
+        radius_miles: 15,
       });
-      setResult(null);
       setQuery('');
+      setSuggestions([]);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -73,101 +60,33 @@ export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
       )}
 
       {/* Search input — only show if can add more */}
-      {canAddMore && !result && (
+      {canAddMore && (
         <>
-          <View style={styles.searchRow}>
-            <TextInput
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search a city or zip code"
-              placeholderTextColor={COLORS.slate}
-              returnKeyType="search"
-              onSubmitEditing={handleSearch}
-              autoCapitalize="words"
-            />
-            <Pressable
-              style={[styles.searchButton, (!query.trim() || searching) && styles.searchButtonDisabled]}
-              onPress={handleSearch}
-              disabled={!query.trim() || searching}
-            >
-              {searching ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Text style={styles.searchButtonText}>Search</Text>
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={handleChangeText}
+            placeholder="Search a city or zip code"
+            placeholderTextColor={COLORS.slate}
+            autoCapitalize="words"
+            autoCorrect={false}
+          />
+          {suggestions.length > 0 && (
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item) => `${item.name}-${item.county}`}
+              keyboardShouldPersistTaps="handled"
+              style={styles.suggestionList}
+              renderItem={({ item }) => (
+                <Pressable style={styles.suggestionItem} onPress={() => handleSelect(item)}>
+                  <Text style={styles.suggestionText}>{item.name}</Text>
+                  <Text style={styles.suggestionCounty}> — {item.county} County</Text>
+                </Pressable>
               )}
-            </Pressable>
-          </View>
+            />
+          )}
           {error && <Text style={styles.errorText}>{error}</Text>}
         </>
-      )}
-
-      {/* Map preview with radius circle */}
-      {result && (
-        <View style={styles.previewContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: result.latitude,
-              longitude: result.longitude,
-              latitudeDelta: radius / 30,
-              longitudeDelta: radius / 30,
-            }}
-            region={{
-              latitude: result.latitude,
-              longitude: result.longitude,
-              latitudeDelta: radius / 30,
-              longitudeDelta: radius / 30,
-            }}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-          >
-            <Circle
-              center={{ latitude: result.latitude, longitude: result.longitude }}
-              radius={radius * 1609.34} // miles to meters
-              fillColor="rgba(59, 130, 246, 0.15)"
-              strokeColor={COLORS.accent}
-              strokeWidth={2}
-            />
-          </MapView>
-
-          <Text style={styles.addressText}>{result.formatted_address}</Text>
-
-          <View style={styles.radiusRow}>
-            <Text style={styles.sliderLabel}>Radius:</Text>
-            <Pressable
-              style={styles.stepperButton}
-              onPress={() => setRadius(r => Math.max(5, r - 5))}
-            >
-              <Text style={styles.stepperText}>−</Text>
-            </Pressable>
-            <Text style={styles.radiusValue}>{radius} mi</Text>
-            <Pressable
-              style={styles.stepperButton}
-              onPress={() => setRadius(r => Math.min(30, r + 5))}
-            >
-              <Text style={styles.stepperText}>+</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.previewButtons}>
-            <Pressable style={styles.cancelButton} onPress={() => { setResult(null); setError(null); }}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
-            <Pressable style={styles.addButton} onPress={handleAdd}>
-              <Text style={styles.addButtonText}>Add This Zone</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      {/* Add another prompt */}
-      {zones.length > 0 && zones.length < MAX_ZONES && !result && (
-        <Pressable onPress={() => setQuery('')} style={styles.addAnotherLink}>
-          <Text style={styles.addAnotherText}>+ Add Another Zone ({MAX_ZONES - zones.length} remaining)</Text>
-        </Pressable>
       )}
 
       {zones.length >= MAX_ZONES && (
@@ -214,12 +133,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.danger,
   },
-  searchRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
   searchInput: {
-    flex: 1,
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
     borderWidth: 1,
@@ -230,108 +144,35 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
   },
-  searchButton: {
-    backgroundColor: COLORS.accent,
+  suggestionList: {
+    backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    maxHeight: 240,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  searchButtonDisabled: {
-    opacity: 0.5,
-  },
-  searchButtonText: {
+  suggestionText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.md,
-    color: COLORS.white,
+    color: COLORS.text,
+  },
+  suggestionCounty: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
   },
   errorText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.danger,
-  },
-  previewContainer: {
-    gap: 10,
-  },
-  map: {
-    width: '100%',
-    height: 180,
-    borderRadius: LAYOUT.radius.md,
-    overflow: 'hidden',
-  },
-  addressText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text,
-  },
-  radiusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sliderLabel: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  stepperButton: {
-    width: 36,
-    height: 36,
-    borderRadius: LAYOUT.radius.sm,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepperText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.accent,
-  },
-  radiusValue: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text,
-    minWidth: 44,
-    textAlign: 'center',
-  },
-  previewButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: LAYOUT.radius.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-  },
-  addButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: LAYOUT.radius.md,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.white,
-  },
-  addAnotherLink: {
-    paddingVertical: 8,
-  },
-  addAnotherText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
   },
   maxText: {
     fontFamily: FONTS.body.regular,

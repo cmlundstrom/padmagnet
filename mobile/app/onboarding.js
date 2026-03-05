@@ -107,9 +107,9 @@ export default function OnboardingScreen() {
         {step === 2 && (
           <>
             <Text style={styles.stepTitle}>Where do you want to live?</Text>
-            <Text style={styles.stepHint}>Search for a city or zip code. You can add up to 3 zones.</Text>
+            <Text style={styles.stepHint}>Start typing a city or zip code in our service area.</Text>
             <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
-            <Button title="Next" onPress={() => setStep(3)} style={styles.mainButton} />
+            <Button title="Next" onPress={() => setStep(3)} disabled={zones.length === 0} style={styles.mainButton} />
           </>
         )}
 

@@ -153,7 +153,7 @@ export default function PreferencesScreen() {
 
         {/* Location */}
         <Text style={styles.sectionTitle}>Location</Text>
-        <Text style={styles.label}>Search Zones (up to 3)</Text>
+        <Text style={styles.label}>Search Zones</Text>
         <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
 
         {/* Pets */}
