@@ -48,8 +48,8 @@ export const BACKLOG = [
   {
     category: "Ready to Build — Admin Dashboard",
     items: [
-      { id: "T02", title: "Extract AdminLayout shell from monolith", status: "pending", notes: "Sidebar, top bar, shared utils into reusable component" },
-      { id: "T03", title: "Extract panels into separate route files", status: "pending", notes: "Split 2800-line dashboard.js into ~10 route files" },
+      { id: "T02", title: "Extract AdminLayout shell from monolith", status: "done", date: "2026-03-04", notes: "dashboard.js → shell (277 lines) + shared.js + demo-data.js" },
+      { id: "T03", title: "Extract panels into separate files under panels/", status: "done", date: "2026-03-04", notes: "11 panel files in app/admin/panels/, zero behavior changes" },
       { id: "T04", title: "Wire Overview panel to real Supabase data", status: "pending", notes: "Replace DEMO_* with real listing counts, sync status, KPIs" },
       { id: "T05", title: "Wire Feeds panel to real sync_logs data", status: "pending", notes: "sync_logs table exists, UI still hardcoded" },
       { id: "T06", title: "Wire Listings panel to real data", status: "pending", notes: "Admin listings API exists, panel needs rewiring" },
