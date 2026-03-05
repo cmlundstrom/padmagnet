@@ -43,6 +43,8 @@ export const BACKLOG = [
       { id: "PM-25", title: "Fix PKCE recovery flow (server-side code exchange + implicit fallback)", status: "done", date: "2026-03-04" },
       { id: "PM-26", title: "Waitlist role label landlord → owner (DB + landing page)", status: "done", date: "2026-03-04" },
       { id: "PM-27", title: "Delete orphaned chris@floridapm.net (auth + waitlist)", status: "done", date: "2026-03-04" },
+      { id: "PM-28", title: "Replace geocode API with local service-area autocomplete in ZonePicker", status: "done", date: "2026-03-05", notes: "Static city/zip data for 5 counties, local filtering, no API calls" },
+      { id: "PM-29", title: "Require at least 1 zone in onboarding step 2", status: "done", date: "2026-03-05" },
     ],
   },
   {
