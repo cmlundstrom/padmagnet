@@ -18,7 +18,7 @@ export default function PhotoGallery({ photos = [] }) {
     if (photos.length > 1) {
       const timer = setTimeout(() => {
         Animated.timing(hintOpacity, { toValue: 0, duration: 600, useNativeDriver: true }).start();
-      }, 2500);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [photos.length, hintOpacity]);
@@ -74,10 +74,11 @@ export default function PhotoGallery({ photos = [] }) {
         </View>
       )}
 
-      {/* Swipe hint arrow — visible only on first photo, fades out */}
+      {/* Swipe hint — visible only on first photo, fades out */}
       {photos.length > 1 && activeIndex === 0 && (
         <Animated.View style={[styles.swipeHint, { opacity: hintOpacity }]}>
-          <FontAwesome name="chevron-right" size={18} color="rgba(255,255,255,0.85)" />
+          <Text style={styles.swipeHintText}>Slide for photos</Text>
+          <FontAwesome name="chevron-right" size={14} color="rgba(255,255,255,0.85)" />
         </Animated.View>
       )}
 
@@ -167,14 +168,21 @@ const styles = StyleSheet.create({
   },
   swipeHint: {
     position: 'absolute',
-    right: 12,
     top: '50%',
-    marginTop: -18,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    left: 0,
+    right: 0,
+    marginTop: -16,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
+  },
+  swipeHintText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: 'rgba(255,255,255,0.85)',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });
