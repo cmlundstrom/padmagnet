@@ -75,6 +75,9 @@ export const BACKLOG = [
       { id: "PM-57", title: "Saved page re-fetches on tab focus via useFocusEffect", status: "done", date: "2026-03-06" },
       { id: "PM-58", title: "Reset deck button on swipe screen header", status: "done", date: "2026-03-06", notes: "Confirmation alert, clears all swipes, reloads deck" },
       { id: "PM-59", title: "Swipe reset direction: removed listings return to bottom of deck", status: "done", date: "2026-03-06", notes: "PATCH/POST with direction='reset', listings API sorts _reseen to bottom" },
+      { id: "PM-60", title: "Fix Bridge sync missing photos: drop $select to get Media navigation property", status: "done", date: "2026-03-06", notes: "OData $select suppresses navigation properties even with $expand; fetching all fields resolves it" },
+      { id: "PM-61", title: "Beach/palm tree placeholder for listings without photos", status: "done", date: "2026-03-06", notes: "SwipeCard, ListingCard, PhotoGallery — deep ocean blue bg, faded emoji, white 'Listing Photo Coming Soon' overlay" },
+      { id: "PM-62", title: "Fix deck not refreshing on reset button press", status: "done", date: "2026-03-06", notes: "refresh() didn't clear listings array — deck looked unchanged. Now clears to show loading spinner before re-fetch" },
     ],
   },
   {
