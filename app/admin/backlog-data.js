@@ -62,6 +62,9 @@ export const BACKLOG = [
       { id: "PM-44", title: "Swipe undo system (DELETE API + 5s undo button + haptics)", status: "done", date: "2026-03-05", notes: "Single swipe delete + bulk reset endpoints, undo button auto-dismisses" },
       { id: "PM-45", title: "Saved/Passed toggle on Saved tab with remove + reconsider actions", status: "done", date: "2026-03-05", notes: "Pill-style toggle, remove from Saved, reconsider from Passed — both return listing to deck" },
       { id: "PM-46", title: "Reset Swipe History option on Profile screen", status: "done", date: "2026-03-05", notes: "Danger-styled menu item with confirmation, bulk deletes all swipes" },
+      { id: "PM-47", title: "Fix swipes not saving — disable Next.js fetch cache on Supabase client", status: "done", date: "2026-03-06", notes: "Next.js 14 cached PostgREST responses by default; stale seed data caused FK violations on swipe POST" },
+      { id: "PM-48", title: "Surface swipe errors via Alert instead of silent console.warn", status: "done", date: "2026-03-06", notes: "Also fixed apiFetch header merge order to prevent auth header clobbering" },
+      { id: "PM-49", title: "Delete test seed file + improve empty state messaging", status: "done", date: "2026-03-06", notes: "Removed seed_test_listings.sql; updated empty states to 'We don't have homes that fit your search yet'" },
     ],
   },
   {
@@ -115,7 +118,7 @@ export const BACKLOG = [
       { id: "T14", title: "Twilio multichannel messaging", status: "blocked", notes: "Twilio account setup required" },
       { id: "T17", title: "Owner billing UI (Stripe)", status: "blocked", notes: "Corporate entity + banking required" },
       { id: "T-ST", title: "Stripe activation (all payment flows)", status: "blocked", notes: "Corporate entity + banking required" },
-      { id: "T-BR", title: "Bridge IDX sync", status: "blocked", notes: "IDX feed approval pending" },
+      { id: "T-BR", title: "Bridge IDX sync", status: "done", date: "2026-03-06", notes: "Miami IDX feed live — 57 active MLS listings synced" },
       { id: "T-EA", title: "EAS production build", status: "deferred", notes: "After core features stable" },
       { id: "T-AS", title: "App Store / Play Store submission", status: "deferred", notes: "After EAS build" },
       { id: "T-AP", title: "Revisit tenant product app_path values", status: "deferred", notes: "After tenant pages defined" },
