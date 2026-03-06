@@ -1,6 +1,7 @@
-import { useRef, useState, useCallback } from 'react';
-import { View, FlatList, Text, StyleSheet, Dimensions } from 'react-native';
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { View, FlatList, Text, Animated, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
+import { FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 
@@ -10,6 +11,17 @@ const GALLERY_HEIGHT = SCREEN_WIDTH * 0.75;
 export default function PhotoGallery({ photos = [] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
+  const hintOpacity = useRef(new Animated.Value(1)).current;
+
+  // Fade out swipe hint after 2.5s
+  useEffect(() => {
+    if (photos.length > 1) {
+      const timer = setTimeout(() => {
+        Animated.timing(hintOpacity, { toValue: 0, duration: 600, useNativeDriver: true }).start();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [photos.length, hintOpacity]);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (viewableItems.length > 0) {
@@ -60,6 +72,13 @@ export default function PhotoGallery({ photos = [] }) {
             {activeIndex + 1} / {photos.length}
           </Text>
         </View>
+      )}
+
+      {/* Swipe hint arrow — visible only on first photo, fades out */}
+      {photos.length > 1 && activeIndex === 0 && (
+        <Animated.View style={[styles.swipeHint, { opacity: hintOpacity }]}>
+          <FontAwesome name="chevron-right" size={18} color="rgba(255,255,255,0.85)" />
+        </Animated.View>
       )}
 
       {/* Dot indicators */}
@@ -145,5 +164,17 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  swipeHint: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    marginTop: -18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

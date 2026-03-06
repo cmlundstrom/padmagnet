@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Header } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
-import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
 import { calculatePadScore } from '../../lib/padscore';
 import { apiFetch } from '../../lib/api';
@@ -21,7 +20,6 @@ export default function ListingDetailScreen() {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { recordSwipe } = useSwipe();
   const { preferences } = usePreferences();
 
   useEffect(() => {
@@ -45,20 +43,6 @@ export default function ListingDetailScreen() {
   }, [id]);
 
   const padScore = listing ? calculatePadScore(preferences, listing) : null;
-
-  const handleSave = async () => {
-    if (!listing) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await recordSwipe(listing.id, 'right', padScore?.score ?? 50);
-    router.back();
-  };
-
-  const handleSkip = async () => {
-    if (!listing) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await recordSwipe(listing.id, 'left', padScore?.score ?? 50);
-    router.back();
-  };
 
   const handleContact = async () => {
     if (!listing) return;
@@ -112,16 +96,10 @@ export default function ListingDetailScreen() {
         <View style={{ height: 80 }} />
       </ScrollView>
 
-      {/* Sticky bottom actions */}
+      {/* Sticky bottom CTA */}
       <View style={styles.bottomBar}>
-        <Pressable style={[styles.bottomButton, styles.skipBtn]} onPress={handleSkip}>
-          <Text style={[styles.bottomButtonText, { color: COLORS.danger }]}>Skip</Text>
-        </Pressable>
-        <Pressable style={[styles.bottomButton, styles.contactBtn]} onPress={handleContact}>
-          <Text style={[styles.bottomButtonText, { color: COLORS.white }]}>Contact</Text>
-        </Pressable>
-        <Pressable style={[styles.bottomButton, styles.saveBtn]} onPress={handleSave}>
-          <Text style={[styles.bottomButtonText, { color: COLORS.white }]}>Save</Text>
+        <Pressable style={styles.ctaButton} onPress={handleContact}>
+          <Text style={styles.ctaButtonText}>Check Availability</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -167,33 +145,21 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   bottomBar: {
-    flexDirection: 'row',
     padding: LAYOUT.padding.md,
-    gap: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
-  bottomButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: LAYOUT.radius.sm,
+  ctaButton: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 16,
+    borderRadius: LAYOUT.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  skipBtn: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.danger,
-  },
-  contactBtn: {
-    backgroundColor: COLORS.accent,
-  },
-  saveBtn: {
-    backgroundColor: COLORS.success,
-  },
-  bottomButtonText: {
-    fontFamily: FONTS.heading.semiBold,
-    fontSize: FONT_SIZES.md,
+  ctaButtonText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.white,
   },
 });
