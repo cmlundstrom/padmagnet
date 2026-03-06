@@ -12,16 +12,18 @@ export default function PhotoGallery({ photos = [] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const hintOpacity = useRef(new Animated.Value(1)).current;
+  const hintTranslateX = useRef(new Animated.Value(0)).current;
 
-  // Fade out swipe hint after 2.5s
+  // Drift hint to the right over 4s, then fade out
   useEffect(() => {
     if (photos.length > 1) {
+      Animated.timing(hintTranslateX, { toValue: SCREEN_WIDTH * 0.3, duration: 4000, useNativeDriver: true }).start();
       const timer = setTimeout(() => {
         Animated.timing(hintOpacity, { toValue: 0, duration: 600, useNativeDriver: true }).start();
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [photos.length, hintOpacity]);
+  }, [photos.length, hintOpacity, hintTranslateX]);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (viewableItems.length > 0) {
@@ -76,7 +78,7 @@ export default function PhotoGallery({ photos = [] }) {
 
       {/* Swipe hint — visible only on first photo, fades out */}
       {photos.length > 1 && activeIndex === 0 && (
-        <Animated.View style={[styles.swipeHint, { opacity: hintOpacity }]}>
+        <Animated.View style={[styles.swipeHint, { opacity: hintOpacity, transform: [{ translateX: hintTranslateX }] }]}>
           <Text style={styles.swipeHintText}>Slide for photos</Text>
           <FontAwesome name="chevron-right" size={14} color="rgba(255,255,255,0.85)" />
         </Animated.View>
