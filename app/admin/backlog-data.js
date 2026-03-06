@@ -54,6 +54,10 @@ export const BACKLOG = [
       { id: "PM-36", title: "Back pill moved to upper-left + Back text link restored on all steps", status: "done", date: "2026-03-05" },
       { id: "PM-37", title: "Profile button renamed to PadScore™ Preferences", status: "done", date: "2026-03-05" },
       { id: "PM-38", title: "Property types list synced across onboarding, preferences, owner create", status: "done", date: "2026-03-05" },
+      { id: "PM-39", title: "Remove Min Budget, Min Lease, Max HOA from tenant preferences UI", status: "done", date: "2026-03-05", notes: "DB columns kept, just hidden from UI" },
+      { id: "PM-40", title: "Add association_preferred column + Association chip selector in preferences", status: "done", date: "2026-03-05", notes: "NULL=no pref, true=prefer, false=avoid; 50pt PadScore penalty on mismatch" },
+      { id: "PM-41", title: "Replace hoa_mismatch with association_mismatch in PadScore (server+client+admin)", status: "done", date: "2026-03-05", notes: "Uses hoa_fee > 0 as proxy for association until AssociationYN from Bridge" },
+      { id: "PM-42", title: "Update preferences footer text + location label", status: "done", date: "2026-03-05" },
     ],
   },
   {
@@ -113,6 +117,7 @@ export const BACKLOG = [
       { id: "T-AP", title: "Revisit tenant product app_path values", status: "deferred", notes: "After tenant pages defined" },
       { id: "T-GM", title: "Google Maps Android app restriction", status: "deferred", notes: "After first EAS build (needs SHA-1)" },
       { id: "T-GE", title: "Expand Bridge sync filter to full SE Florida coverage", status: "blocked", notes: "Currently hardcoded to 9 Treasure Coast cities — needs all Gold Coast cities when Bridge API access is live" },
+      { id: "T-AY", title: "Add AssociationYN to Bridge sync for definitive association detection", status: "deferred", notes: "Currently using hoa_fee > 0 as proxy — add RESO field when Bridge access is live" },
     ],
   },
 ];
