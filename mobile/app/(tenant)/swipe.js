@@ -1,7 +1,6 @@
-import { useCallback, useState, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useCallback, useState, useRef, useEffect } from 'react';
+import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import CardStack from '../../components/cards/CardStack';
@@ -22,8 +21,11 @@ const VIEW_ICONS = { cards: '▣', map: '◎', list: '☰' };
 export default function SwipeScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState('cards');
-  const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck } = useListings();
-  const { recordSwipe } = useSwipe();
+  const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
+  const { recordSwipe, undoSwipe } = useSwipe();
+  const [lastSwipe, setLastSwipe] = useState(null);
+  const undoOpacity = useRef(new Animated.Value(0)).current;
+  const undoTimer = useRef(null);
   const { preferences } = usePreferences();
 
   // Attach PadScore to each listing
@@ -45,14 +47,42 @@ export default function SwipeScreen() {
 
     const score = listing.padScore?.score ?? 50;
     recordSwipe(listing.id, direction, score);
-  }, [removeFromDeck, recordSwipe]);
+
+    // Show undo button
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setLastSwipe({ listing, direction });
+    Animated.timing(undoOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    undoTimer.current = setTimeout(() => {
+      Animated.timing(undoOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+        setLastSwipe(null);
+      });
+    }, 5000);
+  }, [removeFromDeck, recordSwipe, undoOpacity]);
+
+  const handleUndo = useCallback(async () => {
+    if (!lastSwipe) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    const { listing } = lastSwipe;
+    setLastSwipe(null);
+    undoOpacity.setValue(0);
+
+    const success = await undoSwipe(listing.id);
+    if (success) {
+      prependToList(listing);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, [lastSwipe, undoSwipe, prependToList, undoOpacity]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => { if (undoTimer.current) clearTimeout(undoTimer.current); };
+  }, []);
 
   const handleTapCard = useCallback((listing) => {
     router.push(`/listing/${listing.id}`);
   }, [router]);
 
   return (
-    <GestureHandlerRootView style={styles.flex}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
@@ -151,19 +181,26 @@ export default function SwipeScreen() {
           </View>
         )}
 
+        {/* Undo button */}
+        {lastSwipe && (
+          <Animated.View style={[styles.undoContainer, { opacity: undoOpacity }]}>
+            <Pressable style={styles.undoButton} onPress={handleUndo}>
+              <Text style={styles.undoText}>
+                ↩ Undo {lastSwipe.direction === 'right' ? 'Save' : 'Skip'}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {/* MLS compliance footer */}
         <Text style={styles.mlsFooter}>
           {MLS_COPYRIGHT.replace('{year}', new Date().getFullYear())}
         </Text>
       </SafeAreaView>
-    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -235,6 +272,23 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 22,
     fontFamily: FONTS.heading.bold,
+  },
+  undoContainer: {
+    alignItems: 'center',
+    paddingBottom: 4,
+  },
+  undoButton: {
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  undoText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
   },
   mlsFooter: {
     fontFamily: FONTS.body.regular,

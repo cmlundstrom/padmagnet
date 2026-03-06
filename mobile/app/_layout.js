@@ -16,6 +16,7 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
@@ -98,6 +99,7 @@ export default function RootLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ErrorBoundary>
       <AuthProvider>
         <AlertProvider>
@@ -122,5 +124,6 @@ export default function RootLayout() {
         </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

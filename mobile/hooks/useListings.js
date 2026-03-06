@@ -56,5 +56,9 @@ export default function useListings() {
     setListings(prev => prev.filter(l => l.id !== listingId));
   }, []);
 
-  return { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck };
+  const prependToList = useCallback((listing) => {
+    setListings(prev => [listing, ...prev.filter(l => l.id !== listing.id)]);
+  }, []);
+
+  return { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList };
 }

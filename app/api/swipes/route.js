@@ -50,6 +50,37 @@ export async function GET(request) {
   }
 }
 
+export async function DELETE(request) {
+  try {
+    const { user, error: authError, status } = await getAuthUser(request);
+    if (authError) {
+      return NextResponse.json({ error: authError }, { status });
+    }
+
+    const body = await request.json();
+    const { listing_id } = body;
+
+    if (!listing_id) {
+      return NextResponse.json({ error: 'listing_id is required' }, { status: 400 });
+    }
+
+    const supabase = createServiceClient();
+    const { error } = await supabase
+      .from('swipes')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('listing_id', listing_id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 export async function POST(request) {
   try {
     const { user, error: authError, status } = await getAuthUser(request);

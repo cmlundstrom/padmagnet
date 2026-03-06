@@ -17,5 +17,18 @@ export default function useSwipe() {
     }
   }, []);
 
-  return { recordSwipe };
+  const undoSwipe = useCallback(async (listingId) => {
+    try {
+      await apiFetch('/api/swipes', {
+        method: 'DELETE',
+        body: JSON.stringify({ listing_id: listingId }),
+      });
+      return true;
+    } catch (err) {
+      console.warn('Failed to undo swipe:', err.message);
+      return false;
+    }
+  }, []);
+
+  return { recordSwipe, undoSwipe };
 }
