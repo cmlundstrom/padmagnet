@@ -49,6 +49,9 @@ export default function useListings() {
   }, [loading, hasMore, page, fetchListings]);
 
   const refresh = useCallback(() => {
+    setListings([]);
+    setPage(1);
+    setHasMore(true);
     fetchListings(1);
   }, [fetchListings]);
 
