@@ -49,6 +49,11 @@ export const BACKLOG = [
       { id: "PM-31", title: "Onboarding step resumption (persists to AsyncStorage)", status: "done", date: "2026-03-05" },
       { id: "PM-32", title: "Fix VirtualizedList nesting error in ZonePicker", status: "done", date: "2026-03-05" },
       { id: "PM-33", title: "Fix keyboard covering zone search on onboarding step 2", status: "done", date: "2026-03-05" },
+      { id: "PM-34", title: "Property type onboarding step (7 types, chip selectors, PadScore integration)", status: "done", date: "2026-03-05" },
+      { id: "PM-35", title: "Text-based logo on welcome screen (white Pad + orange Magnet)", status: "done", date: "2026-03-05" },
+      { id: "PM-36", title: "Back pill moved to upper-left + Back text link restored on all steps", status: "done", date: "2026-03-05" },
+      { id: "PM-37", title: "Profile button renamed to PadScore™ Preferences", status: "done", date: "2026-03-05" },
+      { id: "PM-38", title: "Property types list synced across onboarding, preferences, owner create", status: "done", date: "2026-03-05" },
     ],
   },
   {
