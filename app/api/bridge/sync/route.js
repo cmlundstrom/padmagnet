@@ -25,6 +25,9 @@ const SELECT_FIELDS = [
   'StandardStatus', 'ListAgentFullName', 'ListOfficeName',
   'ListAgentDirectPhone', 'ListAgentEmail',
   'ModificationTimestamp', 'Media',
+  'PublicRemarks', 'VirtualTourURLUnbranded',
+  'PoolPrivateYN', 'PoolFeatures',
+  'GarageSpaces', 'ParkingTotal',
 ].join(',');
 
 function buildFilter() {
@@ -66,6 +69,10 @@ function mapBridgeToListing(prop) {
     listing_office_name: prop.ListOfficeName,
     listing_agent_phone: prop.ListAgentDirectPhone,
     listing_agent_email: prop.ListAgentEmail,
+    public_remarks: prop.PublicRemarks || null,
+    virtual_tour_url: prop.VirtualTourURLUnbranded || null,
+    pool: prop.PoolPrivateYN === true || (Array.isArray(prop.PoolFeatures) && prop.PoolFeatures.length > 0) || null,
+    parking_spaces: prop.GarageSpaces || prop.ParkingTotal || null,
     modification_timestamp: prop.ModificationTimestamp,
     photos,
     is_active: true,

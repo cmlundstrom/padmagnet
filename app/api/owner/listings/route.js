@@ -16,6 +16,8 @@ const ALLOWED_FIELDS = [
   'pets_allowed', 'pets_deposit', 'fenced_yard', 'furnished', 'hoa_fee', 'parking_spaces', 'pool',
   'photos', 'virtual_tour_url',
   'listing_agent_name', 'listing_office_name', 'listing_agent_phone', 'listing_agent_email',
+  'owner_special_comments', 'owner_application_link', 'owner_pet_policy_details',
+  'owner_utilities_included', 'owner_showing_instructions',
 ];
 
 // GET — list owner's own listings

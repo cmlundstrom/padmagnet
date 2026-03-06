@@ -1,93 +1,185 @@
+import { useState } from 'react';
 import { View, Text, StyleSheet, Linking, Pressable } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
-import { formatCurrency, formatBedsBaths, formatDate } from '../../utils/format';
+import { formatCurrency, formatDate } from '../../utils/format';
 import { parseAutolinks } from '../../utils/autolink';
+import useDisplayFields from '../../hooks/useDisplayFields';
 
-export default function ListingInfo({ listing }) {
-  if (!listing) return null;
+const SECTION_ORDER = ['hero', 'stats', 'features', 'contact', 'agent'];
+const SECTION_TITLES = {
+  hero: null,
+  stats: null,
+  features: 'Details',
+  contact: 'Contact',
+  agent: 'Listed By',
+};
 
-  const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
-  const cityLine = [listing.city, listing.state_or_province, listing.postal_code].filter(Boolean).join(', ');
+function getLabel(field, listing) {
+  const opts = field.format_options || {};
+  if (opts.label_by_source && listing?.source) {
+    return opts.label_by_source[listing.source] || field.label;
+  }
+  return field.label;
+}
 
-  const details = [
-    { label: 'Beds', value: listing.bedrooms_total === 0 ? 'Studio' : listing.bedrooms_total },
-    { label: 'Baths', value: listing.bathrooms_total },
-    { label: 'Sqft', value: listing.living_area ? Number(listing.living_area).toLocaleString() : '—' },
-    { label: 'Year', value: listing.year_built || '—' },
-  ];
+function getFieldValue(listing, field) {
+  const val = listing[field.canonical_column];
+  if (val === null || val === undefined || val === '') return null;
+  return val;
+}
 
-  const features = [];
-  if (listing.property_sub_type) features.push({ label: 'Type', value: listing.property_sub_type });
-  if (listing.lease_term) features.push({ label: 'Lease', value: `${listing.lease_term} mo` });
-  if (listing.pets_allowed === true) features.push({ label: 'Pets', value: 'Allowed' });
-  else if (listing.pets_allowed === false) features.push({ label: 'Pets', value: 'Not allowed' });
-  if (listing.furnished === true) features.push({ label: 'Furnished', value: 'Yes' });
-  else if (listing.furnished === false) features.push({ label: 'Furnished', value: 'No' });
-  if (listing.hoa_fee) features.push({ label: 'HOA', value: formatCurrency(listing.hoa_fee) + '/mo' });
-  if (listing.fenced_yard) features.push({ label: 'Yard', value: 'Fenced' });
+// --- Render type handlers ---
 
+function RenderStat({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  const opts = field.format_options || {};
+  let display = val;
+  if (opts.studio_if_zero && (val === 0 || val === '0')) display = 'Studio';
   return (
-    <View style={styles.container}>
-      {/* Price + Address */}
-      <View style={styles.section}>
-        <Text style={styles.price}>
-          {formatCurrency(listing.list_price)}
-          <Text style={styles.perMonth}>/mo</Text>
-        </Text>
-        <Text style={styles.address}>{address}</Text>
-        <Text style={styles.city}>{cityLine}</Text>
-      </View>
+    <View style={styles.statItem}>
+      <Text style={styles.statValue}>{display}</Text>
+      <Text style={styles.statLabel}>{field.label}</Text>
+    </View>
+  );
+}
 
-      {/* Stats grid */}
-      <View style={styles.statsGrid}>
-        {details.map(item => (
-          <View key={item.label} style={styles.statItem}>
-            <Text style={styles.statValue}>{item.value}</Text>
-            <Text style={styles.statLabel}>{item.label}</Text>
-          </View>
-        ))}
-      </View>
+function RenderBoolean({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  const opts = field.format_options || {};
+  const display = val ? (opts.true_text || 'Yes') : (opts.false_text || 'No');
+  return (
+    <FeatureRow label={getLabel(field, listing)} value={display} />
+  );
+}
 
-      {/* Features */}
-      {features.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
-          {features.map(item => (
-            <View key={item.label} style={styles.featureRow}>
-              <Text style={styles.featureLabel}>{item.label}</Text>
-              <Text style={styles.featureValue}>{item.value}</Text>
-            </View>
-          ))}
-        </View>
+function RenderCurrency({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  const opts = field.format_options || {};
+  return (
+    <FeatureRow label={getLabel(field, listing)} value={formatCurrency(val) + (opts.suffix || '')} />
+  );
+}
+
+function RenderNumber({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  const opts = field.format_options || {};
+  return (
+    <FeatureRow label={getLabel(field, listing)} value={Number(val).toLocaleString() + (opts.suffix || '')} />
+  );
+}
+
+function RenderDate({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  return (
+    <FeatureRow label={getLabel(field, listing)} value={formatDate(val)} />
+  );
+}
+
+function RenderLink({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  return (
+    <View style={styles.featureRow}>
+      <Text style={styles.featureLabel}>{getLabel(field, listing)}</Text>
+      <Text style={styles.link} onPress={() => Linking.openURL(val)}>View</Text>
+    </View>
+  );
+}
+
+function RenderAutolink({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  return <AutolinkedText text={val} />;
+}
+
+function CollapsibleText({ text, maxLines }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View>
+      <Text
+        style={styles.description}
+        numberOfLines={expanded ? undefined : maxLines}
+      >
+        {text}
+      </Text>
+      {text.length > 120 && (
+        <Pressable onPress={() => setExpanded(!expanded)}>
+          <Text style={styles.readMore}>{expanded ? 'Show less' : 'Read more'}</Text>
+        </Pressable>
       )}
+    </View>
+  );
+}
 
-      {/* Description */}
-      {listing.public_remarks && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{listing.public_remarks}</Text>
-        </View>
-      )}
+function RenderText({ field, listing }) {
+  const val = getFieldValue(listing, field);
+  if (val === null) return null;
+  const opts = field.format_options || {};
+  const display = val + (opts.suffix || '');
+  if (opts.collapsible) {
+    return <CollapsibleText text={display} maxLines={4} />;
+  }
+  // For hero section text, show as paragraph
+  if (field.section === 'hero') {
+    return <Text style={styles.description}>{display}</Text>;
+  }
+  return (
+    <FeatureRow label={getLabel(field, listing)} value={display} />
+  );
+}
 
-      {/* Contact instructions (owner listings) */}
-      {listing.tenant_contact_instructions && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
-          <AutolinkedText text={listing.tenant_contact_instructions} />
-        </View>
-      )}
+function FeatureRow({ label, value }) {
+  return (
+    <View style={styles.featureRow}>
+      <Text style={styles.featureLabel}>{label}</Text>
+      <Text style={styles.featureValue}>{value}</Text>
+    </View>
+  );
+}
 
-      {/* Listing meta */}
-      {listing.created_at && (
-        <View style={styles.section}>
-          <Text style={styles.meta}>
-            Listed {formatDate(listing.created_at)}
-            {listing.listing_id ? ` · MLS# ${listing.listing_id}` : ''}
-          </Text>
-        </View>
-      )}
+function FieldRenderer({ field, listing }) {
+  switch (field.render_type) {
+    case 'stat':     return <RenderStat field={field} listing={listing} />;
+    case 'boolean':  return <RenderBoolean field={field} listing={listing} />;
+    case 'currency': return <RenderCurrency field={field} listing={listing} />;
+    case 'number':   return <RenderNumber field={field} listing={listing} />;
+    case 'date':     return <RenderDate field={field} listing={listing} />;
+    case 'link':     return <RenderLink field={field} listing={listing} />;
+    case 'autolink': return <RenderAutolink field={field} listing={listing} />;
+    case 'text':
+    default:         return <RenderText field={field} listing={listing} />;
+  }
+}
+
+function StatsGrid({ fields, listing }) {
+  const visibleStats = fields.filter(f => getFieldValue(listing, f) !== null);
+  if (visibleStats.length === 0) return null;
+  return (
+    <View style={styles.statsGrid}>
+      {visibleStats.map(f => (
+        <FieldRenderer key={f.output_key} field={f} listing={listing} />
+      ))}
+    </View>
+  );
+}
+
+function SectionBlock({ title, fields, listing }) {
+  // Filter out fields with null values
+  const visibleFields = fields.filter(f => getFieldValue(listing, f) !== null);
+  if (visibleFields.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      {title && <Text style={styles.sectionTitle}>{title}</Text>}
+      {visibleFields.map(f => (
+        <FieldRenderer key={f.output_key} field={f} listing={listing} />
+      ))}
     </View>
   );
 }
@@ -107,6 +199,58 @@ function AutolinkedText({ text }) {
         return seg.text;
       })}
     </Text>
+  );
+}
+
+export default function ListingInfo({ listing }) {
+  const { fieldsBySection, loading } = useDisplayFields();
+
+  if (!listing) return null;
+
+  const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+  const cityLine = [listing.city, listing.state_or_province, listing.postal_code].filter(Boolean).join(', ');
+
+  return (
+    <View style={styles.container}>
+      {/* Price + Address — always hardcoded */}
+      <View style={styles.section}>
+        <Text style={styles.price}>
+          {formatCurrency(listing.list_price)}
+          <Text style={styles.perMonth}>/mo</Text>
+        </Text>
+        <Text style={styles.address}>{address}</Text>
+        <Text style={styles.city}>{cityLine}</Text>
+      </View>
+
+      {/* Config-driven sections */}
+      {!loading && SECTION_ORDER.map(sectionKey => {
+        const sectionFields = fieldsBySection[sectionKey];
+        if (!sectionFields || sectionFields.length === 0) return null;
+
+        if (sectionKey === 'stats') {
+          return <StatsGrid key={sectionKey} fields={sectionFields} listing={listing} />;
+        }
+
+        return (
+          <SectionBlock
+            key={sectionKey}
+            title={SECTION_TITLES[sectionKey]}
+            fields={sectionFields}
+            listing={listing}
+          />
+        );
+      })}
+
+      {/* Listing meta — always hardcoded */}
+      {listing.created_at && (
+        <View style={styles.section}>
+          <Text style={styles.meta}>
+            Listed {formatDate(listing.created_at)}
+            {listing.listing_id ? ` \u00B7 MLS# ${listing.listing_id}` : ''}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -190,6 +334,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     lineHeight: 22,
+  },
+  readMore: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+    marginTop: 4,
   },
   meta: {
     fontFamily: FONTS.body.regular,
