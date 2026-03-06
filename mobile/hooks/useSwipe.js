@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { Alert } from 'react-native';
 import { apiFetch } from '../lib/api';
 
 export default function useSwipe() {
@@ -9,11 +10,14 @@ export default function useSwipe() {
         body: JSON.stringify({
           listing_id: listingId,
           direction,
-          padscore,
+          padscore: Math.round(padscore),
         }),
       });
+      return true;
     } catch (err) {
       console.warn('Failed to record swipe:', err.message);
+      Alert.alert('Swipe not saved', err.message);
+      return false;
     }
   }, []);
 
