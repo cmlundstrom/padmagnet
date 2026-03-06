@@ -24,7 +24,7 @@ const SELECT_FIELDS = [
   'PetsAllowed', 'Furnished', 'AssociationFee',
   'StandardStatus', 'ListAgentFullName', 'ListOfficeName',
   'ListAgentDirectPhone', 'ListAgentEmail',
-  'ModificationTimestamp', 'Media',
+  'ModificationTimestamp',
 ].join(',');
 
 function buildFilter() {
@@ -80,7 +80,7 @@ async function fetchAllFromBridge() {
   let hasMore = true;
 
   while (hasMore) {
-    const url = `${BRIDGE_BASE}?access_token=${BRIDGE_TOKEN}&$filter=${encodeURIComponent(buildFilter())}&$select=${SELECT_FIELDS}&$top=${top}&$skip=${skip}&$orderby=ModificationTimestamp desc`;
+    const url = `${BRIDGE_BASE}?access_token=${BRIDGE_TOKEN}&$filter=${encodeURIComponent(buildFilter())}&$select=${SELECT_FIELDS}&$expand=Media&$top=${top}&$skip=${skip}&$orderby=ModificationTimestamp desc`;
     const res = await fetch(url);
 
     if (!res.ok) {
