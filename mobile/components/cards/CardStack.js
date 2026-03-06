@@ -64,8 +64,8 @@ export default function CardStack({
     return (
       <EmptyState
         icon="◇"
-        title="No more listings"
-        subtitle="You've seen all available listings. Try adjusting your preferences or check back later."
+        title="No listings right now"
+        subtitle="We don't have homes that fit your search yet. Try widening your PadScore preferences or check back soon for fresh listings."
         actionLabel="Refresh"
         onAction={onRefresh}
       />

@@ -29,8 +29,8 @@ export default function ListView({ listings = [], loading, error, onRefresh, has
     return (
       <EmptyState
         icon="◇"
-        title="No listings found"
-        subtitle="Try adjusting your preferences or check back later."
+        title="No listings right now"
+        subtitle="We don't have homes that fit your search yet. Try widening your PadScore preferences or check back soon for fresh listings."
         actionLabel="Refresh"
         onAction={onRefresh}
       />
