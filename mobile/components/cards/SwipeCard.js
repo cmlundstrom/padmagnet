@@ -98,8 +98,12 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
               transition={200}
             />
           ) : (
-            <View style={styles.noImage}>
-              <Text style={styles.noImageText}>No Photo</Text>
+            <View style={styles.placeholderWrap}>
+              <Text style={styles.placeholderEmoji}>🌴🏖️</Text>
+              <View style={styles.placeholderOverlay}>
+                <Text style={styles.placeholderTitle}>Listing Photo</Text>
+                <Text style={styles.placeholderTitle}>Coming Soon</Text>
+              </View>
             </View>
           )}
 
@@ -165,16 +169,27 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
   },
-  noImage: {
+  placeholderWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#1a5276',
   },
-  noImageText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
+  placeholderEmoji: {
+    fontSize: 64,
+    opacity: 0.3,
+  },
+  placeholderOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  placeholderTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.white,
+    opacity: 0.85,
+    textAlign: 'center',
+    lineHeight: 28,
   },
   scoreBadge: {
     position: 'absolute',

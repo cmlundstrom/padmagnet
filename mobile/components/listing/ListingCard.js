@@ -31,8 +31,9 @@ export default function ListingCard({ listing, padscore, style }) {
             transition={200}
           />
         ) : (
-          <View style={styles.noImage}>
-            <Text style={styles.noImageText}>No Photo</Text>
+          <View style={styles.placeholderWrap}>
+            <Text style={styles.placeholderEmoji}>🌴</Text>
+            <Text style={styles.placeholderTitle}>Photo{'\n'}Coming Soon</Text>
           </View>
         )}
         {score != null && (
@@ -71,15 +72,24 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
   },
-  noImage: {
+  placeholderWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#1a5276',
   },
-  noImageText: {
-    fontFamily: FONTS.body.medium,
+  placeholderEmoji: {
+    fontSize: 32,
+    opacity: 0.3,
+    position: 'absolute',
+  },
+  placeholderTitle: {
+    fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
+    opacity: 0.85,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   scoreBadge: {
     position: 'absolute',

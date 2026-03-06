@@ -21,8 +21,12 @@ export default function PhotoGallery({ photos = [] }) {
 
   if (photos.length === 0) {
     return (
-      <View style={[styles.container, styles.noPhotos]}>
-        <Text style={styles.noPhotoText}>No Photos Available</Text>
+      <View style={[styles.container, styles.placeholderWrap]}>
+        <Text style={styles.placeholderEmoji}>🌴🏖️</Text>
+        <View style={styles.placeholderOverlay}>
+          <Text style={styles.placeholderTitle}>Listing Photo</Text>
+          <Text style={styles.placeholderTitle}>Coming Soon</Text>
+        </View>
       </View>
     );
   }
@@ -86,14 +90,26 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: GALLERY_HEIGHT,
   },
-  noPhotos: {
+  placeholderWrap: {
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#1a5276',
   },
-  noPhotoText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
+  placeholderEmoji: {
+    fontSize: 80,
+    opacity: 0.25,
+  },
+  placeholderOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  placeholderTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES['2xl'],
+    color: COLORS.white,
+    opacity: 0.85,
+    textAlign: 'center',
+    lineHeight: 34,
   },
   counter: {
     position: 'absolute',
