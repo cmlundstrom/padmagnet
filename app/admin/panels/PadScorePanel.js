@@ -15,7 +15,7 @@ const DEFAULT_PADSCORE = {
   pets_unknown: { enabled: true, weight: 10, label: "Pets Unknown", desc: "Unknown pet policy for pet owner" },
   fenced_yard_bonus: { enabled: true, weight: 8, label: "Fenced Yard Bonus", desc: "Bonus for fenced yard + pet owner", isBonus: true },
   fenced_yard_missing: { enabled: true, weight: 12, label: "No Fenced Yard", desc: "No fence for pet owner" },
-  hoa_mismatch: { enabled: true, weight: 8, label: "HOA Mismatch", desc: "HOA preference doesn't match" },
+  association_mismatch: { enabled: true, weight: 50, label: "Association Mismatch", desc: "Association preference doesn't match" },
   furnished_mismatch: { enabled: true, weight: 6, label: "Furnished Mismatch", desc: "Furnished preference doesn't match" },
   lease_too_short: { enabled: true, weight: 35, label: "Lease Too Short", desc: "Listing lease shorter than needed" },
   stale_listing_major: { enabled: true, weight: 5, label: "Stale (60+ days)", desc: "Soft penalty for old listings" },
@@ -55,7 +55,7 @@ export default function PadScorePanel() {
     { title: "Size", keys: ["beds_short", "baths_short"] },
     { title: "Location", keys: ["location_inside_radius", "location_outside_radius"] },
     { title: "Pets & Yard", keys: ["pets_not_allowed", "pets_unknown", "fenced_yard_bonus", "fenced_yard_missing"] },
-    { title: "Lifestyle", keys: ["hoa_mismatch", "furnished_mismatch"] },
+    { title: "Lifestyle", keys: ["association_mismatch", "furnished_mismatch"] },
     { title: "Lease & Freshness", keys: ["lease_too_short", "stale_listing_major", "stale_listing_minor"] },
   ];
 

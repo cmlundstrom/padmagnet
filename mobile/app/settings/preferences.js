@@ -21,7 +21,6 @@ export default function PreferencesScreen() {
   const { zones, addZone, removeZone } = useSearchZones();
   const alert = useAlert();
   const [form, setForm] = useState({
-    budget_min: '',
     budget_max: '',
     beds_min: '',
     baths_min: '',
@@ -30,15 +29,13 @@ export default function PreferencesScreen() {
     pet_type: null,
     fenced_yard_required: false,
     furnished_preferred: null,
-    min_lease_months: '',
-    max_hoa: '',
+    association_preferred: null,
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (preferences) {
       setForm({
-        budget_min: preferences.budget_min?.toString() || '',
         budget_max: preferences.budget_max?.toString() || '',
         beds_min: preferences.beds_min?.toString() || '',
         baths_min: preferences.baths_min?.toString() || '',
@@ -47,8 +44,7 @@ export default function PreferencesScreen() {
         pet_type: preferences.pet_type || null,
         fenced_yard_required: preferences.fenced_yard_required || false,
         furnished_preferred: preferences.furnished_preferred ?? null,
-        min_lease_months: preferences.min_lease_months?.toString() || '',
-        max_hoa: preferences.max_hoa?.toString() || '',
+        association_preferred: preferences.association_preferred ?? null,
       });
     }
   }, [preferences]);
@@ -69,7 +65,6 @@ export default function PreferencesScreen() {
     setSaving(true);
     try {
       await updatePreferences({
-        budget_min: form.budget_min ? parseFloat(form.budget_min) : 0,
         budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
         baths_min: form.baths_min ? parseFloat(form.baths_min) : 1,
@@ -78,8 +73,7 @@ export default function PreferencesScreen() {
         pet_type: form.pets_required ? form.pet_type : null,
         fenced_yard_required: form.pets_required ? form.fenced_yard_required : false,
         furnished_preferred: form.furnished_preferred,
-        min_lease_months: form.min_lease_months ? parseInt(form.min_lease_months, 10) : null,
-        max_hoa: form.max_hoa ? parseFloat(form.max_hoa) : null,
+        association_preferred: form.association_preferred,
       });
       alert('Saved', 'Your preferences have been updated. PadScores will refresh on your next swipe.');
     } catch (err) {
@@ -96,24 +90,13 @@ export default function PreferencesScreen() {
 
         {/* Budget */}
         <Text style={styles.sectionTitle}>Budget</Text>
-        <View style={styles.row}>
-          <Input
-            label="Min $/mo"
-            value={form.budget_min}
-            onChangeText={v => update('budget_min', v)}
-            keyboardType="numeric"
-            placeholder="0"
-            style={styles.halfInput}
-          />
-          <Input
-            label="Max $/mo"
-            value={form.budget_max}
-            onChangeText={v => update('budget_max', v)}
-            keyboardType="numeric"
-            placeholder="5000"
-            style={styles.halfInput}
-          />
-        </View>
+        <Input
+          label="Max $/mo"
+          value={form.budget_max}
+          onChangeText={v => update('budget_max', v)}
+          keyboardType="numeric"
+          placeholder="5000"
+        />
 
         {/* Property */}
         <Text style={styles.sectionTitle}>Property</Text>
@@ -153,7 +136,7 @@ export default function PreferencesScreen() {
 
         {/* Location */}
         <Text style={styles.sectionTitle}>Location</Text>
-        <Text style={styles.label}>Search Zones</Text>
+        <Text style={styles.label}>Where do you want to live? (three areas max)</Text>
         <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
 
         {/* Pets */}
@@ -215,23 +198,27 @@ export default function PreferencesScreen() {
             </Pressable>
           ))}
         </View>
-        <View style={styles.row}>
-          <Input
-            label="Min Lease (months)"
-            value={form.min_lease_months}
-            onChangeText={v => update('min_lease_months', v)}
-            keyboardType="numeric"
-            placeholder="Any"
-            style={styles.halfInput}
-          />
-          <Input
-            label="Max HOA $/mo"
-            value={form.max_hoa}
-            onChangeText={v => update('max_hoa', v)}
-            keyboardType="numeric"
-            placeholder="Any"
-            style={styles.halfInput}
-          />
+        {/* Association */}
+        <Text style={styles.sectionTitle}>Association</Text>
+        <Text style={styles.hintInline}>
+          Associations (HOA/COA) have community rules tenants must follow.
+        </Text>
+        <View style={styles.chipRow}>
+          {[
+            { label: 'No Preference', value: null },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
+          ].map(opt => (
+            <Pressable
+              key={String(opt.value)}
+              style={[styles.chip, form.association_preferred === opt.value && styles.chipActive]}
+              onPress={() => update('association_preferred', opt.value)}
+            >
+              <Text style={[styles.chipText, form.association_preferred === opt.value && styles.chipTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
         {/* Save */}
@@ -243,7 +230,7 @@ export default function PreferencesScreen() {
         />
 
         <Text style={styles.hint}>
-          Your preferences power PadScore — the closer a listing matches, the higher it scores.
+          Your inputs power your PadScore™. The best home matches for you will show up first!
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -326,10 +313,16 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: LAYOUT.padding.lg,
   },
+  hintInline: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
   hint: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.white,
     textAlign: 'center',
     marginTop: LAYOUT.padding.md,
   },

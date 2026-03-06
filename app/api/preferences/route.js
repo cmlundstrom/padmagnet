@@ -8,7 +8,7 @@ const ALLOWED_FIELDS = [
   'budget_min', 'budget_max', 'beds_min', 'baths_min', 'property_types',
   'center_lat', 'center_lng', 'radius_miles', 'preferred_cities',
   'pets_required', 'pet_type', 'fenced_yard_required', 'furnished_preferred',
-  'min_lease_months', 'max_hoa', 'move_in_date',
+  'min_lease_months', 'max_hoa', 'move_in_date', 'association_preferred',
 ];
 
 export async function GET(request) {

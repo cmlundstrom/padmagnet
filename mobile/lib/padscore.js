@@ -13,7 +13,7 @@ const WEIGHTS = {
   pets_unknown: 10,
   fenced_yard_bonus: 8,
   fenced_yard_missing: 12,
-  hoa_mismatch: 8,
+  association_mismatch: 50,
   furnished_mismatch: 6,
   lease_too_short: 35,
   stale_listing_major: 5,
@@ -142,10 +142,15 @@ export function calculatePadScore(preferences, listing, zones) {
     }
   }
 
-  // HOA
-  if (preferences.max_hoa != null && listing.hoa_fee > preferences.max_hoa) {
-    totalPenalty += WEIGHTS.hoa_mismatch;
-    factors.push({ key: 'hoa', label: 'HOA Too High', impact: -WEIGHTS.hoa_mismatch, match: false });
+  // Association mismatch
+  if (preferences.association_preferred === false && listing.hoa_fee > 0) {
+    totalPenalty += WEIGHTS.association_mismatch;
+    factors.push({ key: 'association', label: 'Has Association', impact: -WEIGHTS.association_mismatch, match: false });
+  } else if (preferences.association_preferred === true && (!listing.hoa_fee || listing.hoa_fee === 0)) {
+    totalPenalty += WEIGHTS.association_mismatch;
+    factors.push({ key: 'association', label: 'No Association', impact: -WEIGHTS.association_mismatch, match: false });
+  } else if (preferences.association_preferred != null) {
+    factors.push({ key: 'association', label: 'Association Match', impact: 0, match: true });
   }
 
   // Furnished
