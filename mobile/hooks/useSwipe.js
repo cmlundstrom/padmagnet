@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
-import { Alert } from 'react-native';
+import { useAlert } from '../providers/AlertProvider';
 import { apiFetch } from '../lib/api';
 
 export default function useSwipe() {
+  const alert = useAlert();
+
   const recordSwipe = useCallback(async (listingId, direction, padscore) => {
     try {
       await apiFetch('/api/swipes', {
@@ -16,10 +18,10 @@ export default function useSwipe() {
       return true;
     } catch (err) {
       console.warn('Failed to record swipe:', err.message);
-      Alert.alert('Swipe not saved', err.message);
+      alert('Swipe not saved', err.message);
       return false;
     }
-  }, []);
+  }, [alert]);
 
   const undoSwipe = useCallback(async (listingId) => {
     try {

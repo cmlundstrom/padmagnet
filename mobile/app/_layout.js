@@ -113,8 +113,14 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         >
+          <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tenant)" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="(owner)" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="owner" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="listing/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="conversation/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
           <Stack.Screen name="about-you" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />

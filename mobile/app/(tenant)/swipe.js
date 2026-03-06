@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import CardStack from '../../components/cards/CardStack';
@@ -9,6 +10,8 @@ import { ListView } from '../../components/listing';
 import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
+import { useAlert } from '../../providers/AlertProvider';
+import { apiFetch } from '../../lib/api';
 import { calculatePadScore } from '../../lib/padscore';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -27,6 +30,30 @@ export default function SwipeScreen() {
   const undoOpacity = useRef(new Animated.Value(0)).current;
   const undoTimer = useRef(null);
   const { preferences } = usePreferences();
+  const alert = useAlert();
+
+  const handleReset = useCallback(() => {
+    alert(
+      'Start Over?',
+      'This clears all your saved and passed listings so you can review everything fresh.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiFetch('/api/swipes/reset', { method: 'DELETE' });
+              refresh();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (err) {
+              alert('Error', err.message);
+            }
+          },
+        },
+      ]
+    );
+  }, [alert, refresh]);
 
   // Attach PadScore to each listing
   const scoredListings = listings.map(listing => {
@@ -46,7 +73,11 @@ export default function SwipeScreen() {
     removeFromDeck(listing.id);
 
     const score = listing.padScore?.score ?? 50;
-    recordSwipe(listing.id, direction, score);
+    const saved = await recordSwipe(listing.id, direction, score);
+    if (!saved) {
+      prependToList(listing);
+      return;
+    }
 
     // Show undo button
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -86,7 +117,14 @@ export default function SwipeScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>PadMagnet</Text>
+          <Text style={styles.logo}>
+            <Text style={{ color: COLORS.white }}>Pad</Text>
+            <Text style={{ color: COLORS.brandOrange }}>Magnet</Text>
+          </Text>
+          <View style={styles.headerRight}>
+          <Pressable style={styles.resetBtn} onPress={handleReset}>
+            <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
+          </Pressable>
           <View style={styles.viewToggle}>
             {VIEW_MODES.map(mode => (
               <Pressable
@@ -107,6 +145,7 @@ export default function SwipeScreen() {
                 </Text>
               </Pressable>
             ))}
+          </View>
           </View>
         </View>
 
@@ -153,7 +192,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={[styles.actionText, { color: COLORS.danger }]}>✕</Text>
+              <FontAwesome name="trash" size={22} color={COLORS.white} />
             </Pressable>
 
             <Pressable
@@ -165,7 +204,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={[styles.actionText, { color: COLORS.accent }]}>i</Text>
+              <Text style={styles.infoText}>{'More\nInfo'}</Text>
             </Pressable>
 
             <Pressable
@@ -215,7 +254,19 @@ const styles = StyleSheet.create({
   logo: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xl,
-    color: COLORS.accent,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  resetBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   viewToggle: {
     flexDirection: 'row',
@@ -261,10 +312,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger,
   },
   infoButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderColor: COLORS.accent,
+  },
+  infoText: {
+    fontSize: 10,
+    fontFamily: FONTS.heading.bold,
+    color: COLORS.accent,
+    textAlign: 'center',
+    lineHeight: 13,
   },
   saveButton: {
     borderColor: COLORS.success,

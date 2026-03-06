@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, Alert, StyleSheet } from 'react-native';
+import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { EmptyState } from '../../components/ui';
 import { ListingCard } from '../../components/listing';
+import { useAlert } from '../../providers/AlertProvider';
 import { apiFetch } from '../../lib/api';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -10,11 +13,12 @@ import { LAYOUT } from '../../constants/layout';
 import { SCREEN } from '../../constants/screenStyles';
 
 const TABS = [
-  { key: 'right', label: 'Saved' },
-  { key: 'left', label: 'Passed' },
+  { key: 'right', label: 'Loved', icon: 'heart' },
+  { key: 'left', label: 'Trash', icon: 'trash' },
 ];
 
 export default function SavedScreen() {
+  const alert = useAlert();
   const [activeTab, setActiveTab] = useState('right');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +60,13 @@ export default function SavedScreen() {
     fetchItems(activeTab, 1);
   }, [activeTab, fetchItems]);
 
+  // Re-fetch when tab gains focus (e.g. after swiping on swipe screen)
+  useFocusEffect(
+    useCallback(() => {
+      fetchItems(activeTab, 1);
+    }, [activeTab, fetchItems])
+  );
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchItems(activeTab, 1);
@@ -68,8 +79,8 @@ export default function SavedScreen() {
   }, [loading, hasMore, page, activeTab, fetchItems]);
 
   const handleRemove = useCallback(async (listingId) => {
-    const label = activeTab === 'right' ? 'saved' : 'passed';
-    Alert.alert(
+    const label = activeTab === 'right' ? 'loved' : 'trash';
+    alert(
       'Remove listing?',
       `This listing will be removed from your ${label} list and return to your swipe deck.`,
       [
@@ -80,12 +91,12 @@ export default function SavedScreen() {
           onPress: async () => {
             try {
               await apiFetch('/api/swipes', {
-                method: 'DELETE',
-                body: JSON.stringify({ listing_id: listingId }),
+                method: 'POST',
+                body: JSON.stringify({ listing_id: listingId, direction: 'reset', padscore: 0 }),
               });
               setItems(prev => prev.filter(l => l.id !== listingId));
             } catch (err) {
-              Alert.alert('Error', err.message);
+              alert('Error', err.message);
             }
           },
         },
@@ -96,14 +107,14 @@ export default function SavedScreen() {
   const handleReconsider = useCallback(async (listingId) => {
     try {
       await apiFetch('/api/swipes', {
-        method: 'DELETE',
-        body: JSON.stringify({ listing_id: listingId }),
+        method: 'POST',
+        body: JSON.stringify({ listing_id: listingId, direction: 'reset', padscore: 0 }),
       });
       setItems(prev => prev.filter(l => l.id !== listingId));
     } catch (err) {
-      Alert.alert('Error', err.message);
+      alert('Error', err.message);
     }
-  }, []);
+  }, [alert]);
 
   if (loading && items.length === 0) {
     return (
@@ -129,10 +140,10 @@ export default function SavedScreen() {
   }
 
   const isSaved = activeTab === 'right';
-  const emptyIcon = isSaved ? '♡' : '✕';
-  const emptyTitle = isSaved ? 'No saved listings yet' : 'No passed listings';
+  const emptyIcon = isSaved ? '♡' : '🗑';
+  const emptyTitle = isSaved ? 'No loved listings yet' : 'Trash is empty';
   const emptySubtitle = isSaved
-    ? 'Swipe right on listings you like and they\'ll appear here.'
+    ? 'Swipe right on listings you love and they\'ll appear here.'
     : 'Listings you skip will appear here so you can reconsider them.';
 
   return (
@@ -147,9 +158,12 @@ export default function SavedScreen() {
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
+            <View style={styles.tabInner}>
+              {tab.icon && <FontAwesome name={tab.icon} size={15} color={COLORS.white} />}
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -168,7 +182,7 @@ export default function SavedScreen() {
               <ListingCard listing={item} padscore={item.swipePadscore} />
               {isSaved ? (
                 <Pressable style={styles.removeBtn} onPress={() => handleRemove(item.id)}>
-                  <Text style={styles.removeBtnText}>✕</Text>
+                  <FontAwesome name="trash" size={17} color={COLORS.white} />
                 </Pressable>
               ) : (
                 <Pressable style={styles.reconsiderBtn} onPress={() => handleReconsider(item.id)}>
@@ -214,6 +228,13 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     backgroundColor: COLORS.card,
+    borderWidth: 1.5,
+    borderColor: COLORS.accent,
+  },
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   tabText: {
     fontFamily: FONTS.body.medium,
@@ -239,19 +260,14 @@ const styles = StyleSheet.create({
   removeBtn: {
     position: 'absolute',
     top: 6,
-    right: 6,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    left: 6,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#3B82F6' + '55',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
-  },
-  removeBtnText: {
-    color: COLORS.danger,
-    fontSize: 14,
-    fontFamily: FONTS.heading.bold,
   },
   reconsiderBtn: {
     marginTop: 4,

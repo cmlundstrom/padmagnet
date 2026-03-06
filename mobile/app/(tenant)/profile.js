@@ -1,15 +1,17 @@
-import { Text, TouchableOpacity, Alert } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { signOut } from '../../lib/auth';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../providers/AlertProvider';
 import ProfileCard from '../../components/screens/ProfileCard';
 import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
 export default function TenantProfileScreen() {
   const { user } = useAuth();
+  const alert = useAlert();
 
   async function handleSignOut() {
     await signOut();
@@ -17,7 +19,7 @@ export default function TenantProfileScreen() {
   }
 
   function handleResetSwipes() {
-    Alert.alert(
+    alert(
       'Reset Swipe History',
       'This will reset all your liked and passed listings. They\'ll reappear in your swipe deck.',
       [
@@ -28,9 +30,9 @@ export default function TenantProfileScreen() {
           onPress: async () => {
             try {
               const result = await apiFetch('/api/swipes/reset', { method: 'DELETE' });
-              Alert.alert('Done', `${result.deleted} swipe${result.deleted === 1 ? '' : 's'} reset. Your deck will refresh.`);
+              alert('Done', `${result.deleted} swipe${result.deleted === 1 ? '' : 's'} reset. Your deck will refresh.`);
             } catch (err) {
-              Alert.alert('Error', err.message);
+              alert('Error', err.message);
             }
           },
         },
