@@ -24,7 +24,7 @@ const SELECT_FIELDS = [
   'PetsAllowed', 'Furnished', 'AssociationFee',
   'StandardStatus', 'ListAgentFullName', 'ListOfficeName',
   'ListAgentDirectPhone', 'ListAgentEmail',
-  'ModificationTimestamp',
+  'ModificationTimestamp', 'Media',
 ].join(',');
 
 function buildFilter() {
