@@ -40,12 +40,17 @@ export async function GET(request) {
       .eq('user_id', user.id)
       .order('position');
 
-    // Fetch already-swiped listing IDs
+    // Fetch already-swiped listing IDs (only exclude left/right, not reset)
     const { data: swipedRows } = await supabase
       .from('swipes')
-      .select('listing_id')
+      .select('listing_id, direction')
       .eq('user_id', user.id);
-    const swipedIds = (swipedRows || []).map(s => s.listing_id);
+    const swipedIds = (swipedRows || [])
+      .filter(s => s.direction === 'left' || s.direction === 'right')
+      .map(s => s.listing_id);
+    const resetIds = new Set((swipedRows || [])
+      .filter(s => s.direction === 'reset')
+      .map(s => s.listing_id));
 
     // Fetch core match field configs (for boost eligibility)
     const { data: coreFields } = await supabase
@@ -82,13 +87,18 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Calculate PadScore for each listing and sort by score
+    // Calculate PadScore for each listing, flag reseen, sort by score
     const scored = (listings || []).map(listing => {
       const padScore = calculatePadScore(prefs, listing, zones || []);
-      return { ...listing, padScore };
+      const _reseen = resetIds.has(listing.id);
+      return { ...listing, padScore, _reseen };
     });
 
-    scored.sort((a, b) => b.padScore.score - a.padScore.score);
+    // Fresh listings first (by score), reseen listings last (by score)
+    scored.sort((a, b) => {
+      if (a._reseen !== b._reseen) return a._reseen ? 1 : -1;
+      return b.padScore.score - a.padScore.score;
+    });
 
     // Inject boosted listing at deterministic position if it passes core-match
     let result = scored;

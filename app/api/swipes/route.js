@@ -81,6 +81,37 @@ export async function DELETE(request) {
   }
 }
 
+export async function PATCH(request) {
+  try {
+    const { user, error: authError, status } = await getAuthUser(request);
+    if (authError) {
+      return NextResponse.json({ error: authError }, { status });
+    }
+
+    const body = await request.json();
+    const { listing_id, direction } = body;
+
+    if (!listing_id || !direction) {
+      return NextResponse.json({ error: 'listing_id and direction are required' }, { status: 400 });
+    }
+
+    const supabase = createServiceClient();
+    const { error } = await supabase
+      .from('swipes')
+      .update({ direction })
+      .eq('user_id', user.id)
+      .eq('listing_id', listing_id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 export async function POST(request) {
   try {
     const { user, error: authError, status } = await getAuthUser(request);
@@ -95,8 +126,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'listing_id and direction are required' }, { status: 400 });
     }
 
-    if (!['left', 'right'].includes(direction)) {
-      return NextResponse.json({ error: 'direction must be "left" or "right"' }, { status: 400 });
+    if (!['left', 'right', 'reset'].includes(direction)) {
+      return NextResponse.json({ error: 'direction must be "left", "right", or "reset"' }, { status: 400 });
     }
 
     const supabase = createServiceClient();
