@@ -78,6 +78,7 @@ export const BACKLOG = [
       { id: "PM-60", title: "Fix Bridge sync missing photos: drop $select to get Media navigation property", status: "done", date: "2026-03-06", notes: "OData $select suppresses navigation properties even with $expand; fetching all fields resolves it" },
       { id: "PM-61", title: "Beach/palm tree placeholder for listings without photos", status: "done", date: "2026-03-06", notes: "SwipeCard, ListingCard, PhotoGallery — deep ocean blue bg, faded emoji, white 'Listing Photo Coming Soon' overlay" },
       { id: "PM-62", title: "Fix deck not refreshing on reset button press", status: "done", date: "2026-03-06", notes: "refresh() didn't clear listings array — deck looked unchanged. Now clears to show loading spinner before re-fetch" },
+      { id: "PM-63", title: "Display field config system — DB table, admin panel, config-driven ListingInfo", status: "done", date: "2026-03-06", notes: "Migration 022: display_field_configs (26 rows) + 5 owner columns. Admin CRUD panel. ListingInfo.js refactored to render from config. Bridge sync now captures PublicRemarks, pool, parking, virtual_tour_url." },
     ],
   },
   {
@@ -100,6 +101,7 @@ export const BACKLOG = [
     category: "Ready to Build — Mobile App",
     items: [
       { id: "T-ME", title: "Mobile listing edit screen", status: "pending", notes: "PUT API exists, no mobile UI yet" },
+      { id: "T-OF", title: "Owner create form: add 5 new owner fields", status: "pending", notes: "owner_special_comments, owner_application_link, owner_pet_policy_details, owner_utilities_included, owner_showing_instructions — API accepts them, no mobile UI yet" },
       { id: "T21", title: "Boost indicator badge on swipe cards", status: "pending", notes: "Subtle \"Boosted\" badge on boosted listings" },
     ],
   },
