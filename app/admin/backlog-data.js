@@ -58,6 +58,10 @@ export const BACKLOG = [
       { id: "PM-40", title: "Add association_preferred column + Association chip selector in preferences", status: "done", date: "2026-03-05", notes: "NULL=no pref, true=prefer, false=avoid; 50pt PadScore penalty on mismatch" },
       { id: "PM-41", title: "Replace hoa_mismatch with association_mismatch in PadScore (server+client+admin)", status: "done", date: "2026-03-05", notes: "Uses hoa_fee > 0 as proxy for association until AssociationYN from Bridge" },
       { id: "PM-42", title: "Update preferences footer text + location label", status: "done", date: "2026-03-05" },
+      { id: "PM-43", title: "Fix Profile tab crash (move GestureHandlerRootView to root layout)", status: "done", date: "2026-03-05", notes: "Native crash caused by gesture handler scoped to swipe tab only" },
+      { id: "PM-44", title: "Swipe undo system (DELETE API + 5s undo button + haptics)", status: "done", date: "2026-03-05", notes: "Single swipe delete + bulk reset endpoints, undo button auto-dismisses" },
+      { id: "PM-45", title: "Saved/Passed toggle on Saved tab with remove + reconsider actions", status: "done", date: "2026-03-05", notes: "Pill-style toggle, remove from Saved, reconsider from Passed — both return listing to deck" },
+      { id: "PM-46", title: "Reset Swipe History option on Profile screen", status: "done", date: "2026-03-05", notes: "Danger-styled menu item with confirmation, bulk deletes all swipes" },
     ],
   },
   {
