@@ -3,7 +3,7 @@ import { writeAuditLog } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const BRIDGE_TOKEN = process.env.BRIDGE_SERVER_TOKEN;
 const BRIDGE_DATASET = process.env.BRIDGE_DATASET_CODE || 'miamire';
@@ -111,10 +111,9 @@ async function handleSync(request) {
     let updated = 0;
     let skipped = 0;
     let fetched = 0;
-    const allKeys = [];
+    const syncStartedAt = new Date().toISOString();
 
-    // Fetch and upsert per-county to stay under Bridge's 10K $skip limit
-    // and to make progress even if we hit the 60s Vercel timeout
+    // Fetch and upsert per-county to stay under Bridge's 10K $skip limit (Pro plan: 300s timeout)
     for (const county of SERVICE_COUNTIES) {
       let skip = 0;
       const top = 200;
@@ -136,7 +135,6 @@ async function handleSync(request) {
         // Upsert this page immediately
         if (items.length > 0) {
           const listings = items.map(mapBridgeToListing);
-          allKeys.push(...listings.map(l => l.listing_key));
 
           const { data: rows, error } = await supabase
             .from('listings')
@@ -160,15 +158,17 @@ async function handleSync(request) {
       }
     }
 
-    // Deactivate MLS listings not in this sync
+    // Deactivate MLS listings not touched by this sync
+    // Any active MLS listing whose updated_at is older than when this sync started
+    // was not in the Bridge feed — it's no longer active on the MLS
     let deactivatedCount = 0;
-    if (allKeys.length > 0) {
+    if (fetched > 0) {
       const { data: deactivated } = await supabase
         .from('listings')
         .update({ is_active: false, status: 'expired' })
         .eq('source', 'mls')
         .eq('is_active', true)
-        .not('listing_key', 'in', `(${allKeys.map(k => `"${k}"`).join(',')})`)
+        .lt('updated_at', syncStartedAt)
         .select('id');
 
       deactivatedCount = deactivated?.length || 0;
