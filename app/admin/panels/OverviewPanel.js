@@ -64,19 +64,19 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
     <div>
       {/* Stat Cards */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 28 }}>
-        <StatCard label="Active MLS Listings" value={stats.activeListings} sub="Live IDX rental listings" accent={COLORS.green} />
+        <StatCard
+          label="Total Owner Active Listings"
+          value={stats.ownerListings}
+          sub={`Active owner listings as of ${today}`}
+          accent={COLORS.green}
+        />
+        <StatCard label="Active MLS Listings" value={stats.activeListings} sub="Live IDX rental listings" accent={COLORS.purple} />
         <StatCard label="Open Tickets" value={openTicketCount} sub="SMS-first" accent={openTicketCount > 0 ? COLORS.amber : COLORS.green} />
         <StatCard
           label="Last IDX Sync"
           value={lastSync ? timeAgo(lastSync.completed_at) : 'never'}
           sub={lastSync ? `${lastSync.listings_added} added, ${lastSync.listings_updated} updated` : 'No syncs yet'}
           accent={COLORS.brand}
-        />
-        <StatCard
-          label="Total Owner Listings"
-          value={stats.ownerListings}
-          sub={`Active owner listings as of ${today}`}
-          accent={COLORS.purple}
         />
       </div>
 
