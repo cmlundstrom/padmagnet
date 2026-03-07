@@ -79,6 +79,13 @@ export const BACKLOG = [
       { id: "PM-61", title: "Beach/palm tree placeholder for listings without photos", status: "done", date: "2026-03-06", notes: "SwipeCard, ListingCard, PhotoGallery — deep ocean blue bg, faded emoji, white 'Listing Photo Coming Soon' overlay" },
       { id: "PM-62", title: "Fix deck not refreshing on reset button press", status: "done", date: "2026-03-06", notes: "refresh() didn't clear listings array — deck looked unchanged. Now clears to show loading spinner before re-fetch" },
       { id: "PM-63", title: "Display field config system — DB table, admin panel, config-driven ListingInfo", status: "done", date: "2026-03-06", notes: "Migration 022: display_field_configs (26 rows) + 5 owner columns. Admin CRUD panel. ListingInfo.js refactored to render from config. Bridge sync now captures PublicRemarks, pool, parking, virtual_tour_url." },
+      { id: "PM-64", title: "Remove Treasure Coast city filter, expand to 5-county coverage", status: "done", date: "2026-03-07", notes: "Bridge sync now filters by county (St Lucie, Martin, Palm Beach, Broward, Miami-Dade) with 30-day freshness window. ~11,400 listings." },
+      { id: "PM-65", title: "Wire Overview panel to live Supabase data", status: "done", date: "2026-03-07", notes: "4 stat cards, feed health, sync logs, owner listing signup — all live. Demo data removed from OverviewPanel." },
+      { id: "PM-66", title: "Admin header: user name bubble + remove county badge", status: "done", date: "2026-03-07" },
+      { id: "PM-67", title: "site_config table + /api/admin/config for persistent admin fields", status: "done", date: "2026-03-07", notes: "Bridge portal URL and IDX notes persist across sessions" },
+      { id: "PM-68", title: "Bridge sync: per-county fetch + stream-upsert + updated_at deactivation", status: "done", date: "2026-03-07", notes: "Handles 15K+ listings, stays under Bridge 10K $skip limit, Vercel Pro 300s timeout" },
+      { id: "PM-69", title: "Mobile: auto-refresh listings on app foreground (AppState listener)", status: "done", date: "2026-03-07", notes: "useListings.js re-fetches on AppState 'active', preserves saved cards" },
+      { id: "PM-70", title: "Email footer updated to PadMagnet.com tagline", status: "done", date: "2026-03-07" },
     ],
   },
   {
@@ -86,7 +93,7 @@ export const BACKLOG = [
     items: [
       { id: "T02", title: "Extract AdminLayout shell from monolith", status: "done", date: "2026-03-04", notes: "dashboard.js → shell (277 lines) + shared.js + demo-data.js" },
       { id: "T03", title: "Extract panels into separate files under panels/", status: "done", date: "2026-03-04", notes: "11 panel files in app/admin/panels/, zero behavior changes" },
-      { id: "T04", title: "Wire Overview panel to real Supabase data", status: "pending", notes: "Replace DEMO_* with real listing counts, sync status, KPIs" },
+      { id: "T04", title: "Wire Overview panel to real Supabase data", status: "done", date: "2026-03-07", notes: "Live stats, sync logs, owner listing signup, site_config persistence" },
       { id: "T05", title: "Wire Feeds panel to real sync_logs data", status: "pending", notes: "sync_logs table exists, UI still hardcoded" },
       { id: "T06", title: "Wire Listings panel to real data", status: "pending", notes: "Admin listings API exists, panel needs rewiring" },
       { id: "T07", title: "Wire PadScore panel to Supabase", status: "pending", notes: "padscore_configs table exists, need API + wire save" },
