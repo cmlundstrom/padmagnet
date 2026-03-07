@@ -17,7 +17,10 @@ export default function useListings() {
       const newListings = data.listings || [];
 
       if (append) {
-        setListings(prev => [...prev, ...newListings]);
+        setListings(prev => {
+          const existingIds = new Set(prev.map(l => l.id));
+          return [...prev, ...newListings.filter(l => !existingIds.has(l.id))];
+        });
       } else {
         setListings(newListings);
       }
