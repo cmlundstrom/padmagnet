@@ -10,29 +10,13 @@ const BRIDGE_DATASET = process.env.BRIDGE_DATASET_CODE || 'miamire';
 const BRIDGE_BASE = `https://api.bridgedataoutput.com/api/v2/OData/${BRIDGE_DATASET}/Property`;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const SELECT_FIELDS = [
-  'ListingKey', 'ListingId', 'StreetNumber', 'StreetName',
-  'City', 'StateOrProvince', 'PostalCode', 'CountyOrParish',
-  'Latitude', 'Longitude', 'PropertyType', 'PropertySubType',
-  'ListPrice', 'BedroomsTotal', 'BathroomsTotalInteger',
-  'LivingArea', 'LotSizeSquareFeet', 'YearBuilt',
-  'PetsAllowed', 'Furnished', 'AssociationFee',
-  'StandardStatus', 'ListAgentFullName', 'ListOfficeName',
-  'ListAgentDirectPhone', 'ListAgentEmail',
-  'ModificationTimestamp', 'Media',
-  'PublicRemarks', 'VirtualTourURLUnbranded',
-  'PoolPrivateYN', 'PoolFeatures',
-  'GarageSpaces', 'ParkingTotal',
-].join(',');
-
 const SERVICE_COUNTIES = [
   'St Lucie County', 'Martin County', 'Palm Beach County',
   'Broward County', 'Miami-Dade County',
 ];
 
-function buildFilter() {
-  const countyFilters = SERVICE_COUNTIES.map(c => `CountyOrParish eq '${c}'`).join(' or ');
-  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active' and (${countyFilters})`;
+function buildFilterForCounty(county) {
+  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active' and CountyOrParish eq '${county}'`;
 }
 
 function mapBridgeToListing(prop) {
@@ -80,35 +64,8 @@ function mapBridgeToListing(prop) {
   };
 }
 
-async function fetchAllFromBridge() {
-  const allProperties = [];
-  let skip = 0;
-  const top = 200;
-  let hasMore = true;
-
-  while (hasMore) {
-    const url = `${BRIDGE_BASE}?access_token=${BRIDGE_TOKEN}&$filter=${encodeURIComponent(buildFilter())}&$top=${top}&$skip=${skip}&$orderby=ModificationTimestamp desc`;
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Bridge API ${res.status}: ${text.slice(0, 200)}`);
-    }
-
-    const data = await res.json();
-    const items = data.value || [];
-    allProperties.push(...items);
-
-    hasMore = items.length === top;
-    skip += top;
-  }
-
-  return allProperties;
-}
-
 // GET handler for Vercel Cron (crons call GET)
 export async function GET(request) {
-  // Vercel Cron sends Authorization: Bearer <CRON_SECRET>
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
 
@@ -116,12 +73,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Delegate to POST handler logic
   return handleSync(request);
 }
 
 export async function POST(request) {
-  // Auth: either cron secret or admin check
   const cronHeader = request.headers.get('x-cron-secret');
   if (CRON_SECRET && cronHeader !== CRON_SECRET) {
     const authHeader = request.headers.get('Authorization');
@@ -152,46 +107,68 @@ async function handleSync(request) {
       .single();
     syncLogId = syncLog?.id;
 
-    // Fetch all rental listings from Bridge
-    const properties = await fetchAllFromBridge();
-    const listings = properties.map(mapBridgeToListing);
-
     let added = 0;
     let updated = 0;
     let skipped = 0;
+    let fetched = 0;
+    const allKeys = [];
 
-    // Upsert in batches of 50
-    for (let i = 0; i < listings.length; i += 50) {
-      const batch = listings.slice(i, i + 50);
-      const { data, error } = await supabase
-        .from('listings')
-        .upsert(batch, { onConflict: 'listing_key', ignoreDuplicates: false })
-        .select('id, created_at, updated_at');
+    // Fetch and upsert per-county to stay under Bridge's 10K $skip limit
+    // and to make progress even if we hit the 60s Vercel timeout
+    for (const county of SERVICE_COUNTIES) {
+      let skip = 0;
+      const top = 200;
+      let hasMore = true;
 
-      if (error) {
-        console.error('Upsert batch error:', error.message);
-        skipped += batch.length;
-        continue;
-      }
+      while (hasMore) {
+        const url = `${BRIDGE_BASE}?access_token=${BRIDGE_TOKEN}&$filter=${encodeURIComponent(buildFilterForCounty(county))}&$top=${top}&$skip=${skip}&$orderby=ModificationTimestamp desc`;
+        const res = await fetch(url);
 
-      for (const row of (data || [])) {
-        // If created_at equals updated_at (within 1s), it's a new insert
-        const isNew = Math.abs(new Date(row.created_at) - new Date(row.updated_at)) < 1000;
-        if (isNew) added++;
-        else updated++;
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Bridge API ${res.status} (${county}): ${text.slice(0, 200)}`);
+        }
+
+        const data = await res.json();
+        const items = data.value || [];
+        fetched += items.length;
+
+        // Upsert this page immediately
+        if (items.length > 0) {
+          const listings = items.map(mapBridgeToListing);
+          allKeys.push(...listings.map(l => l.listing_key));
+
+          const { data: rows, error } = await supabase
+            .from('listings')
+            .upsert(listings, { onConflict: 'listing_key', ignoreDuplicates: false })
+            .select('id, created_at, updated_at');
+
+          if (error) {
+            console.error(`Upsert error (${county}):`, error.message);
+            skipped += listings.length;
+          } else {
+            for (const row of (rows || [])) {
+              const isNew = Math.abs(new Date(row.created_at) - new Date(row.updated_at)) < 1000;
+              if (isNew) added++;
+              else updated++;
+            }
+          }
+        }
+
+        hasMore = items.length === top;
+        skip += top;
       }
     }
 
-    // Deactivate MLS listings not in this sync — also set status='expired'
+    // Deactivate MLS listings not in this sync
     let deactivatedCount = 0;
-    const activeKeys = listings.map(l => l.listing_key);
-    if (activeKeys.length > 0) {
+    if (allKeys.length > 0) {
       const { data: deactivated } = await supabase
         .from('listings')
         .update({ is_active: false, status: 'expired' })
         .eq('source', 'mls')
         .eq('is_active', true)
-        .not('listing_key', 'in', `(${activeKeys.map(k => `"${k}"`).join(',')})`)
+        .not('listing_key', 'in', `(${allKeys.map(k => `"${k}"`).join(',')})`)
         .select('id');
 
       deactivatedCount = deactivated?.length || 0;
@@ -219,12 +196,12 @@ async function handleSync(request) {
       tableName: 'listings',
       rowId: 'bridge_sync',
       action: 'sync',
-      newValue: JSON.stringify({ fetched: properties.length, added, updated, deactivated: deactivatedCount }),
+      newValue: JSON.stringify({ fetched, added, updated, deactivated: deactivatedCount }),
       adminUser: 'bridge_sync',
     });
 
     return NextResponse.json({
-      fetched: properties.length,
+      fetched,
       added,
       updated,
       deactivated: deactivatedCount,
@@ -233,7 +210,6 @@ async function handleSync(request) {
   } catch (err) {
     console.error('Bridge sync error:', err);
 
-    // Update sync log with failure
     if (syncLogId) {
       const supabase = createServiceClient();
       await supabase
