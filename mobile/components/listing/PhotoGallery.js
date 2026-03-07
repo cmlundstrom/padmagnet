@@ -84,18 +84,10 @@ export default function PhotoGallery({ photos = [] }) {
         </Animated.View>
       )}
 
-      {/* Dot indicators */}
-      {photos.length > 1 && photos.length <= 10 && (
-        <View style={styles.dots}>
-          {photos.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === activeIndex && styles.dotActive,
-              ]}
-            />
-          ))}
+      {/* Progress bar */}
+      {photos.length > 1 && (
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${((activeIndex + 1) / photos.length) * 100}%` }]} />
         </View>
       )}
     </View>
@@ -147,26 +139,18 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.white,
   },
-  dots: {
+  progressTrack: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 6,
     height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  dotActive: {
-    backgroundColor: COLORS.white,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  progressFill: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 1.5,
   },
   swipeHint: {
     position: 'absolute',
