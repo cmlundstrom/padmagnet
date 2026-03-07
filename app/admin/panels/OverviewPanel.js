@@ -12,6 +12,8 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
   const [lastOwnerListing, setLastOwnerListing] = useState(null);
   const [bridgePortalUrl, setBridgePortalUrl] = useState(BRIDGE_PORTAL_URL);
   const [editingUrl, setEditingUrl] = useState(false);
+  const [bridgeNote, setBridgeNote] = useState('Note: IDX Import restricted to 300 seconds max per/daily session (6AM) at current Vercel "PRO" package level. This IDX probably imports ~5000 listings per/60 seconds.');
+  const [editingNote, setEditingNote] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -107,6 +109,42 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
             Last sync: {lastSync ? timeAgo(lastSync.completed_at) : 'never'}
           </span>
           <Badge color={lastSync ? 'green' : 'gray'}>{lastSync ? 'Active' : 'No Data'}</Badge>
+        </div>
+        {/* Bridge IDX notes — editable */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8,
+          padding: '8px 16px', background: COLORS.bg, borderRadius: '6px',
+          border: `1px solid ${COLORS.border}`,
+        }}>
+          <span style={{ fontSize: '11px', color: COLORS.textDim, fontWeight: 600, whiteSpace: 'nowrap', marginTop: 2 }}>Notes:</span>
+          {editingNote ? (
+            <textarea
+              value={bridgeNote}
+              onChange={e => setBridgeNote(e.target.value)}
+              onBlur={() => setEditingNote(false)}
+              autoFocus
+              rows={3}
+              style={{
+                flex: 1, background: COLORS.surface, border: `1px solid ${COLORS.borderLight}`,
+                borderRadius: '4px', padding: '4px 8px', color: COLORS.text,
+                fontSize: '11px', fontFamily: "'DM Sans', sans-serif", outline: 'none',
+                resize: 'vertical', lineHeight: 1.5,
+              }}
+            />
+          ) : (
+            <span style={{ flex: 1, fontSize: '11px', color: COLORS.textDim, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              {bridgeNote}
+            </span>
+          )}
+          <button
+            onClick={() => setEditingNote(!editingNote)}
+            style={{
+              background: 'none', border: 'none', color: COLORS.textDim,
+              cursor: 'pointer', fontSize: '11px', padding: '2px 6px', whiteSpace: 'nowrap',
+            }}
+          >
+            {editingNote ? 'done' : 'edit'}
+          </button>
         </div>
 
         {/* Bridge Portal URL — editable quick-access */}
