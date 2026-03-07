@@ -10,13 +10,19 @@ const BRIDGE_DATASET = process.env.BRIDGE_DATASET_CODE || 'miamire';
 const BRIDGE_BASE = `https://api.bridgedataoutput.com/api/v2/OData/${BRIDGE_DATASET}/Property`;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const SERVICE_COUNTIES = [
-  'St Lucie County', 'Martin County', 'Palm Beach County',
-  'Broward County', 'Miami-Dade County',
+// Each query must stay under Bridge's 10K $skip limit.
+// Miami-Dade (~10,200 listings) is split by price to keep each under 10K.
+const SYNC_QUERIES = [
+  { label: 'St Lucie County', filter: "CountyOrParish eq 'St Lucie County'" },
+  { label: 'Martin County', filter: "CountyOrParish eq 'Martin County'" },
+  { label: 'Palm Beach County', filter: "CountyOrParish eq 'Palm Beach County'" },
+  { label: 'Broward County', filter: "CountyOrParish eq 'Broward County'" },
+  { label: 'Miami-Dade (up to $5k)', filter: "CountyOrParish eq 'Miami-Dade County' and ListPrice le 5000" },
+  { label: 'Miami-Dade (over $5k)', filter: "CountyOrParish eq 'Miami-Dade County' and ListPrice gt 5000" },
 ];
 
-function buildFilterForCounty(county) {
-  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active' and CountyOrParish eq '${county}'`;
+function buildFilter(queryFilter) {
+  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active' and ${queryFilter}`;
 }
 
 function mapBridgeToListing(prop) {
@@ -113,19 +119,19 @@ async function handleSync(request) {
     let fetched = 0;
     const syncStartedAt = new Date().toISOString();
 
-    // Fetch and upsert per-county to stay under Bridge's 10K $skip limit (Pro plan: 300s timeout)
-    for (const county of SERVICE_COUNTIES) {
+    // Fetch and upsert per-query to stay under Bridge's 10K $skip limit (Pro plan: 300s timeout)
+    for (const query of SYNC_QUERIES) {
       let skip = 0;
       const top = 200;
       let hasMore = true;
 
       while (hasMore) {
-        const url = `${BRIDGE_BASE}?access_token=${BRIDGE_TOKEN}&$filter=${encodeURIComponent(buildFilterForCounty(county))}&$top=${top}&$skip=${skip}&$orderby=ModificationTimestamp desc`;
+        const url = `${BRIDGE_BASE}?access_token=${BRIDGE_TOKEN}&$filter=${encodeURIComponent(buildFilter(query.filter))}&$top=${top}&$skip=${skip}&$orderby=ModificationTimestamp desc`;
         const res = await fetch(url);
 
         if (!res.ok) {
           const text = await res.text();
-          throw new Error(`Bridge API ${res.status} (${county}): ${text.slice(0, 200)}`);
+          throw new Error(`Bridge API ${res.status} (${query.label}): ${text.slice(0, 200)}`);
         }
 
         const data = await res.json();
@@ -142,7 +148,7 @@ async function handleSync(request) {
             .select('id, created_at, updated_at');
 
           if (error) {
-            console.error(`Upsert error (${county}):`, error.message);
+            console.error(`Upsert error (${query.label}):`, error.message);
             skipped += listings.length;
           } else {
             for (const row of (rows || [])) {
