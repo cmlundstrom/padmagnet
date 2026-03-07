@@ -157,17 +157,13 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
           {/* Info */}
           <View style={styles.info}>
             <Text style={styles.price}>{formatCurrency(listing.list_price)}<Text style={styles.perMonth}>/mo</Text></Text>
-            <Text style={styles.address} numberOfLines={1}>{address}</Text>
-            <Text style={styles.city} numberOfLines={1}>{cityLine}</Text>
+            <Text style={styles.address} numberOfLines={1}>{address}, {listing.city}</Text>
             <View style={styles.detailsRow}>
               <Text style={styles.details}>
                 {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
                 {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
               </Text>
             </View>
-            <Text style={styles.mls} numberOfLines={1}>
-              {listing.listing_office_name || MLS_COPYRIGHT.replace('{year}', new Date().getFullYear())}
-            </Text>
           </View>
         </View>
       </Animated.View>
@@ -191,7 +187,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   imageContainer: {
-    flex: 0.6,
+    flex: 0.7,
     backgroundColor: COLORS.surface,
   },
   image: {
@@ -245,7 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.danger + '33',
   },
   info: {
-    flex: 0.4,
+    flex: 0.3,
     padding: LAYOUT.padding.md,
     justifyContent: 'center',
   },
@@ -261,9 +257,9 @@ const styles = StyleSheet.create({
   },
   address: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.text,
-    marginTop: 4,
+    marginTop: 2,
   },
   city: {
     fontFamily: FONTS.body.regular,
@@ -274,7 +270,7 @@ const styles = StyleSheet.create({
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   details: {
     fontFamily: FONTS.body.medium,

@@ -20,6 +20,6 @@ export const LAYOUT = {
   },
   card: {
     width: width - 32,
-    height: height * 0.65,
+    height: height * 0.58,
   },
 };

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
 import { useAlert } from '../../providers/AlertProvider';
+import { AuthContext } from '../../providers/AuthProvider';
 import { apiFetch } from '../../lib/api';
 import { calculatePadScore } from '../../lib/padscore';
 import { COLORS } from '../../constants/colors';
@@ -23,6 +24,8 @@ const VIEW_ICONS = { cards: '▣', map: '◎', list: '☰' };
 
 export default function SwipeScreen() {
   const router = useRouter();
+  const { user } = useContext(AuthContext);
+  const firstName = (user?.user_metadata?.display_name || '').split(' ')[0];
   const [viewMode, setViewMode] = useState('cards');
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
   const { recordSwipe } = useSwipe();
@@ -112,8 +115,15 @@ export default function SwipeScreen() {
           </View>
         </View>
 
+        {/* Personalized intro */}
+        {viewMode === 'cards' && firstName ? (
+          <Text style={styles.introText}>
+            <Text style={styles.introBold}>{firstName}</Text>, your <Text style={styles.introBold}>PadScore™</Text> is now live! These homes fit your requirements. Refine your <Text style={styles.introBold}>PadScore™</Text> anytime in 'Profile'.
+          </Text>
+        ) : null}
+
         {/* Card area */}
-        <View style={styles.cardArea}>
+        <View style={[styles.cardArea, { marginTop: 15 }]}>
           {viewMode === 'cards' && (
             <CardStack
               listings={scoredListings}
@@ -206,6 +216,18 @@ const styles = StyleSheet.create({
   logo: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xl,
+  },
+  introText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingBottom: LAYOUT.padding.xs,
+    marginTop: 5,
+  },
+  introBold: {
+    fontFamily: FONTS.body.bold,
   },
   headerLeft: {
     flexDirection: 'row',
