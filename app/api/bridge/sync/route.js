@@ -10,11 +10,6 @@ const BRIDGE_DATASET = process.env.BRIDGE_DATASET_CODE || 'miamire';
 const BRIDGE_BASE = `https://api.bridgedataoutput.com/api/v2/OData/${BRIDGE_DATASET}/Property`;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const TREASURE_COAST_CITIES = [
-  'Stuart', 'Port Saint Lucie', 'Port St Lucie', 'Jensen Beach',
-  'Hobe Sound', 'Palm City', 'Fort Pierce', 'Indiantown', 'Tradition',
-];
-
 const SELECT_FIELDS = [
   'ListingKey', 'ListingId', 'StreetNumber', 'StreetName',
   'City', 'StateOrProvince', 'PostalCode', 'CountyOrParish',
@@ -31,8 +26,7 @@ const SELECT_FIELDS = [
 ].join(',');
 
 function buildFilter() {
-  const cityFilters = TREASURE_COAST_CITIES.map(c => `City eq '${c}'`).join(' or ');
-  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active' and (${cityFilters})`;
+  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active'`;
 }
 
 function mapBridgeToListing(prop) {

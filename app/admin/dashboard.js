@@ -41,6 +41,7 @@ export default function PadMagnetAdmin() {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openTicketCount, setOpenTicketCount] = useState(0);
+  const [adminName, setAdminName] = useState("");
   const router = useRouter();
 
   // Fetch open ticket count for sidebar badge + overview
@@ -56,10 +57,19 @@ export default function PadMagnetAdmin() {
 
   useEffect(() => {
     refreshTicketCount();
-    // Refresh every 60 seconds
     const interval = setInterval(refreshTicketCount, 60000);
     return () => clearInterval(interval);
   }, [refreshTicketCount]);
+
+  // Fetch admin user display name
+  useEffect(() => {
+    const supabase = createSupabaseBrowser();
+    supabase.auth.getUser().then(({ data }) => {
+      const meta = data?.user?.user_metadata;
+      const email = data?.user?.email || "";
+      setAdminName(meta?.full_name || meta?.name || email.split("@")[0]);
+    });
+  }, []);
 
   // Also refresh when switching to/from support tab
   useEffect(() => {
@@ -257,17 +267,17 @@ export default function PadMagnetAdmin() {
           }}>
             {NAV_ITEMS.find(n => n.id === activeTab)?.icon} {NAV_ITEMS.find(n => n.id === activeTab)?.label}
           </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Badge color="cyan">Martin + St. Lucie County</Badge>
+          {adminName && (
             <div style={{
-              width: 32, height: 32, borderRadius: "50%",
+              display: "inline-flex", alignItems: "center", padding: "4px 14px",
+              borderRadius: "20px",
               background: `linear-gradient(135deg, ${COLORS.brand}, ${COLORS.purple})`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "13px", fontWeight: 800, color: "#000",
+              fontSize: "13px", fontWeight: 700, color: "#000",
+              letterSpacing: "-0.01em",
             }}>
-              A
+              {adminName}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Panel Content */}

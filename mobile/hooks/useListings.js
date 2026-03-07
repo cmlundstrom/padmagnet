@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import { apiFetch } from '../lib/api';
 
 export default function useListings() {
@@ -40,6 +41,19 @@ export default function useListings() {
 
   useEffect(() => {
     fetchListings(1);
+  }, [fetchListings]);
+
+  // Re-fetch listings when app returns to foreground (warm start)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setListings([]);
+        setPage(1);
+        setHasMore(true);
+        fetchListings(1);
+      }
+    });
+    return () => sub.remove();
   }, [fetchListings]);
 
   const loadMore = useCallback(() => {
