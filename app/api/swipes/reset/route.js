@@ -11,12 +11,20 @@ export async function DELETE(request) {
       return NextResponse.json({ error: authError }, { status });
     }
 
+    const { searchParams } = new URL(request.url);
+    const direction = searchParams.get('direction');
+
     const supabase = createServiceClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from('swipes')
       .delete()
-      .eq('user_id', user.id)
-      .select('id');
+      .eq('user_id', user.id);
+
+    if (direction) {
+      query = query.eq('direction', direction);
+    }
+
+    const { data, error } = await query.select('id');
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,5 +1,5 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
-import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -25,30 +25,21 @@ export default function SwipeScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState('cards');
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
-  const { recordSwipe, undoSwipe } = useSwipe();
-  const [lastSwipe, setLastSwipe] = useState(null);
-  const undoOpacity = useRef(new Animated.Value(0)).current;
-  const undoTimer = useRef(null);
+  const { recordSwipe } = useSwipe();
   const { preferences } = usePreferences();
   const alert = useAlert();
 
-  const handleReset = useCallback(() => {
+  const handleRefresh = useCallback(() => {
     alert(
-      'Start Over?',
-      'This clears all your saved and passed listings so you can review everything fresh.',
+      'Refresh Feed?',
+      'Refreshing now will refresh your feed, newest to oldest. Your saved properties remain "Saved".',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiFetch('/api/swipes/reset', { method: 'DELETE' });
-              refresh();
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } catch (err) {
-              alert('Error', err.message);
-            }
+          text: 'Refresh',
+          onPress: () => {
+            refresh();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           },
         },
       ]
@@ -76,38 +67,8 @@ export default function SwipeScreen() {
     const saved = await recordSwipe(listing.id, direction, score);
     if (!saved) {
       prependToList(listing);
-      return;
     }
-
-    // Show undo button
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    setLastSwipe({ listing, direction });
-    Animated.timing(undoOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    undoTimer.current = setTimeout(() => {
-      Animated.timing(undoOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-        setLastSwipe(null);
-      });
-    }, 5000);
-  }, [removeFromDeck, recordSwipe, undoOpacity]);
-
-  const handleUndo = useCallback(async () => {
-    if (!lastSwipe) return;
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    const { listing } = lastSwipe;
-    setLastSwipe(null);
-    undoOpacity.setValue(0);
-
-    const success = await undoSwipe(listing.id);
-    if (success) {
-      prependToList(listing);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [lastSwipe, undoSwipe, prependToList, undoOpacity]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => { if (undoTimer.current) clearTimeout(undoTimer.current); };
-  }, []);
+  }, [removeFromDeck, recordSwipe, prependToList]);
 
   const handleTapCard = useCallback((listing) => {
     router.push(`/listing/${listing.id}`);
@@ -117,14 +78,16 @@ export default function SwipeScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>
-            <Text style={{ color: COLORS.white }}>Pad</Text>
-            <Text style={{ color: COLORS.brandOrange }}>Magnet</Text>
-          </Text>
+          <View style={styles.headerLeft}>
+            <Pressable style={styles.resetBtn} onPress={handleRefresh}>
+              <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
+            </Pressable>
+            <Text style={styles.logo}>
+              <Text style={{ color: COLORS.white }}>Pad</Text>
+              <Text style={{ color: COLORS.brandOrange }}>Magnet</Text>
+            </Text>
+          </View>
           <View style={styles.headerRight}>
-          <Pressable style={styles.resetBtn} onPress={handleReset}>
-            <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
-          </Pressable>
           <View style={styles.viewToggle}>
             {VIEW_MODES.map(mode => (
               <Pressable
@@ -220,17 +183,6 @@ export default function SwipeScreen() {
           </View>
         )}
 
-        {/* Undo button */}
-        {lastSwipe && (
-          <Animated.View style={[styles.undoContainer, { opacity: undoOpacity }]}>
-            <Pressable style={styles.undoButton} onPress={handleUndo}>
-              <Text style={styles.undoText}>
-                ↩ Undo {lastSwipe.direction === 'right' ? 'Save' : 'Skip'}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
         {/* MLS compliance footer */}
         <Text style={styles.mlsFooter}>
           {MLS_COPYRIGHT.replace('{year}', new Date().getFullYear())}
@@ -254,6 +206,11 @@ const styles = StyleSheet.create({
   logo: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xl,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   headerRight: {
     flexDirection: 'row',
@@ -330,23 +287,6 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 22,
     fontFamily: FONTS.heading.bold,
-  },
-  undoContainer: {
-    alignItems: 'center',
-    paddingBottom: 4,
-  },
-  undoButton: {
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-  },
-  undoText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
   },
   mlsFooter: {
     fontFamily: FONTS.body.regular,

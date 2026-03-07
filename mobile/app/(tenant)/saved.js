@@ -3,6 +3,7 @@ import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, Sty
 import { FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { EmptyState } from '../../components/ui';
 import { ListingCard } from '../../components/listing';
 import { useAlert } from '../../providers/AlertProvider';
@@ -79,22 +80,49 @@ export default function SavedScreen() {
   }, [loading, hasMore, page, activeTab, fetchItems]);
 
   const handleRemove = useCallback(async (listingId) => {
-    const label = activeTab === 'right' ? 'loved' : 'trash';
+    try {
+      await apiFetch('/api/swipes', {
+        method: 'POST',
+        body: JSON.stringify({ listing_id: listingId, direction: 'left', padscore: 0 }),
+      });
+      setItems(prev => prev.filter(l => l.id !== listingId));
+    } catch (err) {
+      alert('Error', err.message);
+    }
+  }, [alert]);
+
+  const handleReconsider = useCallback(async (listingId) => {
+    try {
+      await apiFetch('/api/swipes', {
+        method: 'DELETE',
+        body: JSON.stringify({ listing_id: listingId }),
+      });
+      setItems(prev => prev.filter(l => l.id !== listingId));
+    } catch (err) {
+      alert('Error', err.message);
+    }
+  }, [alert]);
+
+  const isSaved = activeTab === 'right';
+  const emptyIcon = isSaved ? '♡' : '🗑';
+  const emptyTitle = isSaved ? 'No loved listings yet' : 'Trash is empty';
+  const emptySubtitle = isSaved
+    ? 'Swipe right on listings you love and they\'ll appear here.'
+    : 'Listings you skip will appear here so you can reconsider them.';
+
+  const handleRestoreAll = useCallback(() => {
     alert(
-      'Remove listing?',
-      `This listing will be removed from your ${label} list and return to your swipe deck.`,
+      'Restore All?',
+      'Restore all filtered-out listings to main search?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: 'Restore',
           onPress: async () => {
             try {
-              await apiFetch('/api/swipes', {
-                method: 'POST',
-                body: JSON.stringify({ listing_id: listingId, direction: 'reset', padscore: 0 }),
-              });
-              setItems(prev => prev.filter(l => l.id !== listingId));
+              await apiFetch('/api/swipes/reset?direction=left', { method: 'DELETE' });
+              setItems([]);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (err) {
               alert('Error', err.message);
             }
@@ -102,18 +130,6 @@ export default function SavedScreen() {
         },
       ]
     );
-  }, [activeTab]);
-
-  const handleReconsider = useCallback(async (listingId) => {
-    try {
-      await apiFetch('/api/swipes', {
-        method: 'POST',
-        body: JSON.stringify({ listing_id: listingId, direction: 'reset', padscore: 0 }),
-      });
-      setItems(prev => prev.filter(l => l.id !== listingId));
-    } catch (err) {
-      alert('Error', err.message);
-    }
   }, [alert]);
 
   if (loading && items.length === 0) {
@@ -139,16 +155,16 @@ export default function SavedScreen() {
     );
   }
 
-  const isSaved = activeTab === 'right';
-  const emptyIcon = isSaved ? '♡' : '🗑';
-  const emptyTitle = isSaved ? 'No loved listings yet' : 'Trash is empty';
-  const emptySubtitle = isSaved
-    ? 'Swipe right on listings you love and they\'ll appear here.'
-    : 'Listings you skip will appear here so you can reconsider them.';
-
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
-      <Text style={SCREEN.pageTitleFlush}>Saved</Text>
+      <View style={styles.titleRow}>
+        <Text style={SCREEN.pageTitleFlush}>Saved</Text>
+        {!isSaved && (
+          <Pressable style={styles.restoreBtn} onPress={handleRestoreAll}>
+            <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
+          </Pressable>
+        )}
+      </View>
 
       {/* Tab toggle */}
       <View style={styles.tabBar}>
@@ -285,5 +301,19 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingVertical: LAYOUT.padding.md,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: LAYOUT.padding.md,
+  },
+  restoreBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
