@@ -25,8 +25,14 @@ const SELECT_FIELDS = [
   'GarageSpaces', 'ParkingTotal',
 ].join(',');
 
+const SERVICE_COUNTIES = [
+  'St Lucie County', 'Martin County', 'Palm Beach County',
+  'Broward County', 'Miami-Dade County',
+];
+
 function buildFilter() {
-  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active'`;
+  const countyFilters = SERVICE_COUNTIES.map(c => `CountyOrParish eq '${c}'`).join(' or ');
+  return `PropertyType eq 'Residential Lease' and StandardStatus eq 'Active' and (${countyFilters})`;
 }
 
 function mapBridgeToListing(prop) {
