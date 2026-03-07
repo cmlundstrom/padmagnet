@@ -10,6 +10,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
+import { FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -17,13 +18,16 @@ import { Badge } from '../ui';
 import { formatCurrency, formatBedsBaths } from '../../utils/format';
 import { MLS_COPYRIGHT } from '../../constants/mls';
 
-const SWIPE_THRESHOLD = LAYOUT.window.width * 0.35;
+const SCREEN_WIDTH = LAYOUT.window.width;
+const CARD_WIDTH = LAYOUT.card.width;
+const CARD_HEIGHT = LAYOUT.card.height;
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
+const SWIPE_VELOCITY = 800;
 const ROTATION_ANGLE = 15;
 
 export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const cardScale = useSharedValue(isTop ? 1 : 0.95);
 
   const score = listing.padScore?.score ?? 50;
   const firstPhoto = listing.photos?.[0]?.url;
@@ -32,26 +36,36 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
 
   const panGesture = Gesture.Pan()
     .enabled(isTop)
+    .onStart(() => {
+      // Reset context — fresh drag each time
+    })
     .onUpdate((event) => {
       translateX.value = event.translationX;
-      translateY.value = event.translationY * 0.5;
+      translateY.value = event.translationY * 0.3;
     })
     .onEnd((event) => {
-      if (Math.abs(translateX.value) > SWIPE_THRESHOLD) {
-        const direction = translateX.value > 0 ? 'right' : 'left';
-        const flyTo = translateX.value > 0 ? LAYOUT.window.width * 1.5 : -LAYOUT.window.width * 1.5;
-        translateX.value = withTiming(flyTo, { duration: 300 }, () => {
-          runOnJS(onSwipe)(direction);
+      const swipedRight =
+        translateX.value > SWIPE_THRESHOLD || event.velocityX > SWIPE_VELOCITY;
+      const swipedLeft =
+        translateX.value < -SWIPE_THRESHOLD || event.velocityX < -SWIPE_VELOCITY;
+
+      if (swipedRight) {
+        translateX.value = withTiming(SCREEN_WIDTH + 200, { duration: 300 }, () => {
+          runOnJS(onSwipe)('right');
         });
-        translateY.value = withTiming(event.translationY * 2, { duration: 300 });
+      } else if (swipedLeft) {
+        translateX.value = withTiming(-SCREEN_WIDTH - 200, { duration: 300 }, () => {
+          runOnJS(onSwipe)('left');
+        });
       } else {
-        translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
-        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+        translateX.value = withSpring(0, { damping: 15, stiffness: 150 });
+        translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
       }
     });
 
   const tapGesture = Gesture.Tap()
     .enabled(isTop)
+    .maxDuration(250)
     .onEnd(() => {
       if (onTap) runOnJS(onTap)();
     });
@@ -61,7 +75,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
   const cardStyle = useAnimatedStyle(() => {
     const rotate = interpolate(
       translateX.value,
-      [-LAYOUT.window.width, 0, LAYOUT.window.width],
+      [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
       [-ROTATION_ANGLE, 0, ROTATION_ANGLE],
       Extrapolation.CLAMP
     );
@@ -71,7 +85,6 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
         { translateX: translateX.value },
         { translateY: translateY.value },
         { rotate: `${rotate}deg` },
-        { scale: cardScale.value },
       ],
     };
   });
@@ -86,81 +99,79 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
 
   return (
     <GestureDetector gesture={composedGesture}>
-      <Animated.View style={[styles.card, cardStyle]}>
-        {/* Photo */}
-        <View style={styles.imageContainer}>
-          {firstPhoto ? (
-            <Image
-              source={{ uri: firstPhoto }}
-              style={styles.image}
-              contentFit="cover"
-              placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
-              transition={200}
-            />
-          ) : (
-            <View style={styles.placeholderWrap}>
-              <Text style={styles.placeholderEmoji}>🌴🏖️</Text>
-              <View style={styles.placeholderOverlay}>
-                <Text style={styles.placeholderTitle}>Listing Photo</Text>
-                <Text style={styles.placeholderTitle}>Coming Soon</Text>
+      <Animated.View style={[styles.gestureTarget, cardStyle]} collapsable={false}>
+        <View style={styles.card}>
+          {/* Photo */}
+          <View style={styles.imageContainer}>
+            {firstPhoto ? (
+              <Image
+                source={{ uri: firstPhoto }}
+                style={styles.image}
+                contentFit="cover"
+                placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+                transition={200}
+              />
+            ) : (
+              <View style={styles.placeholderWrap}>
+                <Text style={styles.placeholderEmoji}>🌴🏖️</Text>
+                <View style={styles.placeholderOverlay}>
+                  <Text style={styles.placeholderTitle}>Listing Photo</Text>
+                  <Text style={styles.placeholderTitle}>Coming Soon</Text>
+                </View>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* PadScore badge */}
-          <View style={styles.scoreBadge}>
-            <Badge score={score} />
+            {/* PadScore badge */}
+            <View style={styles.scoreBadge}>
+              <Badge score={score} />
+            </View>
+
+            {/* SAVE overlay */}
+            <Animated.View style={[styles.overlay, styles.saveOverlay, saveOverlayStyle]}>
+              <FontAwesome name="heart" size={24} color={COLORS.success} />
+            </Animated.View>
+
+            {/* SKIP overlay */}
+            <Animated.View style={[styles.overlay, styles.skipOverlay, skipOverlayStyle]}>
+              <FontAwesome name="trash" size={24} color={COLORS.danger} />
+            </Animated.View>
           </View>
 
-          {/* SAVE overlay */}
-          <Animated.View style={[styles.overlay, styles.saveOverlay, saveOverlayStyle]}>
-            <Text style={styles.saveText}>SAVE</Text>
-          </Animated.View>
-
-          {/* SKIP overlay */}
-          <Animated.View style={[styles.overlay, styles.skipOverlay, skipOverlayStyle]}>
-            <Text style={styles.skipText}>SKIP</Text>
-          </Animated.View>
-        </View>
-
-        {/* Info */}
-        <View style={styles.info}>
-          <Text style={styles.price}>{formatCurrency(listing.list_price)}<Text style={styles.perMonth}>/mo</Text></Text>
-          <Text style={styles.address} numberOfLines={1}>{address}</Text>
-          <Text style={styles.city} numberOfLines={1}>{cityLine}</Text>
-          <View style={styles.detailsRow}>
-            <Text style={styles.details}>
-              {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
-              {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
+          {/* Info */}
+          <View style={styles.info}>
+            <Text style={styles.price}>{formatCurrency(listing.list_price)}<Text style={styles.perMonth}>/mo</Text></Text>
+            <Text style={styles.address} numberOfLines={1}>{address}</Text>
+            <Text style={styles.city} numberOfLines={1}>{cityLine}</Text>
+            <View style={styles.detailsRow}>
+              <Text style={styles.details}>
+                {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
+                {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
+              </Text>
+            </View>
+            <Text style={styles.mls} numberOfLines={1}>
+              {listing.listing_office_name || MLS_COPYRIGHT.replace('{year}', new Date().getFullYear())}
             </Text>
           </View>
-          <Text style={styles.mls} numberOfLines={1}>
-            {listing.listing_office_name || MLS_COPYRIGHT.replace('{year}', new Date().getFullYear())}
-          </Text>
         </View>
       </Animated.View>
     </GestureDetector>
   );
 }
 
-// Animate the card into position from behind the deck
-export function useCardEnterAnimation(index) {
-  return {
-    scale: interpolate(index, [0, 1, 2], [1, 0.95, 0.9]),
-    translateY: interpolate(index, [0, 1, 2], [0, 10, 20]),
-  };
-}
-
 const styles = StyleSheet.create({
+  // Outer gesture target — NO overflow hidden, explicit size, collapsable=false
+  gestureTarget: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+  },
+  // Inner visual card — overflow hidden for rounded corners
   card: {
-    width: LAYOUT.card.width,
-    height: LAYOUT.card.height,
+    flex: 1,
     backgroundColor: COLORS.card,
     borderRadius: LAYOUT.radius.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
-    position: 'absolute',
   },
   imageContainer: {
     flex: 0.6,
@@ -198,31 +209,23 @@ const styles = StyleSheet.create({
   },
   overlay: {
     position: 'absolute',
-    top: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: LAYOUT.radius.sm,
-    borderWidth: 3,
+    top: '40%',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveOverlay: {
-    left: 20,
+    left: 16,
     borderColor: COLORS.success,
-    backgroundColor: COLORS.success + '22',
+    backgroundColor: COLORS.success + '33',
   },
   skipOverlay: {
-    right: 20,
+    right: 16,
     borderColor: COLORS.danger,
-    backgroundColor: COLORS.danger + '22',
-  },
-  saveText: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.success,
-  },
-  skipText: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.danger,
+    backgroundColor: COLORS.danger + '33',
   },
   info: {
     flex: 0.4,

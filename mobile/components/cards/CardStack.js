@@ -1,17 +1,14 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   interpolate,
-  withTiming,
-  useSharedValue,
+  Extrapolation,
 } from 'react-native-reanimated';
 import SwipeCard from './SwipeCard';
 import { EmptyState } from '../ui';
 import { COLORS } from '../../constants/colors';
 import { LAYOUT } from '../../constants/layout';
-
-const VISIBLE_CARDS = 3;
 
 export default function CardStack({
   listings,
@@ -36,9 +33,11 @@ export default function CardStack({
   }, [listings, onTapCard]);
 
   // Pre-fetch when running low
-  if (listings.length <= 3 && hasMore && onLoadMore) {
-    onLoadMore();
-  }
+  useEffect(() => {
+    if (listings.length <= 3 && hasMore && onLoadMore) {
+      onLoadMore();
+    }
+  }, [listings.length, hasMore, onLoadMore]);
 
   if (loading && listings.length === 0) {
     return (
@@ -72,40 +71,31 @@ export default function CardStack({
     );
   }
 
-  const visibleListings = listings.slice(0, VISIBLE_CARDS);
-
   return (
     <View style={styles.container}>
-      {visibleListings.map((listing, index) => {
-        const reverseIndex = visibleListings.length - 1 - index;
-        return (
-          <BackCard key={listing.id} index={reverseIndex}>
-            <SwipeCard
-              listing={listing}
-              isTop={index === 0}
-              onSwipe={handleSwipe}
-              onTap={handleTap}
-            />
-          </BackCard>
-        );
-      }).reverse()}
+      {/* Next card (behind) — no gestures, just visual */}
+      {listings.length > 1 && (
+        <View style={[styles.cardWrapper, styles.backCard]} pointerEvents="none">
+          <SwipeCard
+            listing={listings[1]}
+            isTop={false}
+            onSwipe={() => {}}
+            onTap={() => {}}
+          />
+        </View>
+      )}
+
+      {/* Top card — receives gestures */}
+      <View style={styles.cardWrapper}>
+        <SwipeCard
+          key={listings[0].id}
+          listing={listings[0]}
+          isTop={true}
+          onSwipe={handleSwipe}
+          onTap={handleTap}
+        />
+      </View>
     </View>
-  );
-}
-
-function BackCard({ children, index }) {
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { scale: withTiming(interpolate(index, [0, 1, 2], [1, 0.95, 0.9]), { duration: 200 }) },
-      { translateY: withTiming(interpolate(index, [0, 1, 2], [0, 10, 20]), { duration: 200 }) },
-    ],
-    zIndex: 10 - index,
-  }));
-
-  return (
-    <Animated.View style={[styles.cardWrapper, style]}>
-      {children}
-    </Animated.View>
   );
 }
 
@@ -117,8 +107,12 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: LAYOUT.card.width,
+    height: LAYOUT.card.height,
+  },
+  backCard: {
+    transform: [{ translateX: -9 }, { translateY: 15 }],
+    opacity: 0.75,
   },
   center: {
     flex: 1,

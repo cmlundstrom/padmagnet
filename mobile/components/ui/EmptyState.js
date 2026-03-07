@@ -33,6 +33,7 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 48,
     marginBottom: 16,
+    color: COLORS.white,
   },
   title: {
     fontFamily: FONTS.heading.semiBold,

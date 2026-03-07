@@ -107,8 +107,8 @@ export default function SavedScreen() {
   const emptyIcon = isSaved ? '♡' : '🗑';
   const emptyTitle = isSaved ? 'No loved listings yet' : 'Trash is empty';
   const emptySubtitle = isSaved
-    ? 'Swipe right on listings you love and they\'ll appear here.'
-    : 'Listings you skip will appear here so you can reconsider them.';
+    ? 'Swipe Right on the rental cards you Love and they\'ll appear right here.'
+    : 'Rentals you Trash will appear here in case you want to reconsider them later.';
 
   const handleRestoreAll = useCallback(() => {
     alert(
@@ -202,7 +202,7 @@ export default function SavedScreen() {
                 </Pressable>
               ) : (
                 <Pressable style={styles.reconsiderBtn} onPress={() => handleReconsider(item.id)}>
-                  <Text style={styles.reconsiderBtnText}>Reconsider</Text>
+                  <Text style={styles.reconsiderBtnText}>Un-Trash</Text>
                 </Pressable>
               )}
             </View>
