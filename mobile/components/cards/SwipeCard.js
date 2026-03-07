@@ -1,10 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useEffect } from 'react';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withTiming,
+  withSequence,
+  withDelay,
   runOnJS,
   interpolate,
   Extrapolation,
@@ -25,9 +28,23 @@ const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 const SWIPE_VELOCITY = 800;
 const ROTATION_ANGLE = 15;
 
-export default function SwipeCard({ listing, onSwipe, onTap, isTop = false }) {
+export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wiggle = false }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+
+  // Subtle wiggle hint — only on initial load
+  useEffect(() => {
+    if (wiggle) {
+      translateX.value = withDelay(600,
+        withSequence(
+          withTiming(8, { duration: 140 }),
+          withTiming(-6, { duration: 140 }),
+          withTiming(3, { duration: 100 }),
+          withTiming(0, { duration: 100 }),
+        )
+      );
+    }
+  }, []);
 
   const score = listing.padScore?.score ?? 50;
   const firstPhoto = listing.photos?.[0]?.url;

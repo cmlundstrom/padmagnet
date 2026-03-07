@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -31,6 +31,8 @@ export default function CardStack({
       onTapCard(listings[0]);
     }
   }, [listings, onTapCard]);
+
+  const hasWiggled = useRef(false);
 
   // Pre-fetch when running low
   useEffect(() => {
@@ -71,6 +73,9 @@ export default function CardStack({
     );
   }
 
+  const shouldWiggle = !hasWiggled.current;
+  if (shouldWiggle) hasWiggled.current = true;
+
   return (
     <View style={styles.container}>
       {/* Next card (behind) — no gestures, just visual */}
@@ -91,6 +96,7 @@ export default function CardStack({
           key={listings[0].id}
           listing={listings[0]}
           isTop={true}
+          wiggle={shouldWiggle}
           onSwipe={handleSwipe}
           onTap={handleTap}
         />
