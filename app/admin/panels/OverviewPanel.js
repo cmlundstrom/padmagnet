@@ -3,21 +3,20 @@
 import { useState, useEffect } from 'react';
 import { COLORS, Badge, StatCard, timeAgo, formatDate } from '../shared';
 
-const BRIDGE_PORTAL_URL = 'https://bridgedataoutput.com/myApplication/overview';
-
 export default function OverviewPanel({ openTicketCount = 0 }) {
   const [stats, setStats] = useState({ activeListings: 0, ownerListings: 0 });
   const [lastSync, setLastSync] = useState(null);
   const [syncLogs, setSyncLogs] = useState([]);
   const [lastOwnerListing, setLastOwnerListing] = useState(null);
-  const [bridgePortalUrl, setBridgePortalUrl] = useState(BRIDGE_PORTAL_URL);
+  const [bridgePortalUrl, setBridgePortalUrl] = useState('');
   const [editingUrl, setEditingUrl] = useState(false);
-  const [bridgeNote, setBridgeNote] = useState('Note: IDX Import restricted to 300 seconds max per/daily session (6AM) at current Vercel "PRO" package level. This IDX probably imports ~5000 listings per/60 seconds.');
+  const [bridgeNote, setBridgeNote] = useState('');
   const [editingNote, setEditingNote] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchOverviewData();
+    fetchConfig();
   }, []);
 
   async function fetchOverviewData() {
@@ -32,6 +31,27 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
       }
     } catch { /* silent */ }
     setLoading(false);
+  }
+
+  async function fetchConfig() {
+    try {
+      const res = await fetch('/api/admin/config?keys=bridge_portal_url,bridge_notes');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.bridge_portal_url) setBridgePortalUrl(data.bridge_portal_url);
+        if (data.bridge_notes) setBridgeNote(data.bridge_notes);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function saveConfig(key, value) {
+    try {
+      await fetch('/api/admin/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value }),
+      });
+    } catch { /* silent */ }
   }
 
   if (loading) {
@@ -121,7 +141,7 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
             <textarea
               value={bridgeNote}
               onChange={e => setBridgeNote(e.target.value)}
-              onBlur={() => setEditingNote(false)}
+              onBlur={() => { setEditingNote(false); saveConfig('bridge_notes', bridgeNote); }}
               autoFocus
               rows={3}
               style={{
@@ -137,7 +157,10 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
             </span>
           )}
           <button
-            onClick={() => setEditingNote(!editingNote)}
+            onClick={() => {
+              if (editingNote) saveConfig('bridge_notes', bridgeNote);
+              setEditingNote(!editingNote);
+            }}
             style={{
               background: 'none', border: 'none', color: COLORS.textDim,
               cursor: 'pointer', fontSize: '11px', padding: '2px 6px', whiteSpace: 'nowrap',
@@ -158,8 +181,8 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
             <input
               value={bridgePortalUrl}
               onChange={e => setBridgePortalUrl(e.target.value)}
-              onBlur={() => setEditingUrl(false)}
-              onKeyDown={e => e.key === 'Enter' && setEditingUrl(false)}
+              onBlur={() => { setEditingUrl(false); saveConfig('bridge_portal_url', bridgePortalUrl); }}
+              onKeyDown={e => { if (e.key === 'Enter') { setEditingUrl(false); saveConfig('bridge_portal_url', bridgePortalUrl); } }}
               autoFocus
               style={{
                 flex: 1, background: COLORS.surface, border: `1px solid ${COLORS.borderLight}`,
@@ -178,7 +201,10 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
             </a>
           )}
           <button
-            onClick={() => setEditingUrl(!editingUrl)}
+            onClick={() => {
+              if (editingUrl) saveConfig('bridge_portal_url', bridgePortalUrl);
+              setEditingUrl(!editingUrl);
+            }}
             style={{
               background: 'none', border: 'none', color: COLORS.textDim,
               cursor: 'pointer', fontSize: '11px', padding: '2px 6px',
