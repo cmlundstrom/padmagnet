@@ -17,6 +17,7 @@ import {
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
@@ -86,6 +87,7 @@ export default function RootLayout() {
     'DMSans-Medium': DMSans_500Medium,
     'DMSans-SemiBold': DMSans_600SemiBold,
     'DMSans-Bold': DMSans_700Bold,
+    ...FontAwesome.font,
   });
 
   useEffect(() => {
