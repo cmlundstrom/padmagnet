@@ -98,6 +98,10 @@ export const BACKLOG = [
       { id: "PM-80", title: "Empty state icon color set to white, Trash/Loved empty text updated", status: "done", date: "2026-03-07" },
       { id: "PM-81", title: "Fix CardStack render-phase state update (prefetch moved to useEffect)", status: "done", date: "2026-03-07" },
       { id: "PM-82", title: "Rename Reconsider button to Un-Trash", status: "done", date: "2026-03-07" },
+      { id: "PM-83", title: "Swipe card wiggle hint on initial app load", status: "done", date: "2026-03-07", notes: "Subtle 8px horizontal shake, fires once via useRef flag" },
+      { id: "PM-84", title: "Personalized intro text above card deck with user's first name + PadScore branding", status: "done", date: "2026-03-07" },
+      { id: "PM-85", title: "Compact swipe card: remove MLS office, merge city into address, 70/30 photo/info split", status: "done", date: "2026-03-07" },
+      { id: "PM-86", title: "Card height reduced to 58% screen for responsive layout on all devices", status: "done", date: "2026-03-07" },
     ],
   },
   {
