@@ -177,7 +177,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={styles.infoText}>{'More\nInfo'}</Text>
+              <FontAwesome name="info" size={22} color={COLORS.white} />
             </Pressable>
 
             <Pressable
@@ -188,7 +188,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={[styles.actionText, { color: COLORS.success }]}>♡</Text>
+              <Text style={[styles.actionText, { color: COLORS.success, marginTop: 5 }]}>♡</Text>
             </Pressable>
           </View>
         )}
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.white,
   },
   infoText: {
     fontSize: 10,
