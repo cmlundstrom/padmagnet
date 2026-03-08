@@ -102,6 +102,11 @@ export const BACKLOG = [
       { id: "PM-84", title: "Personalized intro text above card deck with user's first name + PadScore branding", status: "done", date: "2026-03-07" },
       { id: "PM-85", title: "Compact swipe card: remove MLS office, merge city into address, 70/30 photo/info split", status: "done", date: "2026-03-07" },
       { id: "PM-86", title: "Card height reduced to 58% screen for responsive layout on all devices", status: "done", date: "2026-03-07" },
+      { id: "PM-87", title: "Fix FontAwesome tab bar icons (font preloading via useFonts splash gate)", status: "done", date: "2026-03-07", notes: "Icons rendered as Unicode before font loaded — added ...FontAwesome.font to useFonts() in root layout" },
+      { id: "PM-88", title: "More Info button → standard info icon with white border styling", status: "done", date: "2026-03-07" },
+      { id: "PM-89", title: "Shareable listing links: share button + public web page + OG tags + store badges", status: "done", date: "2026-03-07", notes: "Share.share() on mobile, public page at /listing/[id] with OG meta, app store download badges" },
+      { id: "PM-90", title: "Share button design: icon+label pill (40x80, accent border, rounded)", status: "done", date: "2026-03-07" },
+      { id: "PM-91", title: "Saved screen tab styling: bright white active text, dimmed slate inactive", status: "done", date: "2026-03-07" },
     ],
   },
   {
@@ -123,7 +128,7 @@ export const BACKLOG = [
   {
     category: "Ready to Build — Mobile App",
     items: [
-      { id: "T-SL", title: "Shareable listing links (share button + public web page + OG tags + store badges)", status: "in-progress", date: "2026-03-07", notes: "Share API on mobile, public listing page at padmagnet.com/listing/[id], OG meta for link previews, app store badges" },
+      { id: "T-SL", title: "Shareable listing links (share button + public web page + OG tags + store badges)", status: "done", date: "2026-03-07", notes: "Share API on mobile, public listing page at padmagnet.com/listing/[id], OG meta for link previews, app store badges" },
       { id: "T-ME", title: "Mobile listing edit screen", status: "pending", notes: "PUT API exists, no mobile UI yet" },
       { id: "T-OF", title: "Owner create form: add 5 new owner fields", status: "pending", notes: "owner_special_comments, owner_application_link, owner_pet_policy_details, owner_utilities_included, owner_showing_instructions — API accepts them, no mobile UI yet" },
       { id: "T21", title: "Boost indicator badge on swipe cards", status: "pending", notes: "Subtle \"Boosted\" badge on boosted listings" },
@@ -161,7 +166,7 @@ export const BACKLOG = [
       { id: "T-EA", title: "EAS production build", status: "deferred", notes: "After core features stable" },
       { id: "T-AS", title: "App Store / Play Store submission", status: "deferred", notes: "After EAS build" },
       { id: "T-AP", title: "Revisit tenant product app_path values", status: "deferred", notes: "After tenant pages defined" },
-      { id: "T-GM", title: "Google Maps Android app restriction", status: "deferred", notes: "After first EAS build (needs SHA-1)" },
+      { id: "T-GM", title: "Google Maps: fresh GCP project + new API key + fix blank tiles", status: "in-progress", notes: "Old GCP project (august-oarlock-385903) had unexplained $19.58/week billing with no working maps. Plan: delete old project, create 'padmagnet' project, new key, update env vars. Android app restriction deferred until EAS build (needs SHA-1)." },
       { id: "T-AY", title: "Add AssociationYN to Bridge sync for definitive association detection", status: "deferred", notes: "Currently using hoa_fee > 0 as proxy — add RESO field when Bridge access is live" },
       { id: "T-IS", title: "Incremental sync via ModificationTimestamp (10K+ scaling)", status: "deferred", notes: "Bridge $skip limit is 10K. Switch to timestamp-based delta sync when dataset grows. Weekly full reconciliation for deactivations." },
     ],

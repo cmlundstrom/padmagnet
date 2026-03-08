@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
-import RNMapView, { Marker, Callout } from 'react-native-maps';
+import RNMapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Badge } from '../ui';
@@ -35,6 +35,7 @@ export default function MapView({ listings = [], loading }) {
     <View style={styles.container}>
       <RNMapView
         ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
           latitude: location.latitude,

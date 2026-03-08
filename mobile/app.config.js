@@ -1,4 +1,4 @@
-export default {
+export default ({ config }) => ({
   expo: {
     name: "PadMagnet",
     slug: "padmagnet",
@@ -60,6 +60,13 @@ export default {
         },
       ],
       "expo-web-browser",
+      "expo-image",
+      [
+        "react-native-maps",
+        {
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      ],
     ],
   },
-};
+});
