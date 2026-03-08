@@ -175,7 +175,7 @@ export default function SavedScreen() {
             onPress={() => setActiveTab(tab.key)}
           >
             <View style={styles.tabInner}>
-              {tab.icon && <FontAwesome name={tab.icon} size={15} color={COLORS.white} />}
+              {tab.icon && <FontAwesome name={tab.icon} size={15} color={activeTab === tab.key ? COLORS.white : COLORS.slate} />}
               <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
                 {tab.label}
               </Text>
@@ -255,10 +255,10 @@ const styles = StyleSheet.create({
   tabText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.slate,
   },
   tabTextActive: {
-    color: COLORS.accent,
+    color: COLORS.white,
     fontFamily: FONTS.body.semiBold,
   },
   listContent: {
