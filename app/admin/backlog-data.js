@@ -123,6 +123,7 @@ export const BACKLOG = [
   {
     category: "Ready to Build — Mobile App",
     items: [
+      { id: "T-SL", title: "Shareable listing links (share button + public web page + OG tags + store badges)", status: "in-progress", date: "2026-03-07", notes: "Share API on mobile, public listing page at padmagnet.com/listing/[id], OG meta for link previews, app store badges" },
       { id: "T-ME", title: "Mobile listing edit screen", status: "pending", notes: "PUT API exists, no mobile UI yet" },
       { id: "T-OF", title: "Owner create form: add 5 new owner fields", status: "pending", notes: "owner_special_comments, owner_application_link, owner_pet_policy_details, owner_utilities_included, owner_showing_instructions — API accepts them, no mobile UI yet" },
       { id: "T21", title: "Boost indicator badge on swipe cards", status: "pending", notes: "Subtle \"Boosted\" badge on boosted listings" },
