@@ -101,8 +101,9 @@ export default function ListingDetailScreen() {
         title="Details"
         showBack
         rightAction={
-          <Pressable onPress={handleShare} style={styles.shareBtn}>
-            <FontAwesome name="share-alt" size={18} color={COLORS.white} />
+          <Pressable onPress={handleShare} style={styles.shareBtnWide}>
+            <FontAwesome name="share-alt" size={17} color={COLORS.white} />
+            <Text style={styles.shareBtnText}>Share</Text>
           </Pressable>
         }
       />
@@ -171,6 +172,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  shareBtnWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 40,
+    width: 80,
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  shareBtnText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
   },
   bottomBar: {
     padding: LAYOUT.padding.md,
