@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import {
@@ -17,6 +18,7 @@ import {
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
@@ -96,12 +98,21 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  // Match Android system nav bar to our tab bar color
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync(COLORS.surface);
+      NavigationBar.setButtonStyleAsync('light');
+    }
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+    <SafeAreaProvider>
     <ErrorBoundary>
       <AuthProvider>
         <AlertProvider>
@@ -132,6 +143,7 @@ export default function RootLayout() {
         </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>
+    </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

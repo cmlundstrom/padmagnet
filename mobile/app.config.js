@@ -34,7 +34,7 @@ export default ({ config }) => ({
       },
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyDy4LTVbh5yTLOy4oiAfqpk-CJaOO9vncc",
         },
       },
       permissions: [
@@ -47,6 +47,11 @@ export default ({ config }) => ({
     web: {
       favicon: "./assets/favicon.png",
       bundler: "metro",
+    },
+    extra: {
+      eas: {
+        projectId: "e669b547-8cac-4a4d-a210-d148b3dcc02e",
+      },
     },
     plugins: [
       "expo-router",
@@ -64,7 +69,7 @@ export default ({ config }) => ({
       [
         "react-native-maps",
         {
-          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyDy4LTVbh5yTLOy4oiAfqpk-CJaOO9vncc",
         },
       ],
     ],

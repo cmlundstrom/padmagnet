@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { COLORS } from './colors';
 import { FONTS, FONT_SIZES } from './fonts';
 import { LAYOUT } from './layout';
@@ -11,9 +11,7 @@ export const TAB_SCREEN_OPTIONS = {
     backgroundColor: COLORS.surface,
     borderTopColor: COLORS.border,
     borderTopWidth: 1,
-    paddingBottom: 13,
     paddingTop: 8,
-    height: 68,
   },
   tabBarActiveTintColor: COLORS.accent,
   tabBarInactiveTintColor: COLORS.white,

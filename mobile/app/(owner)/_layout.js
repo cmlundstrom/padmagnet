@@ -1,11 +1,18 @@
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
 import { TAB_SCREEN_OPTIONS, TAB_ICON_SIZE } from '../../constants/screenStyles';
 
 export default function OwnerTabLayout() {
+  const tabBarStyle = {
+    ...TAB_SCREEN_OPTIONS.tabBarStyle,
+    paddingBottom: 4,
+  };
+
   return (
-    <Tabs screenOptions={TAB_SCREEN_OPTIONS}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={['bottom']}>
+    <Tabs screenOptions={{ ...TAB_SCREEN_OPTIONS, tabBarStyle }}>
       <Tabs.Screen
         name="listings"
         options={{
@@ -43,5 +50,6 @@ export default function OwnerTabLayout() {
         }}
       />
     </Tabs>
+    </SafeAreaView>
   );
 }
