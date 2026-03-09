@@ -189,7 +189,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <GlossyHeart size={24} />
+              <GlossyHeart size={28} />
             </Pressable>
           </View>
         )}
