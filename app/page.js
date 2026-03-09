@@ -85,15 +85,90 @@ function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false
 }
 
 function PhoneMockup() {
+  const [positions, setPositions] = useState([0, 1, 2]);
+  const [swiping, setSwiping] = useState(-1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSwiping(positions[0]);
+      setTimeout(() => {
+        setPositions(prev => {
+          const next = [...prev];
+          next.push(next.shift());
+          return next;
+        });
+        setSwiping(-1);
+      }, 500);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [positions]);
+
+  const cards = [
+    { img: '/images/card1.jpg', alt: 'Luxury apartment with pool', score: 92, price: '$2,450', addr: 'Palm Beach Gardens', beds: 2, baths: 2, sqft: '1,180' },
+    { img: '/images/card2.jpg', alt: 'Mediterranean style home', score: 84, price: '$3,100', addr: 'Jupiter', beds: 4, baths: 3, sqft: '2,240' },
+    { img: '/images/card3.png', alt: 'Single family home with garage', score: 76, price: '$2,800', addr: 'Stuart', beds: 3, baths: 2, sqft: '1,820' },
+  ];
+
   return (
     <div className="hero-visual">
       <div className="phone-frame">
-        <img
-          src="/images/app-screenshot.jpg"
-          alt="PadMagnet app showing rental listings with PadScore matching"
-          className="phone-screenshot"
-          loading="eager"
-        />
+        <div className="phone-screen">
+          {/* Header */}
+          <div className="pm-header">
+            <div className="pm-header-left">
+              <div className="pm-refresh">↻</div>
+              <span className="pm-logo"><span className="pm-pad">Pad</span><span className="pm-magnet">Magnet</span></span>
+            </div>
+            <div className="pm-toggle">
+              <span className="pm-toggle-btn active">▣</span>
+              <span className="pm-toggle-btn">◎</span>
+              <span className="pm-toggle-btn">☰</span>
+            </div>
+          </div>
+
+          {/* Intro text */}
+          <div className="pm-intro">
+            Your <strong>PadScore™</strong> is now live! Swipe to find your perfect home.
+          </div>
+
+          {/* Swipe stack */}
+          <div className="swipe-stack">
+            {cards.map((card, i) => {
+              const pos = positions.indexOf(i);
+              return (
+                <div key={i} className={`swipe-card ${swiping === i ? 'swiping' : ''}`} data-pos={pos}>
+                  <div className="swipe-card-photo">
+                    <img src={card.img} alt={card.alt} loading="eager" />
+                    <div className="swipe-card-score">{card.score}%</div>
+                  </div>
+                  <div className="swipe-card-info">
+                    <div className="swipe-card-price">{card.price}<span className="swipe-card-mo">/mo</span></div>
+                    <div className="swipe-card-addr">{card.addr}</div>
+                    <div className="swipe-card-stats">{card.beds} bed · {card.baths} bath · {card.sqft} sqft</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Action buttons */}
+          <div className="pm-actions">
+            <div className="pm-btn pm-btn-skip">🗑</div>
+            <div className="pm-btn pm-btn-info">ⓘ</div>
+            <div className="pm-btn pm-btn-save">♡</div>
+          </div>
+
+          {/* MLS footer */}
+          <div className="pm-mls">© 2026 SEFMLS. All rights reserved.</div>
+
+          {/* Tab bar */}
+          <div className="pm-tabs">
+            <div className="pm-tab active"><span className="pm-tab-icon">▣</span><span>Swipe</span></div>
+            <div className="pm-tab"><span className="pm-tab-icon">♥</span><span>Saved</span></div>
+            <div className="pm-tab"><span className="pm-tab-icon">✉</span><span>Messages</span></div>
+            <div className="pm-tab"><span className="pm-tab-icon">👤</span><span>Profile</span></div>
+          </div>
+        </div>
       </div>
     </div>
   );
