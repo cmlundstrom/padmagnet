@@ -81,9 +81,12 @@ export async function PATCH(request) {
     const results = [];
 
     for (const { id, updates } of targets) {
-      // Convert string → boolean for visible
+      // Convert string → boolean for visible / visible_owner
       if (typeof updates.visible === 'string') {
         updates.visible = updates.visible === 'true';
+      }
+      if (typeof updates.visible_owner === 'string') {
+        updates.visible_owner = updates.visible_owner === 'true';
       }
 
       // Convert string → int for sort_order

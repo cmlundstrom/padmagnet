@@ -1014,6 +1014,18 @@ input[type="range"]::-moz-range-thumb {
   background: rgba(34, 211, 238, 0.08);
 }
 
+/* Drag handle */
+.at-drag-handle {
+  cursor: grab;
+  font-size: 18px;
+  color: #64748b;
+  user-select: none;
+  display: inline-block;
+  line-height: 1;
+}
+.at-drag-handle:hover { color: #22d3ee; }
+.at-drag-handle:active { cursor: grabbing; }
+
 /* Checkbox */
 .at-checkbox {
   width: 16px;

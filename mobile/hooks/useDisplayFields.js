@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../lib/api';
 
-// Module-level cache — shared across all component instances
-let cachedFields = null;
-let cacheTimestamp = 0;
+// Module-level cache — keyed by role
+const cache = { tenant: { fields: null, ts: 0 }, owner: { fields: null, ts: 0 } };
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function groupBySection(fields) {
@@ -15,16 +14,19 @@ function groupBySection(fields) {
   return grouped;
 }
 
-export default function useDisplayFields() {
-  const [fields, setFields] = useState(cachedFields || []);
-  const [loading, setLoading] = useState(!cachedFields);
+export default function useDisplayFields(role = 'tenant') {
+  const cacheKey = role === 'owner' ? 'owner' : 'tenant';
+  const cached = cache[cacheKey];
+  const [fields, setFields] = useState(cached.fields || []);
+  const [loading, setLoading] = useState(!cached.fields);
   const [error, setError] = useState(null);
   const mountedRef = useRef(true);
 
   const fetchFields = useCallback(async (force = false) => {
+    const c = cache[cacheKey];
     // Use cache if fresh
-    if (!force && cachedFields && Date.now() - cacheTimestamp < CACHE_TTL) {
-      setFields(cachedFields);
+    if (!force && c.fields && Date.now() - c.ts < CACHE_TTL) {
+      setFields(c.fields);
       setLoading(false);
       return;
     }
@@ -32,16 +34,16 @@ export default function useDisplayFields() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiFetch('/api/display-fields');
-      cachedFields = data || [];
-      cacheTimestamp = Date.now();
+      const url = cacheKey === 'owner' ? '/api/display-fields?role=owner' : '/api/display-fields';
+      const data = await apiFetch(url);
+      cache[cacheKey] = { fields: data || [], ts: Date.now() };
       if (mountedRef.current) {
-        setFields(cachedFields);
+        setFields(cache[cacheKey].fields);
       }
     } catch (err) {
       // Fall back to cached data on error
-      if (cachedFields && mountedRef.current) {
-        setFields(cachedFields);
+      if (cache[cacheKey].fields && mountedRef.current) {
+        setFields(cache[cacheKey].fields);
       }
       if (mountedRef.current) {
         setError(err.message);
@@ -51,7 +53,7 @@ export default function useDisplayFields() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [cacheKey]);
 
   useEffect(() => {
     mountedRef.current = true;

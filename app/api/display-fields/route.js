@@ -4,14 +4,19 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // GET — return visible display field configs (public, no auth required)
-export async function GET() {
+// ?role=owner returns fields visible to owners; default returns tenant-visible fields
+export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const role = searchParams.get('role');
+    const visibleCol = role === 'owner' ? 'visible_owner' : 'visible';
+
     const supabase = createServiceClient();
 
     const { data, error } = await supabase
       .from('display_field_configs')
       .select('*')
-      .eq('visible', true)
+      .eq(visibleCol, true)
       .order('sort_order', { ascending: true });
 
     if (error) {

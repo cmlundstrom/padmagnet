@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, Fragment } from 'react';
+import { useState, useMemo, useCallback, useEffect, Fragment } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,8 +10,155 @@ import {
   getExpandedRowModel,
   flexRender,
 } from '@tanstack/react-table';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import NotesEditor from './NotesEditor';
 import AuditHistory from './AuditHistory';
+
+function DraggableHeader({ header, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: header.column.id,
+  });
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 10 : undefined,
+    cursor: 'grab',
+    width: header.getSize(),
+  };
+  return (
+    <th
+      ref={setNodeRef}
+      style={style}
+      className={`at-th ${header.column.getCanSort() ? 'sortable' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </th>
+  );
+}
+
+function RowCells({ row, cells, editingCell, editValue, setEditValue, onSave, setEditingCell, cancelEdit, commitEdit, startEdit }) {
+  return cells.map(cell => {
+    const isEditing = editingCell?.rowId === row.original.id && editingCell?.columnId === cell.column.id;
+    const isEditable = cell.column.columnDef.meta?.editable;
+    return (
+      <td key={cell.id} className="at-td">
+        {isEditing ? (
+          cell.column.columnDef.meta?.editOptions ? (
+            <select
+              className="at-edit-input"
+              value={editValue}
+              onChange={e => {
+                setEditValue(e.target.value);
+                const newVal = e.target.value;
+                if (editingCell && onSave) {
+                  onSave([editingCell.rowId], { [editingCell.columnId]: newVal });
+                  setEditingCell(null);
+                  setEditValue('');
+                }
+              }}
+              onBlur={cancelEdit}
+              onKeyDown={e => { if (e.key === 'Escape') cancelEdit(); }}
+              autoFocus
+              onClick={e => e.stopPropagation()}
+            >
+              {cell.column.columnDef.meta.editOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="at-edit-input"
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitEdit();
+                if (e.key === 'Escape') cancelEdit();
+              }}
+              autoFocus
+              onClick={e => e.stopPropagation()}
+            />
+          )
+        ) : (
+          <span
+            className={isEditable ? 'at-editable-cell' : ''}
+            onDoubleClick={isEditable ? (e) => {
+              e.stopPropagation();
+              startEdit(row.original.id, cell.column.id, cell.getValue());
+            } : undefined}
+          >
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </span>
+        )}
+      </td>
+    );
+  });
+}
+
+function TableBody({ table, columns, editingCell, editValue, setEditValue, onSave, setEditingCell, cancelEdit, commitEdit, startEdit, emptyMessage, renderExpandedRow, tableName }) {
+  const cellProps = { editingCell, editValue, setEditValue, onSave, setEditingCell, cancelEdit, commitEdit, startEdit };
+
+  const rows = table.getRowModel().rows;
+
+  return (
+    <tbody>
+      {rows.length === 0 && (
+        <tr><td colSpan={columns.length} className="at-empty">{emptyMessage}</td></tr>
+      )}
+      {rows.map(row => {
+        const isSuppressed = row.original.suppressed;
+        return (
+          <Fragment key={row.id}>
+            <tr
+              className={`at-row ${isSuppressed ? 'suppressed' : ''} ${row.getIsExpanded() ? 'expanded' : ''}`}
+              onClick={() => row.toggleExpanded()}
+            >
+              <RowCells row={row} cells={row.getVisibleCells()} {...cellProps} />
+            </tr>
+            {row.getIsExpanded() && (
+              <tr className="at-expanded-row">
+                <td colSpan={columns.length}>
+                  <div className="at-expanded-content">
+                    {renderExpandedRow ? (
+                      renderExpandedRow(row.original)
+                    ) : (
+                      <div className="at-expanded-default">
+                        <NotesEditor
+                          notes={row.original.notes}
+                          tags={row.original.tags || []}
+                          onSaveNotes={(val) => onSave?.([row.original.id], { notes: val })}
+                          onSaveTags={(val) => onSave?.([row.original.id], { tags: val })}
+                        />
+                        <AuditHistory tableName={tableName} rowId={row.original.id} />
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+          </Fragment>
+        );
+      })}
+    </tbody>
+  );
+}
 
 export default function AdminTable({
   columns: columnDefs,
@@ -55,6 +202,10 @@ export default function AdminTable({
     });
   }, [lsKey]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
   // Prepend checkbox column
   const columns = useMemo(() => [
     {
@@ -82,14 +233,54 @@ export default function AdminTable({
     ...columnDefs,
   ], [columnDefs]);
 
+  const colOrderKey = storageKey ? `at-col-order-${storageKey}` : null;
+
+  const getColumnOrder = useCallback(() => {
+    const ids = columns.map(c => c.id || c.accessorKey);
+    if (!colOrderKey || typeof window === 'undefined') return ids;
+    try {
+      const stored = localStorage.getItem(colOrderKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const valid = parsed.filter(id => ids.includes(id));
+        const missing = ids.filter(id => !parsed.includes(id));
+        if (valid.length > 0) return [...valid, ...missing];
+      }
+    } catch {}
+    return ids;
+  }, [columns, colOrderKey]);
+
+  const [columnOrder, setColumnOrder] = useState(getColumnOrder);
+
+  // Sync when columns change (e.g. new column added to a panel)
+  useEffect(() => {
+    setColumnOrder(getColumnOrder());
+  }, [getColumnOrder]);
+
+  const handleColumnDragEnd = useCallback((event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setColumnOrder(prev => {
+      const oldIndex = prev.indexOf(active.id);
+      const newIndex = prev.indexOf(over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const next = arrayMove(prev, oldIndex, newIndex);
+      if (colOrderKey) {
+        try { localStorage.setItem(colOrderKey, JSON.stringify(next)); } catch {}
+      }
+      return next;
+    });
+  }, [colOrderKey]);
+
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, rowSelection, globalFilter, columnSizing },
+    state: { sorting, rowSelection, globalFilter, columnSizing, columnOrder },
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
     onColumnSizingChange: handleColumnSizingChange,
+    onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -171,140 +362,58 @@ export default function AdminTable({
 
       {/* Table */}
       <div className="at-table-container">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
         <table className="at-table" style={{ width: table.getCenterTotalSize() }}>
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th
-                    key={header.id}
-                    className={`at-th ${header.column.getCanSort() ? 'sortable' : ''}`}
-                    style={{ width: header.getSize(), position: 'relative' }}
-                    onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
-                  >
-                    {header.isPlaceholder ? null : (
-                      <div className="at-th-content">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && (
-                          <span className={`at-sort-arrow ${header.column.getIsSorted() ? 'active' : ''}`}>
-                            {header.column.getIsSorted() === 'asc' ? ' ▲' : header.column.getIsSorted() === 'desc' ? ' ▼' : ' ⇅'}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {header.column.getCanResize() && (
-                      <div
-                        onMouseDown={header.getResizeHandler()}
-                        onTouchStart={header.getResizeHandler()}
-                        onClick={e => e.stopPropagation()}
-                        className={`at-resize-handle ${header.column.getIsResizing() ? 'resizing' : ''}`}
-                      />
-                    )}
-                  </th>
-                ))}
+                <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
+                  {headerGroup.headers.map(header => (
+                    <DraggableHeader key={header.id} header={header}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className="at-th-content"
+                          onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getCanSort() && (
+                            <span className={`at-sort-arrow ${header.column.getIsSorted() ? 'active' : ''}`}>
+                              {header.column.getIsSorted() === 'asc' ? ' ▲' : header.column.getIsSorted() === 'desc' ? ' ▼' : ' ⇅'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          onClick={e => e.stopPropagation()}
+                          className={`at-resize-handle ${header.column.getIsResizing() ? 'resizing' : ''}`}
+                        />
+                      )}
+                    </DraggableHeader>
+                  ))}
+                </SortableContext>
               </tr>
             ))}
           </thead>
-          <tbody>
-            {table.getRowModel().rows.length === 0 && (
-              <tr>
-                <td colSpan={columns.length} className="at-empty">{emptyMessage}</td>
-              </tr>
-            )}
-            {table.getRowModel().rows.map(row => {
-              const isSuppressed = row.original.suppressed;
-              return (
-                <Fragment key={row.id}>
-                  <tr
-                    className={`at-row ${isSuppressed ? 'suppressed' : ''} ${row.getIsExpanded() ? 'expanded' : ''}`}
-                    onClick={() => row.toggleExpanded()}
-                  >
-                    {row.getVisibleCells().map(cell => {
-                      const isEditing = editingCell?.rowId === row.original.id && editingCell?.columnId === cell.column.id;
-                      const isEditable = cell.column.columnDef.meta?.editable;
-                      return (
-                        <td key={cell.id} className="at-td">
-                          {isEditing ? (
-                            cell.column.columnDef.meta?.editOptions ? (
-                              <select
-                                className="at-edit-input"
-                                value={editValue}
-                                onChange={e => {
-                                  setEditValue(e.target.value);
-                                  // Auto-commit on select change
-                                  const newVal = e.target.value;
-                                  if (editingCell && onSave) {
-                                    onSave([editingCell.rowId], { [editingCell.columnId]: newVal });
-                                    setEditingCell(null);
-                                    setEditValue('');
-                                  }
-                                }}
-                                onBlur={cancelEdit}
-                                onKeyDown={e => {
-                                  if (e.key === 'Escape') cancelEdit();
-                                }}
-                                autoFocus
-                                onClick={e => e.stopPropagation()}
-                              >
-                                {cell.column.columnDef.meta.editOptions.map(opt => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                className="at-edit-input"
-                                value={editValue}
-                                onChange={e => setEditValue(e.target.value)}
-                                onBlur={commitEdit}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter') commitEdit();
-                                  if (e.key === 'Escape') cancelEdit();
-                                }}
-                                autoFocus
-                                onClick={e => e.stopPropagation()}
-                              />
-                            )
-                          ) : (
-                            <span
-                              className={isEditable ? 'at-editable-cell' : ''}
-                              onDoubleClick={isEditable ? (e) => {
-                                e.stopPropagation();
-                                startEdit(row.original.id, cell.column.id, cell.getValue());
-                              } : undefined}
-                            >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  {row.getIsExpanded() && (
-                    <tr className="at-expanded-row">
-                      <td colSpan={columns.length}>
-                        <div className="at-expanded-content">
-                          {renderExpandedRow ? (
-                            renderExpandedRow(row.original)
-                          ) : (
-                            <div className="at-expanded-default">
-                              <NotesEditor
-                                notes={row.original.notes}
-                                tags={row.original.tags || []}
-                                onSaveNotes={(val) => onSave?.([row.original.id], { notes: val })}
-                                onSaveTags={(val) => onSave?.([row.original.id], { tags: val })}
-                              />
-                              <AuditHistory tableName={tableName} rowId={row.original.id} />
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
+          <TableBody
+            table={table}
+            columns={columns}
+            editingCell={editingCell}
+            editValue={editValue}
+            setEditValue={setEditValue}
+            onSave={onSave}
+            setEditingCell={setEditingCell}
+            cancelEdit={cancelEdit}
+            commitEdit={commitEdit}
+            startEdit={startEdit}
+            emptyMessage={emptyMessage}
+            renderExpandedRow={renderExpandedRow}
+            tableName={tableName}
+          />
         </table>
+        </DndContext>
       </div>
 
       {/* Pagination */}

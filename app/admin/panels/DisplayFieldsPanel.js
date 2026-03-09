@@ -142,8 +142,8 @@ export default function DisplayFieldsPanel() {
     { key: "sort_order", label: "Sort Order", type: "text", placeholder: "0" },
   ], []);
 
-  const visibleCount = fields.filter(f => f.visible).length;
-  const hiddenCount = fields.filter(f => !f.visible).length;
+  const tenantVisibleCount = fields.filter(f => f.visible).length;
+  const ownerVisibleCount = fields.filter(f => f.visible_owner).length;
 
   const columns = useMemo(() => [
     {
@@ -226,7 +226,7 @@ export default function DisplayFieldsPanel() {
     },
     {
       accessorKey: "visible",
-      header: "Visible",
+      header: "Tenant",
       cell: ({ row }) => {
         const val = row.original.visible;
         return (
@@ -248,6 +248,30 @@ export default function DisplayFieldsPanel() {
       size: 80,
       enableSorting: false,
     },
+    {
+      accessorKey: "visible_owner",
+      header: "Owner",
+      cell: ({ row }) => {
+        const val = row.original.visible_owner;
+        return (
+          <span
+            onClick={() => handleToggle(row.original.id, "visible_owner", val)}
+            style={{
+              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              fontSize: "11px", fontWeight: 700, cursor: "pointer",
+              background: val ? "#0c1f3d" : "#1e293b",
+              color: val ? COLORS.brand : COLORS.textDim,
+              border: `1px solid ${val ? COLORS.brand + "44" : COLORS.border}`,
+              userSelect: "none",
+            }}
+          >
+            {val ? "ON" : "OFF"}
+          </span>
+        );
+      },
+      size: 80,
+      enableSorting: false,
+    },
   ], [handleToggle]);
 
   return (
@@ -255,8 +279,8 @@ export default function DisplayFieldsPanel() {
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Fields" value={fields.length} sub="Display field configs" accent={COLORS.brand} />
-        <StatCard label="Visible" value={visibleCount} sub="Shown on listing detail" accent={COLORS.green} />
-        <StatCard label="Hidden" value={hiddenCount} sub="Toggled off" accent={COLORS.amber} />
+        <StatCard label="Tenant Visible" value={tenantVisibleCount} sub="Shown to tenants" accent={COLORS.green} />
+        <StatCard label="Owner Visible" value={ownerVisibleCount} sub="Shown to owners" accent={COLORS.blue} />
       </div>
 
       {/* Info Banner */}
