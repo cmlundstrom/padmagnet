@@ -145,7 +145,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
 
             {/* SAVE overlay */}
             <Animated.View style={[styles.overlay, styles.saveOverlay, saveOverlayStyle]}>
-              <Text style={{ fontSize: 18, textAlign: 'center', lineHeight: 22 }}>💚</Text>
+              <FontAwesome name="heart" size={20} color={COLORS.success} />
             </Animated.View>
 
             {/* SKIP overlay */}
