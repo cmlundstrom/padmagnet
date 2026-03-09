@@ -165,7 +165,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <FontAwesome name="trash" size={22} color={COLORS.white} />
+              <FontAwesome name="trash-o" size={22} color={COLORS.white} />
             </Pressable>
 
             <Pressable
