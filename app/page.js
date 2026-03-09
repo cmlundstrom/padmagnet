@@ -154,16 +154,13 @@ function PhoneMockup() {
           {/* Action buttons */}
           <div className="pm-actions">
             <div className="pm-btn pm-btn-skip">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6" />
-                <path d="M14 11v6" />
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff">
+                <path d="M3 6h18v2H3V6zm2 3h14l-1.2 13.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 9zm4 2v9h2v-9H9zm4 0v9h2v-9h-2z" />
+                <path d="M9 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9V4z" />
               </svg>
             </div>
             <div className="pm-btn pm-btn-info">
-              <svg width="10" height="10" viewBox="0 0 10 24" fill="#fff">
+              <svg width="12" height="12" viewBox="0 0 10 24" fill="#fff">
                 <circle cx="5" cy="4" r="2" />
                 <rect x="3" y="9" width="4" height="12" rx="1" />
               </svg>
