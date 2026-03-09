@@ -154,8 +154,30 @@ function PhoneMockup() {
           {/* Action buttons */}
           <div className="pm-actions">
             <div className="pm-btn pm-btn-skip">🗑</div>
-            <div className="pm-btn pm-btn-info">ⓘ</div>
-            <div className="pm-btn pm-btn-save">♡</div>
+            <div className="pm-btn pm-btn-info">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+            </div>
+            <div className="pm-btn pm-btn-save">
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <defs>
+                  <linearGradient id="mockupHeartGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4ade80" />
+                    <stop offset="45%" stopColor="#22c55e" />
+                    <stop offset="100%" stopColor="#15803d" />
+                  </linearGradient>
+                  <linearGradient id="mockupHeartShine" x1="0.3" y1="0" x2="0.7" y2="0.5">
+                    <stop offset="0%" stopColor="#fff" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#mockupHeartGrad)" />
+                <path d="M7.5 4.5c-1.93 0-3.5 1.57-3.5 3.5 0 .97.4 1.84 1.03 2.5C6.5 8.5 8 6.5 10.5 5.5 9.6 4.85 8.6 4.5 7.5 4.5z" fill="url(#mockupHeartShine)" />
+              </svg>
+            </div>
           </div>
 
           {/* MLS footer */}
