@@ -188,7 +188,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <FontAwesome name="heart" size={22} color={COLORS.success} style={{ textShadowColor: '#16a34a', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }} />
+              <FontAwesome name="heart" size={22} color={COLORS.success} style={{ textShadowColor: '#000', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 6 }} />
             </Pressable>
           </View>
         )}
