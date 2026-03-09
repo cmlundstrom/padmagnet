@@ -8,7 +8,7 @@ import ZonePicker from '../../components/ZonePicker';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
-import { LAYOUT } from '../../constants/layout';
+import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
 const PROPERTY_TYPES = [
   'Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home',
@@ -124,10 +124,10 @@ export default function PreferencesScreen() {
           {PROPERTY_TYPES.map(type => (
             <Pressable
               key={type}
-              style={[styles.chip, form.property_types.includes(type) && styles.chipActive]}
+              style={[CHIP_STYLES.chip, form.property_types.includes(type) && CHIP_STYLES.chipActive]}
               onPress={() => toggleArrayItem('property_types', type)}
             >
-              <Text style={[styles.chipText, form.property_types.includes(type) && styles.chipTextActive]}>
+              <Text style={[CHIP_STYLES.chipText, form.property_types.includes(type) && CHIP_STYLES.chipTextActive]}>
                 {type}
               </Text>
             </Pressable>
@@ -150,10 +150,10 @@ export default function PreferencesScreen() {
           ].map(opt => (
             <Pressable
               key={String(opt.value)}
-              style={[styles.chip, form.furnished_preferred === opt.value && styles.chipActive]}
+              style={[CHIP_STYLES.chip, form.furnished_preferred === opt.value && CHIP_STYLES.chipActive]}
               onPress={() => update('furnished_preferred', opt.value)}
             >
-              <Text style={[styles.chipText, form.furnished_preferred === opt.value && styles.chipTextActive]}>
+              <Text style={[CHIP_STYLES.chipText, form.furnished_preferred === opt.value && CHIP_STYLES.chipTextActive]}>
                 {opt.label}
               </Text>
             </Pressable>
@@ -179,10 +179,10 @@ export default function PreferencesScreen() {
               {PET_TYPES.map(type => (
                 <Pressable
                   key={type}
-                  style={[styles.chip, form.pet_type === type && styles.chipActive]}
+                  style={[CHIP_STYLES.chip, form.pet_type === type && CHIP_STYLES.chipActive]}
                   onPress={() => update('pet_type', form.pet_type === type ? null : type)}
                 >
-                  <Text style={[styles.chipText, form.pet_type === type && styles.chipTextActive]}>
+                  <Text style={[CHIP_STYLES.chipText, form.pet_type === type && CHIP_STYLES.chipTextActive]}>
                     {type.charAt(0).toUpperCase() + type.slice(1)}
                   </Text>
                 </Pressable>
@@ -214,10 +214,10 @@ export default function PreferencesScreen() {
           ].map(opt => (
             <Pressable
               key={String(opt.value)}
-              style={[styles.chip, form.association_preferred === opt.value && styles.chipActive]}
+              style={[CHIP_STYLES.chip, form.association_preferred === opt.value && CHIP_STYLES.chipActive]}
               onPress={() => update('association_preferred', opt.value)}
             >
-              <Text style={[styles.chipText, form.association_preferred === opt.value && styles.chipTextActive]}>
+              <Text style={[CHIP_STYLES.chipText, form.association_preferred === opt.value && CHIP_STYLES.chipTextActive]}>
                 {opt.label}
               </Text>
             </Pressable>
@@ -279,26 +279,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: LAYOUT.padding.md,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.success + '22',
-    borderWidth: 1,
-    borderColor: COLORS.success,
-  },
-  chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
-  },
-  chipText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.success,
-  },
-  chipTextActive: {
-    color: COLORS.accent,
   },
   switchRow: {
     flexDirection: 'row',

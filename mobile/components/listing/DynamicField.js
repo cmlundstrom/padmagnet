@@ -2,7 +2,7 @@ import { View, Text, Switch, Pressable, StyleSheet } from 'react-native';
 import { Input } from '../ui';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
-import { LAYOUT } from '../../constants/layout';
+import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
 /**
  * Renders a form field based on listing_field_configs type.
@@ -73,10 +73,10 @@ export default function DynamicField({ config, value, onChange }) {
             {options.map(opt => (
               <Pressable
                 key={opt}
-                style={[styles.chip, value === opt && styles.chipActive]}
+                style={[CHIP_STYLES.chip, value === opt && CHIP_STYLES.chipActive]}
                 onPress={() => onChange(value === opt ? '' : opt)}
               >
-                <Text style={[styles.chipText, value === opt && styles.chipTextActive]}>{opt}</Text>
+                <Text style={[CHIP_STYLES.chipText, value === opt && CHIP_STYLES.chipTextActive]}>{opt}</Text>
               </Pressable>
             ))}
           </View>
@@ -131,25 +131,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: LAYOUT.padding.sm,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
-  },
-  chipText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  chipTextActive: {
-    color: COLORS.accent,
   },
 });

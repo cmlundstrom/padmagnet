@@ -11,7 +11,7 @@ import { useAlert } from '../providers/AlertProvider';
 import ZonePicker from '../components/ZonePicker';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
-import { LAYOUT } from '../constants/layout';
+import { LAYOUT, CHIP_STYLES } from '../constants/layout';
 
 const PROPERTY_TYPES = [
   'Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home',
@@ -167,10 +167,10 @@ export default function OnboardingScreen() {
                 {PROPERTY_TYPES.map(type => (
                   <Pressable
                     key={type}
-                    style={[styles.chip, form.property_types.includes(type) && styles.chipActive]}
+                    style={[CHIP_STYLES.chip, form.property_types.includes(type) && CHIP_STYLES.chipActive]}
                     onPress={() => togglePropertyType(type)}
                   >
-                    <Text style={[styles.chipText, form.property_types.includes(type) && styles.chipTextActive]}>
+                    <Text style={[CHIP_STYLES.chipText, form.property_types.includes(type) && CHIP_STYLES.chipTextActive]}>
                       {type}
                     </Text>
                   </Pressable>
@@ -214,10 +214,10 @@ export default function OnboardingScreen() {
                 ].map(opt => (
                   <Pressable
                     key={String(opt.value)}
-                    style={[styles.chip, form.association_preferred === opt.value && styles.chipActive]}
+                    style={[CHIP_STYLES.chip, form.association_preferred === opt.value && CHIP_STYLES.chipActive]}
                     onPress={() => update('association_preferred', opt.value)}
                   >
-                    <Text style={[styles.chipText, form.association_preferred === opt.value && styles.chipTextActive]}>
+                    <Text style={[CHIP_STYLES.chipText, form.association_preferred === opt.value && CHIP_STYLES.chipTextActive]}>
                       {opt.label}
                     </Text>
                   </Pressable>
@@ -341,26 +341,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
-  },
-  chipText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-  },
-  chipTextActive: {
-    color: COLORS.accent,
   },
   mainButton: {
     marginTop: 24,

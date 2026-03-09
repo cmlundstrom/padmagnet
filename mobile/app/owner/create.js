@@ -10,7 +10,7 @@ import { supabase } from '../../lib/supabase';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
-import { LAYOUT } from '../../constants/layout';
+import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 
@@ -285,10 +285,10 @@ export default function CreateListingScreen() {
               {PROPERTY_TYPES.map(type => (
                 <Pressable
                   key={type}
-                  style={[styles.chip, form.property_sub_type === type && styles.chipActive]}
+                  style={[CHIP_STYLES.chip, form.property_sub_type === type && CHIP_STYLES.chipActive]}
                   onPress={() => update('property_sub_type', form.property_sub_type === type ? '' : type)}
                 >
-                  <Text style={[styles.chipText, form.property_sub_type === type && styles.chipTextActive]}>{type}</Text>
+                  <Text style={[CHIP_STYLES.chipText, form.property_sub_type === type && CHIP_STYLES.chipTextActive]}>{type}</Text>
                 </Pressable>
               ))}
             </View>
@@ -337,10 +337,10 @@ export default function CreateListingScreen() {
               {[{ label: 'Yes', value: true }, { label: 'No', value: false }, { label: 'Unknown', value: null }].map(opt => (
                 <Pressable
                   key={String(opt.value)}
-                  style={[styles.chip, form.pets_allowed === opt.value && styles.chipActive]}
+                  style={[CHIP_STYLES.chip, form.pets_allowed === opt.value && CHIP_STYLES.chipActive]}
                   onPress={() => update('pets_allowed', opt.value)}
                 >
-                  <Text style={[styles.chipText, form.pets_allowed === opt.value && styles.chipTextActive]}>{opt.label}</Text>
+                  <Text style={[CHIP_STYLES.chipText, form.pets_allowed === opt.value && CHIP_STYLES.chipTextActive]}>{opt.label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -557,26 +557,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: LAYOUT.padding.md,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
-  },
-  chipText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  chipTextActive: {
-    color: COLORS.accent,
   },
   switchRow: {
     flexDirection: 'row',
