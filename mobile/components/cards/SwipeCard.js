@@ -146,7 +146,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
 
             {/* SAVE overlay */}
             <Animated.View style={[styles.overlay, styles.saveOverlay, saveOverlayStyle]}>
-              <GlossyHeart size={26} />
+              <GlossyHeart size={29} />
             </Animated.View>
 
             {/* SKIP overlay */}
