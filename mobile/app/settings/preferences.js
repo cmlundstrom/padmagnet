@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.success + '22',
+    borderColor: COLORS.success,
   },
   chipText: {
     fontFamily: FONTS.body.medium,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   chipTextActive: {
-    color: COLORS.accent,
+    color: COLORS.success,
   },
   switchRow: {
     flexDirection: 'row',
