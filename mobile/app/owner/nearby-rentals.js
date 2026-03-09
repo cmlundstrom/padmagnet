@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   // Floating button
   floatingBtn: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 70,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',

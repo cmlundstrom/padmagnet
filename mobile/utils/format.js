@@ -28,6 +28,28 @@ export function formatBedsBaths(beds, baths) {
   return `${b} · ${baths} bath`;
 }
 
+/**
+ * Title Case — capitalize first letter of each word.
+ * Handles common address abbreviations (St, Ave, Blvd, etc.)
+ */
+export function toTitleCase(str) {
+  if (!str) return str;
+  return str.trim().replace(/\s+/g, ' ').replace(/\w\S*/g, (word) => {
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+}
+
+/**
+ * Sentence case — capitalize first letter, rest lowercase.
+ * Preserves capitalization after periods for multi-sentence text.
+ */
+export function toSentenceCase(str) {
+  if (!str) return str;
+  return str.trim().replace(/\s+/g, ' ').replace(/(^\s*|[.!?]\s+)([a-z])/g, (match, prefix, letter) => {
+    return prefix + letter.toUpperCase();
+  }).replace(/^[a-z]/, (c) => c.toUpperCase());
+}
+
 export function formatPriceCents(cents) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

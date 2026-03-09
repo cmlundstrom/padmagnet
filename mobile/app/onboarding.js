@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Input, Button } from '../components/ui';
+import StepProgress from '../components/ui/StepProgress';
 import { setOnboarded, savePreferences, getOnboardingStep, saveOnboardingStep } from '../lib/storage';
 import { useAuth } from '../hooks/useAuth';
 import useSearchZones from '../hooks/useSearchZones';
@@ -105,6 +106,13 @@ export default function OnboardingScreen() {
           <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
         </Pressable>
       )}
+
+      {/* Progress bar — steps 1-5 (skip welcome) */}
+      <StepProgress
+        current={step}
+        steps={['Welcome', 'Budget', 'Property Type', 'Location', 'Association', 'Pets']}
+        startAt={1}
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}

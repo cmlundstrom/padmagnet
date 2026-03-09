@@ -194,6 +194,7 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     padding: LAYOUT.padding.md,
+    paddingBottom: LAYOUT.padding.md + 50,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,

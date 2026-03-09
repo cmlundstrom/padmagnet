@@ -77,16 +77,13 @@ export default function OwnerListingsTab() {
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Listings</Text>
-        <Pressable onPress={() => router.push('/owner/create')}>
-          <Text style={styles.addButton}>+ New</Text>
-        </Pressable>
       </View>
 
       {listings.length === 0 ? (
         <EmptyState
           icon="🏠"
           title="No listings yet"
-          subtitle="Create your first rental listing to start receiving inquiries."
+          subtitle="Add your first rental property here to start attracting tenants!"
           actionLabel="Create Listing"
           onAction={() => router.push('/owner/create')}
         />

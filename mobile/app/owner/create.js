@@ -5,7 +5,10 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Header, Button, Input } from '../../components/ui';
+import StepProgress from '../../components/ui/StepProgress';
+import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import { apiFetch } from '../../lib/api';
+import { toTitleCase, toSentenceCase } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
@@ -22,6 +25,7 @@ const INITIAL_FORM = {
   street_number: '',
   street_name: '',
   city: '',
+  state_or_province: 'FL',
   postal_code: '',
   property_sub_type: '',
   list_price: '',
@@ -58,20 +62,20 @@ export default function CreateListingScreen() {
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-  // Build payload from form state
+  // Build payload from form state — normalizes text casing before save
   const buildPayload = useCallback((statusOverride) => ({
-    street_number: form.street_number || null,
-    street_name: form.street_name || null,
-    city: form.city || null,
-    postal_code: form.postal_code || null,
-    state_or_province: 'FL',
+    street_number: form.street_number?.trim() || null,
+    street_name: toTitleCase(form.street_name) || null,
+    city: toTitleCase(form.city) || null,
+    postal_code: form.postal_code?.trim() || null,
+    state_or_province: form.state_or_province?.trim()?.toUpperCase() || 'FL',
     property_sub_type: form.property_sub_type || null,
     list_price: form.list_price ? parseFloat(form.list_price) : null,
     bedrooms_total: form.bedrooms_total ? parseInt(form.bedrooms_total, 10) : null,
     bathrooms_total: form.bathrooms_total ? parseFloat(form.bathrooms_total) : null,
     living_area: form.living_area ? parseFloat(form.living_area) : null,
     year_built: form.year_built ? parseInt(form.year_built, 10) : null,
-    public_remarks: form.public_remarks || null,
+    public_remarks: toSentenceCase(form.public_remarks) || null,
     lease_term: form.lease_term || null,
     available_date: form.available_date || null,
     pets_allowed: form.pets_allowed,
@@ -81,10 +85,10 @@ export default function CreateListingScreen() {
     parking_spaces: form.parking_spaces ? parseInt(form.parking_spaces, 10) : null,
     pool: form.pool,
     photos: form.photos.filter(p => p.url.startsWith('http')),
-    tenant_contact_instructions: form.tenant_contact_instructions || null,
-    listing_agent_name: form.listing_agent_name || null,
+    tenant_contact_instructions: toSentenceCase(form.tenant_contact_instructions) || null,
+    listing_agent_name: toTitleCase(form.listing_agent_name) || null,
     listing_agent_phone: form.listing_agent_phone || null,
-    listing_agent_email: form.listing_agent_email || null,
+    listing_agent_email: form.listing_agent_email?.trim()?.toLowerCase() || null,
     ...(statusOverride ? { status: statusOverride } : {}),
   }), [form]);
 
@@ -243,14 +247,7 @@ export default function CreateListingScreen() {
       <Header title="Create Listing" showBack />
 
       {/* Step indicator */}
-      <View style={styles.stepRow}>
-        {STEPS.map((s, i) => (
-          <View key={s} style={styles.stepItem}>
-            <View style={[styles.stepDot, i <= step && styles.stepDotActive]} />
-            <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]}>{s}</Text>
-          </View>
-        ))}
-      </View>
+      <StepProgress current={step} steps={STEPS} />
 
       {/* Draft saved indicator */}
       {draftSaved && (
@@ -264,14 +261,24 @@ export default function CreateListingScreen() {
         {step === 0 && (
           <>
             <Text style={styles.sectionTitle}>Property Address</Text>
+            <AddressAutocomplete
+              onSelect={(addr) => {
+                update('street_number', addr.street_number || '');
+                update('street_name', addr.street_name || '');
+                update('city', addr.city || '');
+                update('state_or_province', addr.state_or_province || 'FL');
+                update('postal_code', addr.postal_code || '');
+              }}
+            />
             <View style={styles.row}>
               <Input label="Number" value={form.street_number} onChangeText={v => update('street_number', v)} placeholder="123" style={styles.shortInput} />
-              <Input label="Street Name *" value={form.street_name} onChangeText={v => update('street_name', v)} placeholder="Main St" style={styles.flexInput} />
+              <Input label="Street Name *" value={form.street_name} onChangeText={v => update('street_name', v)} placeholder="Main St" autoCapitalize="words" style={styles.flexInput} />
             </View>
             <View style={styles.row}>
-              <Input label="City *" value={form.city} onChangeText={v => update('city', v)} placeholder="Stuart" style={styles.flexInput} />
-              <Input label="Zip" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" style={styles.shortInput} />
+              <Input label="City *" value={form.city} onChangeText={v => update('city', v)} placeholder="Stuart" autoCapitalize="words" style={styles.flexInput} />
+              <Input label="State" value={form.state_or_province} onChangeText={v => update('state_or_province', v)} placeholder="FL" autoCapitalize="characters" style={styles.shortInput} />
             </View>
+            <Input label="Zip" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" />
           </>
         )}
 
@@ -310,6 +317,7 @@ export default function CreateListingScreen() {
               label="Property Description"
               value={form.public_remarks}
               onChangeText={v => update('public_remarks', v)}
+              autoCapitalize="sentences"
               placeholder="Spacious 3-bed home with updated kitchen, close to downtown..."
               multiline
               numberOfLines={6}
@@ -399,12 +407,13 @@ export default function CreateListingScreen() {
               label="Contact Instructions"
               value={form.tenant_contact_instructions}
               onChangeText={v => update('tenant_contact_instructions', v)}
+              autoCapitalize="sentences"
               placeholder="Call or text 555-123-4567, or email me at owner@email.com"
               multiline
               numberOfLines={3}
               style={styles.textArea}
             />
-            <Input label="Agent Name (optional)" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Jane Smith" />
+            <Input label="Agent Name (optional)" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Jane Smith" autoCapitalize="words" />
             <Input label="Agent Phone (optional)" value={form.listing_agent_phone} onChangeText={v => update('listing_agent_phone', v)} placeholder="555-123-4567" keyboardType="phone-pad" />
             <Input label="Agent Email (optional)" value={form.listing_agent_email} onChangeText={v => update('listing_agent_email', v)} placeholder="agent@email.com" keyboardType="email-address" />
           </>
@@ -483,36 +492,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: LAYOUT.padding.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  stepItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.border,
-  },
-  stepDotActive: {
-    backgroundColor: COLORS.accent,
-  },
-  stepLabel: {
-    fontFamily: FONTS.body.regular,
-    fontSize: 10,
-    color: COLORS.slate,
-  },
-  stepLabelActive: {
-    color: COLORS.accent,
-    fontFamily: FONTS.body.semiBold,
   },
   scroll: {
     flex: 1,
@@ -655,6 +634,7 @@ const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
     padding: LAYOUT.padding.md,
+    paddingBottom: LAYOUT.padding.md + 50,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,
