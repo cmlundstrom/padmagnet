@@ -284,21 +284,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.success + '22',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.success,
   },
   chipActive: {
-    backgroundColor: COLORS.success + '22',
-    borderColor: COLORS.success,
+    backgroundColor: COLORS.accent + '22',
+    borderColor: COLORS.accent,
   },
   chipText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.success,
   },
   chipTextActive: {
-    color: COLORS.success,
+    color: COLORS.accent,
   },
   switchRow: {
     flexDirection: 'row',
