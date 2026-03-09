@@ -7,7 +7,8 @@ import { TAB_SCREEN_OPTIONS, TAB_ICON_SIZE } from '../../constants/screenStyles'
 export default function OwnerTabLayout() {
   const tabBarStyle = {
     ...TAB_SCREEN_OPTIONS.tabBarStyle,
-    paddingBottom: 4,
+    paddingBottom: 0,
+    marginBottom: -21,
   };
 
   return (

@@ -34,7 +34,7 @@ export default ({ config }) => ({
       },
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyDy4LTVbh5yTLOy4oiAfqpk-CJaOO9vncc",
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
         },
       },
       permissions: [
@@ -66,10 +66,11 @@ export default ({ config }) => ({
       ],
       "expo-web-browser",
       "expo-image",
+      "expo-navigation-bar",
       [
         "react-native-maps",
         {
-          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyDy4LTVbh5yTLOy4oiAfqpk-CJaOO9vncc",
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
         },
       ],
     ],

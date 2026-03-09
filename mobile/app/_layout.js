@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as NavigationBar from 'expo-navigation-bar';
+let NavigationBar = null;
+try { NavigationBar = require('expo-navigation-bar'); } catch (e) {}
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import {
@@ -100,7 +101,7 @@ export default function RootLayout() {
 
   // Match Android system nav bar to our tab bar color
   useEffect(() => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === 'android' && NavigationBar) {
       NavigationBar.setBackgroundColorAsync(COLORS.surface);
       NavigationBar.setButtonStyleAsync('light');
     }
