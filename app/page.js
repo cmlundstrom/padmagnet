@@ -85,63 +85,15 @@ function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false
 }
 
 function PhoneMockup() {
-  const [positions, setPositions] = useState([0, 1, 2]);
-  const [swiping, setSwiping] = useState(-1);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSwiping(prev => positions[0]);
-      setTimeout(() => {
-        setPositions(prev => {
-          const next = [...prev];
-          next.push(next.shift());
-          return next;
-        });
-        setSwiping(-1);
-      }, 500);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [positions]);
-
-  const cards = [
-    { cls: 'card-1', price: '$2,100/mo', addr: '3 bd · 2 ba · Stuart, FL', tags: ['🏊 Pool', '🐕 Pets OK'], img: '/images/card1.jpg', alt: 'Rental home in Stuart, FL' },
-    { cls: 'card-2', price: '$1,850/mo', addr: '2 bd · 2 ba · PSL, FL', tags: ['🏠 Garage'], img: '/images/card2.jpg', alt: 'Rental home in Port St. Lucie, FL' },
-    { cls: 'card-3', price: '$2,400/mo', addr: '4 bd · 3 ba · Hobe Sound', tags: ['🌴 Yard', '🏊 Pool'], img: '/images/card3.jpg', alt: 'Rental home in Hobe Sound, FL' },
-  ];
-
   return (
     <div className="hero-visual">
       <div className="phone-frame">
-        <div className="phone-notch" />
-        <div className="phone-screen">
-          <div className="phone-header">
-            <span className="phone-header-text">Near You</span>
-          </div>
-          <div className="swipe-stack">
-            {cards.map((card, i) => {
-              const pos = positions.indexOf(i);
-              return (
-                <div key={i} className={`swipe-card ${card.cls} ${swiping === i ? 'swiping' : ''}`} data-pos={pos}>
-                  <img src={card.img} alt={card.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" />
-                  <div className="swipe-card-content">
-                    <div className="swipe-card-price">{card.price}</div>
-                    <div className="swipe-card-address">{card.addr}</div>
-                    <div className="swipe-card-tags">
-                      {card.tags.map((t, j) => <span key={j} className="swipe-tag">{t}</span>)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="phone-actions">
-            <div className="phone-btn nope">✕</div>
-            <div className="phone-btn like">♥</div>
-          </div>
-          <div className="phone-branding">
-            <img src="/logo/padmagnet-header.png" alt="PadMagnet" className="phone-branding-img" />
-          </div>
-        </div>
+        <img
+          src="/images/app-screenshot.jpg"
+          alt="PadMagnet app showing rental listings with PadScore matching"
+          className="phone-screenshot"
+          loading="eager"
+        />
       </div>
     </div>
   );
