@@ -150,7 +150,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
 
             {/* SKIP overlay */}
             <Animated.View style={[styles.overlay, styles.skipOverlay, skipOverlayStyle]}>
-              <FontAwesome name="trash" size={24} color={COLORS.danger} />
+              <Text style={{ fontSize: 24 }}>🗑</Text>
             </Animated.View>
           </View>
 
