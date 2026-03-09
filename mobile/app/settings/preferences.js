@@ -139,6 +139,27 @@ export default function PreferencesScreen() {
         <Text style={styles.label}>Where do you want to live? (three areas max)</Text>
         <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
 
+        {/* Features */}
+        <Text style={styles.sectionTitle}>Features</Text>
+        <Text style={styles.label}>Furnished</Text>
+        <View style={styles.chipRow}>
+          {[
+            { label: 'No Preference', value: null },
+            { label: 'Yes', value: true },
+            { label: 'No', value: false },
+          ].map(opt => (
+            <Pressable
+              key={String(opt.value)}
+              style={[styles.chip, form.furnished_preferred === opt.value && styles.chipActive]}
+              onPress={() => update('furnished_preferred', opt.value)}
+            >
+              <Text style={[styles.chipText, form.furnished_preferred === opt.value && styles.chipTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
         {/* Pets */}
         <Text style={styles.sectionTitle}>Pets</Text>
         <View style={styles.switchRow}>
@@ -148,6 +169,7 @@ export default function PreferencesScreen() {
             onValueChange={v => update('pets_required', v)}
             trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
             thumbColor={form.pets_required ? COLORS.accent : COLORS.slate}
+            style={LAYOUT.switch}
           />
         </View>
         {form.pets_required && (
@@ -173,33 +195,14 @@ export default function PreferencesScreen() {
                 onValueChange={v => update('fenced_yard_required', v)}
                 trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
                 thumbColor={form.fenced_yard_required ? COLORS.accent : COLORS.slate}
+                style={LAYOUT.switch}
               />
             </View>
           </>
         )}
 
-        {/* Features */}
-        <Text style={styles.sectionTitle}>Features</Text>
-        <Text style={styles.label}>Furnished</Text>
-        <View style={styles.chipRow}>
-          {[
-            { label: 'No Preference', value: null },
-            { label: 'Yes', value: true },
-            { label: 'No', value: false },
-          ].map(opt => (
-            <Pressable
-              key={String(opt.value)}
-              style={[styles.chip, form.furnished_preferred === opt.value && styles.chipActive]}
-              onPress={() => update('furnished_preferred', opt.value)}
-            >
-              <Text style={[styles.chipText, form.furnished_preferred === opt.value && styles.chipTextActive]}>
-                {opt.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
         {/* Association */}
-        <Text style={styles.sectionTitle}>Association</Text>
+        <Text style={styles.sectionTitle}>Owner Association Preference</Text>
         <Text style={styles.hintInline}>
           Associations (HOA/COA) have community rules tenants must follow.
         </Text>
@@ -222,16 +225,17 @@ export default function PreferencesScreen() {
         </View>
 
         {/* Save */}
-        <Button
-          title="Save Preferences"
-          onPress={handleSave}
-          loading={saving}
-          style={styles.saveButton}
-        />
-
-        <Text style={styles.hint}>
-          Your inputs power your PadScore™. The best home matches for you will show up first!
-        </Text>
+        <View style={styles.saveWrap}>
+          <Button
+            title="Save Preferences"
+            onPress={handleSave}
+            loading={saving}
+            style={styles.saveButton}
+          />
+          <Text style={styles.hint}>
+            Your inputs power your PadScore™. The best homes for you will show up first!
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -247,7 +251,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 40,
+    paddingBottom: 70,
   },
   sectionTitle: {
     fontFamily: FONTS.heading.semiBold,
@@ -310,8 +314,16 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
   },
-  saveButton: {
+  saveWrap: {
     marginTop: LAYOUT.padding.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.md,
+    alignItems: 'center',
+  },
+  saveButton: {
+    width: '100%',
   },
   hintInline: {
     fontFamily: FONTS.body.regular,
@@ -324,6 +336,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.white,
     textAlign: 'center',
-    marginTop: LAYOUT.padding.md,
+    marginTop: 12,
   },
 });

@@ -142,15 +142,12 @@ export function calculatePadScore(preferences, listing, zones) {
     }
   }
 
-  // Association mismatch
+  // Association mismatch — only penalize if tenant dislikes HOA and property has one
   if (preferences.association_preferred === false && listing.hoa_fee > 0) {
     totalPenalty += WEIGHTS.association_mismatch;
     factors.push({ key: 'association', label: 'Has Association', impact: -WEIGHTS.association_mismatch, match: false });
-  } else if (preferences.association_preferred === true && (!listing.hoa_fee || listing.hoa_fee === 0)) {
-    totalPenalty += WEIGHTS.association_mismatch;
-    factors.push({ key: 'association', label: 'No Association', impact: -WEIGHTS.association_mismatch, match: false });
   } else if (preferences.association_preferred != null) {
-    factors.push({ key: 'association', label: 'Association Match', impact: 0, match: true });
+    factors.push({ key: 'association', label: 'Association OK', impact: 0, match: true });
   }
 
   // Furnished

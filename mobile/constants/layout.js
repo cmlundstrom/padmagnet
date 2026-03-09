@@ -22,4 +22,7 @@ export const LAYOUT = {
     width: width - 32,
     height: height * 0.58,
   },
+  switch: {
+    transform: [{ scale: 1.5 }],
+  },
 };

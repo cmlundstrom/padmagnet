@@ -28,6 +28,7 @@ export default function OnboardingScreen() {
     budget_max: '',
     beds_min: '',
     property_types: [],
+    association_preferred: null,
     pets_required: false,
   });
 
@@ -61,6 +62,7 @@ export default function OnboardingScreen() {
         budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
         beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
         property_types: form.property_types,
+        association_preferred: form.association_preferred,
         pets_required: form.pets_required,
       };
       await savePreferences(prefs);
@@ -94,7 +96,7 @@ export default function OnboardingScreen() {
   // Don't render until saved step is loaded
   if (step === null) return null;
 
-  // Steps: 0=welcome, 1=budget, 2=property type, 3=location, 4=pets
+  // Steps: 0=welcome, 1=budget, 2=property type, 3=location, 4=association, 5=pets
   return (
     <SafeAreaView style={styles.container}>
       {/* Back pill — upper left, steps 1+ */}
@@ -200,6 +202,36 @@ export default function OnboardingScreen() {
 
           {step === 4 && (
             <>
+              <Text style={styles.stepTitle}>Owner Association Preference?</Text>
+              <Text style={styles.stepHint}>
+                Some properties are in a Homeowner or Condo Association (HOA/COA). These communities have rules tenants must follow. Select your preference.
+              </Text>
+              <View style={styles.chipRow}>
+                {[
+                  { label: 'No Preference', value: null },
+                  { label: 'Yes', value: true },
+                  { label: 'No', value: false },
+                ].map(opt => (
+                  <Pressable
+                    key={String(opt.value)}
+                    style={[styles.chip, form.association_preferred === opt.value && styles.chipActive]}
+                    onPress={() => update('association_preferred', opt.value)}
+                  >
+                    <Text style={[styles.chipText, form.association_preferred === opt.value && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Button title="Next" onPress={() => goToStep(5)} style={styles.mainButton} />
+              <Pressable onPress={() => goToStep(3)} style={styles.backLink}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
+            </>
+          )}
+
+          {step === 5 && (
+            <>
               <Text style={styles.stepTitle}>Do you have pets?</Text>
               <Text style={styles.stepHint}>We'll filter out pet-unfriendly listings.</Text>
               <View style={styles.switchRow}>
@@ -209,6 +241,7 @@ export default function OnboardingScreen() {
                   onValueChange={v => update('pets_required', v)}
                   trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
                   thumbColor={form.pets_required ? COLORS.accent : COLORS.slate}
+                  style={LAYOUT.switch}
                 />
               </View>
               <Button
@@ -217,7 +250,7 @@ export default function OnboardingScreen() {
                 loading={saving}
                 style={styles.mainButton}
               />
-              <Pressable onPress={() => goToStep(3)} style={styles.backLink}>
+              <Pressable onPress={() => goToStep(4)} style={styles.backLink}>
                 <Text style={styles.backText}>Back</Text>
               </Pressable>
             </>

@@ -59,6 +59,7 @@ export default function DynamicField({ config, value, onChange }) {
             onValueChange={onChange}
             trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
             thumbColor={value ? COLORS.accent : COLORS.slate}
+            style={LAYOUT.switch}
           />
         </View>
       );

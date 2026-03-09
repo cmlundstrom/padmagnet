@@ -346,15 +346,15 @@ export default function CreateListingScreen() {
             </View>
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Fenced Yard</Text>
-              <Switch value={form.fenced_yard} onValueChange={v => update('fenced_yard', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.fenced_yard ? COLORS.accent : COLORS.slate} />
+              <Switch value={form.fenced_yard} onValueChange={v => update('fenced_yard', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.fenced_yard ? COLORS.accent : COLORS.slate} style={LAYOUT.switch} />
             </View>
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Furnished</Text>
-              <Switch value={form.furnished} onValueChange={v => update('furnished', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.furnished ? COLORS.accent : COLORS.slate} />
+              <Switch value={form.furnished} onValueChange={v => update('furnished', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.furnished ? COLORS.accent : COLORS.slate} style={LAYOUT.switch} />
             </View>
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Pool</Text>
-              <Switch value={form.pool} onValueChange={v => update('pool', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.pool ? COLORS.accent : COLORS.slate} />
+              <Switch value={form.pool} onValueChange={v => update('pool', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.pool ? COLORS.accent : COLORS.slate} style={LAYOUT.switch} />
             </View>
             <Input label="Parking Spaces" value={form.parking_spaces} onChangeText={v => update('parking_spaces', v)} keyboardType="numeric" placeholder="2" />
           </>
