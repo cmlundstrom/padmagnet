@@ -166,7 +166,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={{ fontSize: 22 }}>🗑</Text>
+              <Text style={{ fontSize: 18, textAlign: 'center' }}>🗑</Text>
             </Pressable>
 
             <Pressable
