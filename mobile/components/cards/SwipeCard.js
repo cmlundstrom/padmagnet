@@ -150,7 +150,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
 
             {/* SKIP overlay */}
             <Animated.View style={[styles.overlay, styles.skipOverlay, skipOverlayStyle]}>
-              <Text style={{ fontSize: 24 }}>🗑</Text>
+              <Text style={{ fontSize: 18, textAlign: 'center', lineHeight: 22 }}>🗑</Text>
             </Animated.View>
           </View>
 
