@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { FlatList, Text, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { EmptyState } from '../../components/ui';
 import ProductCard from '../../components/ProductCard';
 import useProducts from '../../hooks/useProducts';
@@ -11,6 +12,7 @@ import { LAYOUT } from '../../constants/layout';
 import { SCREEN } from '../../constants/screenStyles';
 
 export default function ServicesScreen() {
+  const router = useRouter();
   const { products, loading, refresh } = useProducts('owner');
   const alert = useAlert();
   const [refreshing, setRefreshing] = useState(false);
@@ -23,6 +25,11 @@ export default function ServicesScreen() {
   }, [refresh]);
 
   const handlePurchase = (product) => {
+    if (product.feature_key === 'nearby_rentals') {
+      // Navigate to nearby rentals — user needs an active listing to select
+      alert('Select a Listing', 'Go to your Listings tab, then tap "Nearby" on an active listing to use this feature.');
+      return;
+    }
     alert('Coming Soon', 'Stripe checkout is not yet configured. This feature will be available once payment processing is set up.');
   };
 

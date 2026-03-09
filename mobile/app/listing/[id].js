@@ -15,7 +15,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function ListingDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, context } = useLocalSearchParams();
   const alert = useAlert();
   const router = useRouter();
   const [listing, setListing] = useState(null);
@@ -120,7 +120,9 @@ export default function ListingDetailScreen() {
       {/* Sticky bottom CTA */}
       <View style={styles.bottomBar}>
         <Pressable style={styles.ctaButton} onPress={handleContact}>
-          <Text style={styles.ctaButtonText}>Check Availability</Text>
+          <Text style={styles.ctaButtonText}>
+            {context === 'owner_browse' ? 'Contact Listing Agent' : 'Check Availability'}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -58,6 +58,9 @@ function mapBridgeToListing(prop) {
     virtual_tour_url: prop.VirtualTourURLUnbranded || null,
     pool: prop.PoolPrivateYN === true || (Array.isArray(prop.PoolFeatures) && prop.PoolFeatures.length > 0) || null,
     parking_spaces: prop.GarageSpaces || prop.ParkingTotal || null,
+    days_on_market: prop.OnMarketDate
+      ? Math.max(0, Math.floor((Date.now() - new Date(prop.OnMarketDate).getTime()) / 86400000))
+      : null,
     modification_timestamp: prop.ModificationTimestamp,
     photos,
     is_active: true,

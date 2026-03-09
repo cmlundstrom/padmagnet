@@ -52,6 +52,7 @@ export default function ListingCard({ listing, padscore, style }) {
         <Text style={styles.details} numberOfLines={1}>
           {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
           {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
+          {listing.days_on_market != null ? ` · ${listing.days_on_market}d` : ''}
         </Text>
       </View>
     </Pressable>

@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { EmptyState } from '../../components/ui';
+import PriceEditModal from '../../components/owner/PriceEditModal';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
 import { useAlert } from '../../providers/AlertProvider';
@@ -18,6 +20,7 @@ export default function OwnerListingsTab() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [priceEditListing, setPriceEditListing] = useState(null);
 
   const fetchListings = useCallback(async () => {
     try {
@@ -106,10 +109,23 @@ export default function OwnerListingsTab() {
               onDeactivate={() => handleDeactivate(item)}
               onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
               onRelist={() => router.push(`/owner/relist?listing_id=${item.id}`)}
+              onNearby={() => router.push(`/owner/nearby-rentals?listing_id=${item.id}`)}
+              onEditPrice={() => setPriceEditListing(item)}
             />
           )}
         />
       )}
+
+      <PriceEditModal
+        visible={!!priceEditListing}
+        onClose={() => setPriceEditListing(null)}
+        listing={priceEditListing}
+        onPriceUpdated={(result) => {
+          setListings(prev => prev.map(l =>
+            l.id === result.id ? { ...l, list_price: result.list_price } : l
+          ));
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -132,7 +148,7 @@ function getExpiresLabel(expiresAt) {
   return `${days} days left`;
 }
 
-function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRelist }) {
+function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
   const firstPhoto = listing.photos?.[0]?.url;
@@ -192,6 +208,14 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           <>
             <Pressable style={styles.actionBtn} onPress={onEdit}>
               <Text style={styles.actionBtnText}>Edit</Text>
+            </Pressable>
+            <Pressable style={styles.actionBtn} onPress={onEditPrice}>
+              <FontAwesome name="pencil" size={13} color={COLORS.accent} />
+              <Text style={[styles.actionBtnText, { marginLeft: 4, fontSize: FONT_SIZES.xs }]}>Price</Text>
+            </Pressable>
+            <Pressable style={styles.actionBtn} onPress={onNearby}>
+              <FontAwesome name="map-marker" size={13} color={COLORS.accent} />
+              <Text style={[styles.actionBtnText, { marginLeft: 4, fontSize: FONT_SIZES.xs }]}>Nearby</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
               <Text style={[styles.actionBtnText, styles.dangerBtnText]}>Archive</Text>
@@ -304,6 +328,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
