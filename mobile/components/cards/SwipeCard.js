@@ -17,6 +17,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+import GlossyHeart from '../ui/GlossyHeart';
 import { Badge } from '../ui';
 import { formatCurrency, formatBedsBaths } from '../../utils/format';
 import { MLS_COPYRIGHT } from '../../constants/mls';
@@ -145,7 +146,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
 
             {/* SAVE overlay */}
             <Animated.View style={[styles.overlay, styles.saveOverlay, saveOverlayStyle]}>
-              <FontAwesome name="heart" size={20} color={COLORS.success} style={{ textShadowColor: '#000', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 6 }} />
+              <GlossyHeart size={22} />
             </Animated.View>
 
             {/* SKIP overlay */}

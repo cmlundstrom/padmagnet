@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import CardStack from '../../components/cards/CardStack';
 import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
+import { GlossyHeart } from '../../components/ui';
 import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
@@ -188,7 +189,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <FontAwesome name="heart" size={22} color={COLORS.success} style={{ textShadowColor: '#000', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 6 }} />
+              <GlossyHeart size={24} />
             </Pressable>
           </View>
         )}
