@@ -163,10 +163,9 @@ function PhoneMockup() {
               </svg>
             </div>
             <div className="pm-btn pm-btn-info">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
+              <svg width="10" height="10" viewBox="0 0 10 24" fill="#fff">
+                <circle cx="5" cy="4" r="2" />
+                <rect x="3" y="9" width="4" height="12" rx="1" />
               </svg>
             </div>
             <div className="pm-btn pm-btn-save">
