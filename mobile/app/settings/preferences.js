@@ -124,12 +124,14 @@ export default function PreferencesScreen() {
           {PROPERTY_TYPES.map(type => (
             <Pressable
               key={type}
-              style={[styles.chip, form.property_types.includes(type) && styles.chipActive]}
+              style={({ pressed }) => [styles.chip, form.property_types.includes(type) && styles.chipActive, pressed && styles.chipPressed]}
               onPress={() => toggleArrayItem('property_types', type)}
             >
-              <Text style={[styles.chipText, form.property_types.includes(type) && styles.chipTextActive]}>
-                {type}
-              </Text>
+              {({ pressed }) => (
+                <Text style={[styles.chipText, form.property_types.includes(type) && styles.chipTextActive, pressed && styles.chipTextPressed]}>
+                  {type}
+                </Text>
+              )}
             </Pressable>
           ))}
         </View>
@@ -150,12 +152,14 @@ export default function PreferencesScreen() {
           ].map(opt => (
             <Pressable
               key={String(opt.value)}
-              style={[styles.chip, form.furnished_preferred === opt.value && styles.chipActive]}
+              style={({ pressed }) => [styles.chip, form.furnished_preferred === opt.value && styles.chipActive, pressed && styles.chipPressed]}
               onPress={() => update('furnished_preferred', opt.value)}
             >
-              <Text style={[styles.chipText, form.furnished_preferred === opt.value && styles.chipTextActive]}>
-                {opt.label}
-              </Text>
+              {({ pressed }) => (
+                <Text style={[styles.chipText, form.furnished_preferred === opt.value && styles.chipTextActive, pressed && styles.chipTextPressed]}>
+                  {opt.label}
+                </Text>
+              )}
             </Pressable>
           ))}
         </View>
@@ -179,12 +183,14 @@ export default function PreferencesScreen() {
               {PET_TYPES.map(type => (
                 <Pressable
                   key={type}
-                  style={[styles.chip, form.pet_type === type && styles.chipActive]}
+                  style={({ pressed }) => [styles.chip, form.pet_type === type && styles.chipActive, pressed && styles.chipPressed]}
                   onPress={() => update('pet_type', form.pet_type === type ? null : type)}
                 >
-                  <Text style={[styles.chipText, form.pet_type === type && styles.chipTextActive]}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </Text>
+                  {({ pressed }) => (
+                    <Text style={[styles.chipText, form.pet_type === type && styles.chipTextActive, pressed && styles.chipTextPressed]}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </Text>
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -214,12 +220,14 @@ export default function PreferencesScreen() {
           ].map(opt => (
             <Pressable
               key={String(opt.value)}
-              style={[styles.chip, form.association_preferred === opt.value && styles.chipActive]}
+              style={({ pressed }) => [styles.chip, form.association_preferred === opt.value && styles.chipActive, pressed && styles.chipPressed]}
               onPress={() => update('association_preferred', opt.value)}
             >
-              <Text style={[styles.chipText, form.association_preferred === opt.value && styles.chipTextActive]}>
-                {opt.label}
-              </Text>
+              {({ pressed }) => (
+                <Text style={[styles.chipText, form.association_preferred === opt.value && styles.chipTextActive, pressed && styles.chipTextPressed]}>
+                  {opt.label}
+                </Text>
+              )}
             </Pressable>
           ))}
         </View>
@@ -289,8 +297,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   chipActive: {
-    backgroundColor: COLORS.success + '22',
-    borderColor: COLORS.success,
+    backgroundColor: COLORS.accent + '22',
+    borderColor: COLORS.accent,
   },
   chipText: {
     fontFamily: FONTS.body.medium,
@@ -298,6 +306,13 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   chipTextActive: {
+    color: COLORS.accent,
+  },
+  chipPressed: {
+    backgroundColor: COLORS.success + '33',
+    borderColor: COLORS.success,
+  },
+  chipTextPressed: {
     color: COLORS.success,
   },
   switchRow: {
