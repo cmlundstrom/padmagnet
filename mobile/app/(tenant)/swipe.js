@@ -165,7 +165,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <FontAwesome name="trash-o" size={22} color={COLORS.white} />
+              <Text style={{ fontSize: 22 }}>🗑</Text>
             </Pressable>
 
             <Pressable
