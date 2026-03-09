@@ -119,7 +119,7 @@ export default function PreferencesScreen() {
           />
         </View>
 
-        <Text style={styles.label}>Property Types</Text>
+        <Text style={styles.label}>Preferred Property Types</Text>
         <View style={styles.chipRow}>
           {PROPERTY_TYPES.map(type => (
             <Pressable
