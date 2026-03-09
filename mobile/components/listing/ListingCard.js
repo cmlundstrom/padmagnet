@@ -13,7 +13,8 @@ export default function ListingCard({ listing, padscore, style }) {
   if (!listing) return null;
 
   const firstPhoto = listing.photos?.[0]?.url;
-  const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+  const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+  const address = [street, listing.city].filter(Boolean).join(', ');
   const score = padscore ?? listing.padScore?.score ?? null;
 
   return (
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   imageContainer: {
-    height: 120,
+    height: 140,
     backgroundColor: COLORS.surface,
   },
   image: {
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.text,
   },
   perMonth: {

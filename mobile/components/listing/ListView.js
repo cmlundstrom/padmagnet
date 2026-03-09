@@ -61,7 +61,7 @@ export default function ListView({ listings = [], loading, error, onRefresh, has
       onEndReached={() => {
         if (hasMore && onLoadMore) onLoadMore();
       }}
-      onEndReachedThreshold={0.5}
+      onEndReachedThreshold={1.5}
       ListFooterComponent={
         hasMore && listings.length > 0 ? (
           <ActivityIndicator style={styles.footer} color={COLORS.accent} />
