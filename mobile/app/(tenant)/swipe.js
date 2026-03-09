@@ -188,7 +188,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={[styles.actionText, { color: COLORS.success, marginTop: 5 }]}>♡</Text>
+              <Text style={{ fontSize: 22 }}>💚</Text>
             </Pressable>
           </View>
         )}
