@@ -91,37 +91,49 @@ export default function UploadPhotosPage({ params }) {
     setUploadProgress(toUpload.map(f => ({ name: f.name, progress: 0, done: false })));
 
     const token = await getToken();
-    const formData = new FormData();
-    toUpload.forEach(f => formData.append('photos', f));
+    const allUploaded = [];
 
     try {
-      const res = await fetch('/api/owner/photos', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      // Upload one file at a time to avoid body size limits
+      for (let i = 0; i < toUpload.length; i++) {
+        const formData = new FormData();
+        formData.append('photos', toUpload[i]);
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Upload failed');
+        const res = await fetch('/api/owner/photos', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          let message = 'Upload failed';
+          try { message = JSON.parse(text).error || message; } catch { message = text || message; }
+          throw new Error(`${toUpload[i].name}: ${message}`);
+        }
+
+        const uploaded = await res.json();
+        allUploaded.push(...uploaded);
+
+        // Mark this file as done
+        setUploadProgress(prev => prev.map((p, idx) =>
+          idx <= i ? { ...p, progress: 100, done: true } : p
+        ));
       }
 
-      const uploaded = await res.json();
-
-      // Mark all as done
-      setUploadProgress(prev => prev.map(p => ({ ...p, progress: 100, done: true })));
-
       // Append to photos array and update listing
-      const newPhotos = [...photos, ...uploaded.map((u, i) => ({
+      const newPhotos = [...photos, ...allUploaded.map((u, i) => ({
         url: u.url,
+        thumb_url: u.thumb_url,
         caption: '',
         order: currentCount + i,
       }))];
 
+      const token2 = await getToken();
       const updateRes = await fetch(`/api/owner/listings/${listingId}`, {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token2}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ photos: newPhotos }),

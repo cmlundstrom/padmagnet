@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "app/api/owner/photos/route.js": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/bridge/sync",

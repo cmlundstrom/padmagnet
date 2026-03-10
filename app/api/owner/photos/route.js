@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60s for sharp processing + upload
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_INPUT_SIZE = 10 * 1024 * 1024; // 10MB raw input (we compress server-side)
