@@ -102,7 +102,7 @@ export default function OwnerListingsTab() {
           renderItem={({ item }) => (
             <OwnerListingRow
               listing={item}
-              onEdit={() => router.push(`/listing/${item.id}`)}
+              onEdit={() => router.push(`/owner/edit?id=${item.id}`)}
               onDeactivate={() => handleDeactivate(item)}
               onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
               onRelist={() => router.push(`/owner/relist?listing_id=${item.id}`)}
