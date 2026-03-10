@@ -297,7 +297,7 @@ export default function LandingPage() {
               <span className="hero-badge-dot" />
               Coming soon to Florida&apos;s Treasure and Gold Coast
             </div>
-            <h1><span className="swipe-right-line"><span>Swipe</span> right<br /><svg className="swipe-arrow" viewBox="0 0 520 36" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#E8603C" stopOpacity="0.15"/><stop offset="60%" stopColor="#E8603C" stopOpacity="0.7"/><stop offset="100%" stopColor="#E8603C"/></linearGradient></defs><path d="M0 18 H470 L455 5 M470 18 L455 31" stroke="url(#arrowGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg></span><br />on your next rental home.</h1>
+            <h1 className="hero-headline"><span>Swipe</span> right<svg className="swipe-arrow" viewBox="0 0 500 40" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#E8603C" stopOpacity="0.15"/><stop offset="60%" stopColor="#E8603C" stopOpacity="0.7"/><stop offset="100%" stopColor="#E8603C"/></linearGradient></defs><path d="M0 20 H450 L430 6 M450 20 L430 34" stroke="url(#arrowGrad)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg><br />on your next rental home.</h1>
             <p className="hero-sub">
               Rental matching for Florida&apos;s Treasure Coast down through the entire Gold Coast, that&apos;s Fort Pierce to Miami and every town in between! — All powered by both live MLS data and Property Owner private listings!
             </p>

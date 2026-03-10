@@ -184,20 +184,18 @@ nav.scrolled {
   margin-bottom: 20px;
   letter-spacing: -1.5px;
 }
-.swipe-right-line {
-  display: inline-block;
+.hero-headline {
   position: relative;
 }
-.swipe-right-line > span {
+.hero-headline > span {
   color: var(--coral);
 }
 .swipe-arrow {
-  display: block;
-  width: 520%;
-  height: 18px;
-  margin-top: -6px;
-  margin-bottom: -4px;
-  margin-left: -210%;
+  position: absolute;
+  left: 0;
+  top: clamp(52px, 7.5vw, 78px);
+  width: min(560px, 85vw);
+  height: 28px;
 }
 .hero-sub {
   font-size: 18px;
