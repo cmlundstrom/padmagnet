@@ -234,12 +234,12 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
         ) : (
           <>
             <Pressable style={styles.actionBtn} onPress={onEdit}>
-              <FontAwesome name="pencil" size={13} color={COLORS.accent} />
-              <Text style={[styles.actionBtnText, { marginLeft: 4 }]}>Edit</Text>
+              <FontAwesome name="pencil" size={13} color={COLORS.brandOrange} />
+              <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Edit</Text>
             </Pressable>
             <Pressable style={styles.actionBtn} onPress={onEditPrice}>
-              <FontAwesome name="dollar" size={13} color={COLORS.accent} />
-              <Text style={[styles.actionBtnText, { marginLeft: 4 }]}>Price</Text>
+              <FontAwesome name="dollar" size={13} color={COLORS.brandOrange} />
+              <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Price</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
               <FontAwesome name="archive" size={12} color={COLORS.danger} />
@@ -251,7 +251,7 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
       {status !== 'draft' && status !== 'expired' && (
         <Pressable style={styles.nearbyBtn} onPress={onNearby}>
           <View style={styles.nearbyIcon}>
-            <FontAwesome name="bar-chart" size={18} color={COLORS.accent} />
+            <FontAwesome name="bar-chart" size={18} color={COLORS.brandOrange} />
           </View>
           <View style={styles.nearbyText}>
             <Text style={styles.nearbyTitle}>Nearby Rental Comps</Text>
@@ -406,13 +406,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    backgroundColor: COLORS.accent + '08',
+    backgroundColor: COLORS.brandOrange + '08',
   },
   nearbyIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.accent + '18',
+    backgroundColor: COLORS.brandOrange + '18',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -423,13 +423,16 @@ const styles = StyleSheet.create({
   nearbyTitle: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    color: COLORS.brandOrange,
   },
   nearbySubtitle: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
     marginTop: 1,
+  },
+  orangeText: {
+    color: COLORS.brandOrange,
   },
   dangerBtn: {
     borderLeftWidth: 1,
