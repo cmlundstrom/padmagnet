@@ -17,6 +17,7 @@ export default function Input({
   numberOfLines = 1,
   style,
   inputStyle,
+  labelStyle,
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +25,7 @@ export default function Input({
 
   return (
     <View style={[styles.container, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
       <View style={[
         styles.inputWrapper,
         focused && styles.inputFocused,

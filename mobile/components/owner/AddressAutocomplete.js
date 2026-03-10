@@ -63,7 +63,7 @@ export default function AddressAutocomplete({ onSelect }) {
   return (
     <View style={styles.container}>
       <Input
-        label="Property Address *"
+        label="Rental Property Address *"
         value={query}
         onChangeText={handleChange}
         placeholder="Start typing an address..."

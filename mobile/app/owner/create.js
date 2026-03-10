@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, Switch, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { Header, Button, Input } from '../../components/ui';
+import { FontAwesome } from '@expo/vector-icons';
+import { Header, Button, Input, Toggle } from '../../components/ui';
 import StepProgress from '../../components/ui/StepProgress';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import { apiFetch } from '../../lib/api';
 import { toTitleCase, toSentenceCase } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import { useAlert } from '../../providers/AlertProvider';
+import { getDraftStep, saveDraftStep, clearDraftStep } from '../../lib/storage';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
@@ -51,16 +54,76 @@ const INITIAL_FORM = {
 
 export default function CreateListingScreen() {
   const router = useRouter();
+  const { draft_id } = useLocalSearchParams();
   const alert = useAlert();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [draftId, setDraftId] = useState(null);
-  const [draftSaved, setDraftSaved] = useState(false);
-  const autoSaveTimer = useRef(null);
+  const [draftId, setDraftId] = useState(draft_id || null);
+
+  const [loadingDraft, setLoadingDraft] = useState(!!draft_id);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [photoUploadConfig, setPhotoUploadConfig] = useState(null);
+
+  // Fetch photo upload feature config
+  useEffect(() => {
+    apiFetch('/api/products?audience=owner')
+      .then(products => {
+        const cfg = products?.find(p => p.feature_key === 'photo_upload_link' && p.is_active);
+        if (cfg) setPhotoUploadConfig(cfg);
+      })
+      .catch(() => {});
+  }, []);
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Load existing draft data on mount
+  useEffect(() => {
+    if (!draft_id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch(`/api/listings/${draft_id}`);
+        if (cancelled) return;
+        setForm({
+          street_number: data.street_number || '',
+          street_name: data.street_name || '',
+          city: data.city || '',
+          state_or_province: data.state_or_province || 'FL',
+          postal_code: data.postal_code || '',
+          property_sub_type: data.property_sub_type || '',
+          list_price: data.list_price ? String(data.list_price) : '',
+          bedrooms_total: data.bedrooms_total ? String(data.bedrooms_total) : '',
+          bathrooms_total: data.bathrooms_total ? String(data.bathrooms_total) : '',
+          living_area: data.living_area ? String(data.living_area) : '',
+          year_built: data.year_built ? String(data.year_built) : '',
+          public_remarks: data.public_remarks || '',
+          lease_term: data.lease_term || '',
+          available_date: data.available_date || '',
+          pets_allowed: data.pets_allowed,
+          fenced_yard: data.fenced_yard || false,
+          furnished: data.furnished || false,
+          hoa_fee: data.hoa_fee > 0 ? 'yes' : data.hoa_fee === 0 ? 'no' : '',
+          parking_spaces: data.parking_spaces ? String(data.parking_spaces) : '',
+          pool: data.pool || false,
+          photos: data.photos || [],
+          tenant_contact_instructions: data.tenant_contact_instructions || '',
+          listing_agent_name: data.listing_agent_name || '',
+          listing_agent_phone: data.listing_agent_phone || '',
+          listing_agent_email: data.listing_agent_email || '',
+        });
+        // Restore saved step
+        const savedStep = await getDraftStep(draft_id);
+        if (!cancelled) setStep(savedStep);
+      } catch {
+        alert('Error', 'Could not load draft. Starting fresh.');
+      } finally {
+        if (!cancelled) setLoadingDraft(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [draft_id]);
 
   // Build payload from form state — normalizes text casing before save
   const buildPayload = useCallback((statusOverride) => ({
@@ -81,7 +144,7 @@ export default function CreateListingScreen() {
     pets_allowed: form.pets_allowed,
     fenced_yard: form.fenced_yard,
     furnished: form.furnished,
-    hoa_fee: form.hoa_fee ? parseFloat(form.hoa_fee) : null,
+    hoa_fee: form.hoa_fee === 'yes' ? 1 : form.hoa_fee === 'no' ? 0 : null,
     parking_spaces: form.parking_spaces ? parseInt(form.parking_spaces, 10) : null,
     pool: form.pool,
     photos: form.photos.filter(p => p.url.startsWith('http')),
@@ -92,21 +155,6 @@ export default function CreateListingScreen() {
     ...(statusOverride ? { status: statusOverride } : {}),
   }), [form]);
 
-  // Auto-save draft every 30 seconds
-  useEffect(() => {
-    if (!draftId) return;
-    autoSaveTimer.current = setInterval(async () => {
-      try {
-        await apiFetch(`/api/owner/listings/${draftId}`, {
-          method: 'PUT',
-          body: JSON.stringify(buildPayload()),
-        });
-        setDraftSaved(true);
-        setTimeout(() => setDraftSaved(false), 2000);
-      } catch { /* silent auto-save failure */ }
-    }, 30000);
-    return () => clearInterval(autoSaveTimer.current);
-  }, [draftId, buildPayload]);
 
   // Create draft on first next from step 0
   const createDraft = async () => {
@@ -117,25 +165,63 @@ export default function CreateListingScreen() {
         body: JSON.stringify({ ...buildPayload('draft'), status: 'draft' }),
       });
       setDraftId(data.id);
+      saveDraftStep(data.id, 1); // Moving from step 0 to 1
     } catch { /* non-blocking — draft creation is optional */ }
   };
 
   const nextStep = async () => {
-    if (step === 0 && (!form.street_name || !form.city)) {
-      alert('Required', 'Street name and city are required.');
-      return;
+    if (step === 0) {
+      const missing = [];
+      if (!form.street_name) missing.push('Street Name');
+      if (!form.city) missing.push('City');
+      if (!form.state_or_province) missing.push('State');
+      if (!form.postal_code) missing.push('Zip');
+      if (missing.length) {
+        alert('Required', `Please fill in: ${missing.join(', ')}`);
+        return;
+      }
     }
-    if (step === 1 && !form.list_price) {
-      alert('Required', 'Monthly rent is required.');
-      return;
+    if (step === 1) {
+      const missing = [];
+      if (!form.list_price) missing.push('Monthly Rent');
+      if (!form.property_sub_type) missing.push('Property Type');
+      if (!form.bedrooms_total) missing.push('Beds');
+      if (!form.bathrooms_total) missing.push('Baths');
+      if (!form.year_built) missing.push('Year Built');
+      if (!form.living_area) missing.push('Sq/Ft');
+      if (missing.length) {
+        alert('Required', `Please fill in: ${missing.join(', ')}`);
+        return;
+      }
     }
     // Create draft on leaving step 0
     if (step === 0) await createDraft();
-    if (step < STEPS.length - 1) setStep(step + 1);
+    if (step < STEPS.length - 1) {
+      const newStep = step + 1;
+      setStep(newStep);
+      // Save draft immediately on every step change
+      if (draftId) {
+        saveDraftStep(draftId, newStep);
+        apiFetch(`/api/owner/listings/${draftId}`, {
+          method: 'PUT',
+          body: JSON.stringify(buildPayload()),
+        }).catch(() => {});
+      }
+    }
   };
 
   const prevStep = () => {
-    if (step > 0) setStep(step - 1);
+    if (step > 0) {
+      const newStep = step - 1;
+      setStep(newStep);
+      if (draftId) {
+        saveDraftStep(draftId, newStep);
+        apiFetch(`/api/owner/listings/${draftId}`, {
+          method: 'PUT',
+          body: JSON.stringify(buildPayload()),
+        }).catch(() => {});
+      }
+    }
   };
 
   // Upload photos to Supabase Storage via API
@@ -144,7 +230,7 @@ export default function CreateListingScreen() {
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
-      selectionLimit: 10 - form.photos.length,
+      selectionLimit: 15 - form.photos.length,
     });
 
     if (result.canceled || !result.assets?.length) return;
@@ -180,6 +266,7 @@ export default function CreateListingScreen() {
       const uploaded = await res.json();
       const newPhotos = uploaded.map((p, i) => ({
         url: p.url,
+        thumb_url: p.thumb_url,
         caption: '',
         order: form.photos.length + i,
       }));
@@ -211,6 +298,60 @@ export default function CreateListingScreen() {
     update('photos', form.photos.filter((_, i) => i !== index));
   };
 
+  // Send desktop photo upload link via email
+  const [linkSent, setLinkSent] = useState(false);
+  const handleSendUploadLink = async () => {
+    // Save current form state first
+    if (draftId) {
+      await apiFetch(`/api/owner/listings/${draftId}`, {
+        method: 'PUT',
+        body: JSON.stringify(buildPayload()),
+      }).catch(() => {});
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    alert(
+      'Upload from Desktop',
+      `Send a secure photo upload link to ${user.email}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Link',
+          onPress: async () => {
+            try {
+              await apiFetch(`/api/owner/listings/${draftId}/upload-link`, {
+                method: 'POST',
+              });
+              setLinkSent(true);
+              alert('Link Sent!', 'Check your email. The link expires in 15 minutes.');
+            } catch (err) {
+              alert('Error', err.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Realtime subscription for photos synced from desktop upload
+  useEffect(() => {
+    if (!draftId || step !== 5) return;
+    const channel = supabase
+      .channel(`listing-photos-${draftId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'listings',
+        filter: `id=eq.${draftId}`,
+      }, (payload) => {
+        if (payload.new?.photos) {
+          setForm(f => ({ ...f, photos: payload.new.photos }));
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [draftId, step]);
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -230,8 +371,9 @@ export default function CreateListingScreen() {
         });
       }
 
+      if (draftId) clearDraftStep(draftId);
       alert('Success', 'Your listing has been created!', [
-        { text: 'OK', onPress: () => router.replace('/owner/listings') },
+        { text: 'OK', onPress: () => router.replace('/(owner)/listings') },
       ]);
     } catch (err) {
       alert('Error', err.message);
@@ -242,19 +384,25 @@ export default function CreateListingScreen() {
 
   const address = [form.street_number, form.street_name].filter(Boolean).join(' ');
 
+  if (loadingDraft) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <Header title="Create Listing" showBack />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Header title="Create Listing" showBack />
+      <Header title={draft_id ? 'Edit Draft' : 'Create Listing'} showBack />
 
       {/* Step indicator */}
       <StepProgress current={step} steps={STEPS} />
 
-      {/* Draft saved indicator */}
-      {draftSaved && (
-        <View style={styles.draftBanner}>
-          <Text style={styles.draftBannerText}>Draft saved</Text>
-        </View>
-      )}
+
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Step 0: Address */}
@@ -276,9 +424,9 @@ export default function CreateListingScreen() {
             </View>
             <View style={styles.row}>
               <Input label="City *" value={form.city} onChangeText={v => update('city', v)} placeholder="Stuart" autoCapitalize="words" style={styles.flexInput} />
-              <Input label="State" value={form.state_or_province} onChangeText={v => update('state_or_province', v)} placeholder="FL" autoCapitalize="characters" style={styles.shortInput} />
+              <Input label="State *" value={form.state_or_province} onChangeText={v => update('state_or_province', v)} placeholder="FL" autoCapitalize="characters" style={styles.shortInput} />
             </View>
-            <Input label="Zip" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" />
+            <Input label="Zip *" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" />
           </>
         )}
 
@@ -287,7 +435,7 @@ export default function CreateListingScreen() {
           <>
             <Text style={styles.sectionTitle}>Property Details</Text>
             <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
-            <Text style={styles.label}>Property Type</Text>
+            <Text style={styles.label}>Property Type *</Text>
             <View style={styles.chipRow}>
               {PROPERTY_TYPES.map(type => (
                 <Pressable
@@ -300,11 +448,11 @@ export default function CreateListingScreen() {
               ))}
             </View>
             <View style={styles.row}>
-              <Input label="Beds" value={form.bedrooms_total} onChangeText={v => update('bedrooms_total', v)} keyboardType="numeric" placeholder="3" style={styles.thirdInput} />
-              <Input label="Baths" value={form.bathrooms_total} onChangeText={v => update('bathrooms_total', v)} keyboardType="numeric" placeholder="2" style={styles.thirdInput} />
-              <Input label="Sqft" value={form.living_area} onChangeText={v => update('living_area', v)} keyboardType="numeric" placeholder="1200" style={styles.thirdInput} />
+              <Input label="Beds *" value={form.bedrooms_total} onChangeText={v => update('bedrooms_total', v)} keyboardType="numeric" placeholder="3" style={styles.thirdInput} />
+              <Input label="Baths *" value={form.bathrooms_total} onChangeText={v => update('bathrooms_total', v)} keyboardType="numeric" placeholder="2" style={styles.thirdInput} />
+              <Input label="Sq/Ft *" value={form.living_area} onChangeText={v => update('living_area', v)} keyboardType="numeric" placeholder="1200" style={styles.thirdInput} />
             </View>
-            <Input label="Year Built" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
+            <Input label="Year Built *" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
           </>
         )}
 
@@ -312,17 +460,21 @@ export default function CreateListingScreen() {
         {step === 2 && (
           <>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.hint}>Describe your property to potential tenants. Mention unique features, nearby amenities, or anything that makes your place special.</Text>
+            <Text style={styles.hint}>Pitch the pad. What cool features in your rental or nearby hot spots really make it shine?</Text>
             <Input
-              label="Property Description"
+              label="Describe Your Rental Property"
+              labelStyle={{ color: COLORS.white }}
               value={form.public_remarks}
-              onChangeText={v => update('public_remarks', v)}
+              onChangeText={v => update('public_remarks', v.slice(0, 500))}
               autoCapitalize="sentences"
               placeholder="Spacious 3-bed home with updated kitchen, close to downtown..."
+              placeholderTextColor={COLORS.slate}
               multiline
               numberOfLines={6}
+              maxLength={500}
               style={styles.textArea}
             />
+            <Text style={styles.charCounter}><Text style={{ color: form.public_remarks.length > 500 ? COLORS.danger : COLORS.success, fontFamily: FONTS.body.regular, fontSize: FONT_SIZES.xs }}>{form.public_remarks.length}</Text>/500</Text>
           </>
         )}
 
@@ -330,9 +482,56 @@ export default function CreateListingScreen() {
         {step === 3 && (
           <>
             <Text style={styles.sectionTitle}>Lease Details</Text>
-            <Input label="Lease Term (months)" value={form.lease_term} onChangeText={v => update('lease_term', v)} keyboardType="numeric" placeholder="12" />
-            <Input label="Available Date" value={form.available_date} onChangeText={v => update('available_date', v)} placeholder="YYYY-MM-DD" />
-            <Input label="HOA Fee ($/mo)" value={form.hoa_fee} onChangeText={v => update('hoa_fee', v)} keyboardType="numeric" placeholder="0" />
+            <Text style={styles.fieldLabel}>Minimum Lease Term you will offer a Tenant?</Text>
+            <View style={styles.chipRow}>
+              {[{ label: '3 Months', value: '3' }, { label: '6 Months + 1 Day', value: '6' }, { label: '12 Months', value: '12' }].map(opt => (
+                <Pressable
+                  key={opt.value}
+                  style={[CHIP_STYLES.chip, form.lease_term === opt.value && CHIP_STYLES.chipActive]}
+                  onPress={() => update('lease_term', opt.value)}
+                >
+                  <Text style={[CHIP_STYLES.chipText, form.lease_term === opt.value && CHIP_STYLES.chipTextActive]}>{opt.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.fieldLabel}>Available Date</Text>
+            <Pressable style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
+              <Text style={form.available_date ? styles.datePickerText : styles.datePickerPlaceholder}>
+                {form.available_date || 'Select a date'}
+              </Text>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={form.available_date ? new Date(form.available_date + 'T00:00:00') : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={new Date()}
+                themeVariant="dark"
+                accentColor={COLORS.accent}
+                textColor={COLORS.white}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    const yyyy = selectedDate.getFullYear();
+                    const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(selectedDate.getDate()).padStart(2, '0');
+                    update('available_date', `${yyyy}-${mm}-${dd}`);
+                  }
+                }}
+              />
+            )}
+            <Text style={styles.fieldLabel}>Is your Rental located in an Owner Association which will subject your Tenant to Association Application or Association Rules?</Text>
+            <View style={styles.chipRow}>
+              {[{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }].map(opt => (
+                <Pressable
+                  key={opt.value}
+                  style={[CHIP_STYLES.chip, form.hoa_fee === opt.value && CHIP_STYLES.chipActive]}
+                  onPress={() => update('hoa_fee', opt.value)}
+                >
+                  <Text style={[CHIP_STYLES.chipText, form.hoa_fee === opt.value && CHIP_STYLES.chipTextActive]}>{opt.label}</Text>
+                </Pressable>
+              ))}
+            </View>
           </>
         )}
 
@@ -342,7 +541,7 @@ export default function CreateListingScreen() {
             <Text style={styles.sectionTitle}>Features</Text>
             <Text style={styles.label}>Pets Allowed</Text>
             <View style={styles.chipRow}>
-              {[{ label: 'Yes', value: true }, { label: 'No', value: false }, { label: 'Unknown', value: null }].map(opt => (
+              {[{ label: 'Yes', value: true }, { label: 'No', value: false }].map(opt => (
                 <Pressable
                   key={String(opt.value)}
                   style={[CHIP_STYLES.chip, form.pets_allowed === opt.value && CHIP_STYLES.chipActive]}
@@ -352,18 +551,9 @@ export default function CreateListingScreen() {
                 </Pressable>
               ))}
             </View>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Fenced Yard</Text>
-              <Switch value={form.fenced_yard} onValueChange={v => update('fenced_yard', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.fenced_yard ? COLORS.accent : COLORS.slate} style={LAYOUT.switch} />
-            </View>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Furnished</Text>
-              <Switch value={form.furnished} onValueChange={v => update('furnished', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.furnished ? COLORS.accent : COLORS.slate} style={LAYOUT.switch} />
-            </View>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Pool</Text>
-              <Switch value={form.pool} onValueChange={v => update('pool', v)} trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }} thumbColor={form.pool ? COLORS.accent : COLORS.slate} style={LAYOUT.switch} />
-            </View>
+            <Toggle label="Fenced Yard" value={form.fenced_yard} onValueChange={v => update('fenced_yard', v)} />
+            <Toggle label="Furnished" value={form.furnished} onValueChange={v => update('furnished', v)} />
+            <Toggle label="Pool" value={form.pool} onValueChange={v => update('pool', v)} />
             <Input label="Parking Spaces" value={form.parking_spaces} onChangeText={v => update('parking_spaces', v)} keyboardType="numeric" placeholder="2" />
           </>
         )}
@@ -372,12 +562,31 @@ export default function CreateListingScreen() {
         {step === 5 && (
           <>
             <Text style={styles.sectionTitle}>Photos</Text>
-            <Text style={styles.hint}>Add up to 10 photos of your property. Photos are uploaded immediately.</Text>
+            <Text style={styles.hint}>Add up to 15 photos of your property. Photos are uploaded immediately.</Text>
+            <View style={styles.photoActionRow}>
+              <Pressable style={styles.photoActionBtn} onPress={pickImages} disabled={form.photos.length >= 15 || uploading}>
+                <FontAwesome name="mobile-phone" size={22} color={COLORS.white} />
+                <Text style={styles.photoActionBtnText}>Add Photos from Phone</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.photoActionBtn, !draftId && { opacity: 0.4 }]}
+                onPress={draftId ? handleSendUploadLink : null}
+                disabled={!draftId}
+              >
+                <FontAwesome name="laptop" size={18} color={COLORS.white} />
+                <Text style={styles.photoActionBtnText}>
+                  {linkSent ? 'Resend Upload Link' : (photoUploadConfig?.metadata?.button_text || 'Upload Photos from Desktop/Laptop')}
+                </Text>
+              </Pressable>
+            </View>
             {uploading && (
               <View style={styles.uploadingRow}>
                 <ActivityIndicator size="small" color={COLORS.accent} />
                 <Text style={styles.uploadingText}>Uploading...</Text>
               </View>
+            )}
+            {form.photos.length > 0 && (
+              <Text style={styles.photoCount}>{form.photos.length} of 15 photos</Text>
             )}
             <View style={styles.photoGrid}>
               {form.photos.map((photo, index) => (
@@ -388,12 +597,6 @@ export default function CreateListingScreen() {
                   </Pressable>
                 </View>
               ))}
-              {form.photos.length < 10 && !uploading && (
-                <Pressable style={styles.addPhotoBtn} onPress={pickImages}>
-                  <Text style={styles.addPhotoText}>+</Text>
-                  <Text style={styles.addPhotoLabel}>Add</Text>
-                </Pressable>
-              )}
             </View>
           </>
         )}
@@ -531,6 +734,31 @@ const styles = StyleSheet.create({
   thirdInput: {
     flex: 1,
   },
+  fieldLabel: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+  },
+  datePickerBtn: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  datePickerText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+  },
+  datePickerPlaceholder: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.slate,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -601,6 +829,33 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
+  photoActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  photoActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: LAYOUT.radius.md,
+  },
+  photoActionBtnText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  photoCount: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    marginBottom: 8,
+  },
   uploadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -615,6 +870,14 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  charCounter: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    textAlign: 'right',
+    marginTop: -8,
+    marginBottom: 8,
   },
   draftBanner: {
     backgroundColor: COLORS.success + '22',

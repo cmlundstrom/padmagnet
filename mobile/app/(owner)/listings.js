@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -145,6 +145,25 @@ function getExpiresLabel(expiresAt) {
   return `${days} days left`;
 }
 
+function PulsingText({ style, children }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration: 1500, useNativeDriver: false }),
+        Animated.timing(anim, { toValue: 0, duration: 1500, useNativeDriver: false }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [anim]);
+  const color = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#FFFFFF', COLORS.accent],
+  });
+  return <Animated.Text style={[style, { color }]}>{children}</Animated.Text>;
+}
+
 function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
@@ -168,18 +187,21 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           <Text style={styles.listingPrice}>
             {listing.list_price ? `${formatCurrency(listing.list_price)}/mo` : 'Draft'}
           </Text>
-          <Text style={styles.listingAddress} numberOfLines={1}>{address || 'No address'}</Text>
-          <Text style={styles.listingCity} numberOfLines={1}>{cityLine}</Text>
-          <View style={styles.statusRow}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
-              <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Text>
+          <Text style={styles.listingAddress} numberOfLines={2}>
+            {address || 'No address'}{cityLine ? `, ${cityLine}` : ''}
+          </Text>
+          {status !== 'draft' && (
+            <View style={styles.statusRow}>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
+                <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Text>
+              </View>
+              {expiresLabel && (
+                <Text style={styles.expiresLabel}>{expiresLabel}</Text>
+              )}
             </View>
-            {expiresLabel && (
-              <Text style={styles.expiresLabel}>{expiresLabel}</Text>
-            )}
-          </View>
+          )}
           {(listing.view_count > 0 || listing.inquiry_count > 0) && (
             <Text style={styles.statsText}>
               {listing.view_count || 0} views · {listing.inquiry_count || 0} inquiries
@@ -187,12 +209,20 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           )}
         </View>
       </Pressable>
-      <View style={styles.listingActions}>
-        {status === 'draft' ? (
-          <Pressable style={styles.actionBtn} onPress={onContinueDraft}>
-            <Text style={styles.actionBtnText}>Continue</Text>
+      {status === 'draft' && (
+        <View style={styles.draftBannerRow}>
+          <View style={[styles.statusBadge, styles.draftBadge, { backgroundColor: getStatusColor('draft') + '22' }]}>
+            <Text style={[styles.statusBadgeText, styles.draftBadgeText, { color: getStatusColor('draft') }]} numberOfLines={1}>
+              Listing Input Progress: Draft Mode
+            </Text>
+          </View>
+          <Pressable style={styles.draftContinueBtn} onPress={onContinueDraft}>
+            <PulsingText style={styles.draftContinueBtnText}>Continue</PulsingText>
           </Pressable>
-        ) : status === 'expired' ? (
+        </View>
+      )}
+      <View style={[styles.listingActions, status === 'draft' && { display: 'none' }]}>
+        {status === 'expired' ? (
           <>
             <Pressable style={styles.actionBtn} onPress={onRelist}>
               <Text style={styles.actionBtnText}>Re-list</Text>
@@ -257,8 +287,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   listingPhoto: {
-    width: 90,
-    height: 90,
+    width: 100,
+    height: 110,
   },
   listingImage: {
     flex: 1,
@@ -292,6 +322,22 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
   },
+  draftBannerRow: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 10,
+  },
+  draftContinueBtn: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 32,
+    paddingVertical: 10,
+    borderRadius: LAYOUT.radius.full,
+  },
+  draftContinueBtnText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -306,6 +352,14 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: 10,
+  },
+  draftBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  draftBadgeText: {
+    fontSize: FONT_SIZES.xs,
+    fontFamily: FONTS.body.bold,
   },
   expiresLabel: {
     fontFamily: FONTS.body.regular,

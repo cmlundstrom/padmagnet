@@ -34,20 +34,20 @@ export const CHIP_STYLES = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.success + '22',
+    backgroundColor: COLORS.accent + '22',
     borderWidth: 1,
-    borderColor: COLORS.success,
+    borderColor: COLORS.accent,
   },
   chipActive: {
-    backgroundColor: COLORS.accent + '22',
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.success + '22',
+    borderColor: COLORS.success,
   },
   chipText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.success,
+    color: COLORS.accent,
   },
   chipTextActive: {
-    color: COLORS.accent,
+    color: COLORS.white,
   },
 });

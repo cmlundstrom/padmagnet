@@ -20,6 +20,37 @@ const ALLOWED_FIELDS = [
 
 const ADDRESS_FIELDS = ['street_number', 'street_name', 'city', 'state_or_province', 'postal_code'];
 
+// GET — fetch an owner listing (ownership verified)
+export async function GET(request, { params }) {
+  try {
+    const { user, error: authError, status } = await getAuthUser(request);
+    if (authError) {
+      return NextResponse.json({ error: authError }, { status });
+    }
+
+    const { id } = await params;
+    const supabase = createServiceClient();
+
+    const { data: listing, error: fetchErr } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !listing) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+    }
+
+    if (listing.source !== 'owner' || listing.owner_user_id !== user.id) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+
+    return NextResponse.json(listing);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 // PUT — update an owner listing
 export async function PUT(request, { params }) {
   try {

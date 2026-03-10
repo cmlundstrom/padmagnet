@@ -22,7 +22,7 @@ export async function GET(request) {
 
     let query = supabase
       .from('products')
-      .select('id, name, description, price_cents, type, app_path, sort_order')
+      .select('id, name, description, price_cents, type, app_path, sort_order, feature_key, metadata, is_active')
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
 

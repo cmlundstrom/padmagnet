@@ -55,3 +55,17 @@ export async function getSearchZones() {
 export async function saveSearchZones(zones) {
   await AsyncStorage.setItem(KEYS.SEARCH_ZONES, JSON.stringify(zones));
 }
+
+// Draft step persistence — keyed by draft ID
+export async function getDraftStep(draftId) {
+  const raw = await AsyncStorage.getItem(`padmagnet_draft_step_${draftId}`);
+  return raw ? parseInt(raw, 10) : 0;
+}
+
+export async function saveDraftStep(draftId, step) {
+  await AsyncStorage.setItem(`padmagnet_draft_step_${draftId}`, String(step));
+}
+
+export async function clearDraftStep(draftId) {
+  await AsyncStorage.removeItem(`padmagnet_draft_step_${draftId}`);
+}
