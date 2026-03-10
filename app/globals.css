@@ -193,7 +193,7 @@ nav.scrolled {
 }
 .swipe-arrow {
   display: block;
-  width: 100%;
+  width: 130%;
   height: 18px;
   margin-top: -6px;
   margin-bottom: -4px;
@@ -333,7 +333,7 @@ nav.scrolled {
 /* Intro text */
 .pm-intro {
   font-family: 'DM Sans', sans-serif;
-  font-size: 9px;
+  font-size: 11px;
   color: #B0BEC5;
   text-align: center;
   padding: 2px 16px 6px;
