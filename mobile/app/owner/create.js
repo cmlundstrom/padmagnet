@@ -323,7 +323,7 @@ export default function CreateListingScreen() {
                 method: 'POST',
               });
               setLinkSent(true);
-              alert('Link Sent!', 'Check your email. The link expires in 15 minutes.');
+              alert('Link Sent!', 'Check your email. The link expires in 45 minutes.');
             } catch (err) {
               alert('Error', err.message);
             }

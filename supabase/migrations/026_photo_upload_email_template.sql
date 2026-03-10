@@ -18,7 +18,7 @@ INSERT INTO email_templates (slug, subject, body_html, variables, is_active) VAL
       <div style="text-align:center;margin:28px 0">
         <a href="{{upload_url}}" style="background:#4A90D9;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;display:inline-block">Upload Photos Now</a>
       </div>
-      <p style="color:#888;font-size:13px">This link expires in 15 minutes. Drag and drop your photos or click to select — they''ll sync to your phone automatically.</p>
+      <p style="color:#888;font-size:13px">This link expires in 45 minutes. Drag and drop your photos or click to select — they''ll sync to your phone automatically.</p>
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
       <p style="color:#999;font-size:12px;text-align:center">PadMagnet.com — Your perfect rental match awaits!<br>&copy; PadMagnet LLC</p>
     </div>

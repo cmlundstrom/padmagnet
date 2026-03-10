@@ -82,7 +82,7 @@ export default function UploadPhotosPage({ params }) {
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
-        alert(`File too large: ${file.name} (max 5MB).`);
+        alert(`File too large: ${file.name} (max 10MB).`);
         return;
       }
     }
@@ -258,7 +258,7 @@ export default function UploadPhotosPage({ params }) {
           >
             <div className={styles.dropzoneIcon}>📁</div>
             <p className={styles.dropzoneText}>Drop photos here or click to select</p>
-            <p className={styles.dropzoneHint}>JPEG, PNG, WebP · 5MB max per file</p>
+            <p className={styles.dropzoneHint}>JPEG, PNG, WebP · 10MB max per file</p>
             <input
               ref={fileInputRef}
               type="file"
