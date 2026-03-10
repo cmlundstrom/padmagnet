@@ -297,7 +297,7 @@ export default function LandingPage() {
               <span className="hero-badge-dot" />
               Coming soon to Florida&apos;s Treasure and Gold Coast
             </div>
-            <h1><span>Swipe</span> right<br />on your next home.</h1>
+            <h1><span>Swipe</span> right<br />on your next rental home.</h1>
             <p className="hero-sub">
               Rental matching for Florida&apos;s Treasure Coast down through the entire Gold Coast, that&apos;s Fort Pierce to Miami and every town in between! — All powered by both live MLS data and Property Owner private listings!
             </p>
