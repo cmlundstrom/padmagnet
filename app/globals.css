@@ -193,10 +193,11 @@ nav.scrolled {
 }
 .swipe-arrow {
   display: block;
-  width: 130%;
+  width: 260%;
   height: 18px;
   margin-top: -6px;
   margin-bottom: -4px;
+  margin-left: -65%;
 }
 .hero-sub {
   font-size: 18px;
