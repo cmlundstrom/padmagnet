@@ -1,8 +1,13 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { getAuthUser } from '../../../../lib/auth-helpers';
 import { geocodeAddress } from '../../../../lib/geocode';
+import { sendTemplateEmail } from '../../../../lib/email';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+
+function generateConfirmationCode(uuid) {
+  return 'PM-' + uuid.replace(/-/g, '').slice(0, 6).toUpperCase();
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +97,11 @@ export async function POST(request) {
       }
     }
 
+    // Generate confirmation code for non-draft listings
+    if (!isDraft) {
+      listing.confirmation_code = generateConfirmationCode(listing.listing_key);
+    }
+
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('listings')
@@ -101,6 +111,21 @@ export async function POST(request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Send confirmation email for non-draft listings
+    if (!isDraft && data.confirmation_code) {
+      const address = [data.street_number, data.street_name].filter(Boolean).join(' ');
+      const fullAddress = [address, data.city, data.state_or_province].filter(Boolean).join(', ');
+      sendTemplateEmail('listing_confirmed', user.email, {
+        owner_name: data.listing_agent_name || user.user_metadata?.display_name || 'there',
+        confirmation_code: data.confirmation_code,
+        listing_address: fullAddress,
+        rent: data.list_price ? `$${Number(data.list_price).toLocaleString()}/mo` : '—',
+        property_type: data.property_sub_type || '—',
+        beds_baths: `${data.bedrooms_total || '—'} / ${data.bathrooms_total || '—'}`,
+        photo_count: `${data.photos?.length || 0} photo${(data.photos?.length || 0) !== 1 ? 's' : ''}`,
+      }).catch(() => {}); // Non-blocking
     }
 
     return NextResponse.json(data, { status: 201 });

@@ -65,6 +65,7 @@ export default function CreateListingScreen() {
   const [loadingDraft, setLoadingDraft] = useState(!!draft_id);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [photoUploadConfig, setPhotoUploadConfig] = useState(null);
+  const [contactPref, setContactPref] = useState('email'); // 'email' | 'phone' | 'both'
 
   // Fetch photo upload feature config
   useEffect(() => {
@@ -77,6 +78,14 @@ export default function CreateListingScreen() {
   }, []);
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Format phone as (XXX) XXX-XXXX
+  const formatPhone = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
 
   // Load existing draft data on mount
   useEffect(() => {
@@ -194,8 +203,36 @@ export default function CreateListingScreen() {
         return;
       }
     }
+    if (step === 6) {
+      const missing = [];
+      if ((contactPref === 'phone' || contactPref === 'both') && !form.listing_agent_phone) missing.push('Phone Number');
+      if (missing.length) {
+        alert('Required', `Please fill in: ${missing.join(', ')}`);
+        return;
+      }
+      if (form.listing_agent_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.listing_agent_email)) {
+        alert('Invalid Email', 'Please enter a valid email address.');
+        return;
+      }
+      if ((contactPref === 'phone' || contactPref === 'both') && form.listing_agent_phone.replace(/\D/g, '').length < 10) {
+        alert('Invalid Phone', 'Please enter a complete 10-digit phone number.');
+        return;
+      }
+    }
     // Create draft on leaving step 0
     if (step === 0) await createDraft();
+    // Auto-populate owner contact info when entering step 6
+    if (step === 5) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          if (!form.listing_agent_email) update('listing_agent_email', user.email || '');
+          if (!form.listing_agent_name) update('listing_agent_name', user.user_metadata?.display_name || '');
+          // Infer contact pref from draft data
+          if (form.listing_agent_phone) setContactPref(form.listing_agent_email ? 'both' : 'phone');
+        }
+      } catch { /* non-blocking */ }
+    }
     if (step < STEPS.length - 1) {
       const newStep = step + 1;
       setStep(newStep);
@@ -355,7 +392,7 @@ export default function CreateListingScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const payload = buildPayload('pending_payment');
+      const payload = buildPayload('active');
 
       if (draftId) {
         // Update existing draft → pending_payment
@@ -605,20 +642,56 @@ export default function CreateListingScreen() {
         {step === 6 && (
           <>
             <Text style={styles.sectionTitle}>Contact Information</Text>
-            <Text style={styles.hint}>How should tenants reach you? Add contact instructions, a phone number, or agent details.</Text>
+            <Text style={styles.hint}>This is how tenants will reach you. Choose your preferred contact method.</Text>
+            <Input
+              label="Your Name (as shown to tenants)"
+              value={form.listing_agent_name}
+              onChangeText={v => update('listing_agent_name', v)}
+              placeholder="Your full name"
+              autoCapitalize="words"
+            />
+            <Text style={styles.chipLabel}>Preferred Contact Method *</Text>
+            <View style={styles.chipRow}>
+              {[{ key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'both', label: 'Both' }].map(opt => (
+                <Pressable
+                  key={opt.key}
+                  style={[CHIP_STYLES.chip, contactPref === opt.key && CHIP_STYLES.chipActive]}
+                  onPress={() => {
+                    setContactPref(opt.key);
+                    if (opt.key === 'email') update('listing_agent_phone', '');
+                  }}
+                >
+                  <Text style={[CHIP_STYLES.chipText, contactPref === opt.key && CHIP_STYLES.chipTextActive]}>{opt.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Input
+              label="Email for Tenants"
+              value={form.listing_agent_email}
+              onChangeText={v => update('listing_agent_email', v)}
+              onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
+              placeholder="your@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {(contactPref === 'phone' || contactPref === 'both') && (
+              <Input
+                label="Phone Number for Tenants *"
+                value={form.listing_agent_phone}
+                onChangeText={v => update('listing_agent_phone', formatPhone(v))}
+                placeholder="(555) 123-4567"
+                keyboardType="phone-pad"
+              />
+            )}
             <Input
               label="Contact Instructions"
               value={form.tenant_contact_instructions}
               onChangeText={v => update('tenant_contact_instructions', v)}
               autoCapitalize="sentences"
-              placeholder="Call or text 555-123-4567, or email me at owner@email.com"
               multiline
               numberOfLines={3}
               style={styles.textArea}
             />
-            <Input label="Agent Name (optional)" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Jane Smith" autoCapitalize="words" />
-            <Input label="Agent Phone (optional)" value={form.listing_agent_phone} onChangeText={v => update('listing_agent_phone', v)} placeholder="555-123-4567" keyboardType="phone-pad" />
-            <Input label="Agent Email (optional)" value={form.listing_agent_email} onChangeText={v => update('listing_agent_email', v)} placeholder="agent@email.com" keyboardType="email-address" />
           </>
         )}
 
@@ -637,7 +710,8 @@ export default function CreateListingScreen() {
               <ReviewRow label="Pets" value={form.pets_allowed === true ? 'Yes' : form.pets_allowed === false ? 'No' : 'Unknown'} />
               <ReviewRow label="Furnished" value={form.furnished ? 'Yes' : 'No'} />
               <ReviewRow label="Photos" value={`${form.photos.length} photo${form.photos.length !== 1 ? 's' : ''}`} />
-              <ReviewRow label="Contact" value={form.tenant_contact_instructions ? 'Provided' : form.listing_agent_name || '—'} />
+              <ReviewRow label="Contact" value={form.listing_agent_name || '—'} />
+              <ReviewRow label="Method" value={contactPref === 'both' ? 'Email & Phone' : contactPref === 'phone' ? 'Phone' : 'Email'} />
             </View>
           </>
         )}
@@ -758,6 +832,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.md,
     color: COLORS.slate,
+  },
+  chipLabel: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    marginBottom: 6,
   },
   chipRow: {
     flexDirection: 'row',

@@ -1,7 +1,12 @@
 import { createServiceClient } from '../../../../../lib/supabase';
 import { getAuthUser } from '../../../../../lib/auth-helpers';
 import { geocodeAddress } from '../../../../../lib/geocode';
+import { sendTemplateEmail } from '../../../../../lib/email';
 import { NextResponse } from 'next/server';
+
+function generateConfirmationCode(uuid) {
+  return 'PM-' + uuid.replace(/-/g, '').slice(0, 6).toUpperCase();
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +72,7 @@ export async function PUT(request, { params }) {
     // Verify ownership
     const { data: existing, error: fetchErr } = await supabase
       .from('listings')
-      .select('id, owner_user_id, source, street_number, street_name, city, state_or_province, postal_code')
+      .select('id, owner_user_id, source, status, confirmation_code, street_number, street_name, city, state_or_province, postal_code')
       .eq('id', id)
       .single();
 
@@ -107,6 +112,13 @@ export async function PUT(request, { params }) {
       }
     }
 
+    // Generate confirmation code when status transitions to active
+    const activating = updates.status === 'active' && existing.status !== 'active';
+    if (activating && !existing.confirmation_code) {
+      updates.confirmation_code = generateConfirmationCode(id);
+      updates.is_active = true;
+    }
+
     const { data, error } = await supabase
       .from('listings')
       .update(updates)
@@ -116,6 +128,21 @@ export async function PUT(request, { params }) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Send confirmation email on activation
+    if (activating) {
+      const address = [data.street_number, data.street_name].filter(Boolean).join(' ');
+      const fullAddress = [address, data.city, data.state_or_province].filter(Boolean).join(', ');
+      sendTemplateEmail('listing_confirmed', user.email, {
+        owner_name: data.listing_agent_name || user.user_metadata?.display_name || 'there',
+        confirmation_code: data.confirmation_code,
+        listing_address: fullAddress,
+        rent: data.list_price ? `$${Number(data.list_price).toLocaleString()}/mo` : '—',
+        property_type: data.property_sub_type || '—',
+        beds_baths: `${data.bedrooms_total || '—'} / ${data.bathrooms_total || '—'}`,
+        photo_count: `${data.photos?.length || 0} photo${(data.photos?.length || 0) !== 1 ? 's' : ''}`,
+      }).catch(() => {}); // Non-blocking
     }
 
     return NextResponse.json(data);

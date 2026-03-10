@@ -18,6 +18,7 @@ export default function Input({
   style,
   inputStyle,
   labelStyle,
+  onBlur: onBlurProp,
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +43,7 @@ export default function Input({
           multiline={multiline}
           numberOfLines={numberOfLines}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={() => { setFocused(false); onBlurProp?.(); }}
           style={[
             styles.input,
             multiline && { minHeight: numberOfLines * 20, textAlignVertical: 'top' },
