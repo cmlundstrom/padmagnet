@@ -113,10 +113,10 @@ export async function PUT(request, { params }) {
     }
 
     // Generate confirmation code when status transitions to active
+    // NOTE: is_active stays false until Stripe payment is confirmed (future webhook)
     const activating = updates.status === 'active' && existing.status !== 'active';
     if (activating && !existing.confirmation_code) {
       updates.confirmation_code = generateConfirmationCode(id);
-      updates.is_active = true;
     }
 
     const { data, error } = await supabase
