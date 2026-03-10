@@ -234,22 +234,32 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
         ) : (
           <>
             <Pressable style={styles.actionBtn} onPress={onEdit}>
-              <Text style={styles.actionBtnText}>Edit</Text>
+              <FontAwesome name="pencil" size={13} color={COLORS.accent} />
+              <Text style={[styles.actionBtnText, { marginLeft: 4 }]}>Edit</Text>
             </Pressable>
             <Pressable style={styles.actionBtn} onPress={onEditPrice}>
-              <FontAwesome name="pencil" size={13} color={COLORS.accent} />
-              <Text style={[styles.actionBtnText, { marginLeft: 4, fontSize: FONT_SIZES.xs }]}>Price</Text>
-            </Pressable>
-            <Pressable style={styles.actionBtn} onPress={onNearby}>
-              <FontAwesome name="map-marker" size={13} color={COLORS.accent} />
-              <Text style={[styles.actionBtnText, { marginLeft: 4, fontSize: FONT_SIZES.xs }]}>Nearby</Text>
+              <FontAwesome name="dollar" size={13} color={COLORS.accent} />
+              <Text style={[styles.actionBtnText, { marginLeft: 4 }]}>Price</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
-              <Text style={[styles.actionBtnText, styles.dangerBtnText]}>Archive</Text>
+              <FontAwesome name="archive" size={12} color={COLORS.danger} />
+              <Text style={[styles.actionBtnText, styles.dangerBtnText, { marginLeft: 4 }]}>Archive</Text>
             </Pressable>
           </>
         )}
       </View>
+      {status !== 'draft' && status !== 'expired' && (
+        <Pressable style={styles.nearbyBtn} onPress={onNearby}>
+          <View style={styles.nearbyIcon}>
+            <FontAwesome name="bar-chart" size={18} color={COLORS.accent} />
+          </View>
+          <View style={styles.nearbyText}>
+            <Text style={styles.nearbyTitle}>Nearby Rental Comps</Text>
+            <Text style={styles.nearbySubtitle}>See what other rentals are asking near your property</Text>
+          </View>
+          <FontAwesome name="chevron-right" size={12} color={COLORS.slate} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -388,6 +398,38 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
+  },
+  nearbyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.accent + '08',
+  },
+  nearbyIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.accent + '18',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  nearbyText: {
+    flex: 1,
+  },
+  nearbyTitle: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+  },
+  nearbySubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    marginTop: 1,
   },
   dangerBtn: {
     borderLeftWidth: 1,
