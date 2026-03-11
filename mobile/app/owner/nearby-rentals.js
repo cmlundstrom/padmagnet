@@ -91,8 +91,9 @@ export default function NearbyRentalsScreen() {
   const subjectCard = subject ? {
     id: listing_id,
     list_price: subjectPrice,
-    street_number: subject.address?.split(',')[0]?.split(' ')[0],
-    street_name: subject.address?.split(',')[0]?.split(' ').slice(1).join(' '),
+    street_number: subject.street_number,
+    street_name: subject.street_name,
+    city: subject.city,
     bedrooms_total: subject.beds,
     bathrooms_total: subject.baths,
     living_area: subject.sqft,
@@ -123,51 +124,51 @@ export default function NearbyRentalsScreen() {
       />
 
 
-      {/* Filter bar */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={styles.filterBarContent}>
-        {/* Radius chips */}
-        {RADIUS_OPTIONS.map(r => (
-          <Pressable
-            key={`r-${r}`}
-            style={[CHIP_STYLES.chip, radius === r && CHIP_STYLES.chipActive]}
-            onPress={() => handleRadiusChange(r)}
-          >
-            <Text style={[CHIP_STYLES.chipText, radius === r && CHIP_STYLES.chipTextActive]}>
-              {r} mi
-            </Text>
-          </Pressable>
-        ))}
-
-        <View style={styles.filterDivider} />
-
-        {/* Beds filter */}
-        {[1, 2, 3, 4].map(b => (
-          <Pressable
-            key={`bed-${b}`}
-            style={[CHIP_STYLES.chip, beds === b && CHIP_STYLES.chipActive]}
-            onPress={() => handleBedsFilter(b)}
-          >
-            <Text style={[CHIP_STYLES.chipText, beds === b && CHIP_STYLES.chipTextActive]}>
-              {b === 4 ? '4+' : b} bed
-            </Text>
-          </Pressable>
-        ))}
-
-        <View style={styles.filterDivider} />
-
-        {/* Baths filter */}
-        {[1, 2, 3].map(b => (
-          <Pressable
-            key={`bath-${b}`}
-            style={[CHIP_STYLES.chip, baths === b && CHIP_STYLES.chipActive]}
-            onPress={() => handleBathsFilter(b)}
-          >
-            <Text style={[CHIP_STYLES.chipText, baths === b && CHIP_STYLES.chipTextActive]}>
-              {b}+ bath
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {/* Filter rows */}
+      <View style={styles.filterSection}>
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Radius</Text>
+          {RADIUS_OPTIONS.map(r => (
+            <Pressable
+              key={`r-${r}`}
+              style={[CHIP_STYLES.chip, radius === r && CHIP_STYLES.chipActive]}
+              onPress={() => handleRadiusChange(r)}
+            >
+              <Text style={[CHIP_STYLES.chipText, radius === r && CHIP_STYLES.chipTextActive]}>
+                {r} mi
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Beds</Text>
+          {[1, 2, 3, 4].map(b => (
+            <Pressable
+              key={`bed-${b}`}
+              style={[CHIP_STYLES.chip, beds === b && CHIP_STYLES.chipActive]}
+              onPress={() => handleBedsFilter(b)}
+            >
+              <Text style={[CHIP_STYLES.chipText, beds === b && CHIP_STYLES.chipTextActive]}>
+                {b === 4 ? '4+' : b} bed
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Baths</Text>
+          {[1, 2, 3].map(b => (
+            <Pressable
+              key={`bath-${b}`}
+              style={[CHIP_STYLES.chip, baths === b && CHIP_STYLES.chipActive]}
+              onPress={() => handleBathsFilter(b)}
+            >
+              <Text style={[CHIP_STYLES.chipText, baths === b && CHIP_STYLES.chipTextActive]}>
+                {b}+ bath
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
 
       {/* Results count */}
       <View style={styles.resultsHeader}>
@@ -275,7 +276,8 @@ function NearbyListingCard({ listing, isSubject }) {
           {formatCurrency(listing.list_price)}
           <Text style={styles.nearbyPerMonth}>/mo</Text>
         </Text>
-        <Text style={styles.nearbyAddress} numberOfLines={1}>{street}</Text>
+        <Text style={styles.nearbyAddress} numberOfLines={2}>{street}</Text>
+        {listing.city && <Text style={styles.nearbyCity} numberOfLines={1}>{listing.city}</Text>}
         <Text style={styles.nearbyDetails} numberOfLines={1}>
           {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
           {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
@@ -449,22 +451,23 @@ const styles = StyleSheet.create({
   },
 
   // Filter bar
-  filterBar: {
-    maxHeight: 52,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  filterBarContent: {
+  filterSection: {
     paddingHorizontal: LAYOUT.padding.md,
     paddingVertical: LAYOUT.padding.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
     gap: 6,
-    alignItems: 'center',
   },
-  filterDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: COLORS.border,
-    marginHorizontal: 4,
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterLabel: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    width: 46,
   },
 
   // Results header
@@ -558,9 +561,15 @@ const styles = StyleSheet.create({
   },
   nearbyAddress: {
     fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  nearbyCity: {
+    fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
   },
   nearbyDetails: {
     fontFamily: FONTS.body.medium,

@@ -118,6 +118,9 @@ export async function GET(request) {
       sqft: subject.living_area,
       list_price: subject.list_price,
       address: [subject.street_number, subject.street_name, subject.city].filter(Boolean).join(', '),
+      street_number: subject.street_number,
+      street_name: subject.street_name,
+      city: subject.city,
       photos: subject.photos,
       days_on_market: subject.created_at ? Math.max(0, Math.floor((Date.now() - new Date(subject.created_at).getTime()) / (1000 * 60 * 60 * 24))) : null,
     };
