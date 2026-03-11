@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY;
+const GOOGLE_KEY = process.env.GOOGLE_SERVER_GEOCODING_KEY;
 
 // GET /api/places/details?place_id=ChIJ...
 export async function GET(request) {
@@ -32,8 +32,8 @@ export async function GET(request) {
     const get = (type) => components.find(c => c.types.includes(type));
 
     const address = {
-      street_number: get('street_number')?.long_name || '',
-      street_name: get('route')?.long_name || '',
+      street_number: get('street_number')?.short_name || '',
+      street_name: get('route')?.short_name || '',
       city: get('locality')?.long_name || get('sublocality')?.long_name || '',
       state_or_province: get('administrative_area_level_1')?.short_name || 'FL',
       postal_code: get('postal_code')?.long_name || '',

@@ -31,7 +31,7 @@ function mapBridgeToListing(prop) {
     listing_id: prop.ListingId,
     source: 'mls',
     street_number: prop.StreetNumber,
-    street_name: prop.StreetName,
+    street_name: [prop.StreetDirPrefix, prop.StreetName, prop.StreetSuffix, prop.StreetDirSuffix].filter(Boolean).join(' '),
     city: prop.City,
     state_or_province: prop.StateOrProvince || 'FL',
     postal_code: prop.PostalCode,

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY;
+const GOOGLE_KEY = process.env.GOOGLE_SERVER_GEOCODING_KEY;
 
 // GET /api/places/autocomplete?input=123+Main
 export async function GET(request) {
