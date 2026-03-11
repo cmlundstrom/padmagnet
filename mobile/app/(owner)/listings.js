@@ -260,7 +260,7 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
       {status !== 'draft' && status !== 'expired' && (
         <Pressable style={styles.nearbyBtn} onPress={onNearby}>
           <View style={styles.nearbyIcon}>
-            <FontAwesome name="bar-chart" size={18} color={COLORS.white} />
+            <FontAwesome name="bar-chart" size={26} color={COLORS.white} />
           </View>
           <View style={styles.nearbyText}>
             <Text style={styles.nearbyTitle}>Nearby Active Rentals</Text>

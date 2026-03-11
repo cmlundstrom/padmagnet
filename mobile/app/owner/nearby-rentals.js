@@ -87,6 +87,21 @@ export default function NearbyRentalsScreen() {
 
   const subjectPrice = ownerListing?.list_price ?? subject?.list_price;
 
+  // Build subject as first card in grid
+  const subjectCard = subject ? {
+    id: listing_id,
+    list_price: subjectPrice,
+    street_number: subject.address?.split(',')[0]?.split(' ')[0],
+    street_name: subject.address?.split(',')[0]?.split(' ').slice(1).join(' '),
+    bedrooms_total: subject.beds,
+    bathrooms_total: subject.baths,
+    living_area: subject.sqft,
+    photos: subject.photos,
+    _isSubject: true,
+  } : null;
+
+  const gridData = subjectCard ? [subjectCard, ...listings] : listings;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header
@@ -99,23 +114,13 @@ export default function NearbyRentalsScreen() {
           >
             <FontAwesome
               name={viewMode === 'grid' ? 'map-o' : 'th'}
-              size={16}
+              size={20}
               color={COLORS.white}
             />
           </Pressable>
         }
       />
 
-      {/* Subject property banner */}
-      {subject && (
-        <View style={styles.subjectBanner}>
-          <View style={styles.subjectInfo}>
-            <Text style={styles.subjectLabel}>Your Property</Text>
-            <Text style={styles.subjectAddress} numberOfLines={1}>{subject.address}</Text>
-          </View>
-          <Text style={styles.subjectPrice}>{formatCurrency(subjectPrice)}/mo</Text>
-        </View>
-      )}
 
       {/* Filter bar */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={styles.filterBarContent}>
@@ -173,7 +178,7 @@ export default function NearbyRentalsScreen() {
       {/* Content area */}
       {viewMode === 'grid' ? (
         <FlatList
-          data={listings}
+          data={gridData}
           keyExtractor={item => item.id}
           numColumns={2}
           columnWrapperStyle={styles.gridRow}
@@ -182,7 +187,7 @@ export default function NearbyRentalsScreen() {
           onEndReachedThreshold={1.5}
           renderItem={({ item }) => (
             <View style={styles.gridItem}>
-              <NearbyListingCard listing={item} />
+              <NearbyListingCard listing={item} isSubject={item._isSubject} />
             </View>
           )}
           ListEmptyComponent={
@@ -236,15 +241,15 @@ export default function NearbyRentalsScreen() {
 }
 
 /** Compact card for nearby listings grid — shows distance + days on market */
-function NearbyListingCard({ listing }) {
+function NearbyListingCard({ listing, isSubject }) {
   const router = useRouter();
   const firstPhoto = listing.photos?.[0]?.url;
   const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
 
   return (
     <Pressable
-      style={styles.nearbyCard}
-      onPress={() => router.push(`/listing/${listing.id}?context=owner_browse`)}
+      style={[styles.nearbyCard, isSubject && styles.subjectCard]}
+      onPress={isSubject ? null : () => router.push(`/listing/${listing.id}?context=owner_browse`)}
     >
       <View style={styles.nearbyImageContainer}>
         {firstPhoto ? (
@@ -254,11 +259,15 @@ function NearbyListingCard({ listing }) {
             <Text style={{ fontSize: 24, opacity: 0.3 }}>🏠</Text>
           </View>
         )}
-        {listing.distance_miles != null && (
+        {isSubject ? (
+          <View style={styles.yourPropertyBadge}>
+            <Text style={styles.yourPropertyText}>Your Property</Text>
+          </View>
+        ) : listing.distance_miles != null ? (
           <View style={styles.distanceBadge}>
             <Text style={styles.distanceText}>{formatDistance(listing.distance_miles)}</Text>
           </View>
-        )}
+        ) : null}
       </View>
       <View style={styles.nearbyInfo}>
         <Text style={styles.nearbyPrice} numberOfLines={1}>
@@ -394,12 +403,17 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   viewToggleBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surface,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.brandOrange,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: COLORS.brandOrange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
   },
 
   // Subject banner
@@ -495,6 +509,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a5276',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  subjectCard: {
+    borderWidth: 2,
+    borderColor: COLORS.brandOrange,
+  },
+  yourPropertyBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: COLORS.brandOrange,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: LAYOUT.radius.sm,
+  },
+  yourPropertyText: {
+    fontFamily: FONTS.body.bold,
+    fontSize: 9,
+    color: COLORS.white,
   },
   distanceBadge: {
     position: 'absolute',
