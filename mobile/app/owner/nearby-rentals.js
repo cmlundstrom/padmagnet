@@ -97,6 +97,7 @@ export default function NearbyRentalsScreen() {
     bathrooms_total: subject.baths,
     living_area: subject.sqft,
     photos: subject.photos,
+    days_on_market: subject.days_on_market,
     _isSubject: true,
   } : null;
 

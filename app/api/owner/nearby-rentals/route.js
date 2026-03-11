@@ -92,7 +92,7 @@ export async function GET(request) {
     // Verify ownership of subject property
     const { data: subject, error: subjectErr } = await supabase
       .from('listings')
-      .select('id, latitude, longitude, bedrooms_total, bathrooms_total, living_area, list_price, street_number, street_name, city, photos')
+      .select('id, latitude, longitude, bedrooms_total, bathrooms_total, living_area, list_price, street_number, street_name, city, photos, created_at')
       .eq('id', listingId)
       .eq('owner_user_id', user.id)
       .eq('source', 'owner')
@@ -119,6 +119,7 @@ export async function GET(request) {
       list_price: subject.list_price,
       address: [subject.street_number, subject.street_name, subject.city].filter(Boolean).join(', '),
       photos: subject.photos,
+      days_on_market: subject.created_at ? Math.max(0, Math.floor((Date.now() - new Date(subject.created_at).getTime()) / (1000 * 60 * 60 * 24))) : null,
     };
 
     // If no access, return subject + access info but no listings
