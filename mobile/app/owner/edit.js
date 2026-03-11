@@ -347,13 +347,12 @@ export default function EditListingScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Header title="Edit Listing" showBack />
 
       {/* Address banner */}
       <View style={styles.addressBanner}>
-        <FontAwesome name="map-marker" size={14} color={COLORS.accent} />
-        <Text style={styles.addressText} numberOfLines={1}>{fullAddress || 'No address'}</Text>
+        <Text style={[styles.addressText, { paddingLeft: 4 }]} numberOfLines={1}>{address || 'No address'}</Text>
       </View>
 
       {/* Tab bar */}
@@ -470,22 +469,17 @@ export default function EditListingScreen() {
       {/* Photos Tab */}
       {tab === 1 && (
         <View style={styles.photosContainer}>
-          <View style={styles.photoActions}>
+          <View style={styles.photoActionRow}>
             <Pressable style={styles.photoActionBtn} onPress={pickImages} disabled={uploading || (form.photos?.length || 0) >= 15}>
-              <FontAwesome name="camera" size={16} color={COLORS.accent} />
-              <Text style={styles.photoActionText}>Add from Phone</Text>
+              <FontAwesome name="mobile-phone" size={22} color={COLORS.white} />
+              <Text style={styles.photoActionBtnText}>Add Photos from Phone</Text>
             </Pressable>
             <Pressable style={styles.photoActionBtn} onPress={handleSendUploadLink}>
-              <FontAwesome name="laptop" size={16} color={COLORS.accent} />
-              <Text style={styles.photoActionText}>{linkSent ? 'Link Sent!' : 'Upload from Desktop'}</Text>
+              <FontAwesome name="laptop" size={18} color={COLORS.white} />
+              <Text style={styles.photoActionBtnText}>{linkSent ? 'Resend Upload Link' : 'Upload Photos from Desktop/Laptop'}</Text>
             </Pressable>
           </View>
-          {(form.photos?.length || 0) > 0 && (
-            <Pressable style={styles.replaceAllBtn} onPress={handleReplaceAll}>
-              <Text style={styles.replaceAllText}>Replace All Photos</Text>
-            </Pressable>
-          )}
-          <Text style={styles.photoCount}>{form.photos?.length || 0} of 15 photos · Long-press to reorder · Tap star for hero</Text>
+          <Text style={styles.photoCount}>{form.photos?.length || 0} of 15 photos · Long-press to reorder · Tap <Text style={{ color: COLORS.warning }}>Star <FontAwesome name="star" size={11} color={COLORS.warning} /></Text> for Hero Image</Text>
           {uploading && (
             <View style={styles.uploadingRow}>
               <ActivityIndicator size="small" color={COLORS.accent} />
@@ -497,6 +491,13 @@ export default function EditListingScreen() {
             keyExtractor={(item, index) => item.url || String(index)}
             onDragEnd={handleDragEnd}
             contentContainerStyle={styles.photoGrid}
+            ListFooterComponent={
+              (form.photos?.length || 0) > 0 ? (
+                <Pressable style={styles.replaceAllBtn} onPress={handleReplaceAll}>
+                  <Text style={styles.replaceAllText}>Replace All Photos</Text>
+                </Pressable>
+              ) : null
+            }
             renderItem={({ item, getIndex, drag, isActive }) => {
               const index = getIndex();
               return (
@@ -511,7 +512,16 @@ export default function EditListingScreen() {
                       <Pressable style={styles.heroBtn} onPress={() => setHero(index)}>
                         <FontAwesome name="star" size={18} color={index === 0 ? COLORS.warning : COLORS.slate} />
                       </Pressable>
-                      <Pressable style={styles.deleteBtnRow} onPress={() => deletePhoto(index)}>
+                      <Pressable style={styles.deleteBtnRow} onPress={() => {
+                        alert(
+                          'Delete Photo',
+                          'Did you want to Delete this Photo?',
+                          [
+                            { text: 'No', style: 'cancel' },
+                            { text: 'Yes', style: 'destructive', onPress: () => deletePhoto(index) },
+                          ]
+                        );
+                      }}>
                         <FontAwesome name="trash-o" size={16} color={COLORS.danger} />
                       </Pressable>
                     </View>
@@ -709,47 +719,52 @@ const styles = StyleSheet.create({
   // Photos tab
   photosContainer: {
     flex: 1,
+    marginBottom: 90,
   },
-  photoActions: {
+  photoActionRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     padding: LAYOUT.padding.md,
     paddingBottom: 0,
   },
   photoActionBtn: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.card,
+    gap: 4,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     borderRadius: LAYOUT.radius.md,
-    borderWidth: 1,
-    borderColor: COLORS.accent + '44',
-    paddingVertical: 12,
   },
-  photoActionText: {
-    fontFamily: FONTS.body.medium,
+  photoActionBtnText: {
+    fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.accent,
+    color: COLORS.white,
+    textAlign: 'center',
   },
   replaceAllBtn: {
     alignSelf: 'center',
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    marginTop: 16,
+    marginBottom: 55,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+    borderRadius: LAYOUT.radius.md,
   },
   replaceAllText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.xs,
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.danger,
   },
   photoCount: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: LAYOUT.padding.md,
   },
   uploadingRow: {
     flexDirection: 'row',
@@ -765,7 +780,7 @@ const styles = StyleSheet.create({
   },
   photoGrid: {
     paddingHorizontal: LAYOUT.padding.md,
-    paddingBottom: 20,
+    paddingBottom: 80,
   },
   photoRow: {
     flexDirection: 'row',

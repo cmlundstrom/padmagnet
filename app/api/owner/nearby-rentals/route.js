@@ -12,14 +12,13 @@ const MAX_LIMIT = 50;
  * Priority: active_listing → free_trial → standalone_purchase → denied
  */
 async function checkAccess(supabase, userId) {
-  // 1. Any active paid listing?
+  // 1. Any active listing? (expires_at enforced after Stripe integration)
   const { data: activeListing } = await supabase
     .from('listings')
     .select('id, expires_at')
     .eq('owner_user_id', userId)
     .eq('source', 'owner')
     .eq('status', 'active')
-    .gt('expires_at', new Date().toISOString())
     .limit(1)
     .maybeSingle();
 

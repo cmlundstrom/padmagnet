@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { EmptyState } from '../../components/ui';
@@ -34,9 +34,11 @@ export default function OwnerListingsTab() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchListings();
-  }, [fetchListings]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchListings();
+    }, [fetchListings])
+  );
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -77,6 +79,13 @@ export default function OwnerListingsTab() {
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Listings</Text>
+        <Pressable style={styles.addListingBtn} onPress={() => router.push('/owner/create')}>
+          <FontAwesome name="plus" size={12} color={COLORS.white} />
+          <View>
+            <Text style={styles.addListingBtnText}>Add Additional</Text>
+            <Text style={styles.addListingBtnText}>Rental Listing</Text>
+          </View>
+        </Pressable>
       </View>
 
       {listings.length === 0 ? (
@@ -187,28 +196,28 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           <Text style={styles.listingPrice}>
             {listing.list_price ? `${formatCurrency(listing.list_price)}/mo` : 'Draft'}
           </Text>
-          <Text style={styles.listingAddress} numberOfLines={2}>
+          <Text style={styles.listingAddress}>
             {address || 'No address'}{cityLine ? `, ${cityLine}` : ''}
           </Text>
-          {status !== 'draft' && (
-            <View style={styles.statusRow}>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
-                <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </Text>
-              </View>
-              {expiresLabel && (
-                <Text style={styles.expiresLabel}>{expiresLabel}</Text>
-              )}
-            </View>
-          )}
-          {(listing.view_count > 0 || listing.inquiry_count > 0) && (
-            <Text style={styles.statsText}>
-              {listing.view_count || 0} views · {listing.inquiry_count || 0} inquiries
-            </Text>
-          )}
         </View>
       </Pressable>
+      {status !== 'draft' && (
+        <View style={styles.statusStatsRow}>
+          <View style={styles.statusRow}>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
+              <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
+                Listing: {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Text>
+            </View>
+            {expiresLabel && (
+              <Text style={styles.expiresLabel}>{expiresLabel}</Text>
+            )}
+          </View>
+          <Text style={styles.statsText}>
+            {listing.unique_view_count || 0} Total Unique Views{listing.inquiry_count > 0 ? ` · ${listing.inquiry_count} inquiries` : ''}
+          </Text>
+        </View>
+      )}
       {status === 'draft' && (
         <View style={styles.draftBannerRow}>
           <View style={[styles.statusBadge, styles.draftBadge, { backgroundColor: getStatusColor('draft') + '22' }]}>
@@ -234,15 +243,15 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
         ) : (
           <>
             <Pressable style={styles.actionBtn} onPress={onEdit}>
-              <FontAwesome name="pencil" size={13} color={COLORS.brandOrange} />
+              <FontAwesome name="pencil" size={19} color={COLORS.white} />
               <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Edit</Text>
             </Pressable>
             <Pressable style={styles.actionBtn} onPress={onEditPrice}>
-              <FontAwesome name="dollar" size={13} color={COLORS.brandOrange} />
+              <FontAwesome name="dollar" size={19} color={COLORS.white} />
               <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Price</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
-              <FontAwesome name="archive" size={12} color={COLORS.danger} />
+              <FontAwesome name="archive" size={18} color={COLORS.white} />
               <Text style={[styles.actionBtnText, styles.dangerBtnText, { marginLeft: 4 }]}>Archive</Text>
             </Pressable>
           </>
@@ -251,13 +260,15 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
       {status !== 'draft' && status !== 'expired' && (
         <Pressable style={styles.nearbyBtn} onPress={onNearby}>
           <View style={styles.nearbyIcon}>
-            <FontAwesome name="bar-chart" size={18} color={COLORS.brandOrange} />
+            <FontAwesome name="bar-chart" size={18} color={COLORS.white} />
           </View>
           <View style={styles.nearbyText}>
-            <Text style={styles.nearbyTitle}>Nearby Rental Comps</Text>
+            <Text style={styles.nearbyTitle}>Nearby Active Rentals</Text>
             <Text style={styles.nearbySubtitle}>See what other rentals are asking near your property</Text>
           </View>
-          <FontAwesome name="chevron-right" size={12} color={COLORS.slate} />
+          <View style={styles.frostBtn}>
+            <FontAwesome name="arrow-right" size={16} color={COLORS.white} />
+          </View>
         </Pressable>
       )}
     </View>
@@ -277,10 +288,19 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     color: COLORS.text,
   },
-  addButton: {
+  addListingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: LAYOUT.radius.full,
+    gap: 6,
+  },
+  addListingBtnText: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
   },
   listContent: {
     padding: LAYOUT.padding.md,
@@ -348,10 +368,18 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.white,
   },
+  statusStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
     gap: 6,
   },
   statusBadge: {
@@ -386,6 +414,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    paddingHorizontal: 4,
   },
   actionBtn: {
     flex: 1,
@@ -393,6 +422,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.white,
+    borderRadius: LAYOUT.radius.sm,
+    marginHorizontal: 4,
+    marginVertical: 6,
   },
   actionBtnText: {
     fontFamily: FONTS.body.medium,
@@ -424,21 +458,30 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.brandOrange,
+    textAlign: 'center',
   },
   nearbySubtitle: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.white,
     marginTop: 1,
+    textAlign: 'center',
+  },
+  frostBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.frostedGlass,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   orangeText: {
     color: COLORS.brandOrange,
   },
   dangerBtn: {
-    borderLeftWidth: 1,
-    borderLeftColor: COLORS.border,
+    marginLeft: 4,
   },
   dangerBtnText: {
-    color: COLORS.danger,
+    color: COLORS.brandOrange,
   },
 });

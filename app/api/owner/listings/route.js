@@ -36,7 +36,7 @@ export async function GET(request) {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('listings')
-      .select('*')
+      .select('*, listing_views(count)')
       .eq('source', 'owner')
       .eq('owner_user_id', user.id)
       .order('created_at', { ascending: false });
@@ -45,7 +45,14 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data || []);
+    // Flatten the view count from the join
+    const listings = (data || []).map(l => ({
+      ...l,
+      unique_view_count: l.listing_views?.[0]?.count || 0,
+      listing_views: undefined,
+    }));
+
+    return NextResponse.json(listings);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

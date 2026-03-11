@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { apiFetch } from '../../lib/api';
@@ -20,10 +20,13 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
 
   const currentPrice = listing?.list_price;
 
-  const handleOpen = () => {
-    setPrice(currentPrice ? String(Math.round(Number(currentPrice))) : '');
-    setError(null);
-  };
+  // Reset field when modal opens
+  useEffect(() => {
+    if (visible) {
+      setPrice('');
+      setError(null);
+    }
+  }, [visible]);
 
   const handleSave = async () => {
     const newPrice = parseFloat(price);
@@ -63,7 +66,6 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
       transparent
       animationType="fade"
       onRequestClose={onClose}
-      onShow={handleOpen}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -86,7 +88,7 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="numeric"
-                placeholder="New monthly price"
+                placeholder="0"
                 placeholderTextColor={COLORS.slate}
                 autoFocus
                 maxLength={7}
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    width: '85%',
+    width: '92%',
     backgroundColor: COLORS.card,
     borderRadius: LAYOUT.radius.lg,
     padding: LAYOUT.padding.lg,
@@ -155,20 +157,20 @@ const styles = StyleSheet.create({
   },
   dollar: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['2xl'],
+    fontSize: FONT_SIZES.lg,
     color: COLORS.text,
   },
   input: {
     flex: 1,
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['2xl'],
+    fontSize: FONT_SIZES.lg,
     color: COLORS.text,
     paddingVertical: 14,
     paddingHorizontal: 8,
   },
   perMonth: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
   error: {

@@ -21,7 +21,8 @@ export const COLORS = {
   border: '#3464A0',
 
   // Brand accent
-  brandOrange: '#F95E0C',
+  brandOrange: '#F59E0B',
+  deepOrange: '#F95E0C',
   frostedGlass: 'rgba(255,255,255,0.12)',
 
   // Social sign-in
