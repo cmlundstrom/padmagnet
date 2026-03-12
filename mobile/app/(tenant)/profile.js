@@ -1,10 +1,12 @@
+import { useState, useCallback } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../../lib/auth';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../providers/AlertProvider';
+import { supabase } from '../../lib/supabase';
 import ProfileCard from '../../components/screens/ProfileCard';
 import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
@@ -12,6 +14,19 @@ import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 export default function TenantProfileScreen() {
   const { user, role } = useAuth();
   const alert = useAlert();
+  const [phone, setPhone] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => setPhone(data?.phone || null));
+    }, [user])
+  );
 
   async function handleSignOut() {
     await signOut();
@@ -44,7 +59,12 @@ export default function TenantProfileScreen() {
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <Text style={SCREEN.pageTitle}>Profile</Text>
 
-      <ProfileCard user={user} role={role} />
+      <ProfileCard user={user} role={role} phone={phone} />
+
+      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/edit-profile')}>
+        <Text style={MENU.text}>Edit Profile</Text>
+        <Text style={MENU.hint}>Update your name, email, or phone number</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/preferences')}>
         <Text style={MENU.text}>PadScore™ Preferences</Text>

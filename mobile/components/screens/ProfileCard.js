@@ -8,7 +8,7 @@ const ROLE_LABELS = {
   tenant: 'Tenant',
 };
 
-export default function ProfileCard({ user, role }) {
+export default function ProfileCard({ user, role, phone }) {
   const roleLabel = ROLE_LABELS[role] || role || '';
 
   return (
@@ -18,6 +18,7 @@ export default function ProfileCard({ user, role }) {
       </Text>
       <Text style={styles.role}>{roleLabel}</Text>
       <Text style={styles.email}>{user?.email}</Text>
+      <Text style={styles.phone}>{phone || 'No phone set'}</Text>
     </View>
   );
 }
@@ -44,6 +45,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   email: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  phone: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
