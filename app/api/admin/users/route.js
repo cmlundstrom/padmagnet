@@ -21,11 +21,14 @@ async function getRequestingUser() {
   return profile || { id: user.id, email: user.email, role: 'admin' };
 }
 
-// GET /api/admin/users — list all profiles (or single by ?id=)
+// GET /api/admin/users — list profiles by role filter
+// ?role=tenant|owner|admin (default: admin+super_admin)
+// ?id=uuid (single profile lookup)
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const roleFilter = searchParams.get('role');
 
     const supabase = createServiceClient();
 
@@ -42,11 +45,17 @@ export async function GET(request) {
       return NextResponse.json(data);
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('role', ['admin', 'super_admin'])
-      .order('created_at', { ascending: true });
+    // Build query with role filter
+    let query = supabase.from('profiles').select('*');
+    if (roleFilter === 'tenant') {
+      query = query.eq('role', 'tenant');
+    } else if (roleFilter === 'owner') {
+      query = query.eq('role', 'owner');
+    } else {
+      // Default: admin panel (Administrators tab)
+      query = query.in('role', ['admin', 'super_admin']);
+    }
+    const { data, error } = await query.order('created_at', { ascending: true });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -69,6 +78,30 @@ export async function GET(request) {
       ...profile,
       auth_status: authMap[profile.id] || null,
     }));
+
+    // For owners, enrich with listing count
+    if (roleFilter === 'owner' && enriched.length > 0) {
+      const ownerIds = enriched.map(p => p.id);
+      const { data: listings } = await supabase
+        .from('listings')
+        .select('owner_user_id, status')
+        .in('owner_user_id', ownerIds)
+        .eq('source', 'owner');
+
+      const listingCounts = {};
+      if (listings) {
+        for (const l of listings) {
+          if (!listingCounts[l.owner_user_id]) {
+            listingCounts[l.owner_user_id] = { total: 0, active: 0 };
+          }
+          listingCounts[l.owner_user_id].total++;
+          if (l.status === 'active') listingCounts[l.owner_user_id].active++;
+        }
+      }
+      for (const profile of enriched) {
+        profile.listing_counts = listingCounts[profile.id] || { total: 0, active: 0 };
+      }
+    }
 
     return NextResponse.json(enriched);
   } catch (err) {

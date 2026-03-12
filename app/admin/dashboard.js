@@ -15,6 +15,8 @@ import WaitlistPanel from "./panels/WaitlistPanel";
 import ProductsPanel from "./panels/ProductsPanel";
 import BillingPanel from "./panels/BillingPanel";
 import UsersPanel from "./panels/UsersPanel";
+import TenantsPanel from "./panels/TenantsPanel";
+import OwnersPanel from "./panels/OwnersPanel";
 import AuditLogPanel from "./panels/AuditLogPanel";
 import BacklogPanel from "./panels/BacklogPanel";
 import DisplayFieldsPanel from "./panels/DisplayFieldsPanel";
@@ -32,6 +34,8 @@ const NAV_ITEMS = [
   { id: "support", label: "Support", icon: "💬" },
   { id: "products", label: "App Products", icon: "📦" },
   { id: "billing", label: "Billing", icon: "💳" },
+  { id: "tenants", label: "Tenants", icon: "🏘️" },
+  { id: "owners", label: "Owners", icon: "🔑" },
   { id: "users", label: "Administrators", icon: "🔐" },
   { id: "audit", label: "Audit Log", icon: "📝" },
   { id: "backlog", label: "Backlog", icon: "📋" },
@@ -99,6 +103,8 @@ export default function PadMagnetAdmin() {
     support: <SupportPanel onTicketChange={refreshTicketCount} />,
     products: <ProductsPanel />,
     billing: <BillingPanel />,
+    tenants: <TenantsPanel />,
+    owners: <OwnersPanel />,
     users: <UsersPanel />,
     audit: <AuditLogPanel />,
     backlog: <BacklogPanel />,
