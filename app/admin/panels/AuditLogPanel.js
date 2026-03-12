@@ -6,7 +6,7 @@ import AdminTable from '../components/AdminTable';
 
 // Change these anytime to set what the panel shows on load.
 const AUDIT_DEFAULTS = {
-  table: "waitlist",  // "" = all tables, or "waitlist", "listings", "idx_feeds"
+  table: "",  // "" = all tables, or "waitlist", "listings", "idx_feeds"
   action: "",         // "" = all actions, or "create", "update", "delete", "suppress", "unsuppress"
   limit: 50,          // 25, 50, or 100
 };
@@ -122,7 +122,7 @@ export default function AuditLogPanel() {
           <option value="">All Tables</option>
           <option value="waitlist">Waitlist</option>
           <option value="tickets">Tickets</option>
-          <option value="profiles">Users</option>
+          <option value="profiles">Profiles</option>
           <option value="listings">Listings</option>
           <option value="idx_feeds">IDX Feeds</option>
         </select>
