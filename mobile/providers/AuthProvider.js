@@ -14,20 +14,29 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Single source of truth: profiles.role (DB) → AsyncStorage cache → 'tenant' fallback
   async function resolveRole(authSession) {
     if (!authSession) {
       setRole(null);
       return;
     }
-    // Prefer user_metadata, fall back to local storage
-    const metaRole = authSession.user?.user_metadata?.role;
-    if (metaRole) {
-      setRole(metaRole);
-      await saveUserRole(metaRole);
-    } else {
-      const localRole = await getUserRole();
-      setRole(localRole);
+
+    // 1. Query profiles table (single source of truth)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authSession.user.id)
+      .single();
+
+    if (profile?.role) {
+      setRole(profile.role);
+      await saveUserRole(profile.role);
+      return;
     }
+
+    // 2. Offline fallback: AsyncStorage cache
+    const localRole = await getUserRole();
+    setRole(localRole || 'tenant');
   }
 
   useEffect(() => {

@@ -7,7 +7,7 @@ import ProfileCard from '../../components/screens/ProfileCard';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
 export default function OwnerProfileScreen() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   async function handleSignOut() {
     await signOut();
@@ -18,7 +18,7 @@ export default function OwnerProfileScreen() {
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <Text style={SCREEN.pageTitle}>Profile</Text>
 
-      <ProfileCard user={user} />
+      <ProfileCard user={user} role={role} />
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/notifications')}>
         <Text style={MENU.text}>Notifications</Text>

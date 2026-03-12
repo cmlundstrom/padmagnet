@@ -126,6 +126,7 @@ export default function NearbyRentalsScreen() {
 
       {/* Filter rows */}
       <View style={styles.filterSection}>
+        <Text style={styles.filterSectionTitle}>Filter Views for Competitive Active Rental Listings</Text>
         <View style={styles.filterRow}>
           <Text style={styles.filterLabel}>Radius</Text>
           {RADIUS_OPTIONS.map(r => (
@@ -142,28 +143,14 @@ export default function NearbyRentalsScreen() {
         </View>
         <View style={styles.filterRow}>
           <Text style={styles.filterLabel}>Beds</Text>
-          {[1, 2, 3, 4].map(b => (
+          {[1, 2, 3].map(b => (
             <Pressable
               key={`bed-${b}`}
               style={[CHIP_STYLES.chip, beds === b && CHIP_STYLES.chipActive]}
               onPress={() => handleBedsFilter(b)}
             >
               <Text style={[CHIP_STYLES.chipText, beds === b && CHIP_STYLES.chipTextActive]}>
-                {b === 4 ? '4+' : b} bed
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Baths</Text>
-          {[1, 2, 3].map(b => (
-            <Pressable
-              key={`bath-${b}`}
-              style={[CHIP_STYLES.chip, baths === b && CHIP_STYLES.chipActive]}
-              onPress={() => handleBathsFilter(b)}
-            >
-              <Text style={[CHIP_STYLES.chipText, baths === b && CHIP_STYLES.chipTextActive]}>
-                {b}+ bath
+                {b}{b === 3 ? '+ bed' : ' bed'}
               </Text>
             </Pressable>
           ))}
@@ -276,15 +263,13 @@ function NearbyListingCard({ listing, isSubject }) {
           {formatCurrency(listing.list_price)}
           <Text style={styles.nearbyPerMonth}>/mo</Text>
         </Text>
-        <Text style={styles.nearbyAddress} numberOfLines={2}>{street}</Text>
-        {listing.city && <Text style={styles.nearbyCity} numberOfLines={1}>{listing.city}</Text>}
+        <Text style={styles.nearbyAddress} numberOfLines={2}>{street || 'No address'}</Text>
+        <Text style={styles.nearbyCity} numberOfLines={1}>{listing.city || '—'}</Text>
         <Text style={styles.nearbyDetails} numberOfLines={1}>
-          {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
+          {listing.bedrooms_total === 0 ? 'Studio' : `${listing.bedrooms_total}b`} · {listing.bathrooms_total}ba
           {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
         </Text>
-        {listing.days_on_market != null && (
-          <Text style={styles.nearbyDom}>{listing.days_on_market}d on market</Text>
-        )}
+        <Text style={styles.nearbyDom}>{listing.days_on_market != null ? `${listing.days_on_market}d on market` : '—'}</Text>
       </View>
     </Pressable>
   );
@@ -366,7 +351,7 @@ function NearbyMap({ listings, subject, selectedListing, onMarkerPress, onDismis
               {[selectedListing.street_number, selectedListing.street_name].filter(Boolean).join(' ')}
             </Text>
             <Text style={styles.nearbyDetails} numberOfLines={1}>
-              {formatBedsBaths(selectedListing.bedrooms_total, selectedListing.bathrooms_total)}
+              {selectedListing.bedrooms_total === 0 ? 'Studio' : `${selectedListing.bedrooms_total}b`} · {selectedListing.bathrooms_total}ba
               {selectedListing.distance_miles != null ? ` · ${formatDistance(selectedListing.distance_miles)}` : ''}
             </Text>
           </View>
@@ -458,6 +443,12 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     gap: 6,
   },
+  filterSectionTitle: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    marginBottom: 2,
+  },
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -467,7 +458,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    width: 46,
+    width: 92,
   },
 
   // Results header
@@ -501,9 +492,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
+    height: 250,
   },
   nearbyImageContainer: {
-    height: 110,
+    height: 100,
     backgroundColor: COLORS.surface,
   },
   nearbyImage: {
@@ -548,6 +540,8 @@ const styles = StyleSheet.create({
   },
   nearbyInfo: {
     padding: LAYOUT.padding.sm,
+    flex: 1,
+    justifyContent: 'space-between',
   },
   nearbyPrice: {
     fontFamily: FONTS.heading.bold,

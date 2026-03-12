@@ -1,6 +1,4 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { useEffect, useState } from 'react';
-import { getUserRole } from '../../lib/storage';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -10,16 +8,8 @@ const ROLE_LABELS = {
   tenant: 'Tenant',
 };
 
-export default function ProfileCard({ user }) {
-  const [roleLabel, setRoleLabel] = useState('');
-
-  useEffect(() => {
-    async function resolveRole() {
-      const role = user?.user_metadata?.role || await getUserRole() || 'tenant';
-      setRoleLabel(ROLE_LABELS[role] || role);
-    }
-    resolveRole();
-  }, [user]);
+export default function ProfileCard({ user, role }) {
+  const roleLabel = ROLE_LABELS[role] || role || '';
 
   return (
     <View style={styles.card}>

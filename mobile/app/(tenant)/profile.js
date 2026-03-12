@@ -10,7 +10,7 @@ import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
 export default function TenantProfileScreen() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const alert = useAlert();
 
   async function handleSignOut() {
@@ -44,7 +44,7 @@ export default function TenantProfileScreen() {
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <Text style={SCREEN.pageTitle}>Profile</Text>
 
-      <ProfileCard user={user} />
+      <ProfileCard user={user} role={role} />
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/preferences')}>
         <Text style={MENU.text}>PadScore™ Preferences</Text>

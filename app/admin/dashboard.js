@@ -61,13 +61,17 @@ export default function PadMagnetAdmin() {
     return () => clearInterval(interval);
   }, [refreshTicketCount]);
 
-  // Fetch admin user display name
+  // Fetch admin display name from profiles table (single source of truth)
   useEffect(() => {
     const supabase = createSupabaseBrowser();
-    supabase.auth.getUser().then(({ data }) => {
-      const meta = data?.user?.user_metadata;
-      const email = data?.user?.email || "";
-      setAdminName(meta?.full_name || meta?.name || email.split("@")[0]);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data?.user) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', data.user.id)
+        .single();
+      setAdminName(profile?.display_name || data.user.email?.split("@")[0] || "");
     });
   }, []);
 

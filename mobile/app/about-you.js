@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Input, Button } from '../components/ui';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { getUserRole, hasOnboarded } from '../lib/storage';
+import { hasOnboarded } from '../lib/storage';
 import { useAlert } from '../providers/AlertProvider';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
@@ -17,20 +17,17 @@ const ROLE_LABELS = {
 };
 
 export default function AboutYouScreen() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const alert = useAlert();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [roleLabel, setRoleLabel] = useState('');
 
-  // Resolve role label on mount
+  // Resolve role label from AuthProvider context (single source of truth)
   useEffect(() => {
-    (async () => {
-      const role = user?.user_metadata?.role || await getUserRole() || 'tenant';
-      setRoleLabel(ROLE_LABELS[role] || role);
-    })();
-  }, [user]);
+    setRoleLabel(ROLE_LABELS[role] || role || '');
+  }, [role]);
 
   async function handleContinue() {
     if (!firstName.trim()) {
@@ -54,8 +51,7 @@ export default function AboutYouScreen() {
       });
       if (error) throw error;
 
-      // Route to role-based destination
-      const role = user?.user_metadata?.role || await getUserRole() || 'tenant';
+      // Route to role-based destination (role from AuthProvider context)
       if (role === 'owner') {
         router.replace('/(owner)/listings');
       } else {

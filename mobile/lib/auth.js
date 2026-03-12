@@ -85,9 +85,4 @@ export async function signInWithGoogle() {
   throw new Error('Google sign-in was cancelled');
 }
 
-export async function updateUserRole(role) {
-  const { error } = await supabase.auth.updateUser({
-    data: { role },
-  });
-  if (error) throw error;
-}
+// updateUserRole removed — profiles.role is the single source of truth (Step 2 role fix)

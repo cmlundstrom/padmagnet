@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Input, Button, AuthHeader } from '../../components/ui';
-import { signIn, updateUserRole } from '../../lib/auth';
+import { signIn } from '../../lib/auth';
 import { saveUserRole } from '../../lib/storage';
 import { resolvePostLoginDestination } from '../../lib/routing';
 import { useAlert } from '../../providers/AlertProvider';
@@ -22,10 +22,9 @@ export default function PasswordScreen() {
     setLoading(true);
     try {
       const data = await signIn(email, password);
-      // Save role locally and in user metadata
+      // Cache role locally for offline fallback (profiles.role is source of truth)
       if (role) {
         await saveUserRole(role);
-        await updateUserRole(role).catch(() => {}); // non-critical
       }
       // Navigate directly to destination (skip index.js spinner)
       const dest = await resolvePostLoginDestination(data?.session, role);
