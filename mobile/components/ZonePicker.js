@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
-import { LAYOUT } from '../constants/layout';
+import { LAYOUT, CHIP_STYLES } from '../constants/layout';
 import { searchServiceAreas } from '../constants/service-areas';
 
 const MAX_ZONES = 3;
@@ -72,10 +72,10 @@ export default function ZonePicker({ zones = [], onAddZone, onRemoveZone, onUpda
                   return (
                     <Pressable
                       key={r}
-                      style={[styles.radiusChip, isActive && styles.radiusChipActive]}
+                      style={[CHIP_STYLES.chip, isActive && CHIP_STYLES.chipActive]}
                       onPress={() => handleRadiusChange(zone, r)}
                     >
-                      <Text style={[styles.radiusChipText, isActive && styles.radiusChipTextActive]}>
+                      <Text style={[CHIP_STYLES.chipText, isActive && CHIP_STYLES.chipTextActive]}>
                         {r} mi
                       </Text>
                     </Pressable>
@@ -160,27 +160,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginTop: 10,
-  },
-  radiusChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.accent + '15',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  radiusChipActive: {
-    backgroundColor: COLORS.accent + '30',
-    borderColor: COLORS.accent,
-  },
-  radiusChipText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-  },
-  radiusChipTextActive: {
-    color: COLORS.accent,
-    fontFamily: FONTS.body.semiBold,
   },
   removeText: {
     fontFamily: FONTS.body.medium,
