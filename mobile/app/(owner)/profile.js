@@ -10,17 +10,19 @@ import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
 export default function OwnerProfileScreen() {
   const { user, role } = useAuth();
-  const [phone, setPhone] = useState(null);
+  const [profile, setProfile] = useState({});
 
   useFocusEffect(
     useCallback(() => {
       if (!user) return;
       supabase
         .from('profiles')
-        .select('phone')
+        .select('display_name, email, phone')
         .eq('id', user.id)
         .single()
-        .then(({ data }) => setPhone(data?.phone || null));
+        .then(({ data }) => {
+          if (data) setProfile(data);
+        });
     }, [user])
   );
 
@@ -33,12 +35,12 @@ export default function OwnerProfileScreen() {
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <Text style={SCREEN.pageTitle}>Profile</Text>
 
-      <ProfileCard user={user} role={role} phone={phone} />
-
-      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/edit-profile')}>
-        <Text style={MENU.text}>Edit Profile</Text>
-        <Text style={MENU.hint}>Update your name, email, or phone number</Text>
-      </TouchableOpacity>
+      <ProfileCard
+        role={role}
+        displayName={profile.display_name}
+        email={profile.email}
+        phone={profile.phone}
+      />
 
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/notifications')}>
         <Text style={MENU.text}>Notifications</Text>
