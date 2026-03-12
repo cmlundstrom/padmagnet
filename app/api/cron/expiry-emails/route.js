@@ -60,7 +60,7 @@ export async function GET(request) {
 
         const address = `${listing.street_name}, ${listing.city}`;
         await sendTemplateEmail(slug, profile.email, {
-          owner_name: profile.display_name || 'Landlord',
+          owner_name: profile.display_name || 'Property Owner',
           listing_address: address,
           expires_at: new Date(listing.expires_at).toLocaleDateString(),
           renew_url: `${APP_URL}/renew?listing_id=${listing.id}&action=renew`,
@@ -92,7 +92,7 @@ export async function GET(request) {
 
       const address = `${listing.street_name}, ${listing.city}`;
       await sendTemplateEmail('listing_expired', profile.email, {
-        owner_name: profile.display_name || 'Landlord',
+        owner_name: profile.display_name || 'Property Owner',
         listing_address: address,
         renew_url: `${APP_URL}/renew?listing_id=${listing.id}&action=renew`,
       });

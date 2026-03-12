@@ -125,7 +125,7 @@ export async function POST(request) {
       const address = [data.street_number, data.street_name].filter(Boolean).join(' ');
       const fullAddress = [address, data.city, data.state_or_province].filter(Boolean).join(', ');
       sendTemplateEmail('listing_confirmed', user.email, {
-        owner_name: data.listing_agent_name || user.user_metadata?.display_name || 'there',
+        owner_name: data.listing_agent_name || user.user_metadata?.display_name || 'Property Owner',
         confirmation_code: data.confirmation_code,
         listing_address: fullAddress,
         rent: data.list_price ? `$${Number(data.list_price).toLocaleString()}/mo` : '—',

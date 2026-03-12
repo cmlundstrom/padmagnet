@@ -3,7 +3,7 @@ import './app-theme.css';
 
 export const metadata = {
   title: 'PadMagnet — Swipe to Find Your Next Home',
-  description: 'Tinder-style rental matching for tenants and landlords. Find your perfect pad in Martin and St. Lucie County.',
+  description: 'Tinder-style rental matching for tenants and property owners. Find your perfect pad in South Florida.',
   icons: {
     icon: [
       { url: '/logo/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -16,7 +16,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'PadMagnet — Swipe to Find Your Next Home',
-    description: 'Tinder-style rental matching for tenants and landlords.',
+    description: 'Tinder-style rental matching for tenants and property owners.',
     url: 'https://padmagnet.com',
     siteName: 'PadMagnet',
     type: 'website',

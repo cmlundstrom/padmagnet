@@ -34,7 +34,8 @@ export default function WaitlistPanel() {
 
   const filtered = useMemo(() => {
     return entries.filter(e => {
-      if (roleFilter !== "all" && e.role !== roleFilter) return false;
+      if (roleFilter === "owner" && e.role !== "owner" && e.role !== "landlord") return false;
+      if (roleFilter !== "all" && roleFilter !== "owner" && e.role !== roleFilter) return false;
       if (statusFilter === "active" && e.suppressed) return false;
       if (statusFilter === "suppressed" && !e.suppressed) return false;
       return true;
@@ -42,7 +43,7 @@ export default function WaitlistPanel() {
   }, [entries, roleFilter, statusFilter]);
 
   const tenantCount = entries.filter(e => e.role === "tenant").length;
-  const landlordCount = entries.filter(e => e.role === "landlord").length;
+  const ownerCount = entries.filter(e => e.role === "landlord" || e.role === "owner").length;
   const suppressedCount = entries.filter(e => e.suppressed).length;
 
   // CRUD handlers
@@ -131,7 +132,7 @@ export default function WaitlistPanel() {
       header: "Role",
       cell: ({ getValue }) => {
         const v = getValue();
-        return <Badge color={v === "landlord" ? "purple" : "cyan"}>{v}</Badge>;
+        return <Badge color={v === "landlord" || v === "owner" ? "purple" : "cyan"}>{v === "landlord" ? "owner" : v}</Badge>;
       },
       size: 100,
     },
@@ -164,7 +165,7 @@ export default function WaitlistPanel() {
     { key: "email", label: "Email", type: "email", placeholder: "user@example.com", required: true },
     { key: "role", label: "Role", type: "select", required: true, options: [
       { value: "tenant", label: "Tenant" },
-      { value: "landlord", label: "Landlord" },
+      { value: "owner", label: "Owner" },
     ]},
     { key: "notes", label: "Notes", type: "textarea", placeholder: "Optional notes\u2026" },
   ];
@@ -175,13 +176,13 @@ export default function WaitlistPanel() {
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Signups" value={entries.length} sub="Since launch" accent={COLORS.brand} />
         <StatCard label="Tenants" value={tenantCount} sub={entries.length > 0 ? `${Math.round(tenantCount / entries.length * 100)}% of signups` : "\u2014"} accent={COLORS.green} />
-        <StatCard label="Landlords" value={landlordCount} sub={entries.length > 0 ? `${Math.round(landlordCount / entries.length * 100)}% of signups` : "\u2014"} accent={COLORS.purple} />
+        <StatCard label="Owners" value={ownerCount} sub={entries.length > 0 ? `${Math.round(ownerCount / entries.length * 100)}% of signups` : "\u2014"} accent={COLORS.purple} />
         <StatCard label="Last Signup" value={entries[0] ? timeAgo(entries[0].created_at) : "\u2014"} sub={entries[0]?.email?.split("@")[0] + "\u2026" || "\u2014"} accent={COLORS.amber} />
       </div>
 
       {/* Filters & Actions Bar */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-        {["all", "tenant", "landlord"].map(r => (
+        {["all", "tenant", "owner"].map(r => (
           <button key={r} onClick={() => setRoleFilter(r)} style={{
             ...baseButton,
             background: roleFilter === r ? COLORS.brand + "22" : COLORS.surface,

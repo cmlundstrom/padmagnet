@@ -34,8 +34,13 @@ export async function resolvePostLoginDestination(session, knownRole) {
     await saveUserRole(role);
   }
 
-  // Require full name before entering the app
-  const displayName = session.user?.user_metadata?.display_name;
+  // Require full name before entering the app — check profiles table first, fall back to user_metadata
+  const { data: nameProfile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', session.user.id)
+    .single();
+  const displayName = nameProfile?.display_name || session.user?.user_metadata?.display_name;
   if (!displayName || !displayName.includes(' ')) {
     return '/about-you';
   }

@@ -10,11 +10,7 @@ import { useAlert } from '../providers/AlertProvider';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
-
-const ROLE_LABELS = {
-  owner: 'Property Owner',
-  tenant: 'Tenant',
-};
+import { ROLE_LABELS } from '../constants/roles';
 
 export default function AboutYouScreen() {
   const { user, role } = useAuth();

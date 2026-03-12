@@ -1,4 +1,4 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import usePreferences from '../../hooks/usePreferences';
 import { useAlert } from '../../providers/AlertProvider';
 import { AuthContext } from '../../providers/AuthProvider';
 import { apiFetch } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 import { calculatePadScore } from '../../lib/padscore';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -26,7 +27,20 @@ const VIEW_ICONS = { cards: '▣', map: '◎', list: '☰' };
 export default function SwipeScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
-  const firstName = (user?.user_metadata?.display_name || '').split(' ')[0];
+  const [firstName, setFirstName] = useState('');
+
+  // Load display name from profiles table (not stale auth session)
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.display_name) setFirstName(data.display_name.split(' ')[0]);
+      });
+  }, [user]);
   const [viewMode, setViewMode] = useState('cards');
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
   const { recordSwipe } = useSwipe();

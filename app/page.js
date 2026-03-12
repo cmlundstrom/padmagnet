@@ -327,7 +327,7 @@ export default function LandingPage() {
           <div className="steps-grid">
             <FadeUp><div className="step-card"><span className="step-number">1</span><div className="step-icon coral">🎯</div><h3 className="step-title">Set your criteria</h3><p className="step-desc">Tell us your budget, preferred bedrooms, pet needs, and target area anywhere from Fort Pierce to Miami. We&apos;ll curate your deck.</p></div></FadeUp>
             <FadeUp><div className="step-card"><span className="step-number">2</span><div className="step-icon sage">👆</div><h3 className="step-title">Swipe through rentals</h3><p className="step-desc">Browse real MLS-powered listings one card at a time. Swipe right to save your favorites, left to pass. It&apos;s fast and visual.</p></div></FadeUp>
-            <FadeUp><div className="step-card"><span className="step-number">3</span><div className="step-icon navy">🤝</div><h3 className="step-title">Get matched</h3><p className="step-desc">When you swipe right, the landlord sees your profile. If it&apos;s a fit, you connect directly — no middleman, no mystery.</p></div></FadeUp>
+            <FadeUp><div className="step-card"><span className="step-number">3</span><div className="step-icon navy">🤝</div><h3 className="step-title">Get matched</h3><p className="step-desc">When you swipe right, the property owner sees your profile. If it&apos;s a fit, you connect directly — no middleman, no mystery.</p></div></FadeUp>
           </div>
         </div>
       </section>
@@ -349,13 +349,13 @@ export default function LandingPage() {
                   <li><span className="perk-check">✓</span> Always 100% free to use</li>
                   <li><span className="perk-check">✓</span> Real-time MLS-powered listings</li>
                   <li><span className="perk-check">✓</span> Swipe, save, and compare favorites</li>
-                  <li><span className="perk-check">✓</span> Connect directly with landlords</li>
+                  <li><span className="perk-check">✓</span> Connect directly with property owners</li>
                 </ul>
               </div>
             </FadeUp>
             <FadeUp>
               <div className="audience-card landlord">
-                <p className="audience-card-label">For Landlords</p>
+                <p className="audience-card-label">For Property Owners</p>
                 <h3>Stop paying for yard signs and praying.</h3>
                 <p>PadMagnet puts your vacancy in front of tenants who are actively searching in your area, at your price point. Less downtime. More qualified leads. No guesswork.</p>
                 <ul className="audience-perks">
@@ -383,7 +383,7 @@ export default function LandingPage() {
               <div className="location-details">
                 <p className="section-label">Our Coverage</p>
                 <h3>Hyperlocal by design.</h3>
-                <p>We&apos;re not trying to be Zillow. PadMagnet serves one market and serves it well — Florida&apos;s Treasure and Gold Coasts. Every listing is real, every landlord is local, and the data comes straight from the MLS and private property owners.</p>
+                <p>We&apos;re not trying to be Zillow. PadMagnet serves one market and serves it well — Florida&apos;s Treasure and Gold Coasts. Every listing is real, every property owner is local, and the data comes straight from the MLS and private property owners.</p>
                 <div className="county-tags">
                   {['Stuart', 'Jensen Beach', 'Hobe Sound', 'Port St. Lucie', 'Fort Pierce', 'Hollywood', 'Pembroke Pines', 'Pompano Beach', 'Coral Springs', 'Sunrise', 'Hallandale Beach', 'Miami', 'Miami Beach', 'Hialeah', 'Coral Gables', 'Homestead', 'Doral', 'Aventura', 'Kendall', 'North Miami'].map(c => (
                     <span key={c} className="county-tag">{c}</span>

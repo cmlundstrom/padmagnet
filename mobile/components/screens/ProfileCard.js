@@ -3,11 +3,7 @@ import { router } from 'expo-router';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
-
-const ROLE_LABELS = {
-  owner: 'Property Owner',
-  tenant: 'Tenant',
-};
+import { ROLE_LABELS } from '../../constants/roles';
 
 export default function ProfileCard({ role, displayName, email, phone }) {
   const roleLabel = ROLE_LABELS[role] || role || '';

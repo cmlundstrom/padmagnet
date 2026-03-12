@@ -226,8 +226,14 @@ export default function CreateListingScreen() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          if (!form.listing_agent_email) update('listing_agent_email', user.email || '');
-          if (!form.listing_agent_name) update('listing_agent_name', user.user_metadata?.display_name || '');
+          // Fetch profile data (display_name, email) from profiles table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, email')
+            .eq('id', user.id)
+            .single();
+          if (!form.listing_agent_email) update('listing_agent_email', profile?.email || user.email || '');
+          if (!form.listing_agent_name) update('listing_agent_name', profile?.display_name || '');
           // Infer contact pref from draft data
           if (form.listing_agent_phone) setContactPref(form.listing_agent_email ? 'both' : 'phone');
         }

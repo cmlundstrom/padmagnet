@@ -61,7 +61,7 @@ export async function POST(request, { params }) {
 
     // Send branded email via Resend
     await sendTemplateEmail('photo_upload_link', user.email, {
-      owner_name: user.user_metadata?.display_name || 'there',
+      owner_name: user.user_metadata?.display_name || 'Property Owner',
       listing_address: fullAddress || 'your listing',
       upload_url: callbackUrl,
     });
