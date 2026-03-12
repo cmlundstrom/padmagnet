@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Text, TouchableOpacity, AppState } from 'react-native';
+import { useState, useCallback } from 'react';
+import { Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../../lib/auth';
@@ -28,16 +28,14 @@ export default function TenantProfileScreen() {
       });
   }, [user]);
 
-  // Re-fetch on screen focus (returning from Edit Profile)
-  useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
-
-  // Re-fetch when app returns to foreground (after confirming email in browser)
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') fetchProfile();
-    });
-    return () => sub.remove();
-  }, [fetchProfile]);
+  // Fetch on focus + poll every 3s while focused (catches email change from browser)
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+      const interval = setInterval(fetchProfile, 3000);
+      return () => clearInterval(interval);
+    }, [fetchProfile])
+  );
 
   async function handleSignOut() {
     await signOut();
