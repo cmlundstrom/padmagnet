@@ -143,7 +143,7 @@ export default function PadMagnetAdmin() {
           />
           {!sidebarCollapsed && (
             <div>
-              <div style={{ fontSize: "15px", fontWeight: 800, color: COLORS.text, letterSpacing: "-0.02em" }}>PadMagnet</div>
+              <div style={{ fontSize: "15px", fontWeight: 800, letterSpacing: "-0.02em" }}><span style={{ color: COLORS.text }}>Pad</span><span style={{ color: "#F95E0C" }}>Magnet</span></div>
               <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Admin</div>
             </div>
           )}
