@@ -63,30 +63,24 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      // 1. Update profiles table (name + phone always, email if changed)
-      const profileUpdate = { display_name: trimmedName, phone: trimmedPhone };
-      if (trimmedEmail !== user.email) {
-        profileUpdate.email = trimmedEmail;
-      }
-
+      // 1. Update profiles table (name + phone — NOT email, that syncs after confirmation)
       const { error: profileErr } = await supabase
         .from('profiles')
-        .update(profileUpdate)
+        .update({ display_name: trimmedName, phone: trimmedPhone })
         .eq('id', user.id);
 
       if (profileErr) throw new Error(profileErr.message);
 
-      // 2. If email changed, update auth (sends confirmation to new address)
+      // 2. If email changed, trigger Supabase auth email change flow
+      // This sends confirmation links to BOTH old and new addresses.
+      // profiles.email is updated server-side only after both are confirmed.
       if (trimmedEmail !== user.email) {
-        const { error: authErr } = await supabase.auth.updateUser(
-          { email: trimmedEmail },
-          { emailRedirectTo: 'https://padmagnet.com/auth/callback' }
-        );
+        const { error: authErr } = await supabase.auth.updateUser({ email: trimmedEmail });
         if (authErr) throw new Error(authErr.message);
 
         alert(
           'Confirmation Required',
-          'Confirmation links have been sent to both your old and new email addresses. Please confirm both to complete the change.',
+          'Confirmation links have been sent to both your current and new email addresses. You must confirm both links to complete the change.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {

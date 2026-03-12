@@ -1,8 +1,36 @@
-export const metadata = {
-  title: 'Email Confirmed — PadMagnet',
-};
+'use client';
 
-export default function EmailConfirmedPage() {
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+
+function EmailConfirmedContent() {
+  const searchParams = useSearchParams();
+  const status = searchParams.get('status') || 'complete';
+  const message = searchParams.get('message');
+
+  const content = {
+    complete: {
+      heading: 'Email Updated',
+      body: 'Your email address has been changed successfully.',
+      detail: 'You can close this page and return to the PadMagnet app. Your new email will appear the next time you open the app.',
+      color: 'var(--pm-success)',
+    },
+    partial: {
+      heading: 'One More Step',
+      body: 'First confirmation received.',
+      detail: 'Please check your other email address and click the confirmation link there to complete the change.',
+      color: 'var(--pm-warning)',
+    },
+    error: {
+      heading: 'Confirmation Failed',
+      body: message || 'The confirmation link is invalid or has expired.',
+      detail: 'Please go back to the PadMagnet app and request a new email change. Confirmation links expire after 24 hours.',
+      color: 'var(--pm-danger)',
+    },
+  };
+
+  const c = content[status] || content.complete;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -35,30 +63,41 @@ export default function EmailConfirmedPage() {
           fontWeight: 700,
           marginBottom: '12px',
         }}>
-          Email Updated
+          {c.heading}
         </h1>
         <p style={{
-          color: 'var(--pm-success)',
+          color: c.color,
           fontSize: '20px',
           fontWeight: 600,
           marginBottom: '10px',
         }}>
-          Your email address has been changed successfully.
+          {c.body}
         </p>
         <p style={{
           color: 'var(--pm-text-secondary)',
           fontSize: '17px',
-          marginBottom: '24px',
         }}>
-          You can close this page and return to the PadMagnet app.
-        </p>
-        <p style={{
-          color: 'var(--pm-slate)',
-          fontSize: '13px',
-        }}>
-          Your profile has been updated automatically. The new email will appear the next time you open the app.
+          {c.detail}
         </p>
       </div>
     </div>
+  );
+}
+
+export default function EmailConfirmedPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--pm-navy)',
+      }}>
+        <p style={{ color: 'var(--pm-text)', fontFamily: 'var(--pm-font-body)' }}>Loading...</p>
+      </div>
+    }>
+      <EmailConfirmedContent />
+    </Suspense>
   );
 }
