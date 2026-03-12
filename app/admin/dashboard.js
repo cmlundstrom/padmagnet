@@ -135,7 +135,7 @@ export default function PadMagnetAdmin() {
           cursor: "pointer",
         }} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
           <img
-            src="/logo/padmagnet-icon-120.png"
+            src="/logo/padmagnet-icon-120-dark.png"
             alt="PadMagnet"
             width={32}
             height={32}
