@@ -8,28 +8,7 @@ function EmailConfirmedContent() {
   const status = searchParams.get('status') || 'complete';
   const message = searchParams.get('message');
 
-  const content = {
-    complete: {
-      heading: 'Email Updated',
-      body: 'Your email address has been changed successfully.',
-      detail: 'You can close this page and return to the PadMagnet app. Your new email will appear the next time you open the app.',
-      color: 'var(--pm-success)',
-    },
-    partial: {
-      heading: 'One More Step',
-      body: 'First confirmation received.',
-      detail: 'Please check your other email address and click the confirmation link there to complete the change.',
-      color: 'var(--pm-warning)',
-    },
-    error: {
-      heading: 'Confirmation Failed',
-      body: message || 'The confirmation link is invalid or has expired.',
-      detail: 'Please go back to the PadMagnet app and request a new email change. Confirmation links expire after 24 hours.',
-      color: 'var(--pm-danger)',
-    },
-  };
-
-  const c = content[status] || content.complete;
+  const isError = status === 'error';
 
   return (
     <div style={{
@@ -63,21 +42,25 @@ function EmailConfirmedContent() {
           fontWeight: 700,
           marginBottom: '12px',
         }}>
-          {c.heading}
+          {isError ? 'Confirmation Failed' : 'Email Updated'}
         </h1>
         <p style={{
-          color: c.color,
+          color: isError ? 'var(--pm-danger)' : 'var(--pm-success)',
           fontSize: '20px',
           fontWeight: 600,
           marginBottom: '10px',
         }}>
-          {c.body}
+          {isError
+            ? (message || 'The confirmation link is invalid or has expired.')
+            : 'Your email address has been changed successfully.'}
         </p>
         <p style={{
           color: 'var(--pm-text-secondary)',
           fontSize: '17px',
         }}>
-          {c.detail}
+          {isError
+            ? 'Please go back to the PadMagnet app and request a new email change. Confirmation links expire after 24 hours.'
+            : 'You can close this page and return to the PadMagnet app. Your new email will appear the next time you open the app.'}
         </p>
       </div>
     </div>

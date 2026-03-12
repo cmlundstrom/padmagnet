@@ -6,8 +6,7 @@ export const dynamic = 'force-dynamic';
 
 // GET /auth/confirm?token_hash=...&type=email_change
 // Server-side OTP verification — prevents email link scanners from consuming tokens.
-// After verifyOtp, checks if the email change is fully complete (both confirmations done)
-// and syncs the new email to profiles.
+// After verifyOtp succeeds, syncs the new email to the profiles table.
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get('token_hash');
@@ -32,24 +31,12 @@ export async function GET(request) {
     return NextResponse.redirect(errorUrl);
   }
 
-  // Check if the email change is fully complete
-  // After both confirmations, data.user.email is the NEW email and email_change is empty
+  // Sync the confirmed email to profiles table
   const user = data?.user;
-  if (user && type === 'email_change') {
-    const hasEmailChange = user.new_email && user.email !== user.new_email;
-
-    if (!hasEmailChange) {
-      // Both confirmations done — sync new email to profiles
-      const service = createServiceClient();
-      await service.from('profiles').update({ email: user.email }).eq('id', user.id);
-
-      return NextResponse.redirect(new URL('/email-confirmed?status=complete', request.url));
-    } else {
-      // First confirmation done, second still needed
-      return NextResponse.redirect(new URL('/email-confirmed?status=partial', request.url));
-    }
+  if (user?.email && type === 'email_change') {
+    const service = createServiceClient();
+    await service.from('profiles').update({ email: user.email }).eq('id', user.id);
   }
 
-  // Non-email-change flows (shouldn't hit this route, but handle gracefully)
   return NextResponse.redirect(new URL('/email-confirmed?status=complete', request.url));
 }

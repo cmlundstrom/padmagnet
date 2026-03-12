@@ -80,7 +80,7 @@ export default function EditProfileScreen() {
 
         alert(
           'Confirmation Required',
-          'Confirmation links have been sent to both your current and new email addresses. You must confirm both links to complete the change.',
+          'A confirmation link has been sent to your new email address. Open the email and tap the link to complete the change.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -160,7 +160,7 @@ export default function EditProfileScreen() {
           />
           {email.trim().toLowerCase() !== (user?.email || '') && (
             <Text style={styles.hint}>
-              Changing your email requires confirmation. A link will be sent to your new address.
+              A confirmation email will be sent to your new address. Tap the link in that email to complete the change.
             </Text>
           )}
 
