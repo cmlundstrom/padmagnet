@@ -57,6 +57,6 @@ const styles = StyleSheet.create({
   magnet: {
     fontFamily: FONTS.heading.bold,
     fontSize: 18,
-    color: COLORS.brandOrange,
+    color: COLORS.deepOrange,
   },
 });

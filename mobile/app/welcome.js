@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   wordmarkMagnet: {
     fontFamily: FONTS.heading.bold,
     fontSize: 38,
-    color: COLORS.brandOrange,
+    color: COLORS.deepOrange,
   },
   tagline: {
     fontFamily: FONTS.heading.semiBold,

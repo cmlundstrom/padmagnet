@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   brandMagnet: {
     fontFamily: FONTS.heading.bold,
     fontSize: 48,
-    color: COLORS.brandOrange,
+    color: COLORS.deepOrange,
   },
   title: {
     fontFamily: FONTS.heading.bold,

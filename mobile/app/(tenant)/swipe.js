@@ -102,7 +102,7 @@ export default function SwipeScreen() {
             </Pressable>
             <Text style={styles.logo}>
               <Text style={{ color: COLORS.white }}>Pad</Text>
-              <Text style={{ color: COLORS.brandOrange }}>Magnet</Text>
+              <Text style={{ color: COLORS.deepOrange }}>Magnet</Text>
             </Text>
           </View>
           <View style={styles.headerRight}>
