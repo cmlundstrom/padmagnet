@@ -55,10 +55,12 @@ nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: rgba(237, 228, 220, 0.85);
+  backdrop-filter: blur(16px);
   transition: background 0.3s, box-shadow 0.3s;
 }
 nav.scrolled {
-  background: rgba(255, 249, 245, 0.92);
+  background: rgba(237, 228, 220, 0.92);
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow-soft);
 }
