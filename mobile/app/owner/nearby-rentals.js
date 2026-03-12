@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
-    height: 250,
+    height: 280,
   },
   nearbyImageContainer: {
     height: 100,

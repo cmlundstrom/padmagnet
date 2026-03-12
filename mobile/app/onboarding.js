@@ -22,7 +22,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { session } = useAuth();
-  const { zones, addZone, removeZone } = useSearchZones();
+  const { zones, addZone, removeZone, updateZone } = useSearchZones();
   const [step, setStep] = useState(null); // null = loading saved step
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -200,7 +200,7 @@ export default function OnboardingScreen() {
             <>
               <Text style={styles.stepTitle}>Where do you want to live?</Text>
               <Text style={styles.stepHint}>Start typing a city or zip code in our service area.</Text>
-              <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
+              <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} onUpdateZone={updateZone} />
               <Button title="Next" onPress={() => goToStep(4)} disabled={zones.length === 0} style={styles.mainButton} />
               <Pressable onPress={() => goToStep(2)} style={styles.backLink}>
                 <Text style={styles.backText}>Back</Text>

@@ -6,8 +6,10 @@ import { LAYOUT } from '../constants/layout';
 import { searchServiceAreas } from '../constants/service-areas';
 
 const MAX_ZONES = 3;
+const RADIUS_OPTIONS = [3, 7, 10, 15];
+const DEFAULT_RADIUS = 10;
 
-export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
+export default function ZonePicker({ zones = [], onAddZone, onRemoveZone, onUpdateZone }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [error, setError] = useState(null);
@@ -28,11 +30,20 @@ export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
         label: `${city.name}, FL`,
         center_lat: city.lat,
         center_lng: city.lng,
-        radius_miles: 15,
+        radius_miles: DEFAULT_RADIUS,
       });
       setQuery('');
       setSuggestions([]);
       setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleRadiusChange = async (zone, radius) => {
+    if (!onUpdateZone || parseFloat(zone.radius_miles) === radius) return;
+    try {
+      await onUpdateZone(zone.id, { radius_miles: radius });
     } catch (err) {
       setError(err.message);
     }
@@ -47,13 +58,30 @@ export default function ZonePicker({ zones = [], onAddZone, onRemoveZone }) {
         <View style={styles.zoneList}>
           {zones.map(zone => (
             <View key={zone.id} style={styles.zoneItem}>
-              <View style={styles.zoneInfo}>
-                <Text style={styles.zoneLabel} numberOfLines={1}>{zone.label}</Text>
-                <Text style={styles.zoneRadius}>{parseFloat(zone.radius_miles)} mi radius</Text>
+              <View style={styles.zoneTop}>
+                <View style={styles.zoneInfo}>
+                  <Text style={styles.zoneLabel} numberOfLines={1}>{zone.label}</Text>
+                </View>
+                <Pressable onPress={() => onRemoveZone(zone.id)} hitSlop={8}>
+                  <Text style={styles.removeText}>Remove</Text>
+                </Pressable>
               </View>
-              <Pressable onPress={() => onRemoveZone(zone.id)} hitSlop={8}>
-                <Text style={styles.removeText}>Remove</Text>
-              </Pressable>
+              <View style={styles.radiusRow}>
+                {RADIUS_OPTIONS.map(r => {
+                  const isActive = parseFloat(zone.radius_miles) === r;
+                  return (
+                    <Pressable
+                      key={r}
+                      style={[styles.radiusChip, isActive && styles.radiusChipActive]}
+                      onPress={() => handleRadiusChange(zone, r)}
+                    >
+                      <Text style={[styles.radiusChipText, isActive && styles.radiusChipTextActive]}>
+                        {r} mi
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           ))}
         </View>
@@ -108,14 +136,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   zoneItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
     padding: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  zoneTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   zoneInfo: {
     flex: 1,
@@ -126,11 +156,31 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
   },
-  zoneRadius: {
-    fontFamily: FONTS.body.regular,
+  radiusRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  radiusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: LAYOUT.radius.full,
+    backgroundColor: COLORS.accent + '15',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  radiusChipActive: {
+    backgroundColor: COLORS.accent + '30',
+    borderColor: COLORS.accent,
+  },
+  radiusChipText: {
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginTop: 2,
+  },
+  radiusChipTextActive: {
+    color: COLORS.accent,
+    fontFamily: FONTS.body.semiBold,
   },
   removeText: {
     fontFamily: FONTS.body.medium,

@@ -18,7 +18,7 @@ const PET_TYPES = ['dog', 'cat', 'both'];
 
 export default function PreferencesScreen() {
   const { preferences, loading, updatePreferences } = usePreferences();
-  const { zones, addZone, removeZone } = useSearchZones();
+  const { zones, addZone, removeZone, updateZone } = useSearchZones();
   const alert = useAlert();
   const [form, setForm] = useState({
     budget_max: '',
@@ -137,7 +137,7 @@ export default function PreferencesScreen() {
         {/* Location */}
         <Text style={styles.sectionTitle}>Location</Text>
         <Text style={styles.label}>Where do you want to live? (three areas max)</Text>
-        <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} />
+        <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} onUpdateZone={updateZone} />
 
         {/* Features */}
         <Text style={styles.sectionTitle}>Features</Text>

@@ -53,7 +53,7 @@ export async function POST(request) {
         label,
         center_lat,
         center_lng,
-        radius_miles: radius_miles || 15,
+        radius_miles: radius_miles || 10,
         position: count || 0,
       })
       .select()

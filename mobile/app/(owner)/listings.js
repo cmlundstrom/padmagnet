@@ -264,7 +264,7 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           </View>
           <View style={styles.nearbyText}>
             <Text style={styles.nearbyTitle}>Nearby Active Rentals</Text>
-            <Text style={styles.nearbySubtitle}>See what other rentals are asking near your property</Text>
+            <Text style={styles.nearbySubtitle}>See what other rentals are asking near this property</Text>
           </View>
           <View style={styles.frostBtn}>
             <FontAwesome name="arrow-right" size={16} color={COLORS.white} />

@@ -6,6 +6,36 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Compute a lat/lng bounding box that encompasses all search zones.
+ * Each zone is expanded by its radius × buffer multiplier.
+ * 1 degree latitude ≈ 69 miles; 1 degree longitude ≈ 69 × cos(lat) miles.
+ */
+function computeGeoBounds(zones, bufferMultiplier = 1.5) {
+  if (!zones || zones.length === 0) return null;
+
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+
+  for (const zone of zones) {
+    const lat = parseFloat(zone.center_lat);
+    const lng = parseFloat(zone.center_lng);
+    const radiusMi = parseFloat(zone.radius_miles) * bufferMultiplier;
+    if (isNaN(lat) || isNaN(lng) || isNaN(radiusMi)) continue;
+
+    const latDelta = radiusMi / 69;
+    const lngDelta = radiusMi / (69 * Math.cos(lat * Math.PI / 180));
+
+    minLat = Math.min(minLat, lat - latDelta);
+    maxLat = Math.max(maxLat, lat + latDelta);
+    minLng = Math.min(minLng, lng - lngDelta);
+    maxLng = Math.max(maxLng, lng + lngDelta);
+  }
+
+  if (!isFinite(minLat)) return null;
+  return { minLat, maxLat, minLng, maxLng };
+}
+
 export async function GET(request) {
   try {
     const { user, error: authError, status } = await getAuthUser(request);
@@ -73,6 +103,16 @@ export async function GET(request) {
     if (beds) query = query.gte('bedrooms_total', parseInt(beds, 10));
     if (baths) query = query.gte('bathrooms_total', parseInt(baths, 10));
     if (propertyType) query = query.eq('property_sub_type', propertyType);
+
+    // Geo-fence: only return listings within bounding box of tenant's search zones
+    const bounds = computeGeoBounds(zones);
+    if (bounds) {
+      query = query
+        .gte('latitude', bounds.minLat)
+        .lte('latitude', bounds.maxLat)
+        .gte('longitude', bounds.minLng)
+        .lte('longitude', bounds.maxLng);
+    }
 
     // Exclude already-swiped listings
     if (swipedIds.length > 0) {
