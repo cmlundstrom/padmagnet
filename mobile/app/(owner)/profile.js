@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { Text, TouchableOpacity, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { signOut } from '../../lib/auth';
@@ -12,19 +12,28 @@ export default function OwnerProfileScreen() {
   const { user, role } = useAuth();
   const [profile, setProfile] = useState({});
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user) return;
-      supabase
-        .from('profiles')
-        .select('display_name, email, phone')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) setProfile(data);
-        });
-    }, [user])
-  );
+  const fetchProfile = useCallback(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('display_name, email, phone')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setProfile(data);
+      });
+  }, [user]);
+
+  // Re-fetch on screen focus (returning from Edit Profile)
+  useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
+
+  // Re-fetch when app returns to foreground (after confirming email in browser)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') fetchProfile();
+    });
+    return () => sub.remove();
+  }, [fetchProfile]);
 
   async function handleSignOut() {
     await signOut();
