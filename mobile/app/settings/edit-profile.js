@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -19,6 +19,8 @@ function formatPhone(raw) {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+const EMAIL_CHANGE_HINT = 'Changing your email will send a confirmation link to your new address. You must tap that link to complete the change.';
+
 export default function EditProfileScreen() {
   const { user } = useAuth();
   const alert = useAlert();
@@ -28,6 +30,9 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Track the original email loaded from DB (not from auth session)
+  const originalEmail = useRef('');
 
   // Load current profile data
   useEffect(() => {
@@ -40,12 +45,15 @@ export default function EditProfileScreen() {
         .single();
       if (data) {
         setDisplayName(data.display_name || '');
-        setEmail(data.email || user.email || '');
+        setEmail(data.email || '');
         setPhone(data.phone || '');
+        originalEmail.current = (data.email || '').toLowerCase();
       }
       setLoading(false);
     })();
   }, [user]);
+
+  const emailChanged = email.trim().toLowerCase() !== originalEmail.current;
 
   async function handleSave() {
     const trimmedName = displayName.trim();
@@ -72,15 +80,13 @@ export default function EditProfileScreen() {
       if (profileErr) throw new Error(profileErr.message);
 
       // 2. If email changed, trigger Supabase auth email change flow
-      // This sends confirmation links to BOTH old and new addresses.
-      // profiles.email is updated server-side only after both are confirmed.
-      if (trimmedEmail !== user.email) {
+      if (trimmedEmail !== originalEmail.current) {
         const { error: authErr } = await supabase.auth.updateUser({ email: trimmedEmail });
         if (authErr) throw new Error(authErr.message);
 
         alert(
           'Confirmation Required',
-          'A confirmation link has been sent to your new email address. Open the email and tap the link to complete the change.',
+          EMAIL_CHANGE_HINT + '\n\nA confirmation link has been sent to ' + trimmedEmail + '. Open that email and tap the link to complete the change.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -158,11 +164,9 @@ export default function EditProfileScreen() {
             autoCorrect={false}
             returnKeyType="next"
           />
-          {email.trim().toLowerCase() !== (user?.email || '') && (
-            <Text style={styles.hint}>
-              A confirmation email will be sent to your new address. Tap the link in that email to complete the change.
-            </Text>
-          )}
+          <Text style={[styles.hint, emailChanged && styles.hintActive]}>
+            {EMAIL_CHANGE_HINT}
+          </Text>
 
           {/* Phone */}
           <Text style={styles.label}>Phone Number</Text>
@@ -207,5 +211,8 @@ const styles = {
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
     marginTop: 6,
+  },
+  hintActive: {
+    color: COLORS.warning,
   },
 };
