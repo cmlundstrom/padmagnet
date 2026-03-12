@@ -10,7 +10,7 @@ export default ({ config }) => ({
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#0B1D3A",
+      backgroundColor: "#FFF7F5",
     },
     ios: {
       supportsTablet: false,
@@ -27,7 +27,7 @@ export default ({ config }) => ({
     android: {
       package: "com.padmagnet.app",
       adaptiveIcon: {
-        backgroundColor: "#0B1D3A",
+        backgroundColor: "#E8603C",
         foregroundImage: "./assets/android-icon-foreground.png",
         backgroundImage: "./assets/android-icon-background.png",
         monochromeImage: "./assets/android-icon-monochrome.png",
