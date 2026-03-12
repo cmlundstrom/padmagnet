@@ -78,12 +78,15 @@ export default function EditProfileScreen() {
 
       // 2. If email changed, update auth (sends confirmation to new address)
       if (trimmedEmail !== user.email) {
-        const { error: authErr } = await supabase.auth.updateUser({ email: trimmedEmail });
+        const { error: authErr } = await supabase.auth.updateUser(
+          { email: trimmedEmail },
+          { emailRedirectTo: 'https://padmagnet.com/auth/callback' }
+        );
         if (authErr) throw new Error(authErr.message);
 
         alert(
           'Confirmation Required',
-          'A confirmation link has been sent to your new email address. Your email will update once you confirm.',
+          'Confirmation links have been sent to both your old and new email addresses. Please confirm both to complete the change.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
