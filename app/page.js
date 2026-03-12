@@ -284,7 +284,7 @@ export default function LandingPage() {
       {/* NAV */}
       <nav id="nav" className={navScrolled ? 'scrolled' : ''}>
         <a href="#" className="logo">
-          <img src="/logo/padmagnet-header.png" alt="PadMagnet — Find Your Perfect Pad with PadScore" className="logo-header-img" />
+          <img src="/logo/padmagnet-header.png" alt="PadMagnet — Find Your Perfect Rental with PadScore" className="logo-header-img" />
         </a>
         <a href="#waitlist" className="nav-cta">Join Waitlist</a>
       </nav>
