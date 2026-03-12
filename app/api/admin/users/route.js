@@ -45,6 +45,7 @@ export async function GET(request) {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
+      .in('role', ['admin', 'super_admin'])
       .order('created_at', { ascending: true });
 
     if (error) {

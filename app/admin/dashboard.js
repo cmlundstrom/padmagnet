@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { id: "support", label: "Support", icon: "💬" },
   { id: "products", label: "App Products", icon: "📦" },
   { id: "billing", label: "Billing", icon: "💳" },
-  { id: "users", label: "Users", icon: "👤" },
+  { id: "users", label: "Administrators", icon: "🔐" },
   { id: "audit", label: "Audit Log", icon: "📝" },
   { id: "backlog", label: "Backlog", icon: "📋" },
 ];

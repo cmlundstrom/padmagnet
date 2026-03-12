@@ -178,7 +178,7 @@ export default function UsersPanel() {
     <div>
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
-        <StatCard label="Total Users" value={users.length} sub="Admin accounts" accent={COLORS.brand} />
+        <StatCard label="Total Admins" value={users.length} sub="Administrator accounts" accent={COLORS.brand} />
         <StatCard label="Super Admins" value={superAdminCount} sub="Full access" accent={COLORS.purple} />
         <StatCard label="Admins" value={adminCount} sub="Standard access" accent={COLORS.green} />
         <StatCard label="Last Added" value={users.length > 0 ? timeAgo(users[users.length - 1]?.created_at) : "\u2014"} sub={users[users.length - 1]?.display_name || "\u2014"} accent={COLORS.amber} />
