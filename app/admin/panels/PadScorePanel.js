@@ -20,6 +20,8 @@ const DEFAULT_PADSCORE = {
   lease_too_short: { enabled: true, weight: 35, label: "Lease Too Short", desc: "Listing lease shorter than needed" },
   stale_listing_major: { enabled: true, weight: 5, label: "Stale (60+ days)", desc: "Soft penalty for old listings" },
   stale_listing_minor: { enabled: true, weight: 2, label: "Stale (30-60 days)", desc: "Very soft penalty" },
+  no_photos: { enabled: true, weight: 35, label: "No Photos", desc: "Listing has no photos available" },
+  price_drop_recent: { enabled: true, weight: 15, label: "Recent Price Drop", desc: "Bonus for price drop within 7 days", isBonus: true },
 };
 
 export default function PadScorePanel() {
@@ -57,6 +59,7 @@ export default function PadScorePanel() {
     { title: "Pets & Yard", keys: ["pets_not_allowed", "pets_unknown", "fenced_yard_bonus", "fenced_yard_missing"] },
     { title: "Lifestyle", keys: ["association_mismatch", "furnished_mismatch"] },
     { title: "Lease & Freshness", keys: ["lease_too_short", "stale_listing_major", "stale_listing_minor"] },
+    { title: "Presentation & Pricing", keys: ["no_photos", "price_drop_recent"] },
   ];
 
   return (
@@ -180,7 +183,9 @@ export default function PadScorePanel() {
             if (config.fenced_yard_missing.enabled && !listing.fenced_yard && listing.pet_policy !== "not_allowed") score -= Math.round(config.fenced_yard_missing.weight * 0.5);
             if (config.stale_listing_major.enabled && listing.days_on_market > 60) score -= config.stale_listing_major.weight;
             else if (config.stale_listing_minor.enabled && listing.days_on_market > 30) score -= config.stale_listing_minor.weight;
-            score = Math.max(0, Math.min(108, score));
+            if (config.no_photos.enabled && (!listing.photos || listing.photos === 0)) score -= config.no_photos.weight;
+            if (config.price_drop_recent.enabled && listing.price_dropped) score += config.price_drop_recent.weight;
+            score = Math.max(0, Math.min(115, score));
             const color = score >= 80 ? COLORS.green : score >= 60 ? COLORS.amber : COLORS.textDim;
 
             return (

@@ -51,6 +51,9 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
   const score = listing.padScore?.score ?? 50;
   const firstPhoto = listing.photos?.[0]?.url;
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+  const hasPriceDrop = listing.previous_list_price && listing.price_changed_at
+    && listing.list_price < listing.previous_list_price
+    && (Date.now() - new Date(listing.price_changed_at).getTime()) < 7 * 86400000;
   const cityLine = [listing.city, listing.state_or_province, listing.postal_code].filter(Boolean).join(', ');
 
   const panGesture = Gesture.Pan()
@@ -139,6 +142,14 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
               <Badge score={score} />
             </View>
 
+            {/* Price Drop badge */}
+            {hasPriceDrop && (
+              <View style={styles.priceDropBadge}>
+                <FontAwesome name="arrow-down" size={10} color="#fff" />
+                <Text style={styles.priceDropText}>Price Drop</Text>
+              </View>
+            )}
+
             {/* SAVE overlay */}
             <Animated.View style={[styles.overlay, styles.saveOverlay, saveOverlayStyle]}>
               <GlossyHeart size={31} />
@@ -193,6 +204,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
+  },
+  priceDropBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  priceDropText: {
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 11,
+    color: '#fff',
   },
   overlay: {
     position: 'absolute',

@@ -1,6 +1,7 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import { Badge } from '../ui';
 import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 import { COLORS } from '../../constants/colors';
@@ -17,6 +18,9 @@ export default function ListingCard({ listing, padscore, style }) {
   const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const address = [street, listing.city].filter(Boolean).join(', ');
   const score = padscore ?? listing.padScore?.score ?? null;
+  const hasPriceDrop = listing.previous_list_price && listing.price_changed_at
+    && listing.list_price < listing.previous_list_price
+    && (Date.now() - new Date(listing.price_changed_at).getTime()) < 7 * 86400000;
 
   return (
     <Pressable
@@ -38,6 +42,12 @@ export default function ListingCard({ listing, padscore, style }) {
         {score != null && (
           <View style={styles.scoreBadge}>
             <Badge score={score} size="sm" />
+          </View>
+        )}
+        {hasPriceDrop && (
+          <View style={styles.priceDropBadge}>
+            <FontAwesome name="arrow-down" size={8} color="#fff" />
+            <Text style={styles.priceDropText}>Price Drop</Text>
           </View>
         )}
       </View>
@@ -76,6 +86,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
+  },
+  priceDropBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 3,
+  },
+  priceDropText: {
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 9,
+    color: '#fff',
   },
   info: {
     padding: LAYOUT.padding.sm,

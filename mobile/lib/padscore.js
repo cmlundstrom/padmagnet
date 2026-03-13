@@ -19,6 +19,7 @@ const WEIGHTS = {
   stale_listing_major: 5,
   stale_listing_minor: 2,
   no_photos: 35,
+  price_drop_recent: 15,
 };
 
 const MAX_PENALTY = Object.values(WEIGHTS).reduce((sum, w) => sum + w, 0);
@@ -184,6 +185,16 @@ export function calculatePadScore(preferences, listing, zones) {
   if (!listing.photos || listing.photos.length === 0) {
     totalPenalty += WEIGHTS.no_photos;
     factors.push({ key: 'no_photos', label: 'No Photos Available', impact: -WEIGHTS.no_photos, match: false });
+  }
+
+  // Price drop bonus — reward recent price reductions (last 7 days)
+  if (listing.previous_list_price && listing.price_changed_at && listing.list_price < listing.previous_list_price) {
+    const daysSinceDrop = Math.floor((Date.now() - new Date(listing.price_changed_at).getTime()) / 86400000);
+    if (daysSinceDrop <= 7) {
+      totalBonus += WEIGHTS.price_drop_recent;
+      const dropAmount = listing.previous_list_price - listing.list_price;
+      factors.push({ key: 'price_drop_recent', label: `Price dropped $${dropAmount.toLocaleString()}`, impact: WEIGHTS.price_drop_recent, match: true });
+    }
   }
 
   const normalizedPenalty = (totalPenalty / MAX_PENALTY) * 100;
