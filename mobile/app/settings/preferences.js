@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 100,
+    paddingBottom: 75,
   },
   statusBar: {
     alignItems: 'center',
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   floatingWrap: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 74,
     left: 0,
     right: 0,
     alignItems: 'center',
