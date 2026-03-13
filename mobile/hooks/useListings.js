@@ -78,8 +78,11 @@ export default function useListings() {
   }, [fetchPage, prefetchNext]);
 
   // Fetch listings once auth session is ready (or when it changes, e.g. hot reload)
+  // Reset fetchingRef in case hot reload interrupted a previous in-flight request
   useEffect(() => {
     if (!session) return;
+    fetchingRef.current = false;
+    if (retryRef.current) clearTimeout(retryRef.current);
     fetchListings(1);
     return () => { if (retryRef.current) clearTimeout(retryRef.current); };
   }, [session, fetchListings]);
