@@ -195,7 +195,7 @@ export default function SavedScreen() {
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <View style={styles.cardItem}>
-              <ListingCard listing={item} padscore={item.swipePadscore} />
+              <ListingCard listing={item} padscore={item.swipePadscore} context={activeTab === 'right' ? 'saved' : undefined} />
               {isSaved ? (
                 <Pressable style={styles.removeBtn} onPress={() => handleRemove(item.id)}>
                   <FontAwesome name="trash" size={17} color={COLORS.white} />

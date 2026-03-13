@@ -12,12 +12,29 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
+    const listingId = searchParams.get('listing_id');
     const direction = searchParams.get('direction'); // 'left', 'right', or null for all
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
     const offset = (page - 1) * limit;
 
     const supabase = createServiceClient();
+
+    // Single listing lookup — lightweight check for save state
+    if (listingId) {
+      const { data, error } = await supabase
+        .from('swipes')
+        .select('direction')
+        .eq('user_id', user.id)
+        .eq('listing_id', listingId)
+        .maybeSingle();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json(data || { direction: null });
+    }
 
     let query = supabase
       .from('swipes')

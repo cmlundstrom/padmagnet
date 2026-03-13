@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ScrollView, View, Text, Pressable, ActivityIndicator, Share, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withDelay } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Header } from '../../components/ui';
+import { Header, GlossyHeart } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
 import usePreferences from '../../hooks/usePreferences';
+import useSwipe from '../../hooks/useSwipe';
 import { calculatePadScore } from '../../lib/padscore';
 import { FontAwesome } from '@expo/vector-icons';
 import { apiFetch } from '../../lib/api';
@@ -22,6 +24,78 @@ export default function ListingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { preferences } = usePreferences();
+  const { recordSwipe, undoSwipe } = useSwipe();
+  const [isSaved, setIsSaved] = useState(context === 'saved');
+  const savingRef = useRef(false);
+  const heartScale = useSharedValue(1);
+
+  // Burst particles — 3 mini hearts fly outward on save
+  const burst0 = useSharedValue(0);
+  const burst1 = useSharedValue(0);
+  const burst2 = useSharedValue(0);
+
+  // Check if listing is already saved
+  useEffect(() => {
+    if (!id) return;
+    apiFetch(`/api/swipes?listing_id=${id}`)
+      .then(data => {
+        if (data?.direction === 'right') setIsSaved(true);
+      })
+      .catch(() => {});
+  }, [id]);
+
+  const handleSave = useCallback(async () => {
+    if (!listing || savingRef.current) return;
+    savingRef.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (isSaved) {
+      // Unsave — shrink animation
+      heartScale.value = withSequence(
+        withSpring(0.6, { damping: 8 }),
+        withSpring(1, { damping: 12 }),
+      );
+      const ok = await undoSwipe(listing.id);
+      if (ok) setIsSaved(false);
+    } else {
+      // Save — pulse animation + burst particles
+      heartScale.value = withSequence(
+        withSpring(1.4, { damping: 6 }),
+        withSpring(0.9, { damping: 8 }),
+        withSpring(1, { damping: 12 }),
+      );
+      // Fire 3 mini hearts outward
+      burst0.value = 0;
+      burst1.value = 0;
+      burst2.value = 0;
+      burst0.value = withTiming(1, { duration: 600 });
+      burst1.value = withDelay(50, withTiming(1, { duration: 650 }));
+      burst2.value = withDelay(100, withTiming(1, { duration: 700 }));
+
+      const score = padScore?.score ?? 50;
+      const ok = await recordSwipe(listing.id, 'right', score);
+      if (ok) setIsSaved(true);
+    }
+    savingRef.current = false;
+  }, [listing, isSaved, padScore, recordSwipe, undoSwipe, heartScale]);
+
+  const heartAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heartScale.value }],
+  }));
+
+  // Each particle: flies in a direction, scales up then fades out
+  const makeBurstStyle = (burstVal, tx, ty) => useAnimatedStyle(() => ({
+    position: 'absolute',
+    opacity: burstVal.value < 0.01 ? 0 : 1 - burstVal.value,
+    transform: [
+      { translateX: burstVal.value * tx },
+      { translateY: burstVal.value * ty },
+      { scale: 0.5 + burstVal.value * 0.5 },
+    ],
+  }));
+  const burst0Style = makeBurstStyle(burst0, -30, -40);  // up-left
+  const burst1Style = makeBurstStyle(burst1, 0, -50);     // straight up
+  const burst2Style = makeBurstStyle(burst2, 30, -35);    // up-right
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +191,28 @@ export default function ListingDetailScreen() {
         <View style={{ height: 80 }} />
       </ScrollView>
 
+      {/* Floating save heart — positioned at price row level */}
+      {context !== 'owner_browse' && (
+        <Pressable onPress={handleSave} style={styles.heartFab}>
+          <Animated.View style={burst0Style}>
+            <FontAwesome name="heart" size={10} color="#22C55E" />
+          </Animated.View>
+          <Animated.View style={burst1Style}>
+            <FontAwesome name="heart" size={12} color="#4ade80" />
+          </Animated.View>
+          <Animated.View style={burst2Style}>
+            <FontAwesome name="heart" size={10} color="#22C55E" />
+          </Animated.View>
+          <Animated.View style={heartAnimatedStyle}>
+            {isSaved ? (
+              <GlossyHeart size={28} />
+            ) : (
+              <FontAwesome name="heart-o" size={24} color={COLORS.white} />
+            )}
+          </Animated.View>
+        </Pressable>
+      )}
+
       {/* Sticky bottom CTA */}
       <View style={styles.bottomBar}>
         <Pressable style={styles.ctaButton} onPress={handleContact}>
@@ -191,6 +287,21 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xs,
     color: COLORS.white,
+  },
+  heartFab: {
+    position: 'absolute',
+    top: '67%',
+    right: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(34, 197, 94, 0.25)',
+    borderWidth: 1.5,
+    borderColor: '#22C55E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    overflow: 'visible',
   },
   bottomBar: {
     padding: LAYOUT.padding.md,

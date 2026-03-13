@@ -9,14 +9,13 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import { formatCurrency, formatBedsBaths } from '../../utils/format';
 
-export default function ListingCard({ listing, padscore, style }) {
+export default function ListingCard({ listing, padscore, style, context }) {
   const router = useRouter();
 
   if (!listing) return null;
 
   const firstPhoto = listing.photos?.[0]?.url;
   const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
-  const address = [street, listing.city].filter(Boolean).join(', ');
   const score = padscore ?? listing.padScore?.score ?? null;
   const hasPriceDrop = listing.previous_list_price && listing.price_changed_at
     && listing.list_price < listing.previous_list_price
@@ -25,7 +24,7 @@ export default function ListingCard({ listing, padscore, style }) {
   return (
     <Pressable
       style={[styles.card, style]}
-      onPress={() => router.push(`/listing/${listing.id}`)}
+      onPress={() => router.push(`/listing/${listing.id}${context ? `?context=${context}` : ''}`)}
     >
       <View style={styles.imageContainer}>
         {firstPhoto ? (
@@ -56,7 +55,8 @@ export default function ListingCard({ listing, padscore, style }) {
           {formatCurrency(listing.list_price)}
           <Text style={styles.perMonth}>/mo</Text>
         </Text>
-        <Text style={styles.address} numberOfLines={1}>{address}</Text>
+        <Text style={styles.address} numberOfLines={1}>{street}</Text>
+        {listing.city && <Text style={styles.city} numberOfLines={1}>{listing.city}</Text>}
         <Text style={styles.details} numberOfLines={1}>
           {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
           {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   imageContainer: {
-    height: 140,
+    height: 150,
     backgroundColor: COLORS.surface,
   },
   image: {
@@ -122,6 +122,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  city: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 1,
   },
   details: {
     fontFamily: FONTS.body.medium,
