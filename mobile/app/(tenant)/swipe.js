@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import CardStack from '../../components/cards/CardStack';
 import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
@@ -26,6 +26,7 @@ const VIEW_ICONS = { cards: '▣', map: '◎', list: '☰' };
 
 export default function SwipeScreen() {
   const router = useRouter();
+  const { refresh: refreshParam } = useLocalSearchParams();
   const { user } = useContext(AuthContext);
   const [firstName, setFirstName] = useState('');
 
@@ -43,6 +44,13 @@ export default function SwipeScreen() {
   }, [user]);
   const [viewMode, setViewMode] = useState('cards');
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
+
+  // Auto-refresh listings when navigated here with ?refresh=true (e.g. after preferences change)
+  useEffect(() => {
+    if (refreshParam === 'true') {
+      refresh();
+    }
+  }, [refreshParam, refresh]);
   const { recordSwipe } = useSwipe();
   const { preferences } = usePreferences();
   const alert = useAlert();

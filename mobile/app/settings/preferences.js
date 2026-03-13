@@ -159,7 +159,7 @@ export default function PreferencesScreen() {
   // "Start Swiping" — flush pending save, then navigate
   const handleStartSwiping = async () => {
     await flushSave();
-    router.replace('/(tenant)/swipe');
+    router.replace('/(tenant)/swipe?refresh=true');
   };
 
   // Cleanup debounce on unmount
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 75,
+    paddingBottom: 175,
   },
   statusBar: {
     alignItems: 'center',
