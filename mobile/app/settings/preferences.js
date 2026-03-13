@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ScrollView, View, Text, Pressable, Switch, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Header, Button, Input } from '../../components/ui';
+import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
+import { Header, Input } from '../../components/ui';
 import usePreferences from '../../hooks/usePreferences';
 import useSearchZones from '../../hooks/useSearchZones';
 import ZonePicker from '../../components/ZonePicker';
-import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
@@ -15,11 +16,13 @@ const PROPERTY_TYPES = [
 ];
 
 const PET_TYPES = ['dog', 'cat', 'both'];
+const TEXT_DEBOUNCE_MS = 1500;
 
 export default function PreferencesScreen() {
+  const router = useRouter();
   const { preferences, loading, updatePreferences } = usePreferences();
   const { zones, addZone, removeZone, updateZone } = useSearchZones();
-  const alert = useAlert();
+
   const [form, setForm] = useState({
     budget_max: '',
     beds_min: '',
@@ -31,8 +34,15 @@ export default function PreferencesScreen() {
     furnished_preferred: null,
     association_preferred: null,
   });
-  const [saving, setSaving] = useState(false);
 
+  // Auto-save state
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
+  const debounceRef = useRef(null);
+  const pendingSaveRef = useRef(null);
+  const statusFadeRef = useRef(new Animated.Value(0)).current;
+  const initialLoadRef = useRef(true);
+
+  // Load server preferences into form on mount
   useEffect(() => {
     if (preferences) {
       setForm({
@@ -46,46 +56,138 @@ export default function PreferencesScreen() {
         furnished_preferred: preferences.furnished_preferred ?? null,
         association_preferred: preferences.association_preferred ?? null,
       });
+      initialLoadRef.current = false;
     }
   }, [preferences]);
 
-  const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  // Show/hide save status indicator
+  useEffect(() => {
+    if (saveStatus === 'saved' || saveStatus === 'error') {
+      Animated.timing(statusFadeRef, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      const timer = setTimeout(() => {
+        Animated.timing(statusFadeRef, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+          setSaveStatus('idle');
+        });
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else if (saveStatus === 'saving') {
+      Animated.timing(statusFadeRef, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    }
+  }, [saveStatus, statusFadeRef]);
+
+  // Build the preferences payload from current form state
+  const buildPayload = useCallback((f) => ({
+    budget_max: f.budget_max ? parseFloat(f.budget_max) : 5000,
+    beds_min: f.beds_min ? parseInt(f.beds_min, 10) : 0,
+    baths_min: f.baths_min ? parseFloat(f.baths_min) : 1,
+    property_types: f.property_types,
+    pets_required: f.pets_required,
+    pet_type: f.pets_required ? f.pet_type : null,
+    fenced_yard_required: f.pets_required ? f.fenced_yard_required : false,
+    furnished_preferred: f.furnished_preferred,
+    association_preferred: f.association_preferred,
+  }), []);
+
+  // Core save function
+  const doSave = useCallback(async (formSnapshot) => {
+    setSaveStatus('saving');
+    pendingSaveRef.current = null;
+    try {
+      await updatePreferences(buildPayload(formSnapshot));
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('error');
+    }
+  }, [updatePreferences, buildPayload]);
+
+  // Flush any pending debounced save immediately — returns a promise
+  const flushSave = useCallback(async () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    if (pendingSaveRef.current) {
+      await doSave(pendingSaveRef.current);
+    }
+  }, [doSave]);
+
+  // Schedule a debounced save (for text inputs)
+  const scheduleSave = useCallback((newForm) => {
+    pendingSaveRef.current = newForm;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      doSave(newForm);
+    }, TEXT_DEBOUNCE_MS);
+  }, [doSave]);
+
+  // Immediate save (for chips, switches, toggles)
+  const immediateSave = useCallback((newForm) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    pendingSaveRef.current = null;
+    doSave(newForm);
+  }, [doSave]);
+
+  // Update helpers — text fields debounce, discrete fields save immediately
+  const updateText = (key, value) => {
+    const newForm = { ...form, [key]: value };
+    setForm(newForm);
+    if (!initialLoadRef.current) scheduleSave(newForm);
+  };
+
+  const updateDiscrete = (key, value) => {
+    const newForm = { ...form, [key]: value };
+    setForm(newForm);
+    if (!initialLoadRef.current) immediateSave(newForm);
+  };
 
   const toggleArrayItem = (key, item) => {
     setForm(prev => {
       const arr = prev[key];
-      return {
+      const newForm = {
         ...prev,
         [key]: arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item],
       };
+      if (!initialLoadRef.current) immediateSave(newForm);
+      return newForm;
     });
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await updatePreferences({
-        budget_max: form.budget_max ? parseFloat(form.budget_max) : 5000,
-        beds_min: form.beds_min ? parseInt(form.beds_min, 10) : 0,
-        baths_min: form.baths_min ? parseFloat(form.baths_min) : 1,
-        property_types: form.property_types,
-        pets_required: form.pets_required,
-        pet_type: form.pets_required ? form.pet_type : null,
-        fenced_yard_required: form.pets_required ? form.fenced_yard_required : false,
-        furnished_preferred: form.furnished_preferred,
-        association_preferred: form.association_preferred,
-      });
-      alert('Saved', 'Your preferences have been updated. PadScores will refresh on your next swipe.');
-    } catch (err) {
-      alert('Error', err.message);
-    } finally {
-      setSaving(false);
-    }
+  // "Start Swiping" — flush pending save, then navigate
+  const handleStartSwiping = async () => {
+    await flushSave();
+    router.replace('/(tenant)/swipe');
   };
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header title="Preferences" showBack />
+
+      {/* Save status indicator */}
+      <Animated.View style={[styles.statusBar, { opacity: statusFadeRef }]} pointerEvents="none">
+        {saveStatus === 'saving' && (
+          <Text style={styles.statusText}>Saving...</Text>
+        )}
+        {saveStatus === 'saved' && (
+          <Text style={[styles.statusText, styles.statusSaved]}>
+            <FontAwesome name="check" size={11} color={COLORS.success} />  Saved
+          </Text>
+        )}
+        {saveStatus === 'error' && (
+          <Text style={[styles.statusText, styles.statusError]}>Save failed — will retry</Text>
+        )}
+      </Animated.View>
+
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
 
         {/* Budget */}
@@ -93,7 +195,7 @@ export default function PreferencesScreen() {
         <Input
           label="Max $/mo"
           value={form.budget_max}
-          onChangeText={v => update('budget_max', v)}
+          onChangeText={v => updateText('budget_max', v)}
           keyboardType="numeric"
           placeholder="5000"
         />
@@ -104,7 +206,7 @@ export default function PreferencesScreen() {
           <Input
             label="Min Beds"
             value={form.beds_min}
-            onChangeText={v => update('beds_min', v)}
+            onChangeText={v => updateText('beds_min', v)}
             keyboardType="numeric"
             placeholder="0"
             style={styles.halfInput}
@@ -112,7 +214,7 @@ export default function PreferencesScreen() {
           <Input
             label="Min Baths"
             value={form.baths_min}
-            onChangeText={v => update('baths_min', v)}
+            onChangeText={v => updateText('baths_min', v)}
             keyboardType="numeric"
             placeholder="1"
             style={styles.halfInput}
@@ -151,7 +253,7 @@ export default function PreferencesScreen() {
             <Pressable
               key={String(opt.value)}
               style={[CHIP_STYLES.chip, form.furnished_preferred === opt.value && CHIP_STYLES.chipActive]}
-              onPress={() => update('furnished_preferred', opt.value)}
+              onPress={() => updateDiscrete('furnished_preferred', opt.value)}
             >
               <Text style={[CHIP_STYLES.chipText, form.furnished_preferred === opt.value && CHIP_STYLES.chipTextActive]}>
                 {opt.label}
@@ -166,7 +268,7 @@ export default function PreferencesScreen() {
           <Text style={styles.switchLabel}>I have pets</Text>
           <Switch
             value={form.pets_required}
-            onValueChange={v => update('pets_required', v)}
+            onValueChange={v => updateDiscrete('pets_required', v)}
             trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
             thumbColor={form.pets_required ? COLORS.accent : COLORS.slate}
             style={LAYOUT.switch}
@@ -180,7 +282,7 @@ export default function PreferencesScreen() {
                 <Pressable
                   key={type}
                   style={[CHIP_STYLES.chip, form.pet_type === type && CHIP_STYLES.chipActive]}
-                  onPress={() => update('pet_type', form.pet_type === type ? null : type)}
+                  onPress={() => updateDiscrete('pet_type', form.pet_type === type ? null : type)}
                 >
                   <Text style={[CHIP_STYLES.chipText, form.pet_type === type && CHIP_STYLES.chipTextActive]}>
                     {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -192,7 +294,7 @@ export default function PreferencesScreen() {
               <Text style={styles.switchLabel}>Fenced yard required</Text>
               <Switch
                 value={form.fenced_yard_required}
-                onValueChange={v => update('fenced_yard_required', v)}
+                onValueChange={v => updateDiscrete('fenced_yard_required', v)}
                 trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
                 thumbColor={form.fenced_yard_required ? COLORS.accent : COLORS.slate}
                 style={LAYOUT.switch}
@@ -215,7 +317,7 @@ export default function PreferencesScreen() {
             <Pressable
               key={String(opt.value)}
               style={[CHIP_STYLES.chip, form.association_preferred === opt.value && CHIP_STYLES.chipActive]}
-              onPress={() => update('association_preferred', opt.value)}
+              onPress={() => updateDiscrete('association_preferred', opt.value)}
             >
               <Text style={[CHIP_STYLES.chipText, form.association_preferred === opt.value && CHIP_STYLES.chipTextActive]}>
                 {opt.label}
@@ -224,19 +326,21 @@ export default function PreferencesScreen() {
           ))}
         </View>
 
-        {/* Save */}
-        <View style={styles.saveWrap}>
-          <Button
-            title="Save Preferences"
-            onPress={handleSave}
-            loading={saving}
-            style={styles.saveButton}
-          />
-          <Text style={styles.hint}>
+        {/* PadScore hint */}
+        <View style={styles.hintBox}>
+          <Text style={styles.hintBoxText}>
             Your inputs power your PadScore™. The best homes for you will show up first!
           </Text>
         </View>
       </ScrollView>
+
+      {/* Floating "Start Swiping" button */}
+      <View style={styles.floatingWrap}>
+        <Pressable style={styles.floatingBtn} onPress={handleStartSwiping}>
+          <FontAwesome name="bolt" size={16} color={COLORS.white} />
+          <Text style={styles.floatingBtnText}>Start Swiping</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -251,7 +355,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 70,
+    paddingBottom: 100,
+  },
+  statusBar: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  statusText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  statusSaved: {
+    color: COLORS.success,
+  },
+  statusError: {
+    color: COLORS.danger,
   },
   sectionTitle: {
     fontFamily: FONTS.heading.semiBold,
@@ -294,7 +415,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
   },
-  saveWrap: {
+  hintInline: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  hintBox: {
     marginTop: LAYOUT.padding.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -302,20 +429,36 @@ const styles = StyleSheet.create({
     padding: LAYOUT.padding.md,
     alignItems: 'center',
   },
-  saveButton: {
-    width: '100%',
-  },
-  hintInline: {
+  hintBoxText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginBottom: 8,
-  },
-  hint: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.white,
     textAlign: 'center',
-    marginTop: 12,
+  },
+  floatingWrap: {
+    position: 'absolute',
+    bottom: 24,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  floatingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
+    borderRadius: LAYOUT.radius.full,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  floatingBtnText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
   },
 });
