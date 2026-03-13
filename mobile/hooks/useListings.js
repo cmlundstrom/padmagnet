@@ -29,7 +29,9 @@ export default function useListings() {
     }
   }, [fetchPage]);
 
-  const fetchListings = useCallback(async (pageNum = 1) => {
+  const retryRef = useRef(null);
+
+  const fetchListings = useCallback(async (pageNum = 1, retryCount = 0) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
@@ -56,6 +58,14 @@ export default function useListings() {
       prefetchNext(pageNum, data.hasMore);
     } catch (err) {
       if (err.message?.includes('Authorization') || err.message?.includes('Unauthorized')) {
+        // Auth not ready yet (e.g. hot reload) — retry up to 3 times with backoff
+        if (retryCount < 3) {
+          fetchingRef.current = false;
+          retryRef.current = setTimeout(() => {
+            fetchListings(pageNum, retryCount + 1);
+          }, 1000 * (retryCount + 1));
+          return;
+        }
         setError(null);
         setHasMore(false);
       } else {
@@ -71,6 +81,7 @@ export default function useListings() {
   useEffect(() => {
     if (!session) return;
     fetchListings(1);
+    return () => { if (retryRef.current) clearTimeout(retryRef.current); };
   }, [session, fetchListings]);
 
   // Re-fetch listings when app returns to foreground (warm start)
