@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { AppState } from 'react-native';
 import { apiFetch } from '../lib/api';
+import { AuthContext } from '../providers/AuthProvider';
 
 export default function useListings() {
+  const { session } = useContext(AuthContext);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -65,14 +67,16 @@ export default function useListings() {
     }
   }, [fetchPage, prefetchNext]);
 
+  // Fetch listings once auth session is ready (or when it changes, e.g. hot reload)
   useEffect(() => {
+    if (!session) return;
     fetchListings(1);
-  }, [fetchListings]);
+  }, [session, fetchListings]);
 
   // Re-fetch listings when app returns to foreground (warm start)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
+      if (state === 'active' && session) {
         setListings([]);
         pageRef.current = 1;
         setHasMore(true);
@@ -81,7 +85,7 @@ export default function useListings() {
       }
     });
     return () => sub.remove();
-  }, [fetchListings]);
+  }, [session, fetchListings]);
 
   const loadMore = useCallback(() => {
     if (fetchingRef.current || !hasMore) return;
