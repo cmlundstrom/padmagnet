@@ -8,9 +8,9 @@ export default ({ config }) => ({
     userInterfaceStyle: "dark",
     scheme: "padmagnet",
     splash: {
-      image: "./assets/splash.png",
-      resizeMode: "cover",
-      backgroundColor: "#FFFFFF",
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#FFF7F5",
     },
     ios: {
       supportsTablet: false,
