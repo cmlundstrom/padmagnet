@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { View, FlatList, Text, Animated, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { FontAwesome } from '@expo/vector-icons';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 
@@ -35,12 +36,8 @@ export default function PhotoGallery({ photos = [] }) {
 
   if (photos.length === 0) {
     return (
-      <View style={[styles.container, styles.placeholderWrap]}>
-        <Text style={styles.placeholderEmoji}>🌴🏖️</Text>
-        <View style={styles.placeholderOverlay}>
-          <Text style={styles.placeholderTitle}>Listing Photo</Text>
-          <Text style={styles.placeholderTitle}>Coming Soon</Text>
-        </View>
+      <View style={styles.container}>
+        <NoPhotoPlaceholder size="full" />
       </View>
     );
   }
@@ -103,27 +100,6 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: GALLERY_HEIGHT,
-  },
-  placeholderWrap: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a5276',
-  },
-  placeholderEmoji: {
-    fontSize: 80,
-    opacity: 0.25,
-  },
-  placeholderOverlay: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  placeholderTitle: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['2xl'],
-    color: COLORS.white,
-    opacity: 0.85,
-    textAlign: 'center',
-    lineHeight: 34,
   },
   counter: {
     position: 'absolute',

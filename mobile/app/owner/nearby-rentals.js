@@ -6,6 +6,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import { Header } from '../../components/ui';
+import NoPhotoPlaceholder from '../../components/ui/NoPhotoPlaceholder';
 import ListingCard from '../../components/listing/ListingCard';
 import NearbyRentalsGate from '../../components/owner/NearbyRentalsGate';
 import PriceEditModal from '../../components/owner/PriceEditModal';
@@ -244,9 +245,7 @@ function NearbyListingCard({ listing, isSubject }) {
         {firstPhoto ? (
           <Image source={{ uri: firstPhoto }} style={styles.nearbyImage} contentFit="cover" transition={200} />
         ) : (
-          <View style={[styles.nearbyImage, styles.nearbyNoPhoto]}>
-            <Text style={{ fontSize: 24, opacity: 0.3 }}>🏠</Text>
-          </View>
+          <NoPhotoPlaceholder size="thumb" style={styles.nearbyImage} />
         )}
         {isSubject ? (
           <View style={styles.yourPropertyBadge}>
@@ -337,9 +336,7 @@ function NearbyMap({ listings, subject, selectedListing, onMarkerPress, onDismis
             {selectedListing.photos?.[0]?.url ? (
               <Image source={{ uri: selectedListing.photos[0].url }} style={{ flex: 1 }} contentFit="cover" />
             ) : (
-              <View style={[{ flex: 1 }, styles.nearbyNoPhoto]}>
-                <Text style={{ fontSize: 20, opacity: 0.3 }}>🏠</Text>
-              </View>
+              <NoPhotoPlaceholder size="thumb" style={{ flex: 1 }} />
             )}
           </View>
           <View style={styles.mapPreviewInfo}>
@@ -500,11 +497,6 @@ const styles = StyleSheet.create({
   },
   nearbyImage: {
     flex: 1,
-  },
-  nearbyNoPhoto: {
-    backgroundColor: '#1a5276',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   subjectCard: {
     borderWidth: 2,

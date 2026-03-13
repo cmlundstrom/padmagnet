@@ -2,6 +2,7 @@ import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Badge } from '../ui';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -32,10 +33,7 @@ export default function ListingCard({ listing, padscore, style }) {
             transition={200}
           />
         ) : (
-          <View style={styles.placeholderWrap}>
-            <Text style={styles.placeholderEmoji}>🌴</Text>
-            <Text style={styles.placeholderTitle}>Photo{'\n'}Coming Soon</Text>
-          </View>
+          <NoPhotoPlaceholder size="card" />
         )}
         {score != null && (
           <View style={styles.scoreBadge}>
@@ -73,25 +71,6 @@ const styles = StyleSheet.create({
   },
   image: {
     flex: 1,
-  },
-  placeholderWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a5276',
-  },
-  placeholderEmoji: {
-    fontSize: 32,
-    opacity: 0.3,
-    position: 'absolute',
-  },
-  placeholderTitle: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.white,
-    opacity: 0.85,
-    textAlign: 'center',
-    lineHeight: 16,
   },
   scoreBadge: {
     position: 'absolute',

@@ -1,5 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -34,9 +35,7 @@ export default function ConversationItem({ conversation, currentUserId, onPress 
             contentFit="cover"
           />
         ) : (
-          <View style={[styles.photo, styles.noPhoto]}>
-            <Text style={styles.noPhotoText}>🏠</Text>
-          </View>
+          <NoPhotoPlaceholder size="thumb" style={[styles.photo, { borderRadius: LAYOUT.radius.sm }]} />
         )}
       </View>
 
@@ -83,14 +82,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: LAYOUT.radius.sm,
-  },
-  noPhoto: {
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noPhotoText: {
-    fontSize: 22,
   },
   content: {
     flex: 1,

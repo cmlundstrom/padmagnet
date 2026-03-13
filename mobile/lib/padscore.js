@@ -18,6 +18,7 @@ const WEIGHTS = {
   lease_too_short: 35,
   stale_listing_major: 5,
   stale_listing_minor: 2,
+  no_photos: 35,
 };
 
 const MAX_PENALTY = Object.values(WEIGHTS).reduce((sum, w) => sum + w, 0);
@@ -177,6 +178,12 @@ export function calculatePadScore(preferences, listing, zones) {
       totalPenalty += WEIGHTS.stale_listing_minor;
       factors.push({ key: 'stale', label: `${dom}d on market`, impact: -WEIGHTS.stale_listing_minor, match: false });
     }
+  }
+
+  // No photos — significant presentation penalty
+  if (!listing.photos || listing.photos.length === 0) {
+    totalPenalty += WEIGHTS.no_photos;
+    factors.push({ key: 'no_photos', label: 'No Photos Available', impact: -WEIGHTS.no_photos, match: false });
   }
 
   const normalizedPenalty = (totalPenalty / MAX_PENALTY) * 100;

@@ -8,3 +8,4 @@ export { default as OfflineBanner } from './OfflineBanner';
 export { default as AuthHeader } from './AuthHeader';
 export { default as GlossyHeart } from './GlossyHeart';
 export { default as Toggle } from './Toggle';
+export { default as NoPhotoPlaceholder } from './NoPhotoPlaceholder';

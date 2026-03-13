@@ -18,6 +18,7 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import GlossyHeart from '../ui/GlossyHeart';
+import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 import { Badge } from '../ui';
 import { formatCurrency, formatBedsBaths } from '../../utils/format';
 import { MLS_COPYRIGHT } from '../../constants/mls';
@@ -130,13 +131,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
                 transition={200}
               />
             ) : (
-              <View style={styles.placeholderWrap}>
-                <Text style={styles.placeholderEmoji}>🌴🏖️</Text>
-                <View style={styles.placeholderOverlay}>
-                  <Text style={styles.placeholderTitle}>Listing Photo</Text>
-                  <Text style={styles.placeholderTitle}>Coming Soon</Text>
-                </View>
-              </View>
+              <NoPhotoPlaceholder size="full" />
             )}
 
             {/* PadScore badge */}
@@ -193,28 +188,6 @@ const styles = StyleSheet.create({
   },
   image: {
     flex: 1,
-  },
-  placeholderWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a5276',
-  },
-  placeholderEmoji: {
-    fontSize: 64,
-    opacity: 0.3,
-  },
-  placeholderOverlay: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  placeholderTitle: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.white,
-    opacity: 0.85,
-    textAlign: 'center',
-    lineHeight: 28,
   },
   scoreBadge: {
     position: 'absolute',
