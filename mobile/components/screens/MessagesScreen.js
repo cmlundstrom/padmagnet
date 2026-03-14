@@ -275,6 +275,16 @@ export default function MessagesScreen({ emptySubtitle }) {
               />
             </Swipeable>
           )}
+          ListFooterComponent={
+            <View style={styles.swipeHint}>
+              <Text style={styles.swipeHintIcon}>👆</Text>
+              <Text style={styles.swipeHintText}>
+                {activeTab === 'archived'
+                  ? 'Swipe right on a conversation to restore it'
+                  : 'Swipe left on a conversation to archive or delete it'}
+              </Text>
+            </View>
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -355,5 +365,22 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xs,
     color: COLORS.white,
+  },
+  swipeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: LAYOUT.padding.lg,
+    gap: 8,
+  },
+  swipeHintIcon: {
+    fontSize: 16,
+  },
+  swipeHintText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    textAlign: 'center',
   },
 });
