@@ -206,7 +206,7 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           <View style={styles.statusColumn}>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
               <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                Listing: {status.charAt(0).toUpperCase() + status.slice(1)}
               </Text>
             </View>
             {expiresLabel && (
@@ -220,15 +220,13 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
             <View style={styles.statItem}>
               <FontAwesome name="eye" size={12} color={COLORS.text} />
               <Text style={styles.statsText}>
-                {listing.unique_view_count || 0} views
+                {listing.unique_view_count || 0} Unique Views
               </Text>
             </View>
-            {listing.inquiry_count > 0 && (
-              <View style={styles.statItem}>
-                <FontAwesome name="envelope-o" size={11} color={COLORS.text} />
-                <Text style={styles.statsText}>{listing.inquiry_count} inquiries</Text>
-              </View>
-            )}
+            <View style={styles.statItem}>
+              <FontAwesome name="envelope-o" size={11} color={COLORS.text} />
+              <Text style={styles.statsText}>{listing.inquiry_count || 0} Contacts</Text>
+            </View>
           </View>
         </View>
       )}
@@ -409,8 +407,8 @@ const styles = StyleSheet.create({
     borderRadius: LAYOUT.radius.full,
   },
   statusBadgeText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: 10,
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
   },
   draftBadge: {
     paddingHorizontal: 10,
