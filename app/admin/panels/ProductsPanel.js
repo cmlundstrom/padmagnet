@@ -187,11 +187,10 @@ export default function ProductsPanel() {
   }, [products]);
 
   // Filter by status and search
-  const STATUS_FILTERS = ["all", "active", "suppressed", "owner", "tenant"];
+  const STATUS_FILTERS = ["all", "active", "suppressed"];
 
-  const filtered = useMemo(() => {
-    return enriched.filter(p => {
-      // Status filter
+  const applyFilters = useCallback((list) => {
+    return list.filter(p => {
       switch (statusFilter) {
         case "active":
           if (!p.is_active) return false;
@@ -199,16 +198,9 @@ export default function ProductsPanel() {
         case "suppressed":
           if (p.is_active) return false;
           break;
-        case "owner":
-          if ((p.audience || "owner") !== "owner") return false;
-          break;
-        case "tenant":
-          if (p.audience !== "tenant") return false;
-          break;
-        default: // "all"
+        default:
           break;
       }
-      // Search
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -219,7 +211,10 @@ export default function ProductsPanel() {
       }
       return true;
     });
-  }, [enriched, statusFilter, search]);
+  }, [statusFilter, search]);
+
+  const ownerProducts = useMemo(() => applyFilters(enriched.filter(p => (p.audience || "owner") === "owner")), [enriched, applyFilters]);
+  const tenantProducts = useMemo(() => applyFilters(enriched.filter(p => p.audience === "tenant")), [enriched, applyFilters]);
 
   // Stat counts
   const totalCount = products.length;
@@ -235,8 +230,6 @@ export default function ProductsPanel() {
       case "all": return totalCount;
       case "active": return activeCount;
       case "suppressed": return suppressedCount;
-      case "owner": return products.filter(p => (p.audience || "owner") === "owner").length;
-      case "tenant": return products.filter(p => p.audience === "tenant").length;
       default: return 0;
     }
   };
@@ -249,24 +242,6 @@ export default function ProductsPanel() {
         <span style={{ fontWeight: 600 }}>{getValue()}</span>
       ),
       meta: { editable: true },
-    },
-    {
-      accessorKey: "audience",
-      header: "Audience",
-      cell: ({ getValue }) => {
-        const v = getValue();
-        return <Badge color={v === "tenant" ? "cyan" : "blue"}>
-          {(v || "owner").toUpperCase()}
-        </Badge>;
-      },
-      size: 90,
-      meta: {
-        editable: true,
-        editOptions: [
-          { value: "owner", label: "Owner" },
-          { value: "tenant", label: "Tenant" },
-        ],
-      },
     },
     {
       accessorKey: "description",
@@ -567,20 +542,43 @@ export default function ProductsPanel() {
         </div>
       )}
 
-      {/* Unified Products Table */}
+      {/* Owner Products Table */}
+      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "24px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
+        In App Service Card Manager &mdash; Owner Workflow
+      </h3>
       <AdminTable
         columns={columns}
-        data={filtered}
+        data={ownerProducts}
         loading={loading}
         error={error}
         tableName="products"
-        storageKey="products"
+        storageKey="products-owner"
         onSave={handleSave}
         onBulkSuppress={handleBulkSuppress}
         onBulkUnsuppress={handleBulkUnsuppress}
         onBulkDelete={handleBulkDelete}
         onBulkHardDelete={handleBulkHardDelete}
-        emptyMessage="No products match your filters"
+        emptyMessage="No owner products match your filters"
+        renderExpandedRow={renderExpandedRow}
+      />
+
+      {/* Tenant Products Table */}
+      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "32px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
+        In App Service Card Manager &mdash; Tenant Workflow
+      </h3>
+      <AdminTable
+        columns={columns}
+        data={tenantProducts}
+        loading={loading}
+        error={error}
+        tableName="products"
+        storageKey="products-tenant"
+        onSave={handleSave}
+        onBulkSuppress={handleBulkSuppress}
+        onBulkUnsuppress={handleBulkUnsuppress}
+        onBulkDelete={handleBulkDelete}
+        onBulkHardDelete={handleBulkHardDelete}
+        emptyMessage="No tenant products match your filters"
         renderExpandedRow={renderExpandedRow}
       />
 
