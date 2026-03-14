@@ -40,14 +40,14 @@ export default function ProductsPanel() {
         changes.price_cents = Math.round(dollars * 100);
       }
     }
-    // Footnote edits merge into metadata jsonb
-    if (changes.footnote !== undefined) {
-      const footnoteVal = changes.footnote;
-      delete changes.footnote;
-      // Merge into each product's existing metadata
+    // Footnote and badge edits merge into metadata jsonb
+    const metaKey = changes.footnote !== undefined ? "footnote" : changes.badge !== undefined ? "badge" : null;
+    if (metaKey) {
+      const metaVal = changes[metaKey];
+      delete changes[metaKey];
       for (const id of ids) {
         const existing = products.find(p => p.id === id);
-        const merged = { ...(existing?.metadata || {}), footnote: footnoteVal || null };
+        const merged = { ...(existing?.metadata || {}), [metaKey]: metaVal || null };
         await fetch("/api/admin/products", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -298,6 +298,28 @@ export default function ProductsPanel() {
       },
       meta: { editable: true },
       size: 220,
+    },
+    {
+      id: "badge",
+      accessorFn: (row) => row.metadata?.badge || "",
+      header: "Badge",
+      cell: ({ getValue }) => {
+        const val = getValue();
+        return val ? (
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            background: "#b45309", padding: "2px 8px", borderRadius: 6,
+            fontSize: "11px", fontWeight: 700, color: "#fff",
+            textTransform: "uppercase", letterSpacing: "0.03em",
+          }}>
+            ★ {val}
+          </span>
+        ) : (
+          <span style={{ fontSize: "12px", color: COLORS.textDim }}>{"\u2014"}</span>
+        );
+      },
+      meta: { editable: true },
+      size: 120,
     },
     {
       accessorKey: "app_path",
