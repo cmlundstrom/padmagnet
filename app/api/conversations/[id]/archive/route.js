@@ -14,9 +14,9 @@ export async function POST(request, { params }) {
     const { id: conversationId } = await params;
     const { action } = await request.json();
 
-    if (!['archive', 'unarchive', 'delete'].includes(action)) {
+    if (!['archive', 'unarchive'].includes(action)) {
       return NextResponse.json(
-        { error: 'action must be "archive", "unarchive", or "delete"' },
+        { error: 'action must be "archive" or "unarchive"' },
         { status: 400 }
       );
     }
@@ -44,8 +44,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Not a participant' }, { status: 403 });
     }
 
-    // archive and delete both set archived = true (no hard delete from client)
-    const archived = action !== 'unarchive';
+    const archived = action === 'archive';
 
     const { error: updateErr } = await supabase
       .from('conversations')

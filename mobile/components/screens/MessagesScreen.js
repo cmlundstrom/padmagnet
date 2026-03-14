@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  FlatList, View, Text, Alert, ActivityIndicator,
+  FlatList, View, Text, ActivityIndicator,
   RefreshControl, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -120,31 +120,6 @@ export default function MessagesScreen({ emptySubtitle }) {
     }
   }, []);
 
-  const handleDelete = useCallback((conversationId) => {
-    Alert.alert(
-      'Delete Conversation',
-      'Are you sure? This conversation will be moved to your archive.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiFetch(`/api/conversations/${conversationId}/archive`, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'delete' }),
-              });
-              setConversations(prev => prev.filter(c => c.id !== conversationId));
-            } catch (err) {
-              console.warn('Delete failed:', err.message);
-            }
-          },
-        },
-      ]
-    );
-  }, []);
-
   // Close any open swipeable when another opens
   const closeOpenSwipeable = useCallback((ref) => {
     if (openSwipeableRef.current && openSwipeableRef.current !== ref) {
@@ -163,12 +138,6 @@ export default function MessagesScreen({ emptySubtitle }) {
           onPress={() => handleArchive(conversationId)}
         >
           <Text style={styles.swipeBtnText}>Archive</Text>
-        </RectButton>
-        <RectButton
-          style={[styles.swipeBtn, styles.deleteBtn]}
-          onPress={() => handleDelete(conversationId)}
-        >
-          <Text style={styles.swipeBtnText}>Delete</Text>
         </RectButton>
       </View>
     );
@@ -281,7 +250,7 @@ export default function MessagesScreen({ emptySubtitle }) {
               <Text style={styles.swipeHintText}>
                 {activeTab === 'archived'
                   ? 'Swipe right on a conversation to restore it'
-                  : 'Swipe left on a conversation to archive or delete it'}
+                  : 'Swipe left on a conversation to archive it'}
               </Text>
             </View>
           }
@@ -354,9 +323,6 @@ const styles = StyleSheet.create({
   },
   archiveBtn: {
     backgroundColor: '#F59E0B',
-  },
-  deleteBtn: {
-    backgroundColor: COLORS.danger,
   },
   unarchiveBtn: {
     backgroundColor: '#22C55E',

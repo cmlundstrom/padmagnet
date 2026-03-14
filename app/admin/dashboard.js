@@ -20,6 +20,7 @@ import OwnersPanel from "./panels/OwnersPanel";
 import AuditLogPanel from "./panels/AuditLogPanel";
 import BacklogPanel from "./panels/BacklogPanel";
 import DisplayFieldsPanel from "./panels/DisplayFieldsPanel";
+import DisclaimersPanel from "./panels/DisclaimersPanel";
 import MessagingPanel from "./panels/MessagingPanel";
 import WebhookLogPanel from "./panels/WebhookLogPanel";
 import TemplateEditorPanel from "./panels/TemplateEditorPanel";
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
+  { id: "disclaimers", label: "Disclaimers", icon: "⚖️" },
   { id: "support", label: "Support", icon: "💬" },
   { id: "messaging", label: "Messaging", icon: "📨" },
   { id: "webhooks", label: "Webhook Log", icon: "🔗" },
@@ -106,6 +108,7 @@ export default function PadMagnetAdmin() {
     padscore: <PadScorePanel />,
     listings: <ListingsPanel />,
     "display-fields": <DisplayFieldsPanel />,
+    disclaimers: <DisclaimersPanel />,
     support: <SupportPanel onTicketChange={refreshTicketCount} />,
     messaging: <MessagingPanel />,
     webhooks: <WebhookLogPanel />,

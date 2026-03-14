@@ -46,39 +46,39 @@ function RenderStat({ field, listing }) {
   );
 }
 
-function RenderBoolean({ field, listing }) {
+function RenderBoolean({ field, listing, stacked }) {
   const val = getFieldValue(listing, field);
   if (val === null) return null;
   const opts = field.format_options || {};
   const display = val ? (opts.true_text || 'Yes') : (opts.false_text || 'No');
   return (
-    <FeatureRow label={getLabel(field, listing)} value={display} />
+    <FeatureRow label={getLabel(field, listing)} value={display} stacked={stacked} />
   );
 }
 
-function RenderCurrency({ field, listing }) {
+function RenderCurrency({ field, listing, stacked }) {
   const val = getFieldValue(listing, field);
   if (val === null) return null;
   const opts = field.format_options || {};
   return (
-    <FeatureRow label={getLabel(field, listing)} value={formatCurrency(val) + (opts.suffix || '')} />
+    <FeatureRow label={getLabel(field, listing)} value={formatCurrency(val) + (opts.suffix || '')} stacked={stacked} />
   );
 }
 
-function RenderNumber({ field, listing }) {
+function RenderNumber({ field, listing, stacked }) {
   const val = getFieldValue(listing, field);
   if (val === null) return null;
   const opts = field.format_options || {};
   return (
-    <FeatureRow label={getLabel(field, listing)} value={Number(val).toLocaleString() + (opts.suffix || '')} />
+    <FeatureRow label={getLabel(field, listing)} value={Number(val).toLocaleString() + (opts.suffix || '')} stacked={stacked} />
   );
 }
 
-function RenderDate({ field, listing }) {
+function RenderDate({ field, listing, stacked }) {
   const val = getFieldValue(listing, field);
   if (val === null) return null;
   return (
-    <FeatureRow label={getLabel(field, listing)} value={formatDate(val)} />
+    <FeatureRow label={getLabel(field, listing)} value={formatDate(val)} stacked={stacked} />
   );
 }
 
@@ -118,7 +118,7 @@ function CollapsibleText({ text, maxLines }) {
   );
 }
 
-function RenderText({ field, listing }) {
+function RenderText({ field, listing, stacked }) {
   const val = getFieldValue(listing, field);
   if (val === null) return null;
   const opts = field.format_options || {};
@@ -131,11 +131,19 @@ function RenderText({ field, listing }) {
     return <Text style={styles.description}>{display}</Text>;
   }
   return (
-    <FeatureRow label={getLabel(field, listing)} value={display} />
+    <FeatureRow label={getLabel(field, listing)} value={display} stacked={stacked} />
   );
 }
 
-function FeatureRow({ label, value }) {
+function FeatureRow({ label, value, stacked }) {
+  if (stacked) {
+    return (
+      <View style={styles.featureRowStacked}>
+        <Text style={styles.featureLabel}>{label}</Text>
+        <Text style={styles.featureValueStacked}>{value}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.featureRow}>
       <Text style={styles.featureLabel}>{label}</Text>
@@ -144,17 +152,17 @@ function FeatureRow({ label, value }) {
   );
 }
 
-function FieldRenderer({ field, listing }) {
+function FieldRenderer({ field, listing, stacked }) {
   switch (field.render_type) {
     case 'stat':     return <RenderStat field={field} listing={listing} />;
-    case 'boolean':  return <RenderBoolean field={field} listing={listing} />;
-    case 'currency': return <RenderCurrency field={field} listing={listing} />;
-    case 'number':   return <RenderNumber field={field} listing={listing} />;
-    case 'date':     return <RenderDate field={field} listing={listing} />;
+    case 'boolean':  return <RenderBoolean field={field} listing={listing} stacked={stacked} />;
+    case 'currency': return <RenderCurrency field={field} listing={listing} stacked={stacked} />;
+    case 'number':   return <RenderNumber field={field} listing={listing} stacked={stacked} />;
+    case 'date':     return <RenderDate field={field} listing={listing} stacked={stacked} />;
     case 'link':     return <RenderLink field={field} listing={listing} />;
     case 'autolink': return <RenderAutolink field={field} listing={listing} />;
     case 'text':
-    default:         return <RenderText field={field} listing={listing} />;
+    default:         return <RenderText field={field} listing={listing} stacked={stacked} />;
   }
 }
 
@@ -170,7 +178,7 @@ function StatsGrid({ fields, listing }) {
   );
 }
 
-function SectionBlock({ title, fields, listing }) {
+function SectionBlock({ title, fields, listing, stacked }) {
   // Filter out fields with null values
   const visibleFields = fields.filter(f => getFieldValue(listing, f) !== null);
   if (visibleFields.length === 0) return null;
@@ -178,7 +186,7 @@ function SectionBlock({ title, fields, listing }) {
     <View style={styles.section}>
       {title && <Text style={styles.sectionTitle}>{title}</Text>}
       {visibleFields.map(f => (
-        <FieldRenderer key={f.output_key} field={f} listing={listing} />
+        <FieldRenderer key={f.output_key} field={f} listing={listing} stacked={stacked} />
       ))}
     </View>
   );
@@ -237,6 +245,7 @@ export default function ListingInfo({ listing }) {
             title={SECTION_TITLES[sectionKey]}
             fields={sectionFields}
             listing={listing}
+            stacked={sectionKey === 'agent'}
           />
         );
       })}
@@ -323,11 +332,27 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    flexShrink: 0,
+    marginRight: 12,
   },
   featureValue: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  featureRowStacked: {
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  featureValueStacked: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    textAlign: 'right',
+    marginTop: 2,
   },
   description: {
     fontFamily: FONTS.body.regular,

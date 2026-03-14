@@ -1,4 +1,4 @@
-// MLS compliance text — required on every listing display
+// MLS compliance text — required on every MLS/IDX listing display
 // Source: Miami Realtors IDX agreement (mls-compliance.md)
 
 export const MLS_COPYRIGHT =
@@ -11,3 +11,10 @@ export const MLS_LAST_UPDATED_PREFIX = 'Last updated:';
 
 // Broker attribution template — fill with listing agent/office data
 export const BROKER_ATTRIBUTION = 'Listing courtesy of {officeName}';
+
+// Owner listing disclaimer — default (admin-overridable via site_config)
+export const OWNER_COPYRIGHT =
+  '© {year} PadMagnet LLC. All rights reserved.';
+
+export const OWNER_DISCLAIMER =
+  'This listing was provided directly by the property owner. PadMagnet has not independently verified this information. Details including price, availability, and property features are subject to change. Information is deemed reliable but is not guaranteed.';

@@ -115,7 +115,7 @@ export default async function ListingPage({ params }) {
 
         {/* Footer */}
         <p style={styles.footer}>
-          © {new Date().getFullYear()} SEFMLS. All rights reserved.<br />
+          © {new Date().getFullYear()} {listing.source === 'owner' ? 'PadMagnet LLC' : 'SEFMLS'}. All rights reserved.<br />
           PadMagnet.com — Don't miss your perfect rental home match!
         </p>
       </div>

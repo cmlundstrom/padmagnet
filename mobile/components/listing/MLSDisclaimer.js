@@ -1,13 +1,47 @@
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
-import { MLS_COPYRIGHT, MLS_DISCLAIMER, BROKER_ATTRIBUTION } from '../../constants/mls';
+import {
+  MLS_COPYRIGHT, MLS_DISCLAIMER, BROKER_ATTRIBUTION,
+  OWNER_COPYRIGHT, OWNER_DISCLAIMER,
+} from '../../constants/mls';
+import { apiFetch } from '../../lib/api';
+
+let cachedOwnerFooter = null;
 
 export default function MLSDisclaimer({ listing }) {
   const year = new Date().getFullYear();
+  const isOwner = listing?.source === 'owner';
   const officeName = listing?.listing_office_name;
+  const [ownerFooter, setOwnerFooter] = useState(cachedOwnerFooter);
 
+  useEffect(() => {
+    if (!isOwner || cachedOwnerFooter) return;
+    apiFetch('/api/config/public?keys=owner_listing_footer')
+      .then(data => {
+        if (data?.owner_listing_footer) {
+          cachedOwnerFooter = data.owner_listing_footer;
+          setOwnerFooter(data.owner_listing_footer);
+        }
+      })
+      .catch(() => {});
+  }, [isOwner]);
+
+  if (isOwner) {
+    const disclaimerText = ownerFooter || OWNER_DISCLAIMER;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.copyright}>
+          {OWNER_COPYRIGHT.replace('{year}', year)}
+        </Text>
+        <Text style={styles.disclaimer}>{disclaimerText}</Text>
+      </View>
+    );
+  }
+
+  // MLS listing — full IDX compliance footer (not editable)
   return (
     <View style={styles.container}>
       {officeName && (

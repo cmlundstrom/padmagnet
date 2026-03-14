@@ -18,7 +18,7 @@ export default function useNearbyRentals(listingId) {
   const pageRef = useRef(1);
   const fetchingRef = useRef(false);
   const bufferRef = useRef(null);
-  const filtersRef = useRef({ radius: 3, beds: null, baths: null, minSqft: null, maxSqft: null });
+  const filtersRef = useRef({ radius: 5, beds: null, baths: null, minSqft: null, maxSqft: null });
   const cacheRef = useRef({}); // key → { data, ts }
 
   const buildQueryString = useCallback((page) => {

@@ -24,7 +24,7 @@ export default function NearbyRentalsScreen() {
   const { listings, subject, access, loading, error, hasMore, loadMore, refresh, setFilters } = useNearbyRentals(listing_id);
 
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
-  const [radius, setRadius] = useState(3);
+  const [radius, setRadius] = useState(5);
   const [beds, setBeds] = useState(null);
   const [baths, setBaths] = useState(null);
   const [priceModalVisible, setPriceModalVisible] = useState(false);
