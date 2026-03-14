@@ -3,23 +3,35 @@
  *
  * Requests permission, gets Expo push token, and registers it
  * with the backend on login. Re-registers if token changes.
+ *
+ * Safely checks for native module before loading expo-notifications
+ * so it works on builds with or without the module included.
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
 import { apiFetch } from '../lib/api';
 
-// Configure how notifications appear when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Check if native module exists BEFORE requiring expo-notifications
+const nativeAvailable = !!NativeModules.ExpoPushTokenManager;
+
+let Notifications = null;
+let Device = null;
+
+if (nativeAvailable) {
+  Notifications = require('expo-notifications');
+  Device = require('expo-device');
+
+  // Configure how notifications appear when app is in foreground
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export function usePushNotifications(user) {
   const [expoPushToken, setExpoPushToken] = useState(null);
@@ -28,12 +40,11 @@ export function usePushNotifications(user) {
   const responseListener = useRef();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !nativeAvailable) return;
 
     registerForPushNotifications().then(token => {
       if (token) {
         setExpoPushToken(token);
-        // Send to backend
         apiFetch('/api/profiles/push-token', {
           method: 'POST',
           body: JSON.stringify({ token }),
@@ -68,17 +79,16 @@ export function usePushNotifications(user) {
 }
 
 async function registerForPushNotifications() {
-  // Push notifications only work on physical devices
+  if (!nativeAvailable || !Notifications || !Device) return null;
+
   if (!Device.isDevice) {
     console.log('Push notifications require a physical device');
     return null;
   }
 
-  // Check existing permission
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
-  // Request if not granted
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
@@ -88,7 +98,6 @@ async function registerForPushNotifications() {
     return null;
   }
 
-  // Android notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Messages',
@@ -98,7 +107,6 @@ async function registerForPushNotifications() {
     });
   }
 
-  // Get Expo push token
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
   const tokenData = await Notifications.getExpoPushTokenAsync({
     projectId,

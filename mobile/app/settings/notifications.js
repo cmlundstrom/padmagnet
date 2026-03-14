@@ -4,9 +4,13 @@ import {
   ScrollView, ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeModules } from 'react-native';
 import { router } from 'expo-router';
-import * as Notifications from 'expo-notifications';
 import { useAuth } from '../../hooks/useAuth';
+
+// Only load expo-notifications if native module is present
+const hasNotifications = !!NativeModules.ExpoPushTokenManager;
+const Notifications = hasNotifications ? require('expo-notifications') : null;
 import { useAlert } from '../../providers/AlertProvider';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
@@ -63,20 +67,25 @@ export default function NotificationsScreen() {
       }
 
       // Check device push permission status
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') setPushEnabled(false);
+      if (Notifications) {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status !== 'granted') setPushEnabled(false);
+      }
 
       setLoading(false);
     })();
   }, [user]);
 
   async function handleTogglePush(value) {
-    if (value) {
+    if (value && Notifications) {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
         alert('Permission Required', 'Please enable notifications in your device settings to receive push alerts.');
         return;
       }
+    } else if (value && !Notifications) {
+      alert('Not Available', 'Push notifications require a newer app build. Please update the app.');
+      return;
     }
     setPushEnabled(value);
     // Token registration/clearing is handled by usePushNotifications hook in root layout
