@@ -19,6 +19,9 @@ export default function ProductCard({ product, onPurchase, ctaLabel = 'Buy Now',
         size="sm"
         style={styles.cta}
       />
+      {product.metadata?.footnote ? (
+        <Text style={styles.footnote}>*{product.metadata.footnote}</Text>
+      ) : null}
     </View>
   );
 }
@@ -57,5 +60,13 @@ const styles = StyleSheet.create({
   },
   cta: {
     alignSelf: 'flex-start',
+  },
+  footnote: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    fontStyle: 'italic',
+    color: COLORS.slate,
+    marginTop: 10,
+    lineHeight: 16,
   },
 });

@@ -40,13 +40,30 @@ export default function ProductsPanel() {
         changes.price_cents = Math.round(dollars * 100);
       }
     }
+    // Footnote edits merge into metadata jsonb
+    if (changes.footnote !== undefined) {
+      const footnoteVal = changes.footnote;
+      delete changes.footnote;
+      // Merge into each product's existing metadata
+      for (const id of ids) {
+        const existing = products.find(p => p.id === id);
+        const merged = { ...(existing?.metadata || {}), footnote: footnoteVal || null };
+        await fetch("/api/admin/products", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: [id], changes: { ...changes, metadata: merged } }),
+        });
+      }
+      fetchProducts();
+      return;
+    }
     await fetch("/api/admin/products", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids, changes }),
     });
     fetchProducts();
-  }, [fetchProducts]);
+  }, [fetchProducts, products]);
 
   const handleToggle = useCallback(async (id, field, currentValue) => {
     await fetch("/api/admin/products", {
@@ -266,6 +283,21 @@ export default function ProductsPanel() {
       },
       meta: { editable: true },
       size: 320,
+    },
+    {
+      id: "footnote",
+      accessorFn: (row) => row.metadata?.footnote || "",
+      header: "*Footnote",
+      cell: ({ getValue }) => {
+        const val = getValue();
+        return (
+          <span style={{ fontSize: "12px", fontStyle: "italic", color: COLORS.textDim }}>
+            {val ? `*${val}` : "\u2014"}
+          </span>
+        );
+      },
+      meta: { editable: true },
+      size: 220,
     },
     {
       accessorKey: "app_path",
