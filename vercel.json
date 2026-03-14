@@ -19,7 +19,7 @@
     },
     {
       "path": "/api/cron/delivery-retry",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }

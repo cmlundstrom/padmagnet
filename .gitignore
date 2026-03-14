@@ -32,5 +32,3 @@ credentials*.json
 
 # supabase cli
 supabase/.temp/
-
-.vercel
