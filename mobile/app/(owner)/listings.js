@@ -203,19 +203,32 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
       </Pressable>
       {status !== 'draft' && (
         <View style={styles.statusStatsRow}>
-          <View style={styles.statusRow}>
+          <View style={styles.statusLine}>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
               <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
-                Listing: {status.charAt(0).toUpperCase() + status.slice(1)}
+                {status.charAt(0).toUpperCase() + status.slice(1)}
               </Text>
             </View>
             {expiresLabel && (
-              <Text style={styles.expiresLabel}>{expiresLabel}</Text>
+              <View style={styles.expiresPill}>
+                <FontAwesome name="clock-o" size={11} color={COLORS.textSecondary} />
+                <Text style={styles.expiresLabel}>{expiresLabel}</Text>
+              </View>
             )}
           </View>
-          <Text style={styles.statsText}>
-            {listing.unique_view_count || 0} Total Unique Views{listing.inquiry_count > 0 ? ` · ${listing.inquiry_count} inquiries` : ''}
-          </Text>
+          <View style={styles.statsLine}>
+            <FontAwesome name="eye" size={12} color={COLORS.slate} />
+            <Text style={styles.statsText}>
+              {listing.unique_view_count || 0} unique views
+            </Text>
+            {listing.inquiry_count > 0 && (
+              <>
+                <Text style={styles.statsDot}>&middot;</Text>
+                <FontAwesome name="envelope-o" size={11} color={COLORS.slate} />
+                <Text style={styles.statsText}>{listing.inquiry_count} inquiries</Text>
+              </>
+            )}
+          </View>
         </View>
       )}
       {status === 'draft' && (
@@ -369,18 +382,26 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   statusStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    gap: 8,
   },
-  statusRow: {
+  statusLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  statsLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  statsDot: {
+    color: COLORS.slate,
+    fontSize: FONT_SIZES.xs,
+    marginHorizontal: 2,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -399,8 +420,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     fontFamily: FONTS.body.bold,
   },
+  expiresPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
   expiresLabel: {
-    fontFamily: FONTS.body.regular,
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
   },
@@ -408,7 +438,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
-    marginTop: 2,
   },
   listingActions: {
     flexDirection: 'row',
