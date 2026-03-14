@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { RectButton } from 'react-native-gesture-handler';
 import { EmptyState } from '../ui';
 import { ConversationItem } from '../messaging';
 import { apiFetch } from '../../lib/api';
@@ -153,20 +154,22 @@ export default function MessagesScreen({ emptySubtitle }) {
   }, []);
 
   function renderRightActions(conversationId) {
+    // RectButton from gesture-handler coordinates with ReanimatedSwipeable
+    // (RN TouchableOpacity gets its taps stolen by the pan gesture)
     return (
       <View style={styles.swipeActions}>
-        <TouchableOpacity
+        <RectButton
           style={[styles.swipeBtn, styles.archiveBtn]}
           onPress={() => handleArchive(conversationId)}
         >
           <Text style={styles.swipeBtnText}>Archive</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </RectButton>
+        <RectButton
           style={[styles.swipeBtn, styles.deleteBtn]}
           onPress={() => handleDelete(conversationId)}
         >
           <Text style={styles.swipeBtnText}>Delete</Text>
-        </TouchableOpacity>
+        </RectButton>
       </View>
     );
   }
@@ -174,12 +177,12 @@ export default function MessagesScreen({ emptySubtitle }) {
   function renderLeftActions(conversationId) {
     return (
       <View style={styles.swipeActions}>
-        <TouchableOpacity
+        <RectButton
           style={[styles.swipeBtn, styles.unarchiveBtn]}
           onPress={() => handleUnarchive(conversationId)}
         >
           <Text style={styles.swipeBtnText}>Restore</Text>
-        </TouchableOpacity>
+        </RectButton>
       </View>
     );
   }
