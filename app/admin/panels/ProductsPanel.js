@@ -5,14 +5,17 @@ import { COLORS, baseButton, Badge, StatCard, formatDateFull } from '../shared';
 import AdminTable from '../components/AdminTable';
 import AddEntryForm from '../components/AddEntryForm';
 import AuditHistory from '../components/AuditHistory';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function ProductsPanel() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [hardDeleteConfirm, setHardDeleteConfirm] = useState(null); // { ids, names, typedName }
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [hardDeleteConfirm, setHardDeleteConfirm] = useState(null);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -83,27 +86,30 @@ export default function ProductsPanel() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Soft delete (deactivate)
-  const handleBulkDelete = useCallback((ids) => {
-    const names = ids.map(id => {
-      const p = products.find(p => p.id === id);
-      return p ? p.name : id;
-    }).join(", ");
-    setConfirmDelete({ ids, names });
+  // Suppress (set is_active = false — hidden from app, preserved in DB)
+  const handleBulkSuppress = useCallback((ids) => {
+    const names = ids.map(id => products.find(p => p.id === id)?.name || id).join(", ");
+    setConfirmAction({
+      type: "suppress",
+      ids,
+      message: `Suppress ${ids.length} product${ids.length > 1 ? "s" : ""}?\n\n${names}\n\nSuppressed products are hidden from all app displays but remain in the catalog for redeployment.`,
+    });
   }, [products]);
 
-  const executeDelete = useCallback(async () => {
-    if (!confirmDelete) return;
-    for (const id of confirmDelete.ids) {
-      await fetch("/api/admin/products", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-    }
-    setConfirmDelete(null);
-    fetchProducts();
-  }, [confirmDelete, fetchProducts]);
+  // Unsuppress (set is_active = true — visible in app again)
+  const handleBulkUnsuppress = useCallback((ids) => {
+    handleSave(ids, { is_active: true });
+  }, [handleSave]);
+
+  // Soft delete (deactivate)
+  const handleBulkDelete = useCallback((ids) => {
+    const names = ids.map(id => products.find(p => p.id === id)?.name || id).join(", ");
+    setConfirmAction({
+      type: "delete",
+      ids,
+      message: `Deactivate ${ids.length} product${ids.length > 1 ? "s" : ""}?\n\n${names}\n\nProducts will be deactivated (soft delete), not permanently removed.`,
+    });
+  }, [products]);
 
   // Hard delete (permanent removal)
   const handleBulkHardDelete = useCallback((ids) => {
@@ -113,6 +119,23 @@ export default function ProductsPanel() {
     });
     setHardDeleteConfirm({ ids, names, typedName: "" });
   }, [products]);
+
+  const confirmExecute = useCallback(async () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "suppress") {
+      await handleSave(confirmAction.ids, { is_active: false });
+    } else if (confirmAction.type === "delete") {
+      for (const id of confirmAction.ids) {
+        await fetch("/api/admin/products", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+      }
+      fetchProducts();
+    }
+    setConfirmAction(null);
+  }, [confirmAction, handleSave, fetchProducts]);
 
   const executeHardDelete = useCallback(async () => {
     if (!hardDeleteConfirm) return;
@@ -138,14 +161,68 @@ export default function ProductsPanel() {
     { key: "sort_order", label: "Sort Order", type: "text", placeholder: "0" },
   ], []);
 
+  // Enrich data with suppressed flag (for AdminTable row styling)
+  const enriched = useMemo(() => {
+    return products.map(p => ({
+      ...p,
+      suppressed: !p.is_active,
+    }));
+  }, [products]);
+
+  // Filter by status and search
+  const STATUS_FILTERS = ["all", "active", "suppressed", "owner", "tenant"];
+
+  const filtered = useMemo(() => {
+    return enriched.filter(p => {
+      // Status filter
+      switch (statusFilter) {
+        case "active":
+          if (!p.is_active) return false;
+          break;
+        case "suppressed":
+          if (p.is_active) return false;
+          break;
+        case "owner":
+          if ((p.audience || "owner") !== "owner") return false;
+          break;
+        case "tenant":
+          if (p.audience !== "tenant") return false;
+          break;
+        default: // "all"
+          break;
+      }
+      // Search
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          p.name?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          p.app_path?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [enriched, statusFilter, search]);
+
+  // Stat counts
+  const totalCount = products.length;
   const activeCount = products.filter(p => p.is_active).length;
+  const suppressedCount = products.filter(p => !p.is_active).length;
   const implementedCount = products.filter(p => p.is_implemented).length;
-  const avgPrice = products.length > 0
-    ? (products.reduce((sum, p) => sum + p.price_cents, 0) / products.length / 100).toFixed(2)
+  const avgPrice = totalCount > 0
+    ? (products.reduce((sum, p) => sum + p.price_cents, 0) / totalCount / 100).toFixed(2)
     : "0.00";
 
-  const ownerProducts = products.filter(p => p.audience === "owner" || !p.audience);
-  const tenantProducts = products.filter(p => p.audience === "tenant");
+  const statusCountFor = (s) => {
+    switch (s) {
+      case "all": return totalCount;
+      case "active": return activeCount;
+      case "suppressed": return suppressedCount;
+      case "owner": return products.filter(p => (p.audience || "owner") === "owner").length;
+      case "tenant": return products.filter(p => p.audience === "tenant").length;
+      default: return 0;
+    }
+  };
 
   const columns = useMemo(() => [
     {
@@ -232,26 +309,35 @@ export default function ProductsPanel() {
     },
     {
       accessorKey: "is_active",
-      header: "Active",
+      header: "Status",
       cell: ({ row }) => {
-        const val = row.original.is_active;
+        const active = row.original.is_active;
         return (
           <span
-            onClick={() => handleToggle(row.original.id, "is_active", val)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (active) {
+                // Suppressing — confirm first
+                handleBulkSuppress([row.original.id]);
+              } else {
+                // Unsuppressing — immediate
+                handleBulkUnsuppress([row.original.id]);
+              }
+            }}
             style={{
-              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              display: "inline-block", padding: "3px 12px", borderRadius: 12,
               fontSize: "11px", fontWeight: 700, cursor: "pointer",
-              background: val ? "#052e16" : "#1e293b",
-              color: val ? COLORS.green : COLORS.textDim,
-              border: `1px solid ${val ? COLORS.green + "44" : COLORS.border}`,
+              background: active ? "#052e16" : "#451a03",
+              color: active ? COLORS.green : COLORS.amber,
+              border: `1px solid ${active ? COLORS.green + "44" : COLORS.amber + "44"}`,
               userSelect: "none",
             }}
           >
-            {val ? "ON" : "OFF"}
+            {active ? "ACTIVE" : "SUPPRESSED"}
           </span>
         );
       },
-      size: 80,
+      size: 110,
       enableSorting: false,
     },
     {
@@ -261,9 +347,12 @@ export default function ProductsPanel() {
         const val = row.original.is_implemented;
         return (
           <span
-            onClick={() => handleToggle(row.original.id, "is_implemented", val)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggle(row.original.id, "is_implemented", val);
+            }}
             style={{
-              display: "inline-block", padding: "2px 10px", borderRadius: 12,
+              display: "inline-block", padding: "3px 12px", borderRadius: 12,
               fontSize: "11px", fontWeight: 700, cursor: "pointer",
               background: val ? "#052e16" : "#450a0a",
               color: val ? COLORS.green : COLORS.red,
@@ -280,7 +369,7 @@ export default function ProductsPanel() {
     },
     {
       accessorKey: "sort_order",
-      header: "App Display Order",
+      header: "Order",
       cell: ({ getValue }) => (
         <span style={{ fontSize: "13px", color: COLORS.textMuted }}>{getValue()}</span>
       ),
@@ -295,16 +384,70 @@ export default function ProductsPanel() {
       ),
       size: 180,
     },
-  ], [handleToggle]);
+  ], [handleToggle, handleBulkSuppress, handleBulkUnsuppress]);
+
+  // Expanded row with suppress/unsuppress + detail grid
+  const renderExpandedRow = useCallback((row) => {
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+          {[
+            ["Product Name", row.name],
+            ["Audience", (row.audience || "owner").toUpperCase()],
+            ["Price", `$${(row.price_cents / 100).toFixed(2)}`],
+            ["Type", row.type === "one_time" ? "One-Time" : "Recurring"],
+            ["Interval", row.recurring_interval || "\u2014"],
+            ["App Path", row.app_path || "\u2014"],
+            ["Sort Order", row.sort_order],
+            ["Stripe Price ID", row.stripe_price_id || "\u2014"],
+            ["Status", row.is_active ? "Active" : "Suppressed"],
+            ["Wired", row.is_implemented ? "Live" : "Not Wired"],
+          ].map(([label, val]) => (
+            <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px" }}>
+              <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+              <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600, marginTop: 2, wordBreak: "break-all" }}>{val}</div>
+            </div>
+          ))}
+        </div>
+        {row.description && (
+          <div style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px", marginBottom: 16 }}>
+            <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Description</div>
+            <div style={{ fontSize: "13px", color: COLORS.textMuted, whiteSpace: "pre-wrap", lineHeight: 1.4 }}>
+              {row.description.replace(/\\n/g, "\n")}
+            </div>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {row.is_active ? (
+            <button
+              onClick={() => handleBulkSuppress([row.id])}
+              style={{ ...baseButton, background: "#451a03", color: COLORS.amber, fontSize: "12px", border: `1px solid ${COLORS.amber}44` }}
+            >
+              Suppress
+            </button>
+          ) : (
+            <button
+              onClick={() => handleBulkUnsuppress([row.id])}
+              style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}
+            >
+              Unsuppress
+            </button>
+          )}
+        </div>
+        <AuditHistory tableName="products" rowId={row.id} />
+      </div>
+    );
+  }, [handleBulkSuppress, handleBulkUnsuppress]);
 
   return (
     <div>
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
-        <StatCard label="Total Products" value={products.length} sub="In catalog" accent={COLORS.brand} />
-        <StatCard label="Active" value={activeCount} sub="Products currently available to send to the PadMagnet App. *May still need to be wired to a custom or current page." accent={COLORS.green} />
+        <StatCard label="Total Products" value={totalCount} sub="In catalog" accent={COLORS.brand} />
+        <StatCard label="Active" value={activeCount} sub="Visible in app" accent={COLORS.green} />
+        <StatCard label="Suppressed" value={suppressedCount} sub="Hidden from app" accent={COLORS.amber} />
         <StatCard label="Implemented" value={implementedCount} sub="Wired into app" accent={COLORS.purple} />
-        <StatCard label="Avg Price" value={`$${avgPrice}`} sub="Across all products" accent={COLORS.amber} />
+        <StatCard label="Avg Price" value={`$${avgPrice}`} sub="Across all products" accent={COLORS.brand} />
       </div>
 
       {/* Info Banner */}
@@ -312,8 +455,31 @@ export default function ProductsPanel() {
         background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
         padding: "12px 16px", marginBottom: 20, fontSize: "13px", color: COLORS.textMuted, lineHeight: 1.5,
       }}>
-        Descriptions and pricing entered here flow to the PadMagnet App. Make product descriptions public-friendly and punchy.
-        Strictly respect the 200-character field length. Use <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>{"\\n"}</code> for line breaks.
+        <strong style={{ color: COLORS.text }}>Suppress</strong> hides a product from all app displays without deleting it.
+        Suppressed products stay in the catalog and can be redeployed at any time.
+        Descriptions and pricing flow directly to the PadMagnet App &mdash; keep them public-friendly and punchy (200-char max).
+        Use <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>{"\\n"}</code> for line breaks.
+      </div>
+
+      {/* Search & Filters */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search name, description, path\u2026"
+          className="audit-panel-input"
+          style={{ flex: "1 1 240px" }}
+        />
+        {STATUS_FILTERS.map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={{
+            ...baseButton,
+            background: statusFilter === s ? COLORS.brand + "22" : COLORS.surface,
+            color: statusFilter === s ? COLORS.brand : COLORS.textMuted,
+            border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : COLORS.border}`,
+          }}>
+            {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+            <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{statusCountFor(s)}</span>
+          </button>
+        ))}
       </div>
 
       {/* Add Button */}
@@ -330,7 +496,7 @@ export default function ProductsPanel() {
           {showAddForm ? "Cancel" : "+ Add Product"}
         </button>
         <span style={{ fontSize: "13px", color: COLORS.textMuted }}>
-          Click toggles to flip Active/Wired. Double-click name, description, price, path, or order to edit inline.
+          Click status pill to suppress/unsuppress. Double-click name, description, price, path, or order to edit inline.
         </span>
       </div>
 
@@ -347,64 +513,33 @@ export default function ProductsPanel() {
         </div>
       )}
 
-      {/* Owner Products Section */}
-      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "24px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
-        Property Owner Products and Services
-      </h3>
+      {/* Unified Products Table */}
       <AdminTable
         columns={columns}
-        data={ownerProducts}
+        data={filtered}
         loading={loading}
         error={error}
         tableName="products"
-        storageKey="products-owner"
+        storageKey="products"
         onSave={handleSave}
+        onBulkSuppress={handleBulkSuppress}
+        onBulkUnsuppress={handleBulkUnsuppress}
         onBulkDelete={handleBulkDelete}
         onBulkHardDelete={handleBulkHardDelete}
-        emptyMessage="No owner products in catalog yet"
-        renderExpandedRow={(row) => <AuditHistory tableName="products" rowId={row.id} />}
+        emptyMessage="No products match your filters"
+        renderExpandedRow={renderExpandedRow}
       />
 
-      {/* Tenant Products Section */}
-      <h3 style={{ fontSize: "15px", fontWeight: 700, color: COLORS.text, margin: "32px 0 12px", borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 8 }}>
-        Tenant Products and Services
-      </h3>
-      <AdminTable
-        columns={columns}
-        data={tenantProducts}
-        loading={loading}
-        error={error}
-        tableName="products"
-        storageKey="products-tenant"
-        onSave={handleSave}
-        onBulkDelete={handleBulkDelete}
-        onBulkHardDelete={handleBulkHardDelete}
-        emptyMessage="No tenant products yet"
-        renderExpandedRow={(row) => <AuditHistory tableName="products" rowId={row.id} />}
-      />
-
-      {/* Soft Delete Confirmation */}
-      {confirmDelete && (
-        <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
-            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px" }}>
-              Deactivate {confirmDelete.ids.length} product{confirmDelete.ids.length > 1 ? "s" : ""}?
-            </p>
-            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
-              {confirmDelete.names}
-            </p>
-            <p style={{ fontSize: "12px", color: COLORS.textDim, marginBottom: 16 }}>
-              Products will be deactivated (soft delete), not permanently removed.
-            </p>
-            <div className="confirm-actions">
-              <button className="confirm-btn cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="confirm-btn confirm" onClick={executeDelete}>Deactivate</button>
-            </div>
-          </div>
-        </div>
+      {/* Suppress / Delete Confirmation */}
+      {confirmAction && (
+        <ConfirmDialog
+          message={confirmAction.message}
+          onConfirm={confirmExecute}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
 
-      {/* Hard Delete Confirmation \u2014 requires typing product name */}
+      {/* Hard Delete Confirmation — requires typing product name */}
       {hardDeleteConfirm && (
         <div className="confirm-overlay" onClick={() => setHardDeleteConfirm(null)}>
           <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>

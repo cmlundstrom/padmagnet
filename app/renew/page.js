@@ -20,6 +20,7 @@ function RenewContent() {
   const [listing, setListing] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [renewPrice, setRenewPrice] = useState(null);
 
   useEffect(() => {
     async function init() {
@@ -38,18 +39,36 @@ function RenewContent() {
         return;
       }
 
-      // Fetch listing info
+      // Fetch listing info and product price in parallel
       try {
-        const res = await fetch(`/api/listings/${listingId}`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
+        const headers = { Authorization: `Bearer ${session.access_token}` };
+        const [listingRes, productRes] = await Promise.all([
+          fetch(`/api/listings/${listingId}`, { headers }),
+          fetch('/api/products?audience=owner', { headers }).catch(() => null),
+        ]);
+
+        if (listingRes.ok) {
+          const data = await listingRes.json();
           setListing(data);
           setStatus('ready');
         } else {
           setError('Listing not found');
           setStatus('error');
+        }
+
+        // Set price from products table (same lookup as /api/stripe/renew)
+        if (productRes?.ok) {
+          const products = await productRes.json();
+          const listingProduct = (Array.isArray(products) ? products : []).find(
+            p => p.name?.toLowerCase().includes('listing')
+          );
+          if (listingProduct?.price_cents) {
+            setRenewPrice((listingProduct.price_cents / 100).toFixed(2));
+          } else {
+            setRenewPrice('8.00');
+          }
+        } else {
+          setRenewPrice('8.00');
         }
       } catch (err) {
         setError(err.message);
@@ -129,7 +148,7 @@ function RenewContent() {
               and visible to tenants.
             </p>
             <button className={styles.renewBtn} onClick={handleRenew}>
-              Renew Now — $29.99
+              Renew Now — ${renewPrice || '...'}
             </button>
           </>
         )}
