@@ -16,7 +16,7 @@ export const TAB_SCREEN_OPTIONS = {
   tabBarActiveTintColor: COLORS.accent,
   tabBarInactiveTintColor: COLORS.white,
   tabBarLabelStyle: {
-    fontFamily: FONTS.body.medium,
+    fontFamily: FONTS.heading.medium,
     fontSize: 13,
   },
 };
