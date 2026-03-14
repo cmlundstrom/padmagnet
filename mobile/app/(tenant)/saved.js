@@ -4,7 +4,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { EmptyState } from '../../components/ui';
+import { EmptyState, GlossyHeart } from '../../components/ui';
 import { ListingCard } from '../../components/listing';
 import { useAlert } from '../../providers/AlertProvider';
 import { apiFetch } from '../../lib/api';
@@ -104,7 +104,7 @@ export default function SavedScreen() {
   }, [alert]);
 
   const isSaved = activeTab === 'right';
-  const emptyIcon = isSaved ? '♡' : '🗑';
+  const emptyIcon = isSaved ? <GlossyHeart size={48} /> : '🗑';
   const emptyTitle = isSaved ? 'No loved listings yet' : 'Trash is empty';
   const emptySubtitle = isSaved
     ? 'Swipe Right on the rental cards you Love and they\'ll appear right here.'

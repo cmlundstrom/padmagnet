@@ -6,7 +6,10 @@ import Button from './Button';
 export default function EmptyState({ icon, title, subtitle, actionLabel, onAction, style }) {
   return (
     <View style={[styles.container, style]}>
-      {icon && <Text style={styles.icon}>{icon}</Text>}
+      {icon && (typeof icon === 'string'
+        ? <Text style={styles.icon}>{icon}</Text>
+        : <View style={styles.iconWrap}>{icon}</View>
+      )}
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       {actionLabel && onAction && (
@@ -34,6 +37,9 @@ const styles = StyleSheet.create({
     fontSize: 48,
     marginBottom: 16,
     color: COLORS.white,
+  },
+  iconWrap: {
+    marginBottom: 16,
   },
   title: {
     fontFamily: FONTS.heading.semiBold,
