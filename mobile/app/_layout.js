@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { AppState, Platform } from 'react-native';
 import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -24,8 +24,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { COLORS } from '../constants/colors';
-import { useContext } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,9 +36,12 @@ SplashScreen.preventAutoHideAsync();
  *   - Auth state changes (login/logout)
  */
 function RouteGuard({ children }) {
-  const { session, role, loading } = useContext(AuthContext);
+  const { session, user, role, loading } = useContext(AuthContext);
   const segments = useSegments();
   const router = useRouter();
+
+  // Register push token when user is logged in
+  usePushNotifications(user);
 
   useEffect(() => {
     if (loading) return;

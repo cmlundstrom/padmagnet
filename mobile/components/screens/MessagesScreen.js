@@ -46,9 +46,12 @@ export default function MessagesScreen({ emptySubtitle }) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        () => {
-          fetchConversations();
-        }
+        () => fetchConversations()
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'conversations' },
+        () => fetchConversations()
       )
       .subscribe();
 

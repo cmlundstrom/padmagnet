@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/expiry-emails",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/delivery-retry",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

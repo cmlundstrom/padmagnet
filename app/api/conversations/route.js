@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../lib/supabase';
 import { getAuthUser } from '../../../lib/auth-helpers';
+import { notifyRecipient, notifyExternalAgent } from '../../../lib/notify';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -44,10 +45,10 @@ export async function POST(request) {
 
     const supabase = createServiceClient();
 
-    // Fetch listing for denormalized fields
+    // Fetch listing for denormalized fields + agent info
     const { data: listing, error: listingErr } = await supabase
       .from('listings')
-      .select('id, street_number, street_name, city, photos, owner_user_id, listing_agent_email')
+      .select('id, source, street_number, street_name, city, photos, owner_user_id, listing_agent_name, listing_agent_email, listing_agent_phone')
       .eq('id', listing_id)
       .single();
 
@@ -58,32 +59,43 @@ export async function POST(request) {
     // Check if conversation already exists for this user + listing
     const { data: existing } = await supabase
       .from('conversations')
-      .select('id')
+      .select('id, conversation_type, owner_user_id, external_agent_name, external_agent_email, external_agent_phone, listing_address')
       .eq('tenant_user_id', user.id)
       .eq('listing_id', listing_id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Add message to existing conversation
-      const { error: msgErr } = await supabase.from('messages').insert({
+      const { data: msg, error: msgErr } = await supabase.from('messages').insert({
         conversation_id: existing.id,
         sender_id: user.id,
         body: initial_message,
-      });
+        channel: 'in_app',
+      }).select().single();
 
       if (msgErr) {
         return NextResponse.json({ error: msgErr.message }, { status: 500 });
       }
 
-      // Update conversation
+      // Update preview + atomic unread increment
       await supabase
         .from('conversations')
-        .update({
-          last_message_text: initial_message,
-          last_message_at: new Date().toISOString(),
-          owner_unread_count: supabase.rpc ? 1 : 1, // increment would need RPC
-        })
+        .update({ last_message_text: initial_message })
         .eq('id', existing.id);
+
+      if (existing.conversation_type === 'external_agent') {
+        // No owner to increment unread for — notify external agent
+        const { data: sender } = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
+        notifyExternalAgent(
+          { ...msg, sender_name: sender?.display_name || 'Someone' },
+          existing
+        ).catch(err => console.error('External agent notification error:', err));
+      } else {
+        await supabase.rpc('increment_unread', {
+          p_conversation_id: existing.id,
+          p_role: 'owner',
+        });
+      }
 
       return NextResponse.json({ id: existing.id, existing: true });
     }
@@ -91,19 +103,34 @@ export async function POST(request) {
     // Create new conversation
     const address = [listing.street_number, listing.street_name, listing.city].filter(Boolean).join(' ');
     const firstPhoto = listing.photos?.[0]?.url || null;
+    const isExternalAgent = listing.source === 'mls';
+
+    const conversationData = {
+      listing_id,
+      tenant_user_id: user.id,
+      listing_address: address,
+      listing_photo_url: firstPhoto,
+      last_message_text: initial_message,
+      last_message_at: new Date().toISOString(),
+    };
+
+    if (isExternalAgent) {
+      // IDX/MLS listing — agent is external, no PadMagnet account
+      conversationData.conversation_type = 'external_agent';
+      conversationData.owner_user_id = null;
+      conversationData.external_agent_name = listing.listing_agent_name || null;
+      conversationData.external_agent_email = listing.listing_agent_email || null;
+      conversationData.external_agent_phone = listing.listing_agent_phone || null;
+    } else {
+      // Owner listing — standard internal conversation
+      conversationData.conversation_type = 'internal_owner';
+      conversationData.owner_user_id = listing.owner_user_id || null;
+      conversationData.owner_unread_count = 1;
+    }
 
     const { data: convo, error: convoErr } = await supabase
       .from('conversations')
-      .insert({
-        listing_id,
-        tenant_user_id: user.id,
-        owner_user_id: listing.owner_user_id || null,
-        listing_address: address,
-        listing_photo_url: firstPhoto,
-        last_message_text: initial_message,
-        last_message_at: new Date().toISOString(),
-        owner_unread_count: 1,
-      })
+      .insert(conversationData)
       .select()
       .single();
 
@@ -112,11 +139,60 @@ export async function POST(request) {
     }
 
     // Create first message
-    await supabase.from('messages').insert({
+    const { data: firstMsg } = await supabase.from('messages').insert({
       conversation_id: convo.id,
       sender_id: user.id,
       body: initial_message,
-    });
+      channel: 'in_app',
+    }).select().single();
+
+    // Send notification for the initial message
+    const { data: sender } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single();
+    const senderName = sender?.display_name || 'Someone';
+
+    if (isExternalAgent) {
+      // Upsert phone mapping for SMS reply routing
+      if (convo.external_agent_phone) {
+        await supabase.from('phone_mappings').upsert({
+          twilio_number: process.env.TWILIO_PHONE_NUMBER,
+          user_phone: convo.external_agent_phone,
+          conversation_id: convo.id,
+          user_id: null,
+        }, { onConflict: 'twilio_number,user_phone' });
+      }
+
+      notifyExternalAgent(
+        { ...firstMsg, sender_name: senderName },
+        convo
+      ).catch(err => console.error('External agent notification error:', err));
+    } else if (convo.owner_user_id) {
+      const { data: recipient } = await supabase
+        .from('profiles')
+        .select('id, email, phone, display_name, preferred_channel, sms_consent, expo_push_token')
+        .eq('id', convo.owner_user_id)
+        .single();
+
+      if (recipient) {
+        if (recipient.preferred_channel === 'sms' && recipient.phone) {
+          await supabase.from('phone_mappings').upsert({
+            twilio_number: process.env.TWILIO_PHONE_NUMBER,
+            user_phone: recipient.phone,
+            conversation_id: convo.id,
+            user_id: recipient.id,
+          }, { onConflict: 'twilio_number,user_phone' });
+        }
+
+        notifyRecipient(
+          { ...firstMsg, sender_name: senderName },
+          convo,
+          recipient
+        ).catch(err => console.error('Notification error:', err));
+      }
+    }
 
     return NextResponse.json(convo, { status: 201 });
   } catch (err) {

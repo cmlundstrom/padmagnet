@@ -20,6 +20,9 @@ import OwnersPanel from "./panels/OwnersPanel";
 import AuditLogPanel from "./panels/AuditLogPanel";
 import BacklogPanel from "./panels/BacklogPanel";
 import DisplayFieldsPanel from "./panels/DisplayFieldsPanel";
+import MessagingPanel from "./panels/MessagingPanel";
+import WebhookLogPanel from "./panels/WebhookLogPanel";
+import TemplateEditorPanel from "./panels/TemplateEditorPanel";
 
 // ============================================================
 // MAIN DASHBOARD
@@ -32,6 +35,9 @@ const NAV_ITEMS = [
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
   { id: "support", label: "Support", icon: "💬" },
+  { id: "messaging", label: "Messaging", icon: "📨" },
+  { id: "webhooks", label: "Webhook Log", icon: "🔗" },
+  { id: "templates", label: "Templates", icon: "📝" },
   { id: "products", label: "App Products", icon: "📦" },
   { id: "billing", label: "Billing", icon: "💳" },
   { id: "tenants", label: "Tenants", icon: "🏘️" },
@@ -101,6 +107,9 @@ export default function PadMagnetAdmin() {
     listings: <ListingsPanel />,
     "display-fields": <DisplayFieldsPanel />,
     support: <SupportPanel onTicketChange={refreshTicketCount} />,
+    messaging: <MessagingPanel />,
+    webhooks: <WebhookLogPanel />,
+    templates: <TemplateEditorPanel />,
     products: <ProductsPanel />,
     billing: <BillingPanel />,
     tenants: <TenantsPanel />,

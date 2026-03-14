@@ -1,10 +1,23 @@
+import { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { COLORS } from '../../constants/colors';
 import { TAB_SCREEN_OPTIONS, TAB_ICON_SIZE } from '../../constants/screenStyles';
 
 export default function OwnerTabLayout() {
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUserId(session.user.id);
+    });
+  }, []);
+
+  const unreadCount = useUnreadCount(userId);
+
   const tabBarStyle = {
     ...TAB_SCREEN_OPTIONS.tabBarStyle,
     paddingBottom: 0,
@@ -39,6 +52,16 @@ export default function OwnerTabLayout() {
           tabBarIcon: ({ focused }) => (
             <FontAwesome name="envelope" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : undefined,
+          tabBarBadgeStyle: unreadCount > 0 ? {
+            backgroundColor: COLORS.danger,
+            fontSize: 11,
+            fontWeight: '700',
+            minWidth: 18,
+            height: 18,
+            lineHeight: 18,
+            borderRadius: 9,
+          } : undefined,
         }}
       />
       <Tabs.Screen

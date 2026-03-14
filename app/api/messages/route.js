@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../lib/supabase';
 import { getAuthUser } from '../../../lib/auth-helpers';
+import { notifyRecipient, notifyExternalAgent } from '../../../lib/notify';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -90,7 +91,7 @@ export async function POST(request) {
     // Verify user is a participant
     const { data: convo, error: convoErr } = await supabase
       .from('conversations')
-      .select('id, tenant_user_id, owner_user_id')
+      .select('id, tenant_user_id, owner_user_id, conversation_type, listing_address, external_agent_name, external_agent_email, external_agent_phone')
       .eq('id', conversation_id)
       .single();
 
@@ -109,6 +110,7 @@ export async function POST(request) {
         conversation_id,
         sender_id: user.id,
         body: messageBody,
+        channel: 'in_app',
       })
       .select()
       .single();
@@ -117,26 +119,78 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Update conversation denormalized fields
-    const otherUnreadField = convo.tenant_user_id === user.id ? 'owner_unread_count' : 'tenant_unread_count';
-
-    // Fetch current unread count to increment
-    const { data: currentConvo } = await supabase
-      .from('conversations')
-      .select(otherUnreadField)
-      .eq('id', conversation_id)
-      .single();
-
-    const currentCount = currentConvo?.[otherUnreadField] || 0;
-
+    // Update conversation preview text
     await supabase
       .from('conversations')
-      .update({
-        last_message_text: messageBody,
-        last_message_at: new Date().toISOString(),
-        [otherUnreadField]: currentCount + 1,
-      })
+      .update({ last_message_text: messageBody })
       .eq('id', conversation_id);
+
+    // Atomic unread increment (replaces manual fetch-then-update)
+    const recipientRole = convo.tenant_user_id === user.id ? 'owner' : 'tenant';
+    // For external_agent convos, there's no owner — but tenant_unread
+    // only gets incremented when the agent replies (via webhook), not here
+    if (convo.conversation_type !== 'external_agent' || recipientRole !== 'owner') {
+      await supabase.rpc('increment_unread', {
+        p_conversation_id: conversation_id,
+        p_role: recipientRole,
+      });
+    }
+
+    // Fetch sender name for notifications
+    const { data: sender } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single();
+    const senderName = sender?.display_name || 'Someone';
+
+    // Route notification based on conversation type
+    if (convo.conversation_type === 'external_agent') {
+      // External MLS agent — no PadMagnet profile, no push
+      if (convo.external_agent_phone) {
+        await supabase.from('phone_mappings').upsert({
+          twilio_number: process.env.TWILIO_PHONE_NUMBER,
+          user_phone: convo.external_agent_phone,
+          conversation_id: convo.id,
+          user_id: null,
+        }, { onConflict: 'twilio_number,user_phone' });
+      }
+
+      notifyExternalAgent(
+        { ...message, sender_name: senderName },
+        convo
+      ).catch(err => console.error('External agent notification error:', err));
+
+    } else if (convo.owner_user_id) {
+      // Internal owner — standard PadMagnet user flow
+      const recipientId = user.id === convo.tenant_user_id
+        ? convo.owner_user_id
+        : convo.tenant_user_id;
+
+      const { data: recipient } = await supabase
+        .from('profiles')
+        .select('id, email, phone, display_name, preferred_channel, sms_consent, expo_push_token')
+        .eq('id', recipientId)
+        .single();
+
+      if (recipient) {
+        // Upsert phone mapping for SMS reply routing
+        if (recipient.preferred_channel === 'sms' && recipient.phone) {
+          await supabase.from('phone_mappings').upsert({
+            twilio_number: process.env.TWILIO_PHONE_NUMBER,
+            user_phone: recipient.phone,
+            conversation_id: convo.id,
+            user_id: recipient.id,
+          }, { onConflict: 'twilio_number,user_phone' });
+        }
+
+        notifyRecipient(
+          { ...message, sender_name: senderName },
+          convo,
+          recipient
+        ).catch(err => console.error('Notification error:', err));
+      }
+    }
 
     return NextResponse.json(message, { status: 201 });
   } catch (err) {
