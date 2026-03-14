@@ -2,8 +2,8 @@ import './globals.css';
 import './app-theme.css';
 
 export const metadata = {
-  title: 'PadMagnet — Swipe to Find Your Next Home',
-  description: 'Tinder-style rental matching for tenants and property owners. Find your perfect pad in South Florida.',
+  title: 'PadMagnet — Find Your Perfect Rental with PadScore™',
+  description: 'Better Matches. Better Homes. PadScore™ connects tenants to owner-listed rentals that fit, fast.',
   icons: {
     icon: [
       { url: '/logo/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -15,8 +15,8 @@ export const metadata = {
     ],
   },
   openGraph: {
-    title: 'PadMagnet — Swipe to Find Your Next Home',
-    description: 'Tinder-style rental matching for tenants and property owners.',
+    title: 'PadMagnet — Find Your Perfect Rental with PadScore™',
+    description: 'Better Matches. Better Homes. PadScore™ connects tenants to owner-listed rentals that fit, fast.',
     url: 'https://padmagnet.com',
     siteName: 'PadMagnet',
     type: 'website',
