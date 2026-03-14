@@ -123,9 +123,23 @@ export default function ListingDetailScreen() {
     if (!listing) return;
     const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
     const price = listing.list_price ? `$${Number(listing.list_price).toLocaleString()}/mo` : '';
+    const vars = { address, city: listing.city || '', price, id: listing.id };
+    const fill = (tpl) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || '');
+
+    let subjectTpl = 'Check out this rental: {{address}}, {{city}} — {{price}}';
+    let messageTpl = 'Check out this rental on PadMagnet! {{address}}, {{city}} — {{price}}\nhttps://padmagnet.com/listing/{{id}}';
+
+    try {
+      const cfg = await apiFetch('/api/config/public?keys=share_subject,share_message');
+      if (cfg?.share_subject) subjectTpl = cfg.share_subject;
+      if (cfg?.share_message) messageTpl = cfg.share_message;
+    } catch (_) {}
+
     try {
       await Share.share({
-        message: `Check out this rental on PadMagnet! ${address}, ${listing.city} — ${price}\nhttps://padmagnet.com/listing/${listing.id}`,
+        title: `Rental in ${listing.city} — ${price} | PadMagnet`,
+        subject: fill(subjectTpl),
+        message: fill(messageTpl),
       });
     } catch (_) {}
   }, [listing]);

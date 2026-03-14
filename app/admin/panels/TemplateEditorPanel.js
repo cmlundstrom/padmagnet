@@ -1,7 +1,133 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { COLORS, Badge, baseButton } from '../shared';
+
+const SHARE_DEFAULTS = {
+  share_subject: 'Check out this rental: {{address}}, {{city}} — {{price}}',
+  share_message: 'Check out this rental on PadMagnet! {{address}}, {{city}} — {{price}}\nhttps://padmagnet.com/listing/{{id}}',
+};
+
+function ShareTemplateSection() {
+  const [fields, setFields] = useState({ ...SHARE_DEFAULTS });
+  const [saved, setSaved] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/config?keys=share_subject,share_message');
+      if (res.ok) {
+        const data = await res.json();
+        setFields(f => ({
+          share_subject: data.share_subject || f.share_subject,
+          share_message: data.share_message || f.share_message,
+        }));
+      }
+    } catch { /* silent */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchConfig(); }, [fetchConfig]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        fetch('/api/admin/config', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'share_subject', value: fields.share_subject }),
+        }),
+        fetch('/api/admin/config', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'share_message', value: fields.share_message }),
+        }),
+      ]);
+      setSaved(true);
+    } catch { /* silent */ }
+    setSaving(false);
+  };
+
+  const variables = ['{{address}}', '{{city}}', '{{price}}', '{{id}}'];
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <h2 style={{
+        fontSize: '16px', fontWeight: 800, color: COLORS.text,
+        letterSpacing: '-0.02em', marginBottom: 16,
+        paddingBottom: 8, borderBottom: `1px solid ${COLORS.border}`,
+      }}>
+        Share Templates
+      </h2>
+      <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: 16 }}>
+        Controls the text used when users tap "Share" on a listing detail page.
+        The subject line is used when sharing via email.
+      </p>
+
+      <div style={{
+        background: COLORS.surface, borderRadius: 8,
+        border: `1px solid ${COLORS.border}`, padding: 16,
+      }}>
+        {/* Variables reference */}
+        <div style={{ fontSize: '11px', color: COLORS.textDim, marginBottom: 14, display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, marginRight: 2 }}>Variables:</span>
+          {variables.map(v => (
+            <span key={v} style={{
+              background: COLORS.bg, padding: '1px 6px', borderRadius: 3,
+              fontFamily: 'monospace', fontSize: '10px', color: COLORS.brand,
+              border: `1px solid ${COLORS.border}`,
+            }}>
+              {v}
+            </span>
+          ))}
+        </div>
+
+        {loading ? (
+          <p style={{ color: COLORS.textDim, fontSize: '13px' }}>Loading…</p>
+        ) : (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Email Subject Line</label>
+              <input
+                value={fields.share_subject}
+                onChange={e => { setFields(f => ({ ...f, share_subject: e.target.value })); setSaved(false); }}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Share Message Body</label>
+              <textarea
+                value={fields.share_message}
+                onChange={e => { setFields(f => ({ ...f, share_message: e.target.value })); setSaved(false); }}
+                rows={3}
+                style={{ ...inputStyle, resize: 'vertical' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                onClick={handleSave}
+                disabled={saved || saving}
+                style={{
+                  ...baseButton,
+                  background: saved ? COLORS.border : COLORS.brand,
+                  color: saved ? COLORS.textDim : '#000',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+              </button>
+              {!saved && (
+                <span style={{ fontSize: '12px', color: COLORS.amber }}>Unsaved changes</span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function TemplateEditorPanel() {
   const [templates, setTemplates] = useState([]);
@@ -269,6 +395,9 @@ export default function TemplateEditorPanel() {
           </div>
         );
       })}
+
+      {/* Share Templates — stored in site_config */}
+      <ShareTemplateSection />
 
       {templates.length === 0 && (
         <div style={{

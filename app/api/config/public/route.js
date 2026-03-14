@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // Keys safe to expose without auth
-const PUBLIC_KEYS = ['owner_listing_footer'];
+const PUBLIC_KEYS = ['owner_listing_footer', 'share_subject', 'share_message'];
 
 // GET /api/config/public?keys=owner_listing_footer
 export async function GET(request) {

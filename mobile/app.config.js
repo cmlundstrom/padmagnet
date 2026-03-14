@@ -1,3 +1,5 @@
+const IS_DEV = process.env.APP_VARIANT !== 'preview' && process.env.APP_VARIANT !== 'production';
+
 export default ({ config }) => ({
   expo: {
     name: "PadMagnet",
@@ -54,6 +56,7 @@ export default ({ config }) => ({
       },
     },
     plugins: [
+      ...(IS_DEV ? ["expo-dev-client"] : []),
       "expo-router",
       "expo-font",
       "expo-image-picker",
