@@ -203,7 +203,7 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
       </Pressable>
       {status !== 'draft' && (
         <View style={styles.statusStatsRow}>
-          <View style={styles.statusLine}>
+          <View style={styles.statusColumn}>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
               <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -216,17 +216,18 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
               </View>
             )}
           </View>
-          <View style={styles.statsLine}>
-            <FontAwesome name="eye" size={12} color={COLORS.slate} />
-            <Text style={styles.statsText}>
-              {listing.unique_view_count || 0} unique views
-            </Text>
+          <View style={styles.statsColumn}>
+            <View style={styles.statItem}>
+              <FontAwesome name="eye" size={12} color={COLORS.text} />
+              <Text style={styles.statsText}>
+                {listing.unique_view_count || 0} views
+              </Text>
+            </View>
             {listing.inquiry_count > 0 && (
-              <>
-                <Text style={styles.statsDot}>&middot;</Text>
-                <FontAwesome name="envelope-o" size={11} color={COLORS.slate} />
+              <View style={styles.statItem}>
+                <FontAwesome name="envelope-o" size={11} color={COLORS.text} />
                 <Text style={styles.statsText}>{listing.inquiry_count} inquiries</Text>
-              </>
+              </View>
             )}
           </View>
         </View>
@@ -382,26 +383,25 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   statusStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     paddingHorizontal: LAYOUT.padding.md,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    gap: 8,
   },
-  statusLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  statusColumn: {
+    gap: 4,
   },
-  statsLine: {
+  statsColumn: {
+    alignItems: 'flex-end',
+    gap: 3,
+  },
+  statItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-  },
-  statsDot: {
-    color: COLORS.slate,
-    fontSize: FONT_SIZES.xs,
-    marginHorizontal: 2,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -435,9 +435,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   statsText: {
-    fontFamily: FONTS.body.regular,
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.text,
   },
   listingActions: {
     flexDirection: 'row',
