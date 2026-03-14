@@ -16,7 +16,7 @@ export default function RenewPage() {
 function RenewContent() {
   const searchParams = useSearchParams();
   const listingId = searchParams.get('listing_id');
-  const [status, setStatus] = useState('loading'); // loading, ready, processing, success, error
+  const [status, setStatus] = useState('loading'); // loading, ready, processing, success, error, unavailable
   const [listing, setListing] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
@@ -47,29 +47,32 @@ function RenewContent() {
           fetch('/api/products?audience=owner', { headers }).catch(() => null),
         ]);
 
-        if (listingRes.ok) {
-          const data = await listingRes.json();
-          setListing(data);
-          setStatus('ready');
-        } else {
+        if (!listingRes.ok) {
           setError('Listing not found');
           setStatus('error');
+          return;
         }
 
-        // Set price from products table (same lookup as /api/stripe/renew)
+        const listingData = await listingRes.json();
+        setListing(listingData);
+
+        // Find listing renewal product (same lookup as /api/stripe/renew)
+        let listingProduct = null;
         if (productRes?.ok) {
           const products = await productRes.json();
-          const listingProduct = (Array.isArray(products) ? products : []).find(
+          listingProduct = (Array.isArray(products) ? products : []).find(
             p => p.name?.toLowerCase().includes('listing')
           );
-          if (listingProduct?.price_cents) {
-            setRenewPrice((listingProduct.price_cents / 100).toFixed(2));
-          } else {
-            setRenewPrice('8.00');
-          }
-        } else {
-          setRenewPrice('8.00');
         }
+
+        if (!listingProduct) {
+          // Listing renewal product is suppressed or missing — service unavailable
+          setStatus('unavailable');
+          return;
+        }
+
+        setRenewPrice((listingProduct.price_cents / 100).toFixed(2));
+        setStatus('ready');
       } catch (err) {
         setError(err.message);
         setStatus('error');
@@ -151,6 +154,19 @@ function RenewContent() {
               Renew Now — ${renewPrice || '...'}
             </button>
           </>
+        )}
+
+        {status === 'unavailable' && (
+          <div className={styles.unavailableBox}>
+            <h2>Renewal Unavailable</h2>
+            <p>
+              Listing renewals are not available at this time.
+              Please check back later or contact support if you have questions.
+            </p>
+            <a href="mailto:support@padmagnet.com" className={styles.link}>
+              Contact Support
+            </a>
+          </div>
         )}
 
         {status === 'processing' && (

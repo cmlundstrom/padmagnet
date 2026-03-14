@@ -102,6 +102,25 @@
   text-decoration: none;
 }
 
+.unavailableBox {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.unavailableBox h2 {
+  font-family: var(--pm-font-heading, 'Outfit');
+  color: var(--pm-navy, #0F2B46);
+  margin-bottom: 12px;
+}
+
+.unavailableBox p {
+  font-family: var(--pm-font-body, 'DM Sans');
+  font-size: 14px;
+  color: var(--pm-slate, #6B7C93);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
 .errorBox {
   text-align: center;
   padding: 16px 0;
