@@ -146,7 +146,7 @@ export default function SwipeScreen() {
         ) : null}
 
         {/* Card area */}
-        <View style={[styles.cardArea, { marginTop: 15 }]}>
+        <View style={[styles.cardArea, { marginTop: 35 }]}>
           {viewMode === 'cards' && (
             <CardStack
               listings={scoredListings}
