@@ -450,6 +450,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 16,
     borderRadius: LAYOUT.radius.full,
+    borderWidth: 1,
+    borderColor: COLORS.white,
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },

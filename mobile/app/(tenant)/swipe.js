@@ -140,8 +140,8 @@ export default function SwipeScreen() {
 
         {/* Personalized intro */}
         {viewMode === 'cards' && firstName ? (
-          <Text style={styles.introText}>
-            <Text style={styles.introBold}>{firstName}</Text>, your <Text style={styles.introBold}>PadScore™</Text> is now live! These homes fit your requirements. Refine your <Text style={styles.introBold}>PadScore™</Text> anytime in 'Profile'.
+          <Text style={styles.introText} numberOfLines={2}>
+            <Text style={styles.introBold}>{firstName}</Text>, <Text style={styles.introBold}>PadScore™</Text> is now live! Refine your rental matches anytime in <Text style={styles.introBold}>Profile</Text>.
           </Text>
         ) : null}
 
