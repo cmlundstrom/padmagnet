@@ -176,7 +176,7 @@ export default function ListingDetailScreen() {
         showBack
         rightAction={
           <Pressable onPress={handleShare} style={styles.shareBtnWide}>
-            <FontAwesome name="share-alt" size={17} color={COLORS.white} />
+            <FontAwesome name="share-alt" size={14} color={COLORS.background} />
             <Text style={styles.shareBtnText}>Share</Text>
           </Pressable>
         }
@@ -184,7 +184,7 @@ export default function ListingDetailScreen() {
 
       <ScrollView style={styles.scroll} bounces={false}>
         <PhotoGallery photos={listing.photos || []} />
-        <PadScoreBreakdown padScore={padScore} />
+        {context !== 'owner_browse' && <PadScoreBreakdown padScore={padScore} />}
         <ListingInfo listing={listing} />
         <MLSDisclaimer listing={listing} />
         {/* Spacer for bottom buttons */}
@@ -276,17 +276,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    height: 40,
-    width: 80,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
+    height: 36,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.brandOrange,
+    borderRadius: 18,
   },
   shareBtnText: {
-    fontFamily: FONTS.body.semiBold,
+    fontFamily: FONTS.heading.semiBold,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.white,
+    color: COLORS.background,
   },
   heartFab: {
     position: 'absolute',

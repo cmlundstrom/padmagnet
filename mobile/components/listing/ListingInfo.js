@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   featureRowStacked: {
-    paddingVertical: 6,
+    paddingVertical: 0,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
     textAlign: 'right',
-    marginTop: 2,
+    marginTop: 0,
   },
   description: {
     fontFamily: FONTS.body.regular,

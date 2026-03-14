@@ -37,11 +37,11 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   left: {
-    width: 48,
+    minWidth: 48,
     alignItems: 'flex-start',
   },
   right: {
-    width: 48,
+    minWidth: 48,
     alignItems: 'flex-end',
   },
   title: {
