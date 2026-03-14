@@ -24,7 +24,7 @@ export async function GET(request) {
     // Verify user is a participant
     const { data: convo, error: convoErr } = await supabase
       .from('conversations')
-      .select('id, tenant_user_id, owner_user_id')
+      .select('id, tenant_user_id, owner_user_id, conversation_type, tenant_last_read_at, owner_last_read_at')
       .eq('id', conversationId)
       .single();
 
@@ -47,26 +47,17 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Mark unread messages from the other person as read
-    const unreadIds = (messages || [])
-      .filter(m => m.sender_id !== user.id && !m.read)
-      .map(m => m.id);
+    // Include counterparty's last_read_at for read receipt display
+    const isTenant = convo.tenant_user_id === user.id;
+    const counterpartyLastReadAt = isTenant
+      ? convo.owner_last_read_at
+      : convo.tenant_last_read_at;
 
-    if (unreadIds.length > 0) {
-      await supabase
-        .from('messages')
-        .update({ read: true })
-        .in('id', unreadIds);
-
-      // Reset unread count for this user
-      const unreadField = convo.tenant_user_id === user.id ? 'tenant_unread_count' : 'owner_unread_count';
-      await supabase
-        .from('conversations')
-        .update({ [unreadField]: 0 })
-        .eq('id', conversationId);
-    }
-
-    return NextResponse.json(messages || []);
+    return NextResponse.json({
+      messages: messages || [],
+      conversation_type: convo.conversation_type,
+      counterparty_last_read_at: counterpartyLastReadAt,
+    });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

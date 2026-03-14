@@ -3,6 +3,7 @@
  *
  * Subscribes to conversations table changes and computes
  * total unread count for the current user. Used for tab badge.
+ * Only counts non-archived conversations.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -12,24 +13,15 @@ import { apiFetch } from '../lib/api';
 export function useUnreadCount(userId) {
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const computeUnread = useCallback((conversations) => {
-    if (!userId || !conversations) return 0;
-    return conversations.reduce((sum, c) => {
-      const count = c.tenant_user_id === userId
-        ? (c.tenant_unread_count || 0)
-        : (c.owner_unread_count || 0);
-      return sum + count;
-    }, 0);
-  }, [userId]);
-
   const fetchAndUpdate = useCallback(async () => {
+    if (!userId) return;
     try {
-      const data = await apiFetch('/api/conversations');
-      setUnreadCount(computeUnread(data || []));
+      const data = await apiFetch('/api/conversations?tab=unread');
+      setUnreadCount((data || []).length);
     } catch {
       // Silent — badge is non-critical
     }
-  }, [computeUnread]);
+  }, [userId]);
 
   // Initial fetch
   useEffect(() => {

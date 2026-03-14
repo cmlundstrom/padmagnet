@@ -12,6 +12,9 @@ export async function GET(request) {
       return NextResponse.json({ error: authError }, { status });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tab = searchParams.get('tab') || 'all';
+
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('conversations')
@@ -23,7 +26,28 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data || []);
+    // Per-user archive/unread filtering
+    const filtered = (data || []).filter(c => {
+      const isTenant = c.tenant_user_id === user.id;
+      const archived = isTenant ? c.archived_by_tenant : c.archived_by_owner;
+      const unreadCount = isTenant ? c.tenant_unread_count : c.owner_unread_count;
+      const lastReadAt = isTenant ? c.tenant_last_read_at : c.owner_last_read_at;
+
+      switch (tab) {
+        case 'unread':
+          return !archived && (
+            unreadCount > 0 ||
+            (c.last_message_at && (!lastReadAt || new Date(c.last_message_at) > new Date(lastReadAt)))
+          );
+        case 'archived':
+          return archived === true;
+        case 'all':
+        default:
+          return !archived;
+      }
+    });
+
+    return NextResponse.json(filtered);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

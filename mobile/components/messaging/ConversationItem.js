@@ -18,12 +18,82 @@ function timeAgo(dateString) {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/**
+ * Determine read receipt status for the last message sent by the current user.
+ * Returns: 'sent' | 'delivered' | 'read' | null
+ */
+function getReceiptStatus(conversation, currentUserId) {
+  const isTenant = conversation.tenant_user_id === currentUserId;
+  const myUnread = isTenant
+    ? conversation.tenant_unread_count
+    : conversation.owner_unread_count;
+
+  // If we have unread messages, the last message wasn't ours
+  if (myUnread > 0) return null;
+
+  // External agent conversations — max "delivered", never "read"
+  if (conversation.conversation_type === 'external_agent') {
+    return 'delivered';
+  }
+
+  // Internal conversation — check if counterparty read
+  const counterpartyReadAt = isTenant
+    ? conversation.owner_last_read_at
+    : conversation.tenant_last_read_at;
+
+  if (counterpartyReadAt && conversation.last_message_at) {
+    if (new Date(counterpartyReadAt) >= new Date(conversation.last_message_at)) {
+      return 'read';
+    }
+  }
+
+  return 'delivered';
+}
+
+function ReadReceipt({ status, isExternal }) {
+  if (!status) return null;
+
+  const isRead = status === 'read';
+  const color = isRead ? COLORS.accent : COLORS.slate;
+
+  return (
+    <View style={receiptStyles.container}>
+      <Text style={[receiptStyles.check, { color }]}>
+        {status === 'sent' ? '\u2713' : '\u2713\u2713'}
+      </Text>
+      {isExternal && (
+        <Text style={receiptStyles.channelText}>via SMS/Email</Text>
+      )}
+    </View>
+  );
+}
+
+const receiptStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  check: {
+    fontSize: 11,
+    fontFamily: FONTS.body.regular,
+  },
+  channelText: {
+    fontSize: 9,
+    fontFamily: FONTS.body.regular,
+    color: COLORS.textSecondary,
+  },
+});
+
 export default function ConversationItem({ conversation, currentUserId, onPress }) {
-  const unread = conversation.tenant_user_id === currentUserId
+  const isTenant = conversation.tenant_user_id === currentUserId;
+  const unread = isTenant
     ? conversation.tenant_unread_count
     : conversation.owner_unread_count;
 
   const hasUnread = unread > 0;
+  const isExternal = conversation.conversation_type === 'external_agent';
+  const receiptStatus = getReceiptStatus(conversation, currentUserId);
 
   return (
     <Pressable style={styles.container} onPress={onPress}>
@@ -44,22 +114,25 @@ export default function ConversationItem({ conversation, currentUserId, onPress 
           <Text style={[styles.address, hasUnread && styles.unreadText]} numberOfLines={1}>
             {conversation.listing_address || 'Listing'}
           </Text>
-          <Text style={styles.time}>
-            {timeAgo(conversation.last_message_at)}
-          </Text>
+          <View style={styles.timeRow}>
+            <Text style={styles.time}>
+              {timeAgo(conversation.last_message_at)}
+            </Text>
+            {hasUnread && <View style={styles.unreadDot} />}
+          </View>
         </View>
+
         <View style={styles.bottomRow}>
           <Text
             style={[styles.preview, hasUnread && styles.unreadText]}
             numberOfLines={1}
           >
+            {isExternal && conversation.external_agent_name
+              ? `${conversation.external_agent_name}: `
+              : ''}
             {conversation.last_message_text || 'No messages yet'}
           </Text>
-          {hasUnread && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
-            </View>
-          )}
+          <ReadReceipt status={receiptStatus} isExternal={isExternal} />
         </View>
       </View>
     </Pressable>
@@ -74,6 +147,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
   },
   photoWrapper: {
     marginRight: 12,
@@ -99,10 +173,21 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   time: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.accent,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -119,19 +204,5 @@ const styles = StyleSheet.create({
   unreadText: {
     fontFamily: FONTS.body.semiBold,
     color: COLORS.text,
-  },
-  badge: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    fontFamily: FONTS.body.bold,
-    fontSize: 11,
-    color: COLORS.navy,
   },
 });
