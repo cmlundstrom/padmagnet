@@ -1,6 +1,12 @@
 import { useEffect, useContext } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, LogBox } from 'react-native';
 import { Stack, useSegments, useRouter } from 'expo-router';
+
+// Suppress known expo-router v55 + edge-to-edge dev warnings (not from our code)
+LogBox.ignoreLogs([
+  "Can't perform a React state update on a component that hasn't mounted yet",
+  '`setBackgroundColorAsync` is not supported with edge-to-edge enabled',
+]);
 import { StatusBar } from 'expo-status-bar';
 let NavigationBar = null;
 try { NavigationBar = require('expo-navigation-bar'); } catch (e) {}
