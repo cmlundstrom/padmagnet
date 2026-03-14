@@ -104,9 +104,11 @@ export async function POST(request) {
       }
     }
 
-    // Generate confirmation code for non-draft listings
+    // Generate confirmation code + set 30-day expiry for non-draft listings
+    // First listing period is free; renewals will require payment (Stripe)
     if (!isDraft) {
       listing.confirmation_code = generateConfirmationCode(listing.listing_key);
+      listing.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const supabase = createServiceClient();

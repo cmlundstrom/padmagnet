@@ -112,11 +112,14 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Generate confirmation code when status transitions to active
-    // NOTE: is_active stays false until Stripe payment is confirmed (future webhook)
+    // Generate confirmation code + set 30-day expiry when status transitions to active
+    // First listing period is free; renewals will require payment (Stripe)
     const activating = updates.status === 'active' && existing.status !== 'active';
-    if (activating && !existing.confirmation_code) {
-      updates.confirmation_code = generateConfirmationCode(id);
+    if (activating) {
+      if (!existing.confirmation_code) {
+        updates.confirmation_code = generateConfirmationCode(id);
+      }
+      updates.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const { data, error } = await supabase
