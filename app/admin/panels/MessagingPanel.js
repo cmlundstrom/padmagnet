@@ -1,27 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { COLORS, Badge, StatCard, timeAgo, formatDate, baseButton } from '../shared';
+import AdminTable from '../components/AdminTable';
 
 // ── Channel icon helper ──
 const CHANNEL_ICON = { sms: '💬', email: '📧', push: '🔔', in_app: '📱' };
-const CHANNEL_COLOR = { sms: 'blue', email: 'purple', push: 'cyan', in_app: 'green' };
 const STATUS_COLOR = { pending: 'amber', processing: 'amber', sent: 'green', failed: 'red', cancelled: 'gray' };
 
 export default function MessagingPanel() {
   const [stats, setStats] = useState(null);
   const [conversations, setConversations] = useState([]);
-  const [totalFiltered, setTotalFiltered] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const limit = 30;
-
-  // Filters
-  const [sort, setSort] = useState('newest');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [error, setError] = useState(null);
 
   // Detail view
   const [selectedConvo, setSelectedConvo] = useState(null);
@@ -33,45 +24,31 @@ export default function MessagingPanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ page, limit, sort });
-      if (typeFilter) params.set('type', typeFilter);
-      if (statusFilter) params.set('status', statusFilter);
-      if (search) params.set('search', search);
-
-      const res = await fetch(`/api/admin/messaging?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setStats({
-          totalConversations: data.totalConversations,
-          activeConversations: data.activeConversations,
-          totalMessages: data.totalMessages,
-          messagesToday: data.messagesToday,
-          messagesThisWeek: data.messagesThisWeek,
-          pendingDeliveryQueue: data.pendingDeliveryQueue,
-          failedDeliveryQueue: data.failedDeliveryQueue,
-        });
-        setConversations(data.conversations || []);
-        setTotalFiltered(data.totalFiltered || 0);
-      }
-    } catch { /* silent */ }
+      const res = await fetch('/api/admin/messaging?limit=500');
+      if (!res.ok) throw new Error('Failed to load conversations');
+      const data = await res.json();
+      setStats({
+        totalConversations: data.totalConversations,
+        activeConversations: data.activeConversations,
+        totalMessages: data.totalMessages,
+        messagesToday: data.messagesToday,
+        messagesThisWeek: data.messagesThisWeek,
+        pendingDeliveryQueue: data.pendingDeliveryQueue,
+        failedDeliveryQueue: data.failedDeliveryQueue,
+      });
+      setConversations(data.conversations || []);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
     setLoading(false);
-  }, [page, sort, typeFilter, statusFilter, search]);
+  }, []);
 
   useEffect(() => {
-    setLoading(true);
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
-
-  // Search debounce
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(timeout);
-  }, [searchInput]);
 
   // Load conversation detail
   async function openConversation(convo) {
@@ -126,11 +103,125 @@ export default function MessagingPanel() {
     setConfirm(null);
   }
 
-  const totalPages = Math.ceil(totalFiltered / limit);
-
-  if (loading && !stats) {
-    return <div style={{ color: COLORS.textDim, padding: 40, textAlign: 'center' }}>Loading...</div>;
+  async function handleBulkDelete(ids) {
+    if (!window.confirm(`Delete ${ids.length} conversation(s) and all their messages? This cannot be undone.`)) return;
+    for (const id of ids) {
+      await fetch(`/api/admin/messaging?id=${id}`, { method: 'DELETE' });
+    }
+    fetchData();
   }
+
+  // ── AdminTable columns ──
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'listing_address',
+      header: 'Address',
+      cell: ({ row }) => (
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {row.original.listing_address || 'Unknown'}
+          </div>
+          <div style={{ fontSize: '11px', color: COLORS.textDim, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {row.original.last_message_text || '—'}
+          </div>
+        </div>
+      ),
+      size: 240,
+    },
+    {
+      accessorKey: 'tenant_name',
+      header: 'Tenant',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '12px' }}>{getValue() || '—'}</span>
+      ),
+      size: 130,
+    },
+    {
+      accessorKey: 'owner_name',
+      header: 'Owner / Agent',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '12px' }}>{getValue() || '—'}</span>
+      ),
+      size: 130,
+    },
+    {
+      accessorKey: 'conversation_type',
+      header: 'Type',
+      cell: ({ getValue }) => (
+        <Badge color={getValue() === 'external_agent' ? 'amber' : 'blue'}>
+          {getValue() === 'external_agent' ? 'MLS Agent' : 'Internal'}
+        </Badge>
+      ),
+      size: 100,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ getValue }) => {
+        const s = getValue();
+        return (
+          <Badge color={s === 'active' ? 'green' : s === 'blocked' ? 'red' : 'gray'}>
+            {s}
+          </Badge>
+        );
+      },
+      size: 90,
+    },
+    {
+      accessorKey: 'last_message_at',
+      header: 'Last Activity',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '12px', color: COLORS.textDim }}>
+          {getValue() ? timeAgo(getValue()) : '—'}
+        </span>
+      ),
+      sortingFn: 'datetime',
+      size: 110,
+    },
+    {
+      id: 'unread',
+      header: 'Unread',
+      accessorFn: (row) => (row.tenant_unread_count || 0) + (row.owner_unread_count || 0),
+      cell: ({ row }) => {
+        const c = row.original;
+        return (
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+            {c.tenant_unread_count > 0 && <Badge color="cyan">{c.tenant_unread_count} T</Badge>}
+            {c.owner_unread_count > 0 && <Badge color="purple">{c.owner_unread_count} O</Badge>}
+            {!c.tenant_unread_count && !c.owner_unread_count && (
+              <span style={{ fontSize: '12px', color: COLORS.textDim }}>—</span>
+            )}
+          </div>
+        );
+      },
+      size: 80,
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Created',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '12px', color: COLORS.textDim }}>
+          {getValue() ? formatDate(getValue()) : '—'}
+        </span>
+      ),
+      sortingFn: 'datetime',
+      size: 130,
+    },
+  ], []);
+
+  // Expanded row — click to open detail
+  const renderExpandedRow = useCallback((row) => {
+    return (
+      <div style={{ padding: '8px 16px' }}>
+        <button
+          onClick={() => openConversation(row.original)}
+          style={{ ...baseButton, background: COLORS.brand, color: '#000', fontSize: '12px', padding: '6px 16px' }}
+        >
+          Open Full Thread
+        </button>
+      </div>
+    );
+  }, []);
 
   // ── Detail View ──
   if (selectedConvo) {
@@ -171,147 +262,18 @@ export default function MessagingPanel() {
           accent={stats?.failedDeliveryQueue > 0 ? COLORS.red : stats?.pendingDeliveryQueue > 0 ? COLORS.amber : COLORS.green} />
       </div>
 
-      {/* Filters Bar */}
-      <div style={{
-        display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
-        marginBottom: 16, padding: '12px 16px',
-        background: COLORS.surface, borderRadius: '8px',
-        border: `1px solid ${COLORS.border}`,
-      }}>
-        <input
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          placeholder="Search by address..."
-          style={{
-            ...inputStyle, flex: 1, minWidth: 180, maxWidth: 300,
-          }}
-        />
-        <Select value={sort} onChange={e => { setSort(e.target.value); setPage(1); }}>
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="unread">Most Unread</option>
-        </Select>
-        <Select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1); }}>
-          <option value="">All Types</option>
-          <option value="internal_owner">Internal Owner</option>
-          <option value="external_agent">MLS Agent</option>
-        </Select>
-        <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="archived">Archived</option>
-          <option value="blocked">Blocked</option>
-        </Select>
-        <span style={{ fontSize: '12px', color: COLORS.textDim }}>
-          {totalFiltered} result{totalFiltered !== 1 ? 's' : ''}
-        </span>
-      </div>
-
-      {/* Conversation Table */}
-      <div style={{
-        background: COLORS.surface, borderRadius: '8px',
-        border: `1px solid ${COLORS.border}`, overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1.5fr 120px 100px 100px 130px 80px',
-          padding: '10px 16px', borderBottom: `1px solid ${COLORS.border}`,
-          fontSize: '11px', fontWeight: 700, color: COLORS.textDim,
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-        }}>
-          <span>Conversation</span>
-          <span>Participants</span>
-          <span>Type</span>
-          <span>Status</span>
-          <span>Last Activity</span>
-          <span style={{ textAlign: 'right' }}>Unread</span>
-        </div>
-
-        {conversations.length === 0 ? (
-          <div style={{ padding: '24px 16px', color: COLORS.textDim, textAlign: 'center', fontSize: '13px' }}>
-            No conversations found
-          </div>
-        ) : (
-          conversations.map((c, i) => (
-            <div key={c.id} onClick={() => openConversation(c)} style={{
-              display: 'grid', gridTemplateColumns: '1.5fr 120px 100px 100px 130px 80px',
-              alignItems: 'center', padding: '10px 16px',
-              borderBottom: i < conversations.length - 1 ? `1px solid ${COLORS.border}` : 'none',
-              cursor: 'pointer', transition: 'background 0.1s',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = COLORS.surfaceHover}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              {/* Address + preview */}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: COLORS.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.listing_address || 'Unknown Address'}
-                </div>
-                <div style={{ fontSize: '11px', color: COLORS.textDim, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.last_message_text || '—'}
-                </div>
-              </div>
-
-              {/* Participants */}
-              <div style={{ fontSize: '11px', color: COLORS.textMuted, minWidth: 0 }}>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.tenant_name}>
-                  {c.tenant_name}
-                </div>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: COLORS.textDim }} title={c.owner_name}>
-                  {c.owner_name}
-                </div>
-              </div>
-
-              {/* Type */}
-              <Badge color={c.conversation_type === 'external_agent' ? 'amber' : 'blue'}>
-                {c.conversation_type === 'external_agent' ? 'MLS Agent' : 'Internal'}
-              </Badge>
-
-              {/* Status */}
-              <Badge color={c.status === 'active' ? 'green' : c.status === 'blocked' ? 'red' : 'gray'}>
-                {c.status}
-              </Badge>
-
-              {/* Last Activity */}
-              <span style={{ fontSize: '12px', color: COLORS.textDim }}>
-                {c.last_message_at ? timeAgo(c.last_message_at) : '—'}
-              </span>
-
-              {/* Unread */}
-              <div style={{ textAlign: 'right', display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                {c.tenant_unread_count > 0 && <Badge color="cyan">{c.tenant_unread_count} T</Badge>}
-                {c.owner_unread_count > 0 && <Badge color="purple">{c.owner_unread_count} O</Badge>}
-                {!c.tenant_unread_count && !c.owner_unread_count && (
-                  <span style={{ fontSize: '12px', color: COLORS.textDim }}>—</span>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted, fontSize: '12px', padding: '6px 14px', opacity: page <= 1 ? 0.4 : 1 }}
-          >
-            Previous
-          </button>
-          <span style={{ fontSize: '12px', color: COLORS.textDim }}>
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted, fontSize: '12px', padding: '6px 14px', opacity: page >= totalPages ? 0.4 : 1 }}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      {/* Conversations Table */}
+      <AdminTable
+        columns={columns}
+        data={conversations}
+        loading={loading}
+        error={error}
+        tableName="conversations"
+        storageKey="messaging"
+        emptyMessage="No conversations yet"
+        onBulkDelete={handleBulkDelete}
+        renderExpandedRow={renderExpandedRow}
+      />
     </div>
   );
 }
@@ -511,20 +473,3 @@ function ActionBtn({ label, color, onClick }) {
     </button>
   );
 }
-
-function Select({ value, onChange, children }) {
-  return (
-    <select value={value} onChange={onChange} style={{
-      ...inputStyle, width: 'auto', minWidth: 120, cursor: 'pointer',
-    }}>
-      {children}
-    </select>
-  );
-}
-
-const inputStyle = {
-  background: COLORS.bg, border: `1px solid ${COLORS.border}`,
-  borderRadius: '6px', padding: '6px 10px', color: COLORS.text,
-  fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
-  outline: 'none', boxSizing: 'border-box',
-};
