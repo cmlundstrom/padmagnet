@@ -209,12 +209,12 @@ export default function MessagingPanel() {
     },
   ], []);
 
-  // Expanded row — click to open detail
-  const renderExpandedRow = useCallback((row) => {
+  // Expanded row — AdminTable passes row.original (the data object)
+  const renderExpandedRow = useCallback((data) => {
     return (
       <div style={{ padding: '8px 16px' }}>
         <button
-          onClick={() => openConversation(row.original)}
+          onClick={() => openConversation(data)}
           style={{ ...baseButton, background: COLORS.brand, color: '#000', fontSize: '12px', padding: '6px 16px' }}
         >
           Open Full Thread
