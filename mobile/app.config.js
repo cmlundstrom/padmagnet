@@ -1,5 +1,3 @@
-const IS_DEV = process.env.APP_VARIANT !== 'preview' && process.env.APP_VARIANT !== 'production';
-
 export default ({ config }) => ({
   expo: {
     name: "PadMagnet",
@@ -55,13 +53,8 @@ export default ({ config }) => ({
         projectId: "e669b547-8cac-4a4d-a210-d148b3dcc02e",
       },
     },
-    autolinking: {
-      ...(!IS_DEV && {
-        exclude: ['expo-dev-client'],
-      }),
-    },
     plugins: [
-      ...(IS_DEV ? ["expo-dev-client"] : []),
+      "expo-dev-client",
       "expo-router",
       "expo-font",
       "expo-image-picker",
