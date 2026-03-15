@@ -10,7 +10,8 @@ const SHARE_DEFAULTS = {
 
 function ShareTemplateSection() {
   const [fields, setFields] = useState({ ...SHARE_DEFAULTS });
-  const [saved, setSaved] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +31,16 @@ function ShareTemplateSection() {
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
+  const startEditing = () => {
+    setEditForm({ ...fields });
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setEditForm({});
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -37,15 +48,17 @@ function ShareTemplateSection() {
         fetch('/api/admin/config', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'share_subject', value: fields.share_subject }),
+          body: JSON.stringify({ key: 'share_subject', value: editForm.share_subject }),
         }),
         fetch('/api/admin/config', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'share_message', value: fields.share_message }),
+          body: JSON.stringify({ key: 'share_message', value: editForm.share_message }),
         }),
       ]);
-      setSaved(true);
+      setFields({ ...editForm });
+      setEditing(false);
+      setEditForm({});
     } catch { /* silent */ }
     setSaving(false);
   };
@@ -86,41 +99,62 @@ function ShareTemplateSection() {
 
         {loading ? (
           <p style={{ color: COLORS.textDim, fontSize: '13px' }}>Loading…</p>
-        ) : (
+        ) : editing ? (
           <>
             <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>Email Subject Line</label>
               <input
-                value={fields.share_subject}
-                onChange={e => { setFields(f => ({ ...f, share_subject: e.target.value })); setSaved(false); }}
+                value={editForm.share_subject}
+                onChange={e => setEditForm(f => ({ ...f, share_subject: e.target.value }))}
                 style={inputStyle}
               />
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>Share Message Body</label>
               <textarea
-                value={fields.share_message}
-                onChange={e => { setFields(f => ({ ...f, share_message: e.target.value })); setSaved(false); }}
+                value={editForm.share_message}
+                onChange={e => setEditForm(f => ({ ...f, share_message: e.target.value }))}
                 rows={3}
                 style={{ ...inputStyle, resize: 'vertical' }}
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button
-                onClick={handleSave}
-                disabled={saved || saving}
-                style={{
-                  ...baseButton,
-                  background: saved ? COLORS.border : COLORS.brand,
-                  color: saved ? COLORS.textDim : '#000',
-                  opacity: saving ? 0.6 : 1,
-                }}
-              >
-                {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={cancelEditing} style={{
+                ...baseButton, background: 'transparent',
+                border: `1px solid ${COLORS.border}`, color: COLORS.textMuted,
+              }}>
+                Cancel
               </button>
-              {!saved && (
-                <span style={{ fontSize: '12px', color: COLORS.amber }}>Unsaved changes</span>
-              )}
+              <button onClick={handleSave} disabled={saving} style={{
+                ...baseButton, background: COLORS.green, color: '#000',
+                opacity: saving ? 0.6 : 1,
+              }}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: 6 }}>
+                <span style={{ fontWeight: 700, color: COLORS.textDim }}>Subject: </span>
+                {fields.share_subject}
+              </div>
+              <div style={{
+                fontSize: '12px', color: COLORS.textDim, lineHeight: 1.5,
+                background: COLORS.bg, borderRadius: 6, padding: '8px 10px',
+                border: `1px solid ${COLORS.border}`, whiteSpace: 'pre-wrap',
+              }}>
+                {fields.share_message}
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={startEditing} style={{
+                ...baseButton, background: COLORS.brand, color: '#000',
+                fontSize: '11px', padding: '4px 10px',
+              }}>
+                Edit
+              </button>
             </div>
           </>
         )}
