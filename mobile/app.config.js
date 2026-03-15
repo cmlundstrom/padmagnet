@@ -55,6 +55,11 @@ export default ({ config }) => ({
         projectId: "e669b547-8cac-4a4d-a210-d148b3dcc02e",
       },
     },
+    autolinking: {
+      ...(!IS_DEV && {
+        exclude: ['expo-dev-client'],
+      }),
+    },
     plugins: [
       ...(IS_DEV ? ["expo-dev-client"] : []),
       "expo-router",
