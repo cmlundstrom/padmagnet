@@ -130,9 +130,11 @@ export default function ListingDetailScreen() {
     let messageTpl = 'Check out this rental on PadMagnet! {{address}}, {{city}} — {{price}}\nhttps://padmagnet.com/listing/{{id}}';
 
     try {
-      const cfg = await apiFetch('/api/config/public?keys=share_subject,share_message');
-      if (cfg?.share_subject) subjectTpl = cfg.share_subject;
-      if (cfg?.share_message) messageTpl = cfg.share_message;
+      const cfg = await apiFetch('/api/config/public?keys=share_subject,share_message,share_templates_active');
+      if (cfg?.share_templates_active !== 'false') {
+        if (cfg?.share_subject) subjectTpl = cfg.share_subject;
+        if (cfg?.share_message) messageTpl = cfg.share_message;
+      }
     } catch (_) {}
 
     try {

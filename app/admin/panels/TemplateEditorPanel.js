@@ -10,6 +10,7 @@ const SHARE_DEFAULTS = {
 
 function ShareTemplateSection() {
   const [fields, setFields] = useState({ ...SHARE_DEFAULTS });
+  const [isActive, setIsActive] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -17,13 +18,16 @@ function ShareTemplateSection() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/config?keys=share_subject,share_message');
+      const res = await fetch('/api/admin/config?keys=share_subject,share_message,share_templates_active');
       if (res.ok) {
         const data = await res.json();
         setFields(f => ({
           share_subject: data.share_subject || f.share_subject,
           share_message: data.share_message || f.share_message,
         }));
+        if (data.share_templates_active !== undefined) {
+          setIsActive(data.share_templates_active !== 'false');
+        }
       }
     } catch { /* silent */ }
     setLoading(false);
@@ -39,6 +43,18 @@ function ShareTemplateSection() {
   const cancelEditing = () => {
     setEditing(false);
     setEditForm({});
+  };
+
+  const toggleActive = async () => {
+    const newVal = !isActive;
+    try {
+      await fetch('/api/admin/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'share_templates_active', value: String(newVal) }),
+      });
+      setIsActive(newVal);
+    } catch { /* silent */ }
   };
 
   const handleSave = async () => {
@@ -83,6 +99,40 @@ function ShareTemplateSection() {
         background: COLORS.surface, borderRadius: 8,
         border: `1px solid ${COLORS.border}`, padding: 16,
       }}>
+        {/* Header with badge and actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editing ? 16 : 10, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: '14px', fontWeight: 700, color: COLORS.text,
+            fontFamily: 'monospace',
+          }}>
+            share_template
+          </span>
+          <Badge color={isActive ? 'green' : 'red'}>
+            {isActive ? 'Active' : 'Inactive'}
+          </Badge>
+          <div style={{ flex: 1 }} />
+          {!editing && (
+            <>
+              <button
+                onClick={toggleActive}
+                style={{
+                  ...baseButton, background: 'transparent',
+                  border: `1px solid ${COLORS.border}`, color: COLORS.textMuted,
+                  fontSize: '11px', padding: '4px 10px',
+                }}
+              >
+                {isActive ? 'Disable' : 'Enable'}
+              </button>
+              <button
+                onClick={startEditing}
+                style={{ ...baseButton, background: COLORS.brand, color: '#000', fontSize: '11px', padding: '4px 10px' }}
+              >
+                Edit
+              </button>
+            </>
+          )}
+        </div>
+
         {/* Variables reference */}
         <div style={{ fontSize: '11px', color: COLORS.textDim, marginBottom: 14, display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontWeight: 700, marginRight: 2 }}>Variables:</span>
@@ -147,14 +197,6 @@ function ShareTemplateSection() {
               }}>
                 {fields.share_message}
               </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={startEditing} style={{
-                ...baseButton, background: COLORS.brand, color: '#000',
-                fontSize: '11px', padding: '4px 10px',
-              }}>
-                Edit
-              </button>
             </div>
           </>
         )}
