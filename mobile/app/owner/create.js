@@ -10,6 +10,7 @@ import { Header, Button, Input, Toggle } from '../../components/ui';
 import StepProgress from '../../components/ui/StepProgress';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import NotificationPreferences from '../../components/owner/NotificationPreferences';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from '../../lib/api';
 import { toTitleCase, toSentenceCase } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
@@ -145,6 +146,34 @@ export default function CreateListingScreen() {
       }
     })();
     return () => { cancelled = true; };
+  }, [draft_id]);
+
+  // Prefill address from cached nearby-rentals address (only for new listings, not drafts)
+  useEffect(() => {
+    if (draft_id) return;
+    AsyncStorage.getItem('owner_property_address').then(cached => {
+      if (cached) {
+        try {
+          const addr = JSON.parse(cached);
+          if (addr.street_name) {
+            setForm(prev => {
+              // Only prefill if user hasn't already typed an address
+              if (prev.street_name) return prev;
+              return {
+                ...prev,
+                street_number: addr.street_number || '',
+                street_name: addr.street_name || '',
+                city: addr.city || '',
+                state_or_province: addr.state_or_province || 'FL',
+                postal_code: addr.postal_code || '',
+              };
+            });
+          }
+        } catch {
+          // Invalid cached data — ignore
+        }
+      }
+    });
   }, [draft_id]);
 
   // Build payload from form state — normalizes text casing before save

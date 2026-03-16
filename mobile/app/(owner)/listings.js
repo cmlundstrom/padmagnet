@@ -79,13 +79,15 @@ export default function OwnerListingsTab() {
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Listings</Text>
-        <Pressable style={styles.addListingBtn} onPress={() => router.push('/owner/create')}>
-          <FontAwesome name="plus" size={12} color={COLORS.white} />
-          <View>
-            <Text style={styles.addListingBtnText}>Add Additional</Text>
-            <Text style={styles.addListingBtnText}>Rental Listing</Text>
-          </View>
-        </Pressable>
+        {listings.some(l => l.status === 'active') && (
+          <Pressable style={styles.addListingBtn} onPress={() => router.push('/owner/create')}>
+            <FontAwesome name="plus" size={12} color={COLORS.white} />
+            <View>
+              <Text style={styles.addListingBtnText}>Add Additional</Text>
+              <Text style={styles.addListingBtnText}>Rental Listing</Text>
+            </View>
+          </Pressable>
+        )}
       </View>
 
       {listings.length === 0 ? (
@@ -103,7 +105,7 @@ export default function OwnerListingsTab() {
           <View style={styles.featureBullets}>
             {[
               'Free to list — no broker fees, no catch',
-              '11,400+ active listings across 5 counties',
+              'Average 11K+/- active listings across 5 counties on Florida\'s Treasure and Gold Coasts',
               'Smart matching sends your listing to the right tenants',
               'One-click competitive pricing research',
             ].map((text, i) => (

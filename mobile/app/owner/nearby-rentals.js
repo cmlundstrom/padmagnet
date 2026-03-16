@@ -1,14 +1,17 @@
 import { useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Header } from '../../components/ui';
 import NoPhotoPlaceholder from '../../components/ui/NoPhotoPlaceholder';
 import ListingCard from '../../components/listing/ListingCard';
 import PriceEditModal from '../../components/owner/PriceEditModal';
+import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
 import { formatCurrency, formatBedsBaths, formatDistance } from '../../utils/format';
 import { COLORS } from '../../constants/colors';
@@ -20,7 +23,21 @@ const RADIUS_OPTIONS = [1, 3, 5];
 export default function NearbyRentalsScreen() {
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
-  const { listings, subject, access, loading, error, hasMore, loadMore, refresh, setFilters } = useNearbyRentals(listing_id);
+
+  // Location-based entry mode state (only used when no listing_id)
+  // 'pending' = need permission, 'current' = using GPS, 'property' = entering address,
+  // 'property_results' = showing results around entered address, null = listing_id mode
+  const [locationMode, setLocationMode] = useState(!listing_id ? 'pending' : null);
+  const [coords, setCoords] = useState(null);
+  const [propertyAddress, setPropertyAddress] = useState(null);
+  const [requestingLocation, setRequestingLocation] = useState(false);
+
+  // Pass listing_id for listing mode, or coords for location mode
+  const hookCoords = (!listing_id && coords) ? { lat: coords.latitude, lng: coords.longitude } : {};
+  const { listings, subject, access, loading, error, hasMore, loadMore, refresh, setFilters } = useNearbyRentals(
+    listing_id || null,
+    hookCoords
+  );
 
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
   const [radius, setRadius] = useState(5);
@@ -32,7 +49,7 @@ export default function NearbyRentalsScreen() {
 
   // Build owner listing object for PriceEditModal from subject data
   const ownerListingForModal = useMemo(() => {
-    if (!subject) return null;
+    if (!subject || !listing_id) return null;
     return ownerListing || {
       id: listing_id,
       list_price: subject.list_price,
@@ -60,9 +77,143 @@ export default function NearbyRentalsScreen() {
     setOwnerListing({ id: listing_id, list_price: result.list_price });
   }, [listing_id]);
 
-  // Nearby Rentals is now FREE for all tiers (freemium plan decision)
+  // Handle location permission request
+  const handleRequestLocation = useCallback(async () => {
+    setRequestingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setLocationMode('current');
+      } else {
+        Alert.alert(
+          'Location Not Available',
+          'You can still search by entering your property address below.',
+          [{ text: 'OK' }]
+        );
+        setLocationMode('property');
+      }
+    } catch {
+      Alert.alert(
+        'Location Error',
+        'Could not get your location. You can search by entering an address instead.',
+        [{ text: 'OK' }]
+      );
+      setLocationMode('property');
+    } finally {
+      setRequestingLocation(false);
+    }
+  }, []);
 
-  if (loading && listings.length === 0) {
+  // Handle address selection from AddressAutocomplete
+  const handleAddressSelect = useCallback(async (addr) => {
+    if (addr.latitude && addr.longitude) {
+      setCoords({
+        latitude: addr.latitude,
+        longitude: addr.longitude,
+      });
+
+      const addressData = {
+        street_number: addr.street_number || '',
+        street_name: addr.street_name || '',
+        city: addr.city || '',
+        state_or_province: addr.state_or_province || 'FL',
+        postal_code: addr.postal_code || '',
+        latitude: addr.latitude,
+        longitude: addr.longitude,
+      };
+
+      setPropertyAddress(addressData);
+      setLocationMode('property_results');
+
+      // Cache address for Create Listing prefill
+      try {
+        await AsyncStorage.setItem('owner_property_address', JSON.stringify(addressData));
+      } catch {
+        // Non-critical
+      }
+    }
+  }, []);
+
+  // Format the property address for display
+  const formattedAddress = useMemo(() => {
+    if (!propertyAddress) return '';
+    const parts = [
+      propertyAddress.street_number,
+      propertyAddress.street_name,
+    ].filter(Boolean).join(' ');
+    const cityState = [propertyAddress.city, propertyAddress.state_or_province].filter(Boolean).join(', ');
+    return [parts, cityState, propertyAddress.postal_code].filter(Boolean).join(', ');
+  }, [propertyAddress]);
+
+  // --- Location permission screen (no listing_id, pending state) ---
+  if (locationMode === 'pending') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <Header title="Nearby Rentals" showBack />
+        <View style={styles.permissionScreen}>
+          <View style={styles.permissionIconContainer}>
+            <FontAwesome name="map-marker" size={48} color={COLORS.brandOrange} />
+          </View>
+          <Text style={styles.permissionTitle}>See What's Listed Nearby</Text>
+          <Text style={styles.permissionSubtitle}>
+            PadMagnet uses your location to find competing rental listings around you.
+          </Text>
+          <Pressable
+            style={styles.permissionBtn}
+            onPress={handleRequestLocation}
+            disabled={requestingLocation}
+          >
+            {requestingLocation ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.permissionBtnText}>Allow Location Access</Text>
+            )}
+          </Pressable>
+          <Text style={styles.permissionDisclaimer}>
+            Your location is never shared and is only used for search.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Address entry screen (no listing_id, property state — denied location or tapped address option) ---
+  if (locationMode === 'property') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <Header title="Nearby Rentals" showBack />
+        <View style={styles.addressEntryScreen}>
+          <Text style={styles.addressEntryTitle}>Enter Your Property Address</Text>
+          <Text style={styles.addressEntrySubtitle}>
+            We'll find competing rental listings near your property.
+          </Text>
+          <AddressAutocomplete onSelect={handleAddressSelect} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Loading state for location-based modes ---
+  const isLocationMode = locationMode === 'current' || locationMode === 'property_results';
+  if (isLocationMode && loading && listings.length === 0) {
+    return (
+      <SafeAreaView style={styles.centered} edges={['top']}>
+        <Header title="Nearby Rentals" showBack />
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={[styles.errorText, { marginTop: 12 }]}>Finding nearby rentals...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Standard loading state (listing_id mode) ---
+  if (listing_id && loading && listings.length === 0) {
     return (
       <SafeAreaView style={styles.centered} edges={['top']}>
         <Header title="Nearby Rentals" showBack />
@@ -83,10 +234,12 @@ export default function NearbyRentalsScreen() {
     );
   }
 
+  // Nearby Rentals is now FREE for all tiers (freemium plan decision)
+
   const subjectPrice = ownerListing?.list_price ?? subject?.list_price;
 
-  // Build subject as first card in grid
-  const subjectCard = subject ? {
+  // Build subject as first card in grid (only in listing_id mode)
+  const subjectCard = (listing_id && subject) ? {
     id: listing_id,
     list_price: subjectPrice,
     street_number: subject.street_number,
@@ -101,6 +254,58 @@ export default function NearbyRentalsScreen() {
   } : null;
 
   const gridData = subjectCard ? [subjectCard, ...listings] : listings;
+
+  // Location mode banner component
+  const LocationBanner = () => {
+    if (locationMode === 'current') {
+      return (
+        <View style={styles.locationBannerCard}>
+          <View style={styles.locationBannerHeader}>
+            <FontAwesome name="map-marker" size={16} color={COLORS.brandOrange} />
+            <Text style={styles.locationBannerTitle}>Showing rentals near you</Text>
+          </View>
+          <Text style={styles.locationBannerSubtext}>
+            Want to see what's near your rental property instead?
+          </Text>
+          <Pressable
+            style={styles.locationBannerBtn}
+            onPress={() => setLocationMode('property')}
+          >
+            <Text style={styles.locationBannerBtnText}>Enter Your Property Address</Text>
+            <FontAwesome name="chevron-right" size={12} color={COLORS.accent} />
+          </Pressable>
+        </View>
+      );
+    }
+
+    if (locationMode === 'property_results') {
+      return (
+        <View style={styles.locationBannerCard}>
+          <View style={styles.locationBannerHeader}>
+            <FontAwesome name="map-marker" size={16} color={COLORS.brandOrange} />
+            <Text style={styles.locationBannerTitle} numberOfLines={1}>
+              Showing rentals near {formattedAddress}
+            </Text>
+          </View>
+          <View style={styles.savedConfirmRow}>
+            <FontAwesome name="check-circle" size={14} color={COLORS.success} />
+            <Text style={styles.savedConfirmText}>
+              Great! We saved this address to speed up your listing later.
+            </Text>
+          </View>
+          <Pressable
+            style={styles.locationBannerBtn}
+            onPress={() => router.push('/owner/create')}
+          >
+            <Text style={styles.locationBannerBtnText}>Create Your Listing</Text>
+            <FontAwesome name="chevron-right" size={12} color={COLORS.accent} />
+          </Pressable>
+        </View>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -172,6 +377,7 @@ export default function NearbyRentalsScreen() {
           contentContainerStyle={styles.gridContent}
           onEndReached={loadMore}
           onEndReachedThreshold={1.5}
+          ListHeaderComponent={isLocationMode ? <LocationBanner /> : null}
           renderItem={({ item }) => (
             <View style={styles.gridItem}>
               <NearbyListingCard listing={item} isSubject={item._isSubject} />
@@ -196,28 +402,33 @@ export default function NearbyRentalsScreen() {
         <NearbyMap
           listings={listings}
           subject={subject}
+          coords={isLocationMode ? coords : null}
           selectedListing={selectedMapListing}
           onMarkerPress={setSelectedMapListing}
           onDismiss={() => setSelectedMapListing(null)}
         />
       )}
 
-      {/* Floating "Edit My Price" button */}
-      <Pressable
-        style={styles.floatingBtn}
-        onPress={() => setPriceModalVisible(true)}
-      >
-        <FontAwesome name="pencil" size={16} color={COLORS.white} />
-        <Text style={styles.floatingBtnText}>Edit My Price</Text>
-      </Pressable>
+      {/* Floating "Edit My Price" button — only in listing_id mode */}
+      {listing_id && (
+        <Pressable
+          style={styles.floatingBtn}
+          onPress={() => setPriceModalVisible(true)}
+        >
+          <FontAwesome name="pencil" size={16} color={COLORS.white} />
+          <Text style={styles.floatingBtnText}>Edit My Price</Text>
+        </Pressable>
+      )}
 
-      {/* Price edit modal */}
-      <PriceEditModal
-        visible={priceModalVisible}
-        onClose={() => setPriceModalVisible(false)}
-        listing={ownerListingForModal}
-        onPriceUpdated={handlePriceUpdated}
-      />
+      {/* Price edit modal — only in listing_id mode */}
+      {listing_id && (
+        <PriceEditModal
+          visible={priceModalVisible}
+          onClose={() => setPriceModalVisible(false)}
+          listing={ownerListingForModal}
+          onPriceUpdated={handlePriceUpdated}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -267,9 +478,13 @@ function NearbyListingCard({ listing, isSubject }) {
 }
 
 /** Map view for nearby listings with subject property marker */
-function NearbyMap({ listings, subject, selectedListing, onMarkerPress, onDismiss }) {
+function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, onDismiss }) {
   const router = useRouter();
   const mappable = listings.filter(l => l.latitude && l.longitude);
+
+  // Use subject coords (listing mode) or GPS/address coords (location mode)
+  const centerLat = subject?.latitude || coords?.latitude || 26.7;
+  const centerLng = subject?.longitude || coords?.longitude || -80.1;
 
   return (
     <View style={{ flex: 1 }}>
@@ -277,17 +492,29 @@ function NearbyMap({ listings, subject, selectedListing, onMarkerPress, onDismis
         provider={PROVIDER_GOOGLE}
         style={{ flex: 1 }}
         initialRegion={{
-          latitude: subject?.latitude || 26.7,
-          longitude: subject?.longitude || -80.1,
+          latitude: centerLat,
+          longitude: centerLng,
           latitudeDelta: 0.08,
           longitudeDelta: 0.08,
         }}
         onPress={onDismiss}
       >
-        {/* Subject property marker */}
-        {subject && (
+        {/* Subject property marker (listing mode) */}
+        {subject?.latitude && subject?.longitude && (
           <Marker
             coordinate={{ latitude: subject.latitude, longitude: subject.longitude }}
+            pinColor={COLORS.brandOrange}
+          >
+            <View style={styles.subjectMarker}>
+              <Text style={styles.subjectMarkerText}>YOU</Text>
+            </View>
+          </Marker>
+        )}
+
+        {/* Location marker (location mode, no subject) */}
+        {!subject?.latitude && coords && (
+          <Marker
+            coordinate={{ latitude: coords.latitude, longitude: coords.longitude }}
             pinColor={COLORS.brandOrange}
           >
             <View style={styles.subjectMarker}>
@@ -391,6 +618,127 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 4,
+  },
+
+  // Permission screen
+  permissionScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: LAYOUT.padding.xl,
+  },
+  permissionIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: COLORS.brandOrange + '1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  permissionTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  permissionSubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  permissionBtn: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: LAYOUT.radius.full,
+    minWidth: 220,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  permissionBtnText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+  },
+  permissionDisclaimer: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    textAlign: 'center',
+  },
+
+  // Address entry screen
+  addressEntryScreen: {
+    flex: 1,
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingTop: LAYOUT.padding.xl,
+  },
+  addressEntryTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  addressEntrySubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 24,
+  },
+
+  // Location banner card
+  locationBannerCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: LAYOUT.padding.md,
+    marginBottom: 16,
+  },
+  locationBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  locationBannerTitle: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    flex: 1,
+  },
+  locationBannerSubtext: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+  },
+  locationBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationBannerBtnText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+  },
+  savedConfirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  savedConfirmText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.success,
+    flex: 1,
   },
 
   // Subject banner

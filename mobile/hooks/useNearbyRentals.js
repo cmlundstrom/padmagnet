@@ -6,8 +6,12 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 /**
  * Nearby Rentals hook with prefetch buffer pattern (mirrors useListings.js).
  * Caches per listingId+filters combo for 5 minutes.
+ *
+ * Two modes:
+ * - listingId provided: query by listing ownership (existing behavior)
+ * - { lat, lng } provided (no listingId): query by coordinates (free, no paywall)
  */
-export default function useNearbyRentals(listingId) {
+export default function useNearbyRentals(listingId, { lat, lng } = {}) {
   const [listings, setListings] = useState([]);
   const [subject, setSubject] = useState(null);
   const [access, setAccess] = useState(null);
@@ -21,20 +25,29 @@ export default function useNearbyRentals(listingId) {
   const filtersRef = useRef({ radius: 5, beds: null, baths: null, minSqft: null, maxSqft: null });
   const cacheRef = useRef({}); // key → { data, ts }
 
+  const isCoordMode = !listingId && lat != null && lng != null;
+
   const buildQueryString = useCallback((page) => {
     const f = filtersRef.current;
-    const parts = [`listing_id=${listingId}`, `page=${page}`, `limit=20`, `radius=${f.radius}`];
+    const parts = [];
+    if (listingId) {
+      parts.push(`listing_id=${listingId}`);
+    } else if (lat != null && lng != null) {
+      parts.push(`lat=${lat}`, `lng=${lng}`);
+    }
+    parts.push(`page=${page}`, `limit=20`, `radius=${f.radius}`);
     if (f.beds != null) parts.push(`beds=${f.beds}`);
     if (f.baths != null) parts.push(`baths=${f.baths}`);
     if (f.minSqft != null) parts.push(`min_sqft=${f.minSqft}`);
     if (f.maxSqft != null) parts.push(`max_sqft=${f.maxSqft}`);
     return parts.join('&');
-  }, [listingId]);
+  }, [listingId, lat, lng]);
 
   const cacheKey = useCallback(() => {
     const f = filtersRef.current;
-    return `${listingId}:${f.radius}:${f.beds}:${f.baths}:${f.minSqft}:${f.maxSqft}`;
-  }, [listingId]);
+    const identifier = listingId ? listingId : `${lat},${lng}`;
+    return `${identifier}:${f.radius}:${f.beds}:${f.baths}:${f.minSqft}:${f.maxSqft}`;
+  }, [listingId, lat, lng]);
 
   const fetchPage = useCallback(async (pageNum) => {
     const qs = buildQueryString(pageNum);
@@ -53,7 +66,7 @@ export default function useNearbyRentals(listingId) {
   }, [fetchPage]);
 
   const fetchListings = useCallback(async (pageNum = 1) => {
-    if (!listingId || fetchingRef.current) return;
+    if ((!listingId && !isCoordMode) || fetchingRef.current) return;
     fetchingRef.current = true;
     try {
       if (pageNum === 1) setLoading(true);
@@ -97,11 +110,11 @@ export default function useNearbyRentals(listingId) {
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [listingId, fetchPage, prefetchNext, cacheKey]);
+  }, [listingId, isCoordMode, fetchPage, prefetchNext, cacheKey]);
 
   useEffect(() => {
-    if (listingId) fetchListings(1);
-  }, [listingId, fetchListings]);
+    if (listingId || isCoordMode) fetchListings(1);
+  }, [listingId, isCoordMode, fetchListings]);
 
   const loadMore = useCallback(() => {
     if (fetchingRef.current || !hasMore) return;
