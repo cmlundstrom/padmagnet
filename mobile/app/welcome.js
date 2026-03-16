@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import ImageRotator from '../components/auth/ImageRotator';
 import { Button } from '../components/ui';
@@ -51,6 +52,9 @@ export default function WelcomeScreen() {
           <Text style={styles.tagline}>
             Find Your Perfect Pad with PadScore<Text style={styles.tm}>{'\u2122'}</Text>
           </Text>
+          <Text style={styles.socialProof}>
+            11,400+ verified South Florida rental listings
+          </Text>
         </View>
 
         {/* Role buttons */}
@@ -72,6 +76,20 @@ export default function WelcomeScreen() {
           {/* Future: Broker button */}
           <View style={{ height: 12 }} />
         </View>
+
+        {/* Trust badge */}
+        <View style={styles.trustBadge}>
+          <Ionicons name="shield-checkmark" size={14} color={COLORS.success} />
+          <Text style={styles.trustText}>
+            Free to list. No broker fees. No catch.
+          </Text>
+        </View>
+
+        {/* Founder quote */}
+        <Text style={styles.founderQuote}>
+          {'"I built PadMagnet because listing a rental shouldn\u2019t cost $40 or take all day."'}
+        </Text>
+        <Text style={styles.founderAttribution}>— Chris, Founder</Text>
 
         {/* Sign in link */}
         <TouchableOpacity
@@ -160,5 +178,40 @@ const styles = StyleSheet.create({
   signInBold: {
     fontFamily: FONTS.body.semiBold,
     color: COLORS.accent,
+  },
+  socialProof: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  trustBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  trustText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.success,
+  },
+  founderQuote: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    fontStyle: 'italic',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: LAYOUT.padding.md,
+    marginBottom: 2,
+  },
+  founderAttribution: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

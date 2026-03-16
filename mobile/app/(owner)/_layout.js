@@ -37,11 +37,11 @@ export default function OwnerTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="explore"
         options={{
-          title: 'Services',
+          title: 'Explore',
           tabBarIcon: ({ focused }) => (
-            <FontAwesome name="cog" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
+            <FontAwesome name="compass" size={TAB_ICON_SIZE} color={focused ? COLORS.accent : COLORS.white} />
           ),
         }}
       />

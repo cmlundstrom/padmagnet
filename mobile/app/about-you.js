@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -11,10 +11,12 @@ import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
 import { ROLE_LABELS } from '../constants/roles';
+import NotificationPreferences from '../components/owner/NotificationPreferences';
 
 export default function AboutYouScreen() {
   const { user, role } = useAuth();
   const alert = useAlert();
+  const prefsRef = useRef(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,9 @@ export default function AboutYouScreen() {
         data: { first_name: first, last_name: last, display_name: displayName },
       });
       if (error) throw error;
+
+      // Fire-and-forget save of notification preferences for owners
+      await prefsRef.current?.save();
 
       // Route to role-based destination (role from AuthProvider context)
       if (role === 'owner') {
@@ -92,6 +97,14 @@ export default function AboutYouScreen() {
             autoCapitalize="words"
           />
 
+          {role === 'owner' && (
+            <View style={{ marginTop: 24 }}>
+              <Text style={styles.consentTitle}>How should tenants reach you?</Text>
+              <NotificationPreferences ref={prefsRef} compact context="onboarding" />
+              <Text style={styles.consentHint}>You can change these anytime in Settings.</Text>
+            </View>
+          )}
+
           <Button
             title="Continue"
             variant="primary"
@@ -132,5 +145,17 @@ const styles = StyleSheet.create({
   continueButton: {
     width: '100%',
     marginTop: 16,
+  },
+  consentTitle: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  consentHint: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    marginTop: 8,
   },
 });

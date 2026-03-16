@@ -1017,15 +1017,15 @@ Templates
 - [ ] EAS Build to verify
 
 ### Phase 2: Owner Flow Redesign (Week 3-4)
-- [ ] Rename Services → Explore tab
-- [ ] Build Listings tab empty state (sales page)
-- [ ] Build upgrade screen (3-tier comparison)
-- [ ] Build post-activation celebration screen
-- [ ] Remove NearbyRentalsGate paywall
-- [ ] Add consent touchpoints (4 locations)
-- [ ] Update Welcome screen with social proof
-- [ ] Add wizard micro-copy
-- [ ] Store content in site_config
+- [x] Rename Services → Explore tab (Nearby Rentals + MarketStats + UpgradeCTA)
+- [x] Build Listings tab empty state (sales page with value props + competitor comparison)
+- [x] Build upgrade screen (3-tier comparison: Free/Pro/Premium)
+- [x] Build post-activation celebration screen (confirmation + soft upsell)
+- [x] Remove NearbyRentalsGate paywall (free for all tiers)
+- [x] Add consent touchpoints (About You #1, Wizard Step 7 #2 — Messages #3 and Listings #4 deferred to integration)
+- [x] Update Welcome screen with social proof (stats bar + trust badge + founder quote)
+- [x] Add wizard micro-copy (8 step-specific subtitles in StepProgress)
+- [ ] Store content in site_config (admin-editable sales pages — deferred to Phase 3 with Sales Pages panel)
 - [ ] EAS Build + full flow test
 
 ### Phase 3: Admin & Analytics (Week 5-6)

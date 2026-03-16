@@ -9,6 +9,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Header, Button, Input, Toggle } from '../../components/ui';
 import StepProgress from '../../components/ui/StepProgress';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
+import NotificationPreferences from '../../components/owner/NotificationPreferences';
 import { apiFetch } from '../../lib/api';
 import { toTitleCase, toSentenceCase } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
@@ -21,6 +22,17 @@ import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 
 const STEPS = ['Address', 'Details', 'Description', 'Lease', 'Features', 'Photos', 'Contact', 'Review'];
+
+const STEP_MICROCOPY = [
+  "Let's find your property",
+  "Tell us about it",
+  "Make it shine",
+  "Set your terms",
+  "Highlight what makes it special",
+  "First impressions matter",
+  "How tenants will reach you",
+  "Looking great \u2014 let's review",
+];
 
 const PROPERTY_TYPES = ['Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home'];
 
@@ -66,6 +78,7 @@ export default function CreateListingScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [photoUploadConfig, setPhotoUploadConfig] = useState(null);
   const [contactPref, setContactPref] = useState('email'); // 'email' | 'phone' | 'both'
+  const notifPrefsRef = useRef(null);
 
   // Fetch photo upload feature config
   useEffect(() => {
@@ -402,6 +415,7 @@ export default function CreateListingScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      await notifPrefsRef.current?.save().catch(() => {});
       const payload = buildPayload('active');
 
       if (draftId) {
@@ -447,7 +461,7 @@ export default function CreateListingScreen() {
       <Header title={draft_id ? 'Edit Draft' : 'Create Listing'} showBack />
 
       {/* Step indicator */}
-      <StepProgress current={step} steps={STEPS} />
+      <StepProgress current={step} steps={STEPS} subtitle={STEP_MICROCOPY[step]} />
 
 
 
@@ -703,6 +717,9 @@ export default function CreateListingScreen() {
               numberOfLines={3}
               style={styles.textArea}
             />
+            <View style={{ marginTop: 24 }}>
+              <NotificationPreferences ref={notifPrefsRef} compact context="wizard" />
+            </View>
           </>
         )}
 

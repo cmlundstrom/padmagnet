@@ -8,7 +8,6 @@ import { Image } from 'expo-image';
 import { Header } from '../../components/ui';
 import NoPhotoPlaceholder from '../../components/ui/NoPhotoPlaceholder';
 import ListingCard from '../../components/listing/ListingCard';
-import NearbyRentalsGate from '../../components/owner/NearbyRentalsGate';
 import PriceEditModal from '../../components/owner/PriceEditModal';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
 import { formatCurrency, formatBedsBaths, formatDistance } from '../../utils/format';
@@ -61,9 +60,7 @@ export default function NearbyRentalsScreen() {
     setOwnerListing({ id: listing_id, list_price: result.list_price });
   }, [listing_id]);
 
-  const handlePurchase = useCallback(() => {
-    router.push('/(owner)/services');
-  }, [router]);
+  // Nearby Rentals is now FREE for all tiers (freemium plan decision)
 
   if (loading && listings.length === 0) {
     return (
@@ -213,11 +210,6 @@ export default function NearbyRentalsScreen() {
         <FontAwesome name="pencil" size={16} color={COLORS.white} />
         <Text style={styles.floatingBtnText}>Edit My Price</Text>
       </Pressable>
-
-      {/* Access gate overlay */}
-      {access && !access.granted && (
-        <NearbyRentalsGate access={access} onPurchase={handlePurchase} />
-      )}
 
       {/* Price edit modal */}
       <PriceEditModal

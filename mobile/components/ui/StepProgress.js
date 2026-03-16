@@ -11,7 +11,7 @@ import { LAYOUT } from '../../constants/layout';
  * @param {string[]} steps - Array of step labels
  * @param {number} [startAt=0] - First step index to count from (skip welcome screens)
  */
-export default function StepProgress({ current, steps, startAt = 0 }) {
+export default function StepProgress({ current, steps, startAt = 0, subtitle }) {
   const totalVisible = steps.length - startAt;
   const currentVisible = current - startAt + 1;
 
@@ -29,6 +29,7 @@ export default function StepProgress({ current, steps, startAt = 0 }) {
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${progress * 100}%` }]} />
       </View>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -58,5 +59,12 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.accent,
     borderRadius: 2,
+  },
+  subtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
   },
 });

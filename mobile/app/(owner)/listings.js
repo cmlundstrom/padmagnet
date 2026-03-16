@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated } from 'react-native';
+import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { EmptyState } from '../../components/ui';
 import PriceEditModal from '../../components/owner/PriceEditModal';
@@ -89,13 +89,62 @@ export default function OwnerListingsTab() {
       </View>
 
       {listings.length === 0 ? (
-        <EmptyState
-          icon="🏠"
-          title="No listings yet"
-          subtitle="Add your first rental property here to start attracting tenants!"
-          actionLabel="Create Listing"
-          onAction={() => router.push('/owner/create')}
-        />
+        <ScrollView contentContainerStyle={styles.emptyScrollContent}>
+          <Image
+            source={require('../../assets/images/padmagnet-icon-512-dark.png')}
+            style={styles.emptyIcon}
+            contentFit="contain"
+          />
+          <Text style={styles.emptyHeading}>List Your Rental for Free</Text>
+          <Text style={styles.emptySubtitle}>
+            PadMagnet matches your listing with qualified South Florida tenants using smart scoring.
+          </Text>
+
+          <View style={styles.featureBullets}>
+            {[
+              'Free to list — no broker fees, no catch',
+              '11,400+ active listings across 5 counties',
+              'Smart matching sends your listing to the right tenants',
+              'One-click competitive pricing research',
+            ].map((text, i) => (
+              <View key={i} style={styles.bulletRow}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+                <Text style={styles.bulletText}>{text}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.compCard}>
+            <Text style={styles.compCardTitle}>What others charge</Text>
+            {[
+              { name: 'Zillow Premium', price: '$39.99' },
+              { name: 'Apartments.com', price: '$349' },
+              { name: 'Avail Plus', price: '$9/unit' },
+            ].map((row, i) => (
+              <View key={i} style={styles.compRow}>
+                <Text style={styles.compName}>{row.name}</Text>
+                <Text style={styles.compPrice}>{row.price}</Text>
+              </View>
+            ))}
+            <View style={[styles.compRow, styles.compHighlight]}>
+              <Text style={[styles.compName, { color: COLORS.success, fontFamily: FONTS.body.bold }]}>PadMagnet</Text>
+              <Text style={[styles.compPrice, { color: COLORS.success, fontFamily: FONTS.heading.bold }]}>FREE</Text>
+            </View>
+          </View>
+
+          <Pressable
+            style={styles.emptyCta}
+            onPress={() => router.push('/owner/create')}
+          >
+            <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+          </Pressable>
+
+          <Pressable onPress={() => router.push('/owner/nearby-rentals')}>
+            <Text style={styles.emptyLink}>
+              Already have a rental nearby? Check Nearby Pricing →
+            </Text>
+          </Pressable>
+        </ScrollView>
       ) : (
         <FlatList
           data={listings}
@@ -510,5 +559,106 @@ const styles = StyleSheet.create({
   },
   dangerBtnText: {
     color: COLORS.brandOrange,
+  },
+
+  // ── Empty state (mini sales page) ────────────────────────
+  emptyScrollContent: {
+    alignItems: 'center',
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingTop: LAYOUT.padding.xl,
+    paddingBottom: 60,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    marginBottom: LAYOUT.padding.md,
+  },
+  emptyHeading: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES['2xl'],
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: LAYOUT.padding.sm,
+  },
+  emptySubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: LAYOUT.padding.lg,
+    lineHeight: 20,
+  },
+  featureBullets: {
+    alignSelf: 'stretch',
+    marginBottom: LAYOUT.padding.lg,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  bulletText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    flex: 1,
+  },
+  compCard: {
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.lg,
+  },
+  compCardTitle: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: LAYOUT.padding.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  compRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  compHighlight: {
+    borderBottomWidth: 0,
+    paddingTop: 10,
+  },
+  compName: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+  },
+  compPrice: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+  },
+  emptyCta: {
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.brandOrange,
+    borderRadius: LAYOUT.radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: LAYOUT.padding.md,
+  },
+  emptyCtaText: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+  },
+  emptyLink: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+    textAlign: 'center',
   },
 });
