@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Input, Button } from '../components/ui';
@@ -63,37 +63,45 @@ export default function AboutYouScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>About You</Text>
-        <Text style={styles.subtitle}>
-          {roleLabel ? `Signed in as ${roleLabel}` : 'Tell us your name to get started.'}
-        </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>About You</Text>
+          <Text style={styles.subtitle}>
+            {roleLabel ? `Signed in as ${roleLabel}` : 'Tell us your name to get started.'}
+          </Text>
 
-        <Input
-          label="First Name"
-          value={firstName}
-          onChangeText={setFirstName}
-          placeholder="First name"
-          autoCapitalize="words"
-        />
+          <Input
+            label="First Name"
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="First name"
+            autoCapitalize="words"
+          />
 
-        <Input
-          label="Last Name"
-          value={lastName}
-          onChangeText={setLastName}
-          placeholder="Last name"
-          autoCapitalize="words"
-        />
+          <Input
+            label="Last Name"
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Last name"
+            autoCapitalize="words"
+          />
 
-        <Button
-          title="Continue"
-          variant="primary"
-          size="lg"
-          onPress={handleContinue}
-          loading={loading}
-          style={styles.continueButton}
-        />
-      </View>
+          <Button
+            title="Continue"
+            variant="primary"
+            size="lg"
+            onPress={handleContinue}
+            loading={loading}
+            style={styles.continueButton}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -104,9 +112,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: LAYOUT.padding.lg,
+    paddingBottom: 360,
   },
   title: {
     fontFamily: FONTS.heading.bold,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, Switch, StyleSheet, Animated } from 'react-native';
+import { ScrollView, View, Text, Pressable, Switch, StyleSheet, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -188,7 +188,8 @@ export default function PreferencesScreen() {
         )}
       </Animated.View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
         {/* Budget */}
         <Text style={styles.sectionTitle}>Budget</Text>
@@ -333,6 +334,7 @@ export default function PreferencesScreen() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Floating "Start Swiping" button */}
       <View style={styles.floatingWrap}>
@@ -355,7 +357,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 175,
+    paddingBottom: 360,
   },
   statusBar: {
     alignItems: 'center',

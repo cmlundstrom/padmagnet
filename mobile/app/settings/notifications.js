@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, Switch, TextInput, TouchableOpacity,
-  ScrollView, ActivityIndicator, StyleSheet,
+  ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeModules } from 'react-native';
@@ -152,7 +152,8 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={{ padding: LAYOUT.padding.md }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={{ padding: LAYOUT.padding.md, paddingBottom: 360 }} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -254,6 +255,7 @@ export default function NotificationsScreen() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

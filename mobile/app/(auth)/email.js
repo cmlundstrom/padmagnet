@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -51,58 +51,60 @@ export default function EmailScreen() {
     <SafeAreaView style={styles.container}>
       <AuthHeader onBack={() => router.replace('/welcome')} />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>What's your email?</Text>
-        <Text style={styles.subtitle}>{subtitleText}</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>What's your email?</Text>
+          <Text style={styles.subtitle}>{subtitleText}</Text>
 
-        <Input
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
 
-        <Button
-          title="Continue with Email"
-          variant="primary"
-          size="lg"
-          onPress={handleEmailContinue}
-          style={styles.mainButton}
-        />
+          <Button
+            title="Continue with Email"
+            variant="primary"
+            size="lg"
+            onPress={handleEmailContinue}
+            style={styles.mainButton}
+          />
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-        <TouchableOpacity
-          style={styles.socialButton}
-          onPress={handleGoogle}
-          disabled={googleLoading}
-          activeOpacity={0.8}
-        >
-          {googleLoading ? (
-            <ActivityIndicator size="small" color={COLORS.socialTextDark} />
-          ) : (
-            <FontAwesome name="google" size={28} color={COLORS.socialGoogle} style={styles.socialIcon} />
-          )}
-          <Text style={styles.socialText}>Continue with Google</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={handleGoogle}
+            disabled={googleLoading}
+            activeOpacity={0.8}
+          >
+            {googleLoading ? (
+              <ActivityIndicator size="small" color={COLORS.socialTextDark} />
+            ) : (
+              <FontAwesome name="google" size={28} color={COLORS.socialGoogle} style={styles.socialIcon} />
+            )}
+            <Text style={styles.socialText}>Continue with Google</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.socialButton, styles.facebookButton]}
-          onPress={handleFacebook}
-          activeOpacity={0.8}
-        >
-          <FontAwesome name="facebook" size={28} color={COLORS.white} style={styles.socialIcon} />
-          <Text style={[styles.socialText, styles.facebookText]}>Continue with Facebook</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.socialButton, styles.facebookButton]}
+            onPress={handleFacebook}
+            activeOpacity={0.8}
+          >
+            <FontAwesome name="facebook" size={28} color={COLORS.white} style={styles.socialIcon} />
+            <Text style={[styles.socialText, styles.facebookText]}>Continue with Facebook</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -113,9 +115,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: 24,
+    paddingBottom: 360,
   },
   title: {
     fontFamily: FONTS.heading.bold,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Input, Button, AuthHeader } from '../../components/ui';
@@ -32,35 +32,37 @@ export default function ForgotPasswordScreen() {
     <SafeAreaView style={styles.container}>
       <AuthHeader />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>Enter your email to receive a reset link</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>Reset Password</Text>
+          <Text style={styles.subtitle}>Enter your email to receive a reset link</Text>
 
-        <Input
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-        <Button
-          title="Send Reset Link"
-          variant="primary"
-          size="lg"
-          onPress={handleReset}
-          loading={loading}
-          style={styles.resetButton}
-        />
+          <Button
+            title="Send Reset Link"
+            variant="primary"
+            size="lg"
+            onPress={handleReset}
+            loading={loading}
+            style={styles.resetButton}
+          />
 
-        <TouchableOpacity
-          onPress={() => router.push('/(auth)/email')}
-          style={styles.backLink}
-        >
-          <Text style={styles.backLinkText}>Back to sign in</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/email')}
+            style={styles.backLink}
+          >
+            <Text style={styles.backLinkText}>Back to sign in</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -71,9 +73,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: 24,
+    paddingBottom: 360,
   },
   title: {
     fontFamily: FONTS.heading.bold,

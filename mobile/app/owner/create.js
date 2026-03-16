@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -451,7 +451,8 @@ export default function CreateListingScreen() {
 
 
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Step 0: Address */}
         {step === 0 && (
           <>
@@ -726,6 +727,7 @@ export default function CreateListingScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Navigation buttons */}
       <View style={styles.navBar}>
@@ -785,7 +787,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 24,
+    paddingBottom: 360,
   },
   sectionTitle: {
     fontFamily: FONTS.heading.semiBold,

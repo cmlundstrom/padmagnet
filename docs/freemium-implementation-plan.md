@@ -1037,6 +1037,7 @@ Templates
 - [ ] Build /api/owner/analytics/[id]
 - [ ] Add subscription management to Settings
 - [ ] Add tier badges to listing cards
+- [ ] Brand Supabase Auth emails OR override with Resend (signup confirm, reset password, magic link, email change)
 - [ ] EAS Build + admin testing
 
 ### Phase 4: Stripe & Go-Live (Week 7-8)

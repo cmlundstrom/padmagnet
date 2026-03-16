@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Input, Button, AuthHeader } from '../../components/ui';
@@ -40,43 +40,45 @@ export default function PasswordScreen() {
     <SafeAreaView style={styles.container}>
       <AuthHeader />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>{email}</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.subtitle}>{email}</Text>
 
-        <Input
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Enter your password"
-          secureTextEntry
-        />
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter your password"
+            secureTextEntry
+          />
 
-        <Button
-          title="Sign In"
-          variant="primary"
-          size="lg"
-          onPress={handleSignIn}
-          loading={loading}
-          style={styles.signInButton}
-        />
+          <Button
+            title="Sign In"
+            variant="primary"
+            size="lg"
+            onPress={handleSignIn}
+            loading={loading}
+            style={styles.signInButton}
+          />
 
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { email } })}
-          style={styles.forgotLink}
-        >
-          <Text style={styles.forgotText}>Forgot Password?</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { email } })}
+            style={styles.forgotLink}
+          >
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.replace({ pathname: '/(auth)/register', params: { email, role } })}
-          style={styles.registerLink}
-        >
-          <Text style={styles.registerText}>
-            Don't have an account? <Text style={styles.registerBold}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => router.replace({ pathname: '/(auth)/register', params: { email, role } })}
+            style={styles.registerLink}
+          >
+            <Text style={styles.registerText}>
+              Don't have an account? <Text style={styles.registerBold}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -87,9 +89,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: 24,
+    paddingBottom: 360,
   },
   title: {
     fontFamily: FONTS.heading.bold,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
@@ -366,6 +366,7 @@ export default function EditListingScreen() {
 
       {/* Details Tab */}
       {tab === 0 && (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.sectionHeader}>Property Details</Text>
           <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} placeholder="2500" keyboardType="numeric" />
@@ -464,6 +465,7 @@ export default function EditListingScreen() {
             <Button title="Save Changes" onPress={handleSave} loading={saving} />
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* Photos Tab */}
@@ -535,6 +537,7 @@ export default function EditListingScreen() {
 
       {/* Contact Tab */}
       {tab === 2 && (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.sectionHeader}>Contact Information</Text>
           <Text style={styles.hint}>This is how tenants will reach you. Choose your preferred contact method.</Text>
@@ -591,6 +594,7 @@ export default function EditListingScreen() {
             <Button title="Save Changes" onPress={handleSave} loading={saving} />
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       )}
     </SafeAreaView>
   );
@@ -650,7 +654,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 40,
+    paddingBottom: 360,
   },
   sectionHeader: {
     fontFamily: FONTS.heading.semiBold,
