@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const GOOGLE_KEY = process.env.GOOGLE_SERVER_GEOCODING_KEY;
+// Dedicated Places API key (GOOGLE_GEOCODING_KEY) — separate from the server geocoding key
+const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY || process.env.GOOGLE_SERVER_GEOCODING_KEY;
 
 // GET /api/places/details?place_id=ChIJ...
 export async function GET(request) {
