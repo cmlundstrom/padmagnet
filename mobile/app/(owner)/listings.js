@@ -17,6 +17,19 @@ import { SCREEN } from '../../constants/screenStyles';
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Subtle pulse animation for the nearby rentals button
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -141,11 +154,21 @@ export default function OwnerListingsTab() {
             <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push('/owner/nearby-rentals')}>
-            <Text style={styles.emptyLink}>
-              Already have a rental nearby? Check Nearby Pricing →
+          <View style={styles.nearbyPromo}>
+            <Text style={styles.nearbyPromoText}>
+              Wondering what other rentals are priced at around you right now?
             </Text>
-          </Pressable>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <Pressable
+                style={styles.nearbyPromoBtn}
+                onPress={() => router.push('/owner/nearby-rentals')}
+              >
+                <FontAwesome name="map-marker" size={16} color={COLORS.white} />
+                <Text style={styles.nearbyPromoBtnText}>Take a Look</Text>
+                <FontAwesome name="chevron-right" size={12} color={COLORS.white} style={{ opacity: 0.7 }} />
+              </Pressable>
+            </Animated.View>
+          </View>
         </ScrollView>
       ) : (
         <FlatList
@@ -657,10 +680,35 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
   },
-  emptyLink: {
+  nearbyPromo: {
+    alignItems: 'center',
+    marginTop: LAYOUT.padding.sm,
+  },
+  nearbyPromoText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    color: COLORS.textSecondary,
     textAlign: 'center',
+    marginBottom: LAYOUT.padding.md,
+    lineHeight: 20,
+  },
+  nearbyPromoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: LAYOUT.padding.sm,
+    backgroundColor: COLORS.brandOrange,
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingVertical: 14,
+    borderRadius: LAYOUT.radius.full,
+    shadowColor: COLORS.brandOrange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  nearbyPromoBtnText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
   },
 });
