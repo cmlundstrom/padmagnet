@@ -65,8 +65,10 @@ export default function useNearbyRentals(listingId, { lat, lng } = {}) {
     }
   }, [fetchPage]);
 
-  const fetchListings = useCallback(async (pageNum = 1) => {
-    if ((!listingId && !isCoordMode) || fetchingRef.current) return;
+  const fetchListings = useCallback(async (pageNum = 1, force = false) => {
+    if (!listingId && !isCoordMode) return;
+    // If already fetching, only block non-forced calls (filter changes force a re-fetch)
+    if (fetchingRef.current && !force) return;
     fetchingRef.current = true;
     try {
       if (pageNum === 1) setLoading(true);
@@ -140,8 +142,11 @@ export default function useNearbyRentals(listingId, { lat, lng } = {}) {
     setListings([]);
     pageRef.current = 1;
     bufferRef.current = null;
-    fetchListings(1);
-  }, [fetchListings]);
+    // Invalidate cache for the new filter combo
+    const key = cacheKey();
+    delete cacheRef.current[key];
+    fetchListings(1, true); // force=true to bypass fetchingRef guard
+  }, [fetchListings, cacheKey]);
 
   const refresh = useCallback(() => {
     // Invalidate cache for current filters
@@ -151,7 +156,7 @@ export default function useNearbyRentals(listingId, { lat, lng } = {}) {
     pageRef.current = 1;
     bufferRef.current = null;
     setHasMore(true);
-    fetchListings(1);
+    fetchListings(1, true);
   }, [fetchListings, cacheKey]);
 
   return { listings, subject, access, loading, error, hasMore, loadMore, refresh, setFilters };

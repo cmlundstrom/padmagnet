@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,19 +18,49 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
-const RADIUS_OPTIONS = [1, 3, 5];
+const RADIUS_OPTIONS = [3, 5, 10];
 
 export default function NearbyRentalsScreen() {
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
 
   // Location-based entry mode state (only used when no listing_id)
-  // 'pending' = need permission, 'current' = using GPS, 'property' = entering address,
+  // 'checking' = checking existing permission, 'pending' = need permission,
+  // 'current' = using GPS, 'property' = entering address,
   // 'property_results' = showing results around entered address, null = listing_id mode
-  const [locationMode, setLocationMode] = useState(!listing_id ? 'pending' : null);
+  const [locationMode, setLocationMode] = useState(!listing_id ? 'checking' : null);
   const [coords, setCoords] = useState(null);
   const [propertyAddress, setPropertyAddress] = useState(null);
   const [requestingLocation, setRequestingLocation] = useState(false);
+
+  // On mount: check if location permission was already granted
+  useEffect(() => {
+    if (listing_id || locationMode !== 'checking') return;
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          // Already have permission — go straight to GPS
+          const position = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          setCoords({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          setLocationMode('current');
+        } else if (status === 'denied') {
+          // Previously denied — skip to address entry (don't re-ask)
+          setLocationMode('property');
+        } else {
+          // Never asked — show branded permission screen
+          setLocationMode('pending');
+        }
+      } catch {
+        setLocationMode('pending');
+      }
+    })();
+  }, [listing_id, locationMode]);
 
   // Pass listing_id for listing mode, or coords for location mode
   const hookCoords = (!listing_id && coords) ? { lat: coords.latitude, lng: coords.longitude } : {};
@@ -151,6 +181,16 @@ export default function NearbyRentalsScreen() {
     const cityState = [propertyAddress.city, propertyAddress.state_or_province].filter(Boolean).join(', ');
     return [parts, cityState, propertyAddress.postal_code].filter(Boolean).join(', ');
   }, [propertyAddress]);
+
+  // --- Checking existing permission on mount ---
+  if (locationMode === 'checking') {
+    return (
+      <SafeAreaView style={styles.centered} edges={['top']}>
+        <Header title="Nearby Rentals" showBack />
+        <ActivityIndicator size="large" color={COLORS.accent} />
+      </SafeAreaView>
+    );
+  }
 
   // --- Location permission screen (no listing_id, pending state) ---
   if (locationMode === 'pending') {
@@ -340,20 +380,6 @@ export default function NearbyRentalsScreen() {
             >
               <Text style={[CHIP_STYLES.chipText, radius === r && CHIP_STYLES.chipTextActive]}>
                 {r} mi
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Beds</Text>
-          {[1, 2, 3].map(b => (
-            <Pressable
-              key={`bed-${b}`}
-              style={[CHIP_STYLES.chip, beds === b && CHIP_STYLES.chipActive]}
-              onPress={() => handleBedsFilter(b)}
-            >
-              <Text style={[CHIP_STYLES.chipText, beds === b && CHIP_STYLES.chipTextActive]}>
-                {b}{b === 3 ? '+ bed' : ' bed'}
               </Text>
             </Pressable>
           ))}
