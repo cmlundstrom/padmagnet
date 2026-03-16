@@ -10,6 +10,7 @@ const ALLOWED_CONFIG_KEYS = [
   'owner_listing_footer', 'mls_listing_footer',
   'owner_empty_state', 'owner_upgrade_page', 'owner_post_activation',
   'owner_explore_tab', 'market_stats', 'upgrade_page',
+  'share_subject', 'share_message', 'share_templates_active',
 ];
 
 // GET /api/admin/config?keys=bridge_portal_url,bridge_notes
