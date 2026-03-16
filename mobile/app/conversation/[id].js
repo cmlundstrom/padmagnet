@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   readLabel: {
     fontFamily: FONTS.body.regular,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.slate,
     textAlign: 'right',
     paddingRight: LAYOUT.padding.md,

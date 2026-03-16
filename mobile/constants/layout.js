@@ -6,33 +6,49 @@ const { width, height } = Dimensions.get('window');
 
 export const LAYOUT = {
   window: { width, height },
+
+  // ── Spacing scale ────────────────────────────────────────
+  // Use for padding, margin, and gap values
   padding: {
+    xxs: 2,
     xs: 4,
     sm: 8,
     md: 16,
     lg: 24,
     xl: 32,
+    '2xl': 48,
   },
+
+  // ── Border radius scale ──────────────────────────────────
   radius: {
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
-    full: 9999,
+    xs: 4,     // Progress bars, tiny elements
+    sm: 8,     // Inputs, small cards
+    md: 12,    // Cards, modals, badges
+    lg: 16,    // Large cards, sheets
+    xl: 24,    // Rounded buttons, large elements
+    '2xl': 28, // Pill buttons, FABs
+    full: 9999, // Circles, chips
   },
+
+  // ── Component dimensions ─────────────────────────────────
   card: {
     width: width - 32,
     height: height * 0.58,
   },
+  avatar: { sm: 36, md: 52, lg: 72 },
+  imageHeight: { card: 150, map: 90, gallery: 300 },
+  iconSize: { xs: 8, sm: 12, md: 16, lg: 24, xl: 36 },
+  badgeOffset: { sm: 6, md: 12 },
   switch: {
     transform: [{ scale: 1.5 }],
   },
 };
 
+// ── Chip styles (shared across all chip/tag/toggle UIs) ────
 export const CHIP_STYLES = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: LAYOUT.padding.sm,
     borderRadius: LAYOUT.radius.full,
     backgroundColor: COLORS.accent + '22',
     borderWidth: 1,

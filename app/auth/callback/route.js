@@ -9,8 +9,17 @@ export async function GET(request) {
   const type = searchParams.get('type');
   const next = searchParams.get('next') || '/admin';
 
-  // Recovery flows go to reset-password; everything else goes to `next`
-  const destination = type === 'recovery' ? '/reset-password' : next;
+  // Route based on confirmation type
+  let destination;
+  if (type === 'recovery') {
+    destination = '/reset-password';
+  } else if (type === 'signup' || type === 'email_confirmation') {
+    destination = '/email-confirmed?type=signup';
+  } else if (type === 'email_change') {
+    destination = '/email-confirmed?type=email_change';
+  } else {
+    destination = next;
+  }
   const redirectUrl = new URL(destination, request.url);
   const response = NextResponse.redirect(redirectUrl);
 

@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.white,
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

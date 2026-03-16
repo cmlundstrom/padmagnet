@@ -1,9 +1,13 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table');

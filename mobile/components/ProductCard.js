@@ -13,7 +13,7 @@ export default function ProductCard({ product, onPurchase, ctaLabel = 'Buy Now',
     <View style={[styles.card, featured && styles.featured]}>
       {badge ? (
         <View style={styles.badge}>
-          <FontAwesome name="star" size={11} color="#fff" style={styles.badgeStar} />
+          <FontAwesome name="star" size={11} color={COLORS.white} style={styles.badgeStar} />
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       ) : null}
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xs,
-    color: '#fff',
+    color: COLORS.white,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

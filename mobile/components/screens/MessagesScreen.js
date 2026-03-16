@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   },
   tabBadgeText: {
     fontFamily: FONTS.body.bold,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.white,
   },
   swipeActions: {
@@ -322,10 +322,10 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   archiveBtn: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: COLORS.brandOrange,
   },
   unarchiveBtn: {
-    backgroundColor: '#22C55E',
+    backgroundColor: COLORS.success,
   },
   swipeBtnText: {
     fontFamily: FONTS.body.semiBold,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   swipeHintIcon: {
-    fontSize: 16,
+    fontSize: FONT_SIZES.md,
   },
   swipeHintText: {
     fontFamily: FONTS.body.regular,

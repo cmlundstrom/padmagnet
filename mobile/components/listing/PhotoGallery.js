@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
+import { LAYOUT } from '../../constants/layout';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GALLERY_HEIGHT = SCREEN_WIDTH * 0.75;
@@ -77,7 +78,7 @@ export default function PhotoGallery({ photos = [] }) {
       {photos.length > 1 && activeIndex === 0 && (
         <Animated.View style={[styles.swipeHint, { opacity: hintOpacity, transform: [{ translateX: hintTranslateX }] }]}>
           <Text style={styles.swipeHintText}>Slide for photos</Text>
-          <FontAwesome name="chevron-right" size={14} color="rgba(255,255,255,0.85)" />
+          <FontAwesome name="chevron-right" size={14} color={COLORS.overlayWhiteStrong} />
         </Animated.View>
       )}
 
@@ -105,8 +106,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
+    backgroundColor: COLORS.scrimDark,
+    borderRadius: LAYOUT.radius.md,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -121,11 +122,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: COLORS.overlayWhiteLight,
   },
   progressFill: {
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: COLORS.overlayWhiteStrong,
     borderRadius: 1.5,
   },
   swipeHint: {
@@ -142,8 +143,8 @@ const styles = StyleSheet.create({
   swipeHintText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: 'rgba(255,255,255,0.85)',
-    textShadowColor: 'rgba(0,0,0,0.6)',
+    color: COLORS.overlayWhiteStrong,
+    textShadowColor: COLORS.scrimDark,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },

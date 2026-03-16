@@ -39,7 +39,7 @@ export default function NearbyRentalsGate({ access, onPurchase }) {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11,29,58,0.92)',
+    backgroundColor: COLORS.overlayNavy,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,

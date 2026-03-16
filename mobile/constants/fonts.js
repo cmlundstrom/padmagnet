@@ -1,5 +1,6 @@
 // Typography — Outfit for headings, DM Sans for body
 // Fonts loaded in _layout.js via expo-font
+// ALL font families and sizes MUST reference this file.
 export const FONTS = {
   heading: {
     regular: 'Outfit-Regular',
@@ -16,11 +17,14 @@ export const FONTS = {
 };
 
 export const FONT_SIZES = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 22,
-  '2xl': 28,
-  '3xl': 34,
+  xxs: 10,    // Legal text, disclaimers, timestamps
+  xs: 12,     // Badges, captions, secondary labels
+  sm: 14,     // Body text, list items
+  md: 16,     // Primary body, inputs
+  lg: 18,     // Section headings, emphasized text
+  xl: 22,     // Page titles
+  '2xl': 28,  // Large headings
+  '3xl': 34,  // Hero headings
+  '4xl': 38,  // Welcome screen wordmark
+  '5xl': 48,  // Onboarding hero numbers
 };

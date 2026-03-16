@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   agentLabel: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.brandOrange,
     marginBottom: 2,
   },
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   time: {
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     marginTop: 4,
     textAlign: 'right',
   },
@@ -107,12 +107,12 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
   },
   check: {
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
   },
   checkGrey: {
     color: COLORS.slate,
   },
   checkBlue: {
-    color: '#3B82F6',
+    color: COLORS.accent,
   },
 });

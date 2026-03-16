@@ -1,10 +1,14 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET — list all display field configs ordered by sort_order
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
@@ -24,6 +28,9 @@ export async function GET() {
 
 // POST — create a new display field config
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { output_key, label, section, canonical_column, render_type, sort_order, format_options } = body;
@@ -63,6 +70,9 @@ export async function POST(request) {
 // PATCH — update display field config(s)
 // Accepts AdminTable format: { ids: [...], changes: { field: value } }
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const supabase = createServiceClient();
@@ -116,6 +126,9 @@ export async function PATCH(request) {
 
 // DELETE — hard delete a display field config
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { id } = await request.json();
     if (!id) {

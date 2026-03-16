@@ -211,13 +211,13 @@ export default function ListingDetailScreen() {
       {context !== 'owner_browse' && (
         <Pressable onPress={handleSave} style={styles.heartFab}>
           <Animated.View style={burst0Style}>
-            <FontAwesome name="heart" size={10} color="#22C55E" />
+            <FontAwesome name="heart" size={10} color={COLORS.success} />
           </Animated.View>
           <Animated.View style={burst1Style}>
-            <FontAwesome name="heart" size={12} color="#4ade80" />
+            <FontAwesome name="heart" size={12} color={COLORS.successLight} />
           </Animated.View>
           <Animated.View style={burst2Style}>
-            <FontAwesome name="heart" size={10} color="#22C55E" />
+            <FontAwesome name="heart" size={10} color={COLORS.success} />
           </Animated.View>
           <Animated.View style={heartAnimatedStyle}>
             {isSaved ? (
@@ -308,10 +308,10 @@ const styles = StyleSheet.create({
     right: 16,
     width: 52,
     height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(34, 197, 94, 0.25)',
+    borderRadius: LAYOUT.radius['2xl'],
+    backgroundColor: COLORS.successOverlay,
     borderWidth: 1.5,
-    borderColor: '#22C55E',
+    borderColor: COLORS.success,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,

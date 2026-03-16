@@ -84,10 +84,6 @@ export default function TenantProfileScreen() {
         <Text style={MENU.text}>Notifications</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/verification')}>
-        <Text style={MENU.text}>Verification Status</Text>
-      </TouchableOpacity>
-
       <TouchableOpacity style={MENU.item} onPress={handleResetSwipes}>
         <Text style={[MENU.text, { color: COLORS.danger }]}>Reset Swipe History</Text>
         <Text style={MENU.hint}>Clear all saved and passed listings</Text>

@@ -513,21 +513,21 @@ const styles = StyleSheet.create({
   },
   yourPropertyText: {
     fontFamily: FONTS.body.bold,
-    fontSize: 9,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.white,
   },
   distanceBadge: {
     position: 'absolute',
     bottom: 6,
     left: 6,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: COLORS.scrimDarker,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: LAYOUT.radius.sm,
   },
   distanceText: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.white,
   },
   nearbyInfo: {
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   },
   nearbyDom: {
     fontFamily: FONTS.body.regular,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.slate,
     marginTop: 2,
   },
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: LAYOUT.radius.full,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   },
   subjectMarkerText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.white,
   },
   priceMarker: {
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
   priceMarkerText: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: 11,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.white,
   },
   priceMarkerTextSelected: {

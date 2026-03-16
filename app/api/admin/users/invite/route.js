@@ -2,10 +2,14 @@ import { createServiceClient } from '../../../../../lib/supabase';
 import { createSupabaseServer } from '../../../../../lib/supabase-server';
 import { writeAuditLog } from '../../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { email, display_name } = body;

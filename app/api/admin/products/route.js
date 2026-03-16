@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,9 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 
 // GET — list all products (admin view, includes inactive)
 export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
@@ -27,6 +31,9 @@ export async function GET(request) {
 
 // POST — create a new product (+ Stripe Price if Stripe configured)
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { name, description, price_cents, type, recurring_interval, sort_order, audience, app_path } = body;
@@ -89,6 +96,9 @@ export async function POST(request) {
 // Accepts AdminTable format: { ids: [...], changes: { field: value } }
 // OR direct format: { id, ...updates }
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const supabase = createServiceClient();
@@ -176,6 +186,9 @@ export async function PATCH(request) {
 // DELETE — soft-delete (deactivate) or hard-delete a product
 // Use ?hard=true query param for permanent removal
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { id } = await request.json();
     if (!id) {

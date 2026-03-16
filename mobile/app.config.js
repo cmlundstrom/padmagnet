@@ -68,6 +68,7 @@ export default ({ config }) => ({
       "expo-web-browser",
       "expo-image",
       "expo-navigation-bar",
+      "expo-secure-store",
       [
         "react-native-maps",
         {

@@ -75,11 +75,11 @@ const receiptStyles = StyleSheet.create({
     gap: 4,
   },
   check: {
-    fontSize: 11,
+    fontSize: FONT_SIZES.xs,
     fontFamily: FONTS.body.regular,
   },
   channelText: {
-    fontSize: 9,
+    fontSize: FONT_SIZES.xxs,
     fontFamily: FONTS.body.regular,
     color: COLORS.textSecondary,
   },

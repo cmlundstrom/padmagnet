@@ -2,6 +2,7 @@ import { createServiceClient } from '../../../lib/supabase';
 import { getAuthUser } from '../../../lib/auth-helpers';
 import { calculatePadScore } from '../../../lib/padscore';
 import { matchesCoreFields } from '../../../lib/core-match';
+import { filterValidUUIDs } from '../../../lib/validate';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -114,9 +115,10 @@ export async function GET(request) {
         .lte('longitude', bounds.maxLng);
     }
 
-    // Exclude already-swiped listings
-    if (swipedIds.length > 0) {
-      query = query.not('id', 'in', `(${swipedIds.join(',')})`);
+    // Exclude already-swiped listings (validate UUIDs to prevent injection)
+    const validSwipedIds = filterValidUUIDs(swipedIds);
+    if (validSwipedIds.length > 0) {
+      query = query.not('id', 'in', `(${validSwipedIds.join(',')})`);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -163,6 +165,7 @@ export async function GET(request) {
       hasMore: offset + limit < result.length,
     });
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Listings fetch error:', err);
+    return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 });
   }
 }

@@ -188,7 +188,7 @@ export default function SwipeScreen() {
                 }
               }}
             >
-              <Text style={{ fontSize: 18, textAlign: 'center' }}>🗑</Text>
+              <Text style={{ fontSize: FONT_SIZES.lg, textAlign: 'center' }}>🗑</Text>
             </Pressable>
 
             <Pressable
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   resetBtn: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: LAYOUT.radius.lg,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: LAYOUT.radius['2xl'],
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -316,11 +316,11 @@ const styles = StyleSheet.create({
   infoButton: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: LAYOUT.radius['2xl'],
     borderColor: COLORS.white,
   },
   infoText: {
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     fontFamily: FONTS.heading.bold,
     color: COLORS.accent,
     textAlign: 'center',
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   mlsFooter: {
     fontFamily: FONTS.body.regular,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.slate,
     textAlign: 'center',
     paddingBottom: LAYOUT.padding.sm,

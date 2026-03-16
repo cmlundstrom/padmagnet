@@ -7,7 +7,6 @@ import { COLORS, baseButton, Badge } from "./shared";
 
 // Panels
 import OverviewPanel from "./panels/OverviewPanel";
-import FeedsPanel from "./panels/FeedsPanel";
 import PadScorePanel from "./panels/PadScorePanel";
 import ListingsPanel from "./panels/ListingsPanel";
 import SupportPanel from "./panels/SupportPanel";
@@ -31,8 +30,7 @@ import TemplateEditorPanel from "./panels/TemplateEditorPanel";
 const NAV_ITEMS = [
   { id: "overview", label: "Overview", icon: "📊" },
   { id: "waitlist", label: "Waitlist", icon: "📧" },
-  { id: "feeds", label: "IDX Feeds", icon: "🔌" },
-  { id: "padscore", label: "PadScore", icon: "🎯" },
+{ id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
   { id: "disclaimers", label: "Disclaimers", icon: "⚖️" },
@@ -104,8 +102,7 @@ export default function PadMagnetAdmin() {
   const panels = {
     overview: <OverviewPanel openTicketCount={openTicketCount} />,
     waitlist: <WaitlistPanel />,
-    feeds: <FeedsPanel />,
-    padscore: <PadScorePanel />,
+padscore: <PadScorePanel />,
     listings: <ListingsPanel />,
     "display-fields": <DisplayFieldsPanel />,
     disclaimers: <DisclaimersPanel />,

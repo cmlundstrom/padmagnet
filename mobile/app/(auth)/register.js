@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Input, Button, AuthHeader } from '../../components/ui';
@@ -56,48 +56,57 @@ export default function RegisterScreen() {
     <SafeAreaView style={styles.container}>
       <AuthHeader />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.subtitle}>{subtitleText}</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentInner}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>Create your account</Text>
+          <Text style={styles.subtitle}>{subtitleText}</Text>
 
-        {/* Email chip (readonly) */}
-        <View style={styles.emailChip}>
-          <Text style={styles.emailChipText}>{email}</Text>
-        </View>
+          {/* Email chip (readonly) */}
+          <View style={styles.emailChip}>
+            <Text style={styles.emailChipText}>{email}</Text>
+          </View>
 
-        <Input
-          label="First Name"
-          value={name}
-          onChangeText={setName}
-          placeholder="Your first name"
-          autoCapitalize="words"
-        />
+          <Input
+            label="First Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="Your first name"
+            autoCapitalize="words"
+          />
 
-        <Input
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Min. 8 characters"
-          secureTextEntry
-        />
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Min. 8 characters"
+            secureTextEntry
+          />
 
-        <Input
-          label="Confirm Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Repeat password"
-          secureTextEntry
-        />
+          <Input
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Repeat password"
+            secureTextEntry
+          />
 
-        <Button
-          title="Create Account"
-          variant="primary"
-          size="lg"
-          onPress={handleRegister}
-          loading={loading}
-          style={styles.createButton}
-        />
-      </View>
+          <Button
+            title="Create Account"
+            variant="primary"
+            size="lg"
+            onPress={handleRegister}
+            loading={loading}
+            style={styles.createButton}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -109,8 +118,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentInner: {
     paddingHorizontal: LAYOUT.padding.lg,
-    paddingTop: 24,
+    paddingTop: LAYOUT.padding.lg,
+    paddingBottom: 360,
   },
   title: {
     fontFamily: FONTS.heading.bold,

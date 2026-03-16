@@ -1,11 +1,15 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { writeAuditLog, writeAuditLogBatch } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/admin/tickets — list all tickets (with optional ?status= filter)
 export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -62,6 +66,9 @@ export async function GET(request) {
 
 // POST /api/admin/tickets — create a new ticket (+ optional first message)
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { subject, channel, category, priority, contact_email, contact_name, contact_phone, body: messageBody, tags, notes } = body;
@@ -124,6 +131,9 @@ export async function POST(request) {
 
 // PATCH /api/admin/tickets — update ticket fields
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids, changes } = body;
@@ -191,6 +201,9 @@ export async function PATCH(request) {
 
 // DELETE /api/admin/tickets — delete tickets
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids } = body;

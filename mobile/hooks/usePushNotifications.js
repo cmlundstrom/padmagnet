@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
 import { apiFetch } from '../lib/api';
+import { COLORS } from '../constants/colors';
 
 // Check if native module exists BEFORE requiring expo-notifications
 const nativeAvailable = !!NativeModules.ExpoPushTokenManager;
@@ -103,7 +104,7 @@ async function registerForPushNotifications() {
       name: 'Messages',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#3B82F6',
+      lightColor: COLORS.accent,
     });
   }
 

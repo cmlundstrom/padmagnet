@@ -17,7 +17,7 @@ export default function EmailScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const subtitleText = role === 'owner'
-    ? 'Manage your properties'
+    ? 'Manage your Rental Listings'
     : "Let's find your next home";
 
   function handleEmailContinue() {
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: 6,
+    borderRadius: LAYOUT.radius.xs,
     height: 46,
     minHeight: 46,
     width: '100%',

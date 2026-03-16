@@ -96,7 +96,7 @@ export function AlertProvider({ children }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.scrimDark,
     justifyContent: 'center',
     alignItems: 'center',
     padding: LAYOUT.padding.lg,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 13,
     borderRadius: LAYOUT.radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: COLORS.frostedGlass,
     alignItems: 'center',
   },
   buttonPrimary: {
@@ -151,9 +151,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   buttonTextPrimary: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   buttonTextDestructive: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
 });

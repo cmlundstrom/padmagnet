@@ -6,9 +6,40 @@ import { Suspense } from 'react';
 function EmailConfirmedContent() {
   const searchParams = useSearchParams();
   const status = searchParams.get('status') || 'complete';
+  const type = searchParams.get('type') || 'email_change';
   const message = searchParams.get('message');
 
   const isError = status === 'error';
+  const isSignup = type === 'signup';
+
+  const titles = {
+    signup: { success: 'Account Verified!', error: 'Verification Failed' },
+    email_change: { success: 'Email Updated', error: 'Confirmation Failed' },
+  };
+
+  const messages = {
+    signup: {
+      success: 'Your email has been confirmed and your PadMagnet account is ready.',
+      error: message || 'The verification link is invalid or has expired.',
+    },
+    email_change: {
+      success: 'Your email address has been changed successfully.',
+      error: message || 'The confirmation link is invalid or has expired.',
+    },
+  };
+
+  const instructions = {
+    signup: {
+      success: 'Go back to the PadMagnet app and sign in with your email and password to get started.',
+      error: 'Please go back to the PadMagnet app and try signing up again. Verification links expire after 24 hours.',
+    },
+    email_change: {
+      success: 'You can close this page and return to the PadMagnet app. Your new email will appear the next time you open the app.',
+      error: 'Please go back to the PadMagnet app and request a new email change. Confirmation links expire after 24 hours.',
+    },
+  };
+
+  const category = isSignup ? 'signup' : 'email_change';
 
   return (
     <div style={{
@@ -42,7 +73,7 @@ function EmailConfirmedContent() {
           fontWeight: 700,
           marginBottom: '12px',
         }}>
-          {isError ? 'Confirmation Failed' : 'Email Updated'}
+          {isError ? titles[category].error : titles[category].success}
         </h1>
         <p style={{
           color: isError ? 'var(--pm-danger)' : 'var(--pm-success)',
@@ -50,18 +81,34 @@ function EmailConfirmedContent() {
           fontWeight: 600,
           marginBottom: '10px',
         }}>
-          {isError
-            ? (message || 'The confirmation link is invalid or has expired.')
-            : 'Your email address has been changed successfully.'}
+          {isError ? messages[category].error : messages[category].success}
         </p>
         <p style={{
           color: 'var(--pm-text-secondary)',
           fontSize: '17px',
+          lineHeight: '1.5',
+          marginBottom: isSignup && !isError ? '24px' : '0',
         }}>
-          {isError
-            ? 'Please go back to the PadMagnet app and request a new email change. Confirmation links expire after 24 hours.'
-            : 'You can close this page and return to the PadMagnet app. Your new email will appear the next time you open the app.'}
+          {isError ? instructions[category].error : instructions[category].success}
         </p>
+        {isSignup && !isError && (
+          <div style={{
+            marginTop: '8px',
+            padding: '12px 20px',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            borderRadius: '8px',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+          }}>
+            <p style={{
+              color: 'var(--pm-accent)',
+              fontSize: '15px',
+              fontWeight: 600,
+              margin: 0,
+            }}>
+              Open the PadMagnet app and sign in with your password.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

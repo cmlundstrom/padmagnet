@@ -16,8 +16,8 @@ export default function Badge({ score, size = 'md', style }) {
     <View style={[
       styles.badge,
       {
-        backgroundColor: '#3B82F6' + '55',
-        borderColor: '#3B82F6' + '88',
+        backgroundColor: COLORS.accent + '55',
+        borderColor: COLORS.accent + '88',
         paddingHorizontal: isSmall ? 6 : 10,
         paddingVertical: isSmall ? 2 : 4,
       },
@@ -26,7 +26,7 @@ export default function Badge({ score, size = 'md', style }) {
       <Text style={[
         styles.text,
         {
-          color: '#FFFFFF',
+          color: COLORS.white,
           fontSize: isSmall ? FONT_SIZES.xs : FONT_SIZES.sm,
         },
       ]}>

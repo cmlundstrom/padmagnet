@@ -273,6 +273,20 @@ function FadeUp({ children }) {
 
 export default function LandingPage() {
   const [navScrolled, setNavScrolled] = useState(false);
+
+  // Intercept Supabase email confirmation hash fragments (#access_token=...&type=signup)
+  // and redirect to the branded confirmation page
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const type = params.get('type');
+      if (type === 'signup' || type === 'email_confirmation' || params.get('access_token')) {
+        window.location.replace('/email-confirmed?type=signup&status=complete');
+        return;
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const handler = () => setNavScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handler);

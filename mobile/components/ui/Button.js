@@ -6,7 +6,7 @@ import { LAYOUT } from '../../constants/layout';
 const VARIANTS = {
   primary: {
     bg: COLORS.accent,
-    text: '#FFFFFF',
+    text: COLORS.white,
     border: 'transparent',
   },
   secondary: {
@@ -16,8 +16,8 @@ const VARIANTS = {
   },
   outline: {
     bg: 'transparent',
-    text: '#FFFFFF',
-    border: '#FFFFFF',
+    text: COLORS.white,
+    border: COLORS.white,
   },
   danger: {
     bg: COLORS.danger,

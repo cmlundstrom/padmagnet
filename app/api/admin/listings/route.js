@@ -1,12 +1,16 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { writeAuditLog, writeAuditLogBatch } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 const LISTING_COLUMNS = 'id, listing_key, listing_id, street_number, street_name, city, state_or_province, postal_code, property_type, property_sub_type, list_price, bedrooms_total, bathrooms_total, living_area, pets_allowed, fenced_yard, source, owner_user_id, status, is_active, is_boosted, view_count, inquiry_count, photos, created_at, updated_at';
 
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
@@ -25,6 +29,9 @@ export async function GET() {
 }
 
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids, changes } = body;
@@ -86,6 +93,9 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids } = body;

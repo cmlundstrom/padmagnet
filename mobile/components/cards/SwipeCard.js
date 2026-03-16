@@ -145,7 +145,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
             {/* Price Drop badge */}
             {hasPriceDrop && (
               <View style={styles.priceDropBadge}>
-                <FontAwesome name="arrow-down" size={10} color="#fff" />
+                <FontAwesome name="arrow-down" size={10} color={COLORS.white} />
                 <Text style={styles.priceDropText}>Price Drop</Text>
               </View>
             )}
@@ -157,7 +157,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
 
             {/* SKIP overlay */}
             <Animated.View style={[styles.overlay, styles.skipOverlay, skipOverlayStyle]}>
-              <Text style={{ fontSize: 14, textAlign: 'center', lineHeight: 18 }}>🗑</Text>
+              <Text style={{ fontSize: FONT_SIZES.sm, textAlign: 'center', lineHeight: 18 }}>🗑</Text>
             </Animated.View>
           </View>
 
@@ -211,23 +211,23 @@ const styles = StyleSheet.create({
     left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#22C55E',
+    backgroundColor: COLORS.success,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: LAYOUT.radius.md,
     gap: 4,
   },
   priceDropText: {
-    fontFamily: 'DMSans-SemiBold',
-    fontSize: 11,
-    color: '#fff',
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
   },
   overlay: {
     position: 'absolute',
     top: '40%',
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: LAYOUT.radius.xl,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   mls: {
     fontFamily: FONTS.body.regular,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.slate,
     marginTop: 8,
   },

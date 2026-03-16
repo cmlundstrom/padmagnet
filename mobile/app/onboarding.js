@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: LAYOUT.radius.xl,
     backgroundColor: COLORS.frostedGlass,
     justifyContent: 'center',
     alignItems: 'center',
@@ -306,12 +306,12 @@ const styles = StyleSheet.create({
   },
   brandPad: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 48,
+    fontSize: FONT_SIZES['5xl'],
     color: COLORS.white,
   },
   brandMagnet: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 48,
+    fontSize: FONT_SIZES['5xl'],
     color: COLORS.deepOrange,
   },
   title: {

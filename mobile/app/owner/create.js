@@ -229,11 +229,15 @@ export default function CreateListingScreen() {
           // Fetch profile data (display_name, email) from profiles table
           const { data: profile } = await supabase
             .from('profiles')
-            .select('display_name, email')
+            .select('display_name, email, phone')
             .eq('id', user.id)
             .single();
           if (!form.listing_agent_email) update('listing_agent_email', profile?.email || user.email || '');
           if (!form.listing_agent_name) update('listing_agent_name', profile?.display_name || '');
+          if (!form.listing_agent_phone && profile?.phone) {
+            update('listing_agent_phone', formatPhone(profile.phone));
+            setContactPref('both');
+          }
           // Infer contact pref from draft data
           if (form.listing_agent_phone) setContactPref(form.listing_agent_email ? 'both' : 'phone');
         }
@@ -885,7 +889,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.scrimDark,
     alignItems: 'center',
     justifyContent: 'center',
   },

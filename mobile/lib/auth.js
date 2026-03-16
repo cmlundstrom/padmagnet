@@ -15,7 +15,10 @@ export async function signUp(email, password, metadata = {}) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: metadata },
+    options: {
+      data: metadata,
+      emailRedirectTo: 'https://padmagnet.com/email-confirmed?type=signup',
+    },
   });
   if (error) throw error;
   return data;

@@ -1,10 +1,14 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/admin/message-templates — all templates from both tables
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const supabase = createServiceClient();
 
@@ -71,6 +75,9 @@ export async function GET() {
 
 // PATCH /api/admin/message-templates — update a template by id + source
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { id, source, subject, body_html, body_text, is_active } = body;

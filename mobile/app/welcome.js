@@ -124,12 +124,12 @@ const styles = StyleSheet.create({
   },
   wordmarkPad: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 38,
+    fontSize: FONT_SIZES['4xl'],
     color: COLORS.white,
   },
   wordmarkMagnet: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 38,
+    fontSize: FONT_SIZES['4xl'],
     color: COLORS.deepOrange,
   },
   tagline: {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tm: {
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     lineHeight: 18,
   },
   buttons: {

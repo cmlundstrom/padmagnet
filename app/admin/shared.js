@@ -9,8 +9,8 @@ export const COLORS = {
   text: "#e2e8f0",
   textMuted: "#94a3b8",
   textDim: "#64748b",
-  brand: "#22d3ee",      // cyan
-  brandDim: "#0891b2",
+  brand: "#3B82F6",      // accent blue
+  brandDim: "#2563EB",
   green: "#22c55e",
   greenDim: "#166534",
   amber: "#f59e0b",

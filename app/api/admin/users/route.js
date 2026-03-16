@@ -2,6 +2,7 @@ import { createServiceClient } from '../../../../lib/supabase';
 import { createSupabaseServer } from '../../../../lib/supabase-server';
 import { writeAuditLog, writeAuditLogBatch } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,9 @@ async function getRequestingUser() {
 // ?role=tenant|owner|admin (default: admin+super_admin)
 // ?id=uuid (single profile lookup)
 export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -111,6 +115,9 @@ export async function GET(request) {
 
 // PATCH /api/admin/users — update profile fields (with role guards)
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids, changes } = body;
@@ -200,6 +207,9 @@ export async function PATCH(request) {
 
 // DELETE /api/admin/users — super_admin only
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids } = body;

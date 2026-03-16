@@ -18,7 +18,7 @@ export default function NoPhotoPlaceholder({ size = 'full', style }) {
 
   return (
     <LinearGradient
-      colors={['#0f2d4a', '#0a1e33']}
+      colors={[COLORS.gradientDark1, COLORS.gradientDark2]}
       style={[styles.container, style]}
     >
       <FontAwesome name="camera" size={config.iconSize} color={COLORS.white} style={styles.icon} />

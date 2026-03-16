@@ -1,6 +1,7 @@
 import { createServiceClient } from '../../../lib/supabase';
 import { getAuthUser } from '../../../lib/auth-helpers';
 import { notifyRecipient, notifyExternalAgent } from '../../../lib/notify';
+import { sanitizeText, hasExternalUrl } from '../../../lib/validate';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -71,11 +72,20 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { conversation_id, body: messageBody } = body;
+    const { conversation_id, body: rawBody } = body;
 
-    if (!conversation_id || !messageBody) {
+    if (!conversation_id || !rawBody) {
       return NextResponse.json({ error: 'conversation_id and body are required' }, { status: 400 });
     }
+
+    // Sanitize message body — strip HTML tags, enforce max length
+    const messageBody = sanitizeText(rawBody, 5000);
+    if (!messageBody) {
+      return NextResponse.json({ error: 'Message body cannot be empty' }, { status: 400 });
+    }
+
+    // Flag messages containing external URLs for review
+    const flagged = hasExternalUrl(messageBody);
 
     const supabase = createServiceClient();
 
@@ -102,6 +112,7 @@ export async function POST(request) {
         sender_id: user.id,
         body: messageBody,
         channel: 'in_app',
+        ...(flagged ? { flagged_external_url: true } : {}),
       })
       .select()
       .single();
@@ -110,10 +121,10 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Update conversation preview text
+    // Update conversation preview text (truncated for preview)
     await supabase
       .from('conversations')
-      .update({ last_message_text: messageBody })
+      .update({ last_message_text: messageBody.slice(0, 200) })
       .eq('id', conversation_id);
 
     // Atomic unread increment (replaces manual fetch-then-update)

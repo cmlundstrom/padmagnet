@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   radioOuter: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: LAYOUT.radius.md,
     borderWidth: 2,
     borderColor: COLORS.accent,
     alignItems: 'center',
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: LAYOUT.radius.xs,
     backgroundColor: COLORS.accent,
   },
   channelLabel: {
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   },
   legalText: {
     fontFamily: FONTS.body.regular,
-    fontSize: 11,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
     marginTop: 12,
     lineHeight: 16,

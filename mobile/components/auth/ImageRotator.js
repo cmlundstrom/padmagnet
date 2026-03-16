@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { COLORS } from '../../constants/colors';
+import { LAYOUT } from '../../constants/layout';
 
 function FadeImage({ source, opacity }) {
   const animatedStyle = useAnimatedStyle(() => ({
@@ -74,8 +75,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: LAYOUT.radius.xl,
+    borderBottomRightRadius: LAYOUT.radius.xl,
     overflow: 'hidden',
   },
   imageWrapper: {

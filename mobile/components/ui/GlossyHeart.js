@@ -1,17 +1,18 @@
 import Svg, { Defs, LinearGradient, Stop, Path } from 'react-native-svg';
+import { COLORS } from '../../constants/colors';
 
 export default function GlossyHeart({ size = 24 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Defs>
         <LinearGradient id="heartGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor="#4ade80" />
-          <Stop offset="45%" stopColor="#22c55e" />
-          <Stop offset="100%" stopColor="#15803d" />
+          <Stop offset="0%" stopColor={COLORS.successGradient1} />
+          <Stop offset="45%" stopColor={COLORS.successGradient2} />
+          <Stop offset="100%" stopColor={COLORS.successGradient3} />
         </LinearGradient>
         <LinearGradient id="heartShine" x1="0.3" y1="0" x2="0.7" y2="0.5">
-          <Stop offset="0%" stopColor="#fff" stopOpacity="0.45" />
-          <Stop offset="100%" stopColor="#fff" stopOpacity="0" />
+          <Stop offset="0%" stopColor={COLORS.white} stopOpacity="0.45" />
+          <Stop offset="100%" stopColor={COLORS.white} stopOpacity="0" />
         </LinearGradient>
       </Defs>
       {/* Heart shape (FontAwesome heart path) */}

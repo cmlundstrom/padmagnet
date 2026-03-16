@@ -1,10 +1,14 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { writeAuditLog, writeAuditLogBatch } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
@@ -23,6 +27,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { email, role, notes } = body;
@@ -56,6 +63,9 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids, changes } = body;
@@ -113,6 +123,9 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { ids } = body;

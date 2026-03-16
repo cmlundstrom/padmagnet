@@ -118,15 +118,21 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: LAYOUT.padding.xl,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: LAYOUT.padding.md,
+    paddingHorizontal: LAYOUT.padding.lg,
   },
   registerText: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
   },
   registerBold: {
-    fontFamily: FONTS.body.semiBold,
+    fontFamily: FONTS.heading.bold,
     color: COLORS.accent,
   },
 });

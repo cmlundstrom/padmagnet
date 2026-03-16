@@ -2,6 +2,7 @@ import { createServiceClient } from '../../../../lib/supabase';
 import { getAuthUser } from '../../../../lib/auth-helpers';
 import { geocodeAddress } from '../../../../lib/geocode';
 import { sendTemplateEmail } from '../../../../lib/email';
+import { sanitizeText, sanitizeName } from '../../../../lib/validate';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
@@ -25,6 +26,16 @@ const ALLOWED_FIELDS = [
   'owner_utilities_included', 'owner_showing_instructions',
 ];
 
+// Verify user has owner role
+async function requireOwnerRole(supabase, userId) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  return profile && ['owner', 'admin', 'super_admin'].includes(profile.role);
+}
+
 // GET — list owner's own listings
 export async function GET(request) {
   try {
@@ -34,6 +45,10 @@ export async function GET(request) {
     }
 
     const supabase = createServiceClient();
+
+    if (!(await requireOwnerRole(supabase, user.id))) {
+      return NextResponse.json({ error: 'Owner role required' }, { status: 403 });
+    }
     const { data, error } = await supabase
       .from('listings')
       .select('*, listing_views(count)')
@@ -67,6 +82,12 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+    const supabase = createServiceClient();
+
+    if (!(await requireOwnerRole(supabase, user.id))) {
+      return NextResponse.json({ error: 'Owner role required' }, { status: 403 });
+    }
+
     const isDraft = body.status === 'draft';
 
     // Only validate required fields for non-draft submissions
@@ -88,9 +109,20 @@ export async function POST(request) {
       status: isDraft ? 'draft' : 'active',
     };
 
+    // Sanitize text fields to prevent XSS
+    const TEXT_FIELDS = ['public_remarks', 'tenant_contact_instructions', 'owner_special_comments',
+      'owner_pet_policy_details', 'owner_utilities_included', 'owner_showing_instructions'];
+    const NAME_FIELDS = ['listing_agent_name', 'listing_office_name'];
+
     for (const field of ALLOWED_FIELDS) {
       if (body[field] !== undefined) {
-        listing[field] = body[field];
+        if (TEXT_FIELDS.includes(field)) {
+          listing[field] = sanitizeText(body[field], 5000);
+        } else if (NAME_FIELDS.includes(field)) {
+          listing[field] = sanitizeName(body[field]);
+        } else {
+          listing[field] = body[field];
+        }
       }
     }
 
@@ -111,7 +143,6 @@ export async function POST(request) {
       listing.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
-    const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('listings')
       .insert(listing)

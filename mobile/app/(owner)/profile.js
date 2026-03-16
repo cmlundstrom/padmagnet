@@ -53,10 +53,6 @@ export default function OwnerProfileScreen() {
         <Text style={MENU.text}>Notifications</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/verification')}>
-        <Text style={MENU.text}>Verification Status</Text>
-      </TouchableOpacity>
-
       <TouchableOpacity style={SIGN_OUT.button} onPress={handleSignOut}>
         <Text style={SIGN_OUT.text}>Sign Out</Text>
       </TouchableOpacity>

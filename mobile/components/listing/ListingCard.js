@@ -45,7 +45,7 @@ export default function ListingCard({ listing, padscore, style, context }) {
         )}
         {hasPriceDrop && (
           <View style={styles.priceDropBadge}>
-            <FontAwesome name="arrow-down" size={8} color="#fff" />
+            <FontAwesome name="arrow-down" size={8} color={COLORS.white} />
             <Text style={styles.priceDropText}>Price Drop</Text>
           </View>
         )}
@@ -93,16 +93,16 @@ const styles = StyleSheet.create({
     left: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#22C55E',
+    backgroundColor: COLORS.success,
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 10,
     gap: 3,
   },
   priceDropText: {
-    fontFamily: 'DMSans-SemiBold',
-    fontSize: 9,
-    color: '#fff',
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.white,
   },
   info: {
     padding: LAYOUT.padding.sm,

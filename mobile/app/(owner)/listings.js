@@ -168,7 +168,7 @@ function PulsingText({ style, children }) {
   }, [anim]);
   const color = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#FFFFFF', COLORS.accent],
+    outputRange: [COLORS.white, COLORS.accent],
   });
   return <Animated.Text style={[style, { color }]}>{children}</Animated.Text>;
 }
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: LAYOUT.radius.sm,
   },
   expiresLabel: {
     fontFamily: FONTS.body.medium,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   nearbyIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: LAYOUT.radius.lg,
     backgroundColor: COLORS.brandOrange + '18',
     justifyContent: 'center',
     alignItems: 'center',
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   frostBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: LAYOUT.radius.xl,
     backgroundColor: COLORS.frostedGlass,
     justifyContent: 'center',
     alignItems: 'center',

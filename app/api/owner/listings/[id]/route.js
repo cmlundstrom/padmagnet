@@ -2,6 +2,7 @@ import { createServiceClient } from '../../../../../lib/supabase';
 import { getAuthUser } from '../../../../../lib/auth-helpers';
 import { geocodeAddress } from '../../../../../lib/geocode';
 import { sendTemplateEmail } from '../../../../../lib/email';
+import { sanitizeText, sanitizeName } from '../../../../../lib/validate';
 import { NextResponse } from 'next/server';
 
 function generateConfirmationCode(uuid) {
@@ -84,11 +85,21 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    // Whitelist fields
+    // Whitelist fields + sanitize text inputs
+    const TEXT_FIELDS = ['public_remarks', 'tenant_contact_instructions', 'owner_special_comments',
+      'owner_pet_policy_details', 'owner_utilities_included', 'owner_showing_instructions'];
+    const NAME_FIELDS = ['listing_agent_name', 'listing_office_name'];
+
     const updates = {};
     for (const field of ALLOWED_FIELDS) {
       if (body[field] !== undefined) {
-        updates[field] = body[field];
+        if (TEXT_FIELDS.includes(field)) {
+          updates[field] = sanitizeText(body[field], 5000);
+        } else if (NAME_FIELDS.includes(field)) {
+          updates[field] = sanitizeName(body[field]);
+        } else {
+          updates[field] = body[field];
+        }
       }
     }
 

@@ -1,6 +1,7 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { writeAuditLog } from '../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -9,6 +10,15 @@ const BRIDGE_TOKEN = process.env.BRIDGE_SERVER_TOKEN;
 const BRIDGE_DATASET = process.env.BRIDGE_DATASET_CODE || 'miamire';
 const BRIDGE_BASE = `https://api.bridgedataoutput.com/api/v2/OData/${BRIDGE_DATASET}/Property`;
 const CRON_SECRET = process.env.CRON_SECRET;
+
+function verifyCronSecret(token) {
+  if (!token || !CRON_SECRET) return false;
+  try {
+    return timingSafeEqual(Buffer.from(token), Buffer.from(CRON_SECRET));
+  } catch {
+    return false;
+  }
+}
 
 const SERVICE_COUNTIES = [
   'St Lucie County', 'Martin County', 'Palm Beach County',
@@ -70,10 +80,15 @@ function mapBridgeToListing(prop) {
 
 // GET handler for Vercel Cron (crons call GET)
 export async function GET(request) {
+  if (!CRON_SECRET) {
+    console.error('CRON_SECRET not set — refusing to run bridge sync');
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  }
+
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
 
-  if (CRON_SECRET && token !== CRON_SECRET) {
+  if (!verifyCronSecret(token)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -81,10 +96,16 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!CRON_SECRET) {
+    console.error('CRON_SECRET not set — refusing to run bridge sync');
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  }
+
   const cronHeader = request.headers.get('x-cron-secret');
-  if (CRON_SECRET && cronHeader !== CRON_SECRET) {
+  if (!verifyCronSecret(cronHeader)) {
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
+    const token = authHeader?.replace('Bearer ', '');
+    if (!verifyCronSecret(token)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }

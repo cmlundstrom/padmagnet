@@ -1,10 +1,14 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/admin/messaging — messaging stats + conversations with filters
 export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
@@ -195,6 +199,9 @@ async function getConversationDetail(supabase, conversationId) {
 
 // PATCH /api/admin/messaging — update conversation status or delete
 export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await request.json();
     const { id, status } = body;
@@ -224,6 +231,9 @@ export async function PATCH(request) {
 
 // DELETE /api/admin/messaging — delete a conversation and its messages
 export async function DELETE(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

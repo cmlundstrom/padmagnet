@@ -83,13 +83,13 @@ const styles = StyleSheet.create({
   },
   copyright: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.slate,
     marginBottom: 4,
   },
   disclaimer: {
     fontFamily: FONTS.body.regular,
-    fontSize: 10,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.slate,
     lineHeight: 14,
   },
