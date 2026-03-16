@@ -78,7 +78,7 @@ export async function GET(request) {
     const listingId = searchParams.get('listing_id');
     const queryLat = searchParams.get('lat');
     const queryLng = searchParams.get('lng');
-    const radius = Math.min(Math.max(parseInt(searchParams.get('radius')) || 3, 1), 5);
+    const radius = Math.min(Math.max(parseInt(searchParams.get('radius')) || 3, 1), 10);
     const beds = searchParams.get('beds') ? parseInt(searchParams.get('beds')) : null;
     const baths = searchParams.get('baths') ? parseInt(searchParams.get('baths')) : null;
     const minSqft = searchParams.get('min_sqft') ? parseInt(searchParams.get('min_sqft')) : null;

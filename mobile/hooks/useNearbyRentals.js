@@ -1,14 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
 /**
- * Nearby Rentals hook with prefetch buffer pattern (mirrors useListings.js).
- * Caches per listingId+filters combo for 5 minutes.
- *
+ * Nearby Rentals hook.
  * Two modes:
- * - listingId provided: query by listing ownership (existing behavior)
+ * - listingId provided: query by listing ownership
  * - { lat, lng } provided (no listingId): query by coordinates (free, no paywall)
  */
 export default function useNearbyRentals(listingId, { lat, lng } = {}) {
@@ -18,146 +14,97 @@ export default function useNearbyRentals(listingId, { lat, lng } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const [filters, setFiltersState] = useState({ radius: 5, beds: null, baths: null });
 
   const pageRef = useRef(1);
-  const fetchingRef = useRef(false);
-  const bufferRef = useRef(null);
-  const filtersRef = useRef({ radius: 5, beds: null, baths: null, minSqft: null, maxSqft: null });
-  const cacheRef = useRef({}); // key → { data, ts }
+  const abortRef = useRef(null);
 
   const isCoordMode = !listingId && lat != null && lng != null;
+  const canFetch = !!listingId || isCoordMode;
 
-  const buildQueryString = useCallback((page) => {
-    const f = filtersRef.current;
+  // Build query string from current state
+  const buildUrl = useCallback((page, currentFilters) => {
     const parts = [];
     if (listingId) {
       parts.push(`listing_id=${listingId}`);
     } else if (lat != null && lng != null) {
       parts.push(`lat=${lat}`, `lng=${lng}`);
     }
-    parts.push(`page=${page}`, `limit=20`, `radius=${f.radius}`);
-    if (f.beds != null) parts.push(`beds=${f.beds}`);
-    if (f.baths != null) parts.push(`baths=${f.baths}`);
-    if (f.minSqft != null) parts.push(`min_sqft=${f.minSqft}`);
-    if (f.maxSqft != null) parts.push(`max_sqft=${f.maxSqft}`);
-    return parts.join('&');
+    parts.push(`page=${page}`, `limit=20`, `radius=${currentFilters.radius}`);
+    if (currentFilters.beds != null) parts.push(`beds=${currentFilters.beds}`);
+    if (currentFilters.baths != null) parts.push(`baths=${currentFilters.baths}`);
+    return `/api/owner/nearby-rentals?${parts.join('&')}`;
   }, [listingId, lat, lng]);
 
-  const cacheKey = useCallback(() => {
-    const f = filtersRef.current;
-    const identifier = listingId ? listingId : `${lat},${lng}`;
-    return `${identifier}:${f.radius}:${f.beds}:${f.baths}:${f.minSqft}:${f.maxSqft}`;
-  }, [listingId, lat, lng]);
+  // Core fetch — always uses latest filters from param
+  const doFetch = useCallback(async (page, currentFilters, append = false) => {
+    if (!canFetch) return;
 
-  const fetchPage = useCallback(async (pageNum) => {
-    const qs = buildQueryString(pageNum);
-    const data = await apiFetch(`/api/owner/nearby-rentals?${qs}`);
-    return data;
-  }, [buildQueryString]);
+    // Cancel any in-flight request
+    if (abortRef.current) abortRef.current.cancelled = true;
+    const thisRequest = { cancelled: false };
+    abortRef.current = thisRequest;
 
-  const prefetchNext = useCallback(async (currentPage, currentHasMore) => {
-    if (!currentHasMore) return;
+    if (!append) setLoading(true);
+    setError(null);
+
     try {
-      const result = await fetchPage(currentPage + 1);
-      bufferRef.current = { page: currentPage + 1, ...result };
-    } catch {
-      // Non-critical
-    }
-  }, [fetchPage]);
+      const url = buildUrl(page, currentFilters);
+      console.log('[NearbyRentals] Fetching:', url);
+      const data = await apiFetch(url);
+      console.log('[NearbyRentals] Got', data.listings?.length, 'listings, hasMore:', data.hasMore);
 
-  const fetchListings = useCallback(async (pageNum = 1, force = false) => {
-    if (!listingId && !isCoordMode) return;
-    // If already fetching, only block non-forced calls (filter changes force a re-fetch)
-    if (fetchingRef.current && !force) return;
-    fetchingRef.current = true;
-    try {
-      if (pageNum === 1) setLoading(true);
-      setError(null);
+      if (thisRequest.cancelled) return;
 
-      // Check cache for page 1
-      const key = cacheKey();
-      if (pageNum === 1 && cacheRef.current[key] && (Date.now() - cacheRef.current[key].ts) < CACHE_TTL) {
-        const cached = cacheRef.current[key];
-        setListings(cached.data.listings || []);
-        setSubject(cached.data.subject);
-        setAccess(cached.data.access);
-        setHasMore(cached.data.hasMore);
-        pageRef.current = 1;
-        prefetchNext(1, cached.data.hasMore);
-        return;
-      }
-
-      const data = await fetchPage(pageNum);
-
-      if (pageNum === 1) {
-        setListings(data.listings || []);
-        setSubject(data.subject);
-        setAccess(data.access);
-        // Cache page 1 results
-        cacheRef.current[key] = { data, ts: Date.now() };
-      } else {
+      if (append) {
         setListings(prev => {
           const existingIds = new Set(prev.map(l => l.id));
           return [...prev, ...(data.listings || []).filter(l => !existingIds.has(l.id))];
         });
+      } else {
+        setListings(data.listings || []);
+        setSubject(data.subject);
+        setAccess(data.access);
       }
 
       setHasMore(data.hasMore);
-      pageRef.current = pageNum;
-      bufferRef.current = null;
-      prefetchNext(pageNum, data.hasMore);
+      pageRef.current = page;
     } catch (err) {
-      setError(err.message);
+      if (!thisRequest.cancelled) setError(err.message);
     } finally {
-      setLoading(false);
-      fetchingRef.current = false;
+      if (!thisRequest.cancelled) setLoading(false);
     }
-  }, [listingId, isCoordMode, fetchPage, prefetchNext, cacheKey]);
+  }, [canFetch, buildUrl]);
 
+  // Initial fetch when mode activates
   useEffect(() => {
-    if (listingId || isCoordMode) fetchListings(1);
-  }, [listingId, isCoordMode, fetchListings]);
+    if (canFetch) doFetch(1, filters);
+  }, [canFetch]); // intentionally only on canFetch change, not filters
+
+  // Re-fetch when filters change (after initial load)
+  const setFilters = useCallback((newFilters) => {
+    console.log('[NearbyRentals] setFilters called with:', JSON.stringify(newFilters));
+    setFiltersState(prev => {
+      const updated = { ...prev, ...newFilters };
+      console.log('[NearbyRentals] Updated filters:', JSON.stringify(updated));
+      // Clear and re-fetch with new filters
+      setListings([]);
+      pageRef.current = 1;
+      doFetch(1, updated);
+      return updated;
+    });
+  }, [doFetch]);
 
   const loadMore = useCallback(() => {
-    if (fetchingRef.current || !hasMore) return;
-
-    const buf = bufferRef.current;
-    if (buf && buf.page === pageRef.current + 1) {
-      setListings(prev => {
-        const existingIds = new Set(prev.map(l => l.id));
-        return [...prev, ...(buf.listings || []).filter(l => !existingIds.has(l.id))];
-      });
-      setHasMore(buf.hasMore);
-      pageRef.current = buf.page;
-      bufferRef.current = null;
-      prefetchNext(buf.page, buf.hasMore);
-      return;
-    }
-
-    fetchListings(pageRef.current + 1);
-  }, [hasMore, fetchListings, prefetchNext]);
-
-  const setFilters = useCallback((newFilters) => {
-    filtersRef.current = { ...filtersRef.current, ...newFilters };
-    setListings([]);
-    pageRef.current = 1;
-    bufferRef.current = null;
-    // Invalidate cache for the new filter combo
-    const key = cacheKey();
-    delete cacheRef.current[key];
-    fetchListings(1, true); // force=true to bypass fetchingRef guard
-  }, [fetchListings, cacheKey]);
+    if (loading || !hasMore) return;
+    doFetch(pageRef.current + 1, filters, true);
+  }, [loading, hasMore, doFetch, filters]);
 
   const refresh = useCallback(() => {
-    // Invalidate cache for current filters
-    const key = cacheKey();
-    delete cacheRef.current[key];
     setListings([]);
     pageRef.current = 1;
-    bufferRef.current = null;
-    setHasMore(true);
-    fetchListings(1, true);
-  }, [fetchListings, cacheKey]);
+    doFetch(1, filters);
+  }, [doFetch, filters]);
 
   return { listings, subject, access, loading, error, hasMore, loadMore, refresh, setFilters };
 }
