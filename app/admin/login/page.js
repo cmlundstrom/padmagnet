@@ -112,7 +112,7 @@ function AdminLoginPage() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img
-            src="/logo/padmagnet-icon-120.png"
+            src="/logo/padmagnet-icon-120-dark.png"
             alt="PadMagnet"
             width={48}
             height={48}

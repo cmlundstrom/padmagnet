@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
     <div className={`app-theme ${styles.page}`}>
       <div className={styles.card}>
         <img
-          src="/logo/padmagnet-icon-120.png"
+          src="/logo/padmagnet-icon-120-dark.png"
           alt="PadMagnet"
           width={48}
           height={48}

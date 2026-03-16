@@ -40,7 +40,7 @@ export default function WelcomeScreen() {
         {/* Branding */}
         <View style={styles.branding}>
           <Image
-            source={require('../assets/images/padmagnet-icon-512.png')}
+            source={require('../assets/images/padmagnet-icon-512-dark.png')}
             style={styles.icon}
             contentFit="contain"
           />

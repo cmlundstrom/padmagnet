@@ -57,7 +57,7 @@ function EmailConfirmedContent() {
       }}>
         {/* Logo */}
         <img
-          src="/logo/padmagnet-icon-120.png"
+          src="/logo/padmagnet-icon-120-dark.png"
           alt="PadMagnet"
           width={64}
           height={64}

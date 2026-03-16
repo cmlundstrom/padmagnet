@@ -422,7 +422,7 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer>
-        <img src="/logo/padmagnet-icon-120.png" alt="PadMagnet" width={28} height={28} style={{ borderRadius: 6, marginBottom: 8 }} />
+        <img src="/logo/padmagnet-icon-120-dark.png" alt="PadMagnet" width={28} height={28} style={{ borderRadius: 6, marginBottom: 8 }} />
         <p>&copy; 2026 PadMagnet LLC. Long-term rental matching for Florida&apos;s Treasure and Gold Coasts.</p>
       </footer>
     </>
