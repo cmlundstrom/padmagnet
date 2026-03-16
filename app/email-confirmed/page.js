@@ -3,6 +3,22 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
+// Inline design tokens — matches mobile/constants/colors.js
+// Self-contained so this page renders correctly regardless of CSS loading
+const THEME = {
+  navy: '#0B1D3A',
+  surface: '#234170',
+  card: '#2C5288',
+  accent: '#3B82F6',
+  success: '#22C55E',
+  danger: '#EF4444',
+  text: '#FFFFFF',
+  textSecondary: '#B0BEC5',
+  border: '#3464A0',
+  fontHeading: "'Outfit', sans-serif",
+  fontBody: "'DM Sans', sans-serif",
+};
+
 function EmailConfirmedContent() {
   const searchParams = useSearchParams();
   const status = searchParams.get('status') || 'complete';
@@ -12,104 +28,146 @@ function EmailConfirmedContent() {
   const isError = status === 'error';
   const isSignup = type === 'signup';
 
-  const titles = {
-    signup: { success: 'Account Verified!', error: 'Verification Failed' },
-    email_change: { success: 'Email Updated', error: 'Confirmation Failed' },
-  };
-
-  const messages = {
-    signup: {
-      success: 'Your email has been confirmed and your PadMagnet account is ready.',
-      error: message || 'The verification link is invalid or has expired.',
-    },
-    email_change: {
-      success: 'Your email address has been changed successfully.',
-      error: message || 'The confirmation link is invalid or has expired.',
-    },
-  };
-
-  const instructions = {
-    signup: {
-      success: 'Go back to the PadMagnet app and sign in with your email and password to get started.',
-      error: 'Please go back to the PadMagnet app and try signing up again. Verification links expire after 24 hours.',
-    },
-    email_change: {
-      success: 'You can close this page and return to the PadMagnet app. Your new email will appear the next time you open the app.',
-      error: 'Please go back to the PadMagnet app and request a new email change. Confirmation links expire after 24 hours.',
-    },
-  };
-
-  const category = isSignup ? 'signup' : 'email_change';
-
   return (
     <div style={{
       minHeight: '100vh',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'var(--pm-navy)',
-      padding: 'var(--pm-space-lg)',
-      fontFamily: 'var(--pm-font-body)',
+      backgroundColor: THEME.navy,
+      padding: '24px',
+      fontFamily: THEME.fontBody,
     }}>
+      {/* Google Fonts (in case layout doesn't load them) */}
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+
       <div style={{
-        backgroundColor: 'var(--pm-surface)',
-        borderRadius: 'var(--pm-radius-lg)',
-        padding: '40px',
-        maxWidth: '500px',
+        backgroundColor: THEME.surface,
+        borderRadius: '16px',
+        border: `1px solid ${THEME.border}`,
+        padding: '40px 32px',
+        maxWidth: '460px',
         width: '100%',
         textAlign: 'center',
       }}>
+        {/* Logo */}
         <img
           src="/logo/padmagnet-icon-120.png"
           alt="PadMagnet"
-          width={56}
-          height={56}
-          style={{ borderRadius: '10px', marginBottom: '16px' }}
+          width={64}
+          height={64}
+          style={{ borderRadius: '12px', marginBottom: '20px' }}
         />
+
+        {/* Wordmark */}
+        <div style={{
+          fontFamily: THEME.fontHeading,
+          fontSize: '24px',
+          fontWeight: 700,
+          marginBottom: '24px',
+          letterSpacing: '-0.5px',
+        }}>
+          <span style={{ color: THEME.text }}>Pad</span>
+          <span style={{ color: '#F95E0C' }}>Magnet</span>
+        </div>
+
+        {/* Status icon */}
+        <div style={{
+          width: '56px',
+          height: '56px',
+          borderRadius: '28px',
+          backgroundColor: isError ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 20px',
+          fontSize: '28px',
+        }}>
+          {isError ? '\u2717' : '\u2713'}
+        </div>
+
+        {/* Title */}
         <h1 style={{
-          color: 'var(--pm-text)',
-          fontFamily: 'var(--pm-font-heading)',
-          fontSize: 'var(--pm-fs-2xl)',
+          color: THEME.text,
+          fontFamily: THEME.fontHeading,
+          fontSize: '26px',
           fontWeight: 700,
           marginBottom: '12px',
+          marginTop: 0,
         }}>
-          {isError ? titles[category].error : titles[category].success}
+          {isError
+            ? (isSignup ? 'Verification Failed' : 'Confirmation Failed')
+            : (isSignup ? 'Account Verified!' : 'Email Updated')}
         </h1>
+
+        {/* Status message */}
         <p style={{
-          color: isError ? 'var(--pm-danger)' : 'var(--pm-success)',
-          fontSize: '20px',
-          fontWeight: 600,
-          marginBottom: '10px',
-        }}>
-          {isError ? messages[category].error : messages[category].success}
-        </p>
-        <p style={{
-          color: 'var(--pm-text-secondary)',
+          color: isError ? THEME.danger : THEME.success,
           fontSize: '17px',
-          lineHeight: '1.5',
-          marginBottom: isSignup && !isError ? '24px' : '0',
+          fontWeight: 600,
+          marginBottom: '16px',
+          lineHeight: '1.4',
         }}>
-          {isError ? instructions[category].error : instructions[category].success}
+          {isError
+            ? (message || 'The verification link is invalid or has expired.')
+            : (isSignup
+              ? 'Your email has been confirmed and your PadMagnet account is ready.'
+              : 'Your email address has been changed successfully.')}
         </p>
+
+        {/* Instructions */}
+        <p style={{
+          color: THEME.textSecondary,
+          fontSize: '15px',
+          lineHeight: '1.5',
+          marginBottom: isSignup && !isError ? '20px' : '0',
+        }}>
+          {isError
+            ? (isSignup
+              ? 'Go back to the PadMagnet app and try signing up again. Verification links expire after 24 hours.'
+              : 'Go back to the PadMagnet app and request a new email change. Links expire after 24 hours.')
+            : (isSignup
+              ? 'Open the PadMagnet app and sign in with your email and password to get started.'
+              : 'You can close this page and return to the PadMagnet app. Your new email will appear next time you open it.')}
+        </p>
+
+        {/* CTA card for signup success */}
         {isSignup && !isError && (
           <div style={{
-            marginTop: '8px',
-            padding: '12px 20px',
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            borderRadius: '8px',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            backgroundColor: 'rgba(59,130,246,0.12)',
+            borderRadius: '12px',
+            border: '1px solid rgba(59,130,246,0.25)',
+            padding: '16px 20px',
+            marginTop: '4px',
           }}>
             <p style={{
-              color: 'var(--pm-accent)',
+              color: THEME.accent,
               fontSize: '15px',
               fontWeight: 600,
               margin: 0,
+              lineHeight: '1.4',
             }}>
-              Open the PadMagnet app and sign in with your password.
+              Open the PadMagnet app and sign in with your password to continue.
             </p>
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <p style={{
+        color: THEME.textSecondary,
+        fontSize: '12px',
+        marginTop: '24px',
+        opacity: 0.6,
+        fontFamily: THEME.fontBody,
+      }}>
+        &copy; 2026 PadMagnet LLC. All rights reserved.
+      </p>
     </div>
   );
 }
@@ -122,9 +180,9 @@ export default function EmailConfirmedPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--pm-navy)',
+        backgroundColor: '#0B1D3A',
       }}>
-        <p style={{ color: 'var(--pm-text)', fontFamily: 'var(--pm-font-body)' }}>Loading...</p>
+        <p style={{ color: '#FFFFFF', fontFamily: "'DM Sans', sans-serif" }}>Loading...</p>
       </div>
     }>
       <EmailConfirmedContent />

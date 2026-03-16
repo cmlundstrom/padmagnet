@@ -6,6 +6,8 @@
  *   mobile/constants/colors.js
  *   mobile/constants/fonts.js
  *   mobile/constants/layout.js
+ *
+ * Updated: 2026-03-16 — synced with expanded mobile design tokens
  */
 
 .app-theme {
@@ -13,9 +15,11 @@
   --pm-navy: #0B1D3A;
   --pm-accent: #3B82F6;
   --pm-white: #FFFFFF;
+  --pm-black: #000000;
   --pm-slate: #64748B;
   --pm-light: #F1F5F9;
   --pm-success: #22C55E;
+  --pm-success-light: #4ade80;
   --pm-warning: #F59E0B;
   --pm-danger: #EF4444;
   --pm-background: #1A3358;
@@ -24,14 +28,19 @@
   --pm-text: #FFFFFF;
   --pm-text-secondary: #B0BEC5;
   --pm-border: #3464A0;
-  --pm-brand-orange: #F95E0C;
+  --pm-brand-orange: #F59E0B;
+  --pm-deep-orange: #F95E0C;
+  --pm-gold: #FFD700;
   --pm-frosted-glass: rgba(255, 255, 255, 0.12);
+  --pm-scrim-dark: rgba(0, 0, 0, 0.6);
+  --pm-overlay-navy: rgba(11, 29, 58, 0.92);
 
   /* ── Fonts ── */
   --pm-font-heading: 'Outfit', sans-serif;
   --pm-font-body: 'DM Sans', sans-serif;
 
   /* ── Font sizes ── */
+  --pm-fs-xxs: 10px;
   --pm-fs-xs: 12px;
   --pm-fs-sm: 14px;
   --pm-fs-md: 16px;
@@ -39,19 +48,25 @@
   --pm-fs-xl: 22px;
   --pm-fs-2xl: 28px;
   --pm-fs-3xl: 34px;
+  --pm-fs-4xl: 38px;
+  --pm-fs-5xl: 48px;
 
   /* ── Spacing ── */
+  --pm-space-xxs: 2px;
   --pm-space-xs: 4px;
   --pm-space-sm: 8px;
   --pm-space-md: 16px;
   --pm-space-lg: 24px;
   --pm-space-xl: 32px;
+  --pm-space-2xl: 48px;
 
   /* ── Radii ── */
+  --pm-radius-xs: 4px;
   --pm-radius-sm: 8px;
   --pm-radius-md: 12px;
   --pm-radius-lg: 16px;
   --pm-radius-xl: 24px;
+  --pm-radius-2xl: 28px;
   --pm-radius-full: 9999px;
 
   /* ── Base styles ── */
