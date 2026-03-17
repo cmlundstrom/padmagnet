@@ -163,7 +163,7 @@ export default function OwnerListingsTab() {
                 style={styles.nearbyPromoBtn}
                 onPress={() => router.push('/owner/nearby-rentals')}
               >
-                <FontAwesome name="map-marker" size={16} color={COLORS.white} />
+                <FontAwesome name="map-marker" size={24} color={COLORS.white} />
                 <Text style={styles.nearbyPromoBtnText}>Take a Look</Text>
                 <FontAwesome name="chevron-right" size={12} color={COLORS.white} style={{ opacity: 0.7 }} />
               </Pressable>
@@ -695,11 +695,13 @@ const styles = StyleSheet.create({
   nearbyPromoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center',
     gap: LAYOUT.padding.sm,
     backgroundColor: COLORS.brandOrange,
-    paddingHorizontal: LAYOUT.padding.lg,
+    paddingHorizontal: LAYOUT.padding.xl,
     paddingVertical: 14,
-    borderRadius: LAYOUT.radius.full,
+    borderRadius: LAYOUT.radius.md,
     shadowColor: COLORS.brandOrange,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
