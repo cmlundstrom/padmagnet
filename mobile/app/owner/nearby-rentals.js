@@ -199,7 +199,7 @@ export default function NearbyRentalsScreen() {
         <Header title="Nearby Rentals" showBack />
         <View style={styles.permissionScreen}>
           <View style={styles.permissionIconContainer}>
-            <FontAwesome name="map-marker" size={48} color={COLORS.brandOrange} />
+            <FontAwesome name="map-marker" size={48} color={COLORS.logoOrange} />
           </View>
           <Text style={styles.permissionTitle}>See What's Listed Nearby</Text>
           <Text style={styles.permissionSubtitle}>
@@ -301,7 +301,7 @@ export default function NearbyRentalsScreen() {
       return (
         <View style={styles.locationBannerCard}>
           <View style={styles.locationBannerHeader}>
-            <FontAwesome name="map-marker" size={16} color={COLORS.brandOrange} />
+            <FontAwesome name="map-marker" size={16} color={COLORS.logoOrange} />
             <View>
               <Text style={styles.locationBannerTitle}>Now Showing:</Text>
               <Text style={styles.locationBannerSubtitle}>Rentals Near Your Phone</Text>
@@ -328,7 +328,7 @@ export default function NearbyRentalsScreen() {
       return (
         <View style={styles.locationBannerCard}>
           <View style={styles.locationBannerHeader}>
-            <FontAwesome name="map-marker" size={16} color={COLORS.brandOrange} />
+            <FontAwesome name="map-marker" size={16} color={COLORS.logoOrange} />
             <Text style={styles.locationBannerTitle}>Now Showing: Rentals around the Address You Entered</Text>
           </View>
           <View style={styles.addressDisplayBox}>
@@ -651,10 +651,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.brandOrange,
+    backgroundColor: COLORS.logoOrange,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: COLORS.brandOrange,
+    shadowColor: COLORS.logoOrange,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
