@@ -302,35 +302,43 @@ export default function NearbyRentalsScreen() {
         <View style={styles.locationBannerCard}>
           <View style={styles.locationBannerHeader}>
             <FontAwesome name="map-marker" size={16} color={COLORS.brandOrange} />
-            <Text style={styles.locationBannerTitle}>Showing rentals near you</Text>
+            <View>
+              <Text style={styles.locationBannerTitle}>Now Showing:</Text>
+              <Text style={styles.locationBannerSubtitle}>Rentals Near Your Phone</Text>
+            </View>
           </View>
           <Text style={styles.locationBannerSubtext}>
-            Want to see what's near your rental property instead?
+            Want to see competitive rentals near your own Rental?
           </Text>
           <Pressable
             style={styles.locationBannerBtn}
             onPress={() => setLocationMode('property')}
           >
             <Text style={styles.locationBannerBtnText}>Enter Your Property Address</Text>
-            <FontAwesome name="chevron-right" size={12} color={COLORS.accent} />
+            <FontAwesome name="chevron-right" size={12} color={COLORS.brandOrange} />
           </Pressable>
         </View>
       );
     }
 
-    if (locationMode === 'property_results') {
+    if (locationMode === 'property_results' && propertyAddress) {
+      const streetLine = [propertyAddress.street_number, propertyAddress.street_name].filter(Boolean).join(' ');
+      const cityLine = [propertyAddress.city, propertyAddress.state_or_province, propertyAddress.postal_code].filter(Boolean).join(', ');
+
       return (
         <View style={styles.locationBannerCard}>
           <View style={styles.locationBannerHeader}>
             <FontAwesome name="map-marker" size={16} color={COLORS.brandOrange} />
-            <Text style={styles.locationBannerTitle} numberOfLines={1}>
-              Showing rentals near {formattedAddress}
-            </Text>
+            <Text style={styles.locationBannerTitle}>Now Showing: Rentals around the Address You Entered</Text>
+          </View>
+          <View style={styles.addressDisplayBox}>
+            <Text style={styles.addressDisplayStreet}>{streetLine}</Text>
+            <Text style={styles.addressDisplayCity}>{cityLine}</Text>
           </View>
           <View style={styles.savedConfirmRow}>
             <FontAwesome name="check-circle" size={14} color={COLORS.success} />
             <Text style={styles.savedConfirmText}>
-              Great! We saved this address to speed up your listing later.
+              Saved! We'll use this address to speed up your listing.
             </Text>
           </View>
           <Pressable
@@ -338,7 +346,14 @@ export default function NearbyRentalsScreen() {
             onPress={() => router.push('/owner/create')}
           >
             <Text style={styles.locationBannerBtnText}>Create Your Listing</Text>
-            <FontAwesome name="chevron-right" size={12} color={COLORS.accent} />
+            <FontAwesome name="chevron-right" size={12} color={COLORS.brandOrange} />
+          </Pressable>
+          <Pressable
+            style={[styles.locationBannerBtn, { marginTop: LAYOUT.padding.sm }]}
+            onPress={() => setLocationMode('property')}
+          >
+            <Text style={styles.locationBannerBtnText}>Search Nearby Another Address</Text>
+            <FontAwesome name="chevron-right" size={12} color={COLORS.brandOrange} />
           </Pressable>
         </View>
       );
@@ -736,7 +751,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
-    flex: 1,
+  },
+  locationBannerSubtitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.brandOrange,
   },
   locationBannerSubtext: {
     fontFamily: FONTS.body.regular,
@@ -752,7 +771,25 @@ const styles = StyleSheet.create({
   locationBannerBtnText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    color: COLORS.brandOrange,
+  },
+  addressDisplayBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: LAYOUT.radius.sm,
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingVertical: LAYOUT.padding.sm + 2,
+    marginBottom: LAYOUT.padding.sm,
+  },
+  addressDisplayStreet: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+  },
+  addressDisplayCity: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   savedConfirmRow: {
     flexDirection: 'row',
