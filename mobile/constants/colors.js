@@ -27,6 +27,7 @@ export const COLORS = {
   // ── Brand accent ─────────────────────────────────────────
   brandOrange: '#F59E0B',
   deepOrange: '#F95E0C',
+  logoOrange: '#E8603C',   // Primary CTA buttons — matches logo icon background
 
   // ── Tier badges (freemium plan) ──────────────────────────
   gold: '#FFD700',

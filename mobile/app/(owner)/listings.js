@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
   },
   emptyCta: {
     alignSelf: 'stretch',
-    backgroundColor: COLORS.brandOrange,
+    backgroundColor: COLORS.logoOrange,
     borderRadius: LAYOUT.radius.md,
     paddingVertical: 14,
     alignItems: 'center',
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',
     gap: LAYOUT.padding.sm,
-    backgroundColor: COLORS.brandOrange,
+    backgroundColor: COLORS.logoOrange,
     paddingHorizontal: LAYOUT.padding.xl,
     paddingVertical: 14,
     borderRadius: LAYOUT.radius.md,
