@@ -108,13 +108,8 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  // Match Android system nav bar to our tab bar color
-  useEffect(() => {
-    if (Platform.OS === 'android' && NavigationBar) {
-      NavigationBar.setBackgroundColorAsync(COLORS.surface);
-      NavigationBar.setButtonStyleAsync('light');
-    }
-  }, []);
+  // Note: NavigationBar.setBackgroundColorAsync is deprecated with edge-to-edge (SDK 55+).
+  // The system nav bar is now transparent by default. Tab bar handles its own background.
 
   if (!fontsLoaded && !fontError) {
     return null;
