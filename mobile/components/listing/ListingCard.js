@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Badge } from '../ui';
 import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
+import TierBadge from '../owner/TierBadge';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -41,6 +42,11 @@ export default function ListingCard({ listing, padscore, style, context }) {
         {score != null && (
           <View style={styles.scoreBadge}>
             <Badge score={score} size="sm" />
+          </View>
+        )}
+        {listing.owner_tier && listing.owner_tier !== 'free' && (
+          <View style={styles.tierBadgeContainer}>
+            <TierBadge tier={listing.owner_tier} size="sm" />
           </View>
         )}
         {hasPriceDrop && (
@@ -86,6 +92,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
+  },
+  tierBadgeContainer: {
+    position: 'absolute',
+    top: 36,
+    right: 6,
+    zIndex: 5,
   },
   priceDropBadge: {
     position: 'absolute',

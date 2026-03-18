@@ -49,6 +49,10 @@ export default function OwnerProfileScreen() {
         phone={profile.phone}
       />
 
+      <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/subscription')}>
+        <Text style={MENU.text}>Subscription & Billing</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/notifications')}>
         <Text style={MENU.text}>Notifications</Text>
       </TouchableOpacity>

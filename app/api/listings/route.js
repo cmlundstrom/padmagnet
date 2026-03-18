@@ -154,8 +154,23 @@ export async function GET(request) {
       }
     }
 
+    // Batch fetch owner tiers for badge display
+    const ownerIds = [...new Set(result.filter(l => l.source === 'owner' && l.owner_user_id).map(l => l.owner_user_id))];
+    let tierMap = {};
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, tier')
+        .in('id', ownerIds);
+      tierMap = Object.fromEntries((profiles || []).map(p => [p.id, p.tier]));
+    }
+    const enriched = result.map(l => ({
+      ...l,
+      owner_tier: l.source === 'owner' ? (tierMap[l.owner_user_id] || 'free') : null,
+    }));
+
     // Paginate after scoring + boost injection
-    const paginated = result.slice(offset, offset + limit);
+    const paginated = enriched.slice(offset, offset + limit);
 
     return NextResponse.json({
       listings: paginated,

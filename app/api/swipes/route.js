@@ -56,8 +56,27 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Batch fetch owner tiers for badge display on saved listings
+    const listings = (data || []).map(s => s.listing).filter(Boolean);
+    const ownerIds = [...new Set(listings.filter(l => l.source === 'owner' && l.owner_user_id).map(l => l.owner_user_id))];
+    let tierMap = {};
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, tier')
+        .in('id', ownerIds);
+      tierMap = Object.fromEntries((profiles || []).map(p => [p.id, p.tier]));
+    }
+    const enriched = (data || []).map(s => ({
+      ...s,
+      listing: s.listing ? {
+        ...s.listing,
+        owner_tier: s.listing.source === 'owner' ? (tierMap[s.listing.owner_user_id] || 'free') : null,
+      } : null,
+    }));
+
     return NextResponse.json({
-      swipes: data || [],
+      swipes: enriched,
       total: count || 0,
       page,
       limit,

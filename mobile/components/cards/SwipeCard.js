@@ -19,6 +19,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import GlossyHeart from '../ui/GlossyHeart';
 import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
+import TierBadge from '../owner/TierBadge';
 import { Badge } from '../ui';
 import { formatCurrency, formatBedsBaths } from '../../utils/format';
 import { MLS_COPYRIGHT } from '../../constants/mls';
@@ -142,6 +143,13 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
               <Badge score={score} />
             </View>
 
+            {/* Tier badge (Pro/Premium owner listings only) */}
+            {listing.owner_tier && listing.owner_tier !== 'free' && (
+              <View style={styles.tierBadgeContainer}>
+                <TierBadge tier={listing.owner_tier} size="sm" />
+              </View>
+            )}
+
             {/* Price Drop badge */}
             {hasPriceDrop && (
               <View style={styles.priceDropBadge}>
@@ -204,6 +212,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
+  },
+  tierBadgeContainer: {
+    position: 'absolute',
+    top: 48,
+    right: 12,
+    zIndex: 5,
   },
   priceDropBadge: {
     position: 'absolute',

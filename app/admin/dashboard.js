@@ -28,7 +28,7 @@ import TemplateEditorPanel from "./panels/TemplateEditorPanel";
 // MAIN DASHBOARD
 // ============================================================
 const NAV_ITEMS = [
-  { id: "overview", label: "Overview", icon: "📊" },
+  { id: "overview", label: "Metrics & Overview", icon: "📊" },
   { id: "waitlist", label: "Waitlist", icon: "📧" },
 { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
