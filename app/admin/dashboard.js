@@ -23,6 +23,7 @@ import DisclaimersPanel from "./panels/DisclaimersPanel";
 import MessagingPanel from "./panels/MessagingPanel";
 import WebhookLogPanel from "./panels/WebhookLogPanel";
 import TemplateEditorPanel from "./panels/TemplateEditorPanel";
+import SalesPagesPanel from "./panels/SalesPagesPanel";
 
 // ============================================================
 // MAIN DASHBOARD
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
   { id: "messaging", label: "Messaging", icon: "📨" },
   { id: "webhooks", label: "Webhook Log", icon: "🔗" },
   { id: "templates", label: "Templates", icon: "📝" },
+  { id: "sales-pages", label: "Sales Pages", icon: "📄" },
   { id: "products", label: "App Products", icon: "📦" },
   { id: "billing", label: "Billing", icon: "💳" },
   { id: "tenants", label: "Tenants", icon: "🏘️" },
@@ -110,6 +112,7 @@ padscore: <PadScorePanel />,
     messaging: <MessagingPanel />,
     webhooks: <WebhookLogPanel />,
     templates: <TemplateEditorPanel />,
+    "sales-pages": <SalesPagesPanel />,
     products: <ProductsPanel />,
     billing: <BillingPanel />,
     tenants: <TenantsPanel />,
