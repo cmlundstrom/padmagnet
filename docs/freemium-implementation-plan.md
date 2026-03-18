@@ -1032,12 +1032,11 @@ Templates
 - [x] Rename Overview → Metrics & Overview (conversion funnel + engagement sections)
 - [x] Build /api/admin/metrics (users, listings, engagement 7d, funnel, revenue)
 - [x] Build Sales Pages admin panel (5 site_config keys, JSON editor, validation)
-- [ ] Build admin preview mode (deep link to preview sales pages)
+- [x] Build admin preview mode (?preview=true on listings/post-activation/upgrade, deep link copy in Sales Pages panel)
 - [x] Build listing analytics screen (Pro+ gated, free tier sees upgrade prompt)
 - [x] Build /api/owner/analytics/[id] (views, swipes, save rate, conversations)
 - [x] Add subscription management to Settings (tier display, upgrade/cancel)
 - [x] Add tier badges to listing cards (Verified Pro / Featured Premium on SwipeCard + ListingCard)
-- [ ] Brand Supabase Auth emails OR override with Resend
 - [ ] EAS Build + admin testing (build in progress)
 
 ### Phase 4: Stripe & Go-Live (Week 7-8)
@@ -1056,6 +1055,7 @@ Templates
 - [ ] A/B test framework
 - [ ] Test pricing display variations
 - [ ] Conversion funnel tracking
+- [ ] Brand Supabase Auth emails OR override with Resend (signup confirm, reset password, magic link, email change)
 
 ---
 
