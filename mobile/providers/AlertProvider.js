@@ -149,6 +149,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
+    textAlign: 'center',
   },
   buttonTextPrimary: {
     color: COLORS.white,

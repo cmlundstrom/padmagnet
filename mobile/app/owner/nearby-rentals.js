@@ -6,6 +6,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
+import * as IntentLauncher from 'expo-intent-launcher';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Header } from '../../components/ui';
 import NoPhotoPlaceholder from '../../components/ui/NoPhotoPlaceholder';
@@ -130,7 +132,16 @@ export default function NearbyRentalsScreen() {
           'Location access was previously denied. To use this feature, please enable location in your device settings.',
           [
             { text: 'Enter Address Instead', onPress: () => setLocationMode('property') },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            { text: 'Open Settings', onPress: () => {
+              // Open THIS app's settings page on Android (works in dev client + production)
+              const pkg = Constants.executionEnvironment === 'storeClient'
+                ? 'com.padmagnet.app'
+                : (Constants.expoConfig?.android?.package || 'com.padmagnet.app');
+              IntentLauncher.startActivityAsync(
+                IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
+                { data: `package:${pkg}` }
+              ).catch(() => Linking.openSettings());
+            }},
           ]
         );
         return;
