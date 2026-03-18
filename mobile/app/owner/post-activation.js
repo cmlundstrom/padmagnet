@@ -3,17 +3,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import UpgradeCTA from '../../components/owner/UpgradeCTA';
+import { useAuth } from '../../hooks/useAuth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function PostActivationScreen() {
   const router = useRouter();
-  const { confirmation_code, county } = useLocalSearchParams();
+  const { confirmation_code, county, preview } = useLocalSearchParams();
+  const { role } = useAuth();
+  const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
+        {isAdminPreview && (
+          <View style={styles.previewBanner}>
+            <Text style={styles.previewBannerText}>Admin Preview Mode</Text>
+          </View>
+        )}
         <View style={styles.celebrationIcon}>
           <Ionicons name="checkmark-circle" size={72} color={COLORS.success} />
         </View>
@@ -48,6 +56,21 @@ export default function PostActivationScreen() {
 }
 
 const styles = StyleSheet.create({
+  previewBanner: {
+    backgroundColor: COLORS.warning + '33',
+    borderRadius: LAYOUT.radius.sm,
+    padding: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.md,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+  },
+  previewBannerText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.warning,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

@@ -134,6 +134,47 @@ export default function SalesPagesPanel() {
         </p>
       </div>
 
+      <div style={{
+        background: COLORS.surface,
+        borderRadius: '8px',
+        border: '1px solid ' + COLORS.border,
+        padding: '16px',
+        marginBottom: '24px',
+      }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.text, marginBottom: '8px' }}>
+          Preview on Device
+        </h3>
+        <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '12px' }}>
+          Open these links on your phone to preview sales pages as an admin (even with active listings).
+        </p>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Listings Empty State', path: '/(owner)/listings?preview=true' },
+            { label: 'Post-Activation', path: '/owner/post-activation?preview=true' },
+            { label: 'Upgrade Page', path: '/owner/upgrade?preview=true' },
+          ].map(link => (
+            <button
+              key={link.path}
+              onClick={() => {
+                const deepLink = 'padmagnet://' + link.path;
+                navigator.clipboard?.writeText(deepLink);
+                alert('Copied deep link: ' + deepLink);
+              }}
+              style={{
+                ...baseButton,
+                background: COLORS.brand + '20',
+                color: COLORS.brand,
+                fontSize: '11px',
+                padding: '6px 12px',
+                border: '1px solid ' + COLORS.brand + '40',
+              }}
+            >
+              {link.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {CONFIG_KEYS.map(({ key, label }) => {
         const isExpanded = expanded[key];
         const isEditing = editingKey === key;

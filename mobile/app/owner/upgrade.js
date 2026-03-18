@@ -1,9 +1,10 @@
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSubscription } from '../../hooks/useSubscription';
 import { TIERS } from '../../constants/tiers';
+import { useAuth } from '../../hooks/useAuth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -81,6 +82,9 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const { preview } = useLocalSearchParams();
+  const { role } = useAuth();
+  const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const { tier: currentTier } = useSubscription();
 
   return (
@@ -94,6 +98,11 @@ export default function UpgradeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {isAdminPreview && (
+          <View style={styles.previewBanner}>
+            <Text style={styles.previewBannerText}>Admin Preview Mode</Text>
+          </View>
+        )}
         <TierCard
           tierKey="free"
           tier={TIERS.free}
@@ -136,6 +145,20 @@ export default function UpgradeScreen() {
 }
 
 const styles = StyleSheet.create({
+  previewBanner: {
+    backgroundColor: COLORS.warning + '33',
+    borderRadius: LAYOUT.radius.sm,
+    padding: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.md,
+    alignItems: 'center',
+  },
+  previewBannerText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.warning,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

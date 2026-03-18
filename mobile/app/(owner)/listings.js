@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { EmptyState } from '../../components/ui';
@@ -13,10 +13,14 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import { SCREEN } from '../../constants/screenStyles';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
+  const { preview } = useLocalSearchParams();
+  const { role } = useAuth();
+  const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Subtle pulse animation for the nearby rentals button
@@ -103,8 +107,13 @@ export default function OwnerListingsTab() {
         )}
       </View>
 
-      {listings.length === 0 ? (
+      {listings.length === 0 || isAdminPreview ? (
         <ScrollView contentContainerStyle={styles.emptyScrollContent}>
+          {isAdminPreview && (
+            <View style={styles.previewBanner}>
+              <Text style={styles.previewBannerText}>Admin Preview Mode</Text>
+            </View>
+          )}
           <Image
             source={require('../../assets/images/padmagnet-icon-512-dark.png')}
             style={styles.emptyIcon}
@@ -584,6 +593,22 @@ const styles = StyleSheet.create({
   },
   dangerBtnText: {
     color: COLORS.brandOrange,
+  },
+
+  // ── Admin preview banner ─────────────────────────────────
+  previewBanner: {
+    backgroundColor: COLORS.warning + '33',
+    borderRadius: LAYOUT.radius.sm,
+    padding: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.md,
+    alignItems: 'center',
+  },
+  previewBannerText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.warning,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 
   // ── Empty state (mini sales page) ────────────────────────
