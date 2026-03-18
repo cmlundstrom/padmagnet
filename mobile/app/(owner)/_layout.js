@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { COLORS } from '../../constants/colors';
@@ -9,6 +9,7 @@ import { TAB_SCREEN_OPTIONS, TAB_ICON_SIZE } from '../../constants/screenStyles'
 
 export default function OwnerTabLayout() {
   const [userId, setUserId] = useState(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -20,12 +21,10 @@ export default function OwnerTabLayout() {
 
   const tabBarStyle = {
     ...TAB_SCREEN_OPTIONS.tabBarStyle,
-    paddingBottom: 0,
-    marginBottom: -21,
+    paddingBottom: insets.bottom,
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={['bottom']}>
     <Tabs screenOptions={{ ...TAB_SCREEN_OPTIONS, tabBarStyle }}>
       <Tabs.Screen
         name="listings"
@@ -74,6 +73,5 @@ export default function OwnerTabLayout() {
         }}
       />
     </Tabs>
-    </SafeAreaView>
   );
 }

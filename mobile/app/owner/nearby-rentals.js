@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import ListingCard from '../../components/listing/ListingCard';
 import PriceEditModal from '../../components/owner/PriceEditModal';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
+import { useAlert } from '../../providers/AlertProvider';
 import { formatCurrency, formatBedsBaths, formatDistance } from '../../utils/format';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -23,6 +24,7 @@ const RADIUS_OPTIONS = [3, 5, 10];
 export default function NearbyRentalsScreen() {
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
+  const alert = useAlert();
 
   // Location-based entry mode state (only used when no listing_id)
   // 'checking' = checking existing permission, 'pending' = need permission,
@@ -42,18 +44,15 @@ export default function NearbyRentalsScreen() {
         if (status === 'granted') {
           // Already have permission — go straight to GPS
           const position = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
+            accuracy: Location.Accuracy.High,
           });
           setCoords({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
           setLocationMode('current');
-        } else if (status === 'denied') {
-          // Previously denied — skip to address entry (don't re-ask)
-          setLocationMode('property');
         } else {
-          // Never asked — show branded permission screen
+          // Not granted (denied or undetermined) — show branded permission screen
           setLocationMode('pending');
         }
       } catch {
@@ -111,31 +110,55 @@ export default function NearbyRentalsScreen() {
   const handleRequestLocation = useCallback(async () => {
     setRequestingLocation(true);
     try {
+      // Check if we can even ask (Android blocks after "Don't ask again")
+      const { status: existingStatus, canAskAgain } = await Location.getForegroundPermissionsAsync();
+
+      if (existingStatus === 'granted') {
+        // Already granted — just get position
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        setCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+        setLocationMode('current');
+        return;
+      }
+
+      if (!canAskAgain) {
+        // User previously denied with "Don't ask again" — send to Settings
+        alert(
+          'Location Permission Required',
+          'Location access was previously denied. To use this feature, please enable location in your device settings.',
+          [
+            { text: 'Enter Address Instead', onPress: () => setLocationMode('property') },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+
+      // Request permission — Android will show native precise/approximate selector
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
         });
-        setCoords({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
+        setCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
         setLocationMode('current');
       } else {
-        Alert.alert(
+        alert(
           'Location Not Available',
-          'You can still search by entering your property address below.',
-          [{ text: 'OK' }]
+          'You can still search by entering your property address.',
+          [
+            { text: 'Enter Address', onPress: () => setLocationMode('property') },
+          ]
         );
-        setLocationMode('property');
       }
     } catch {
-      Alert.alert(
+      alert(
         'Location Error',
         'Could not get your location. You can search by entering an address instead.',
-        [{ text: 'OK' }]
+        [{ text: 'OK', onPress: () => setLocationMode('property') }]
       );
-      setLocationMode('property');
     } finally {
       setRequestingLocation(false);
     }

@@ -53,7 +53,7 @@ export default function WelcomeScreen() {
             Find Your Perfect Pad with PadScore<Text style={styles.tm}>{'\u2122'}</Text>
           </Text>
           <Text style={styles.socialProof}>
-            11,400+ verified South Florida rental listings
+            11K+ South Florida rental listings
           </Text>
         </View>
 
@@ -62,14 +62,14 @@ export default function WelcomeScreen() {
           <Button
             title="I'm a Tenant"
             variant="primary"
-            size="lg"
+            size="md"
             onPress={() => handleRole('tenant')}
             style={styles.fullButton}
           />
           <Button
             title="I'm a Property Owner"
             variant="outline"
-            size="lg"
+            size="md"
             onPress={() => handleRole('owner')}
             style={styles.fullButton}
           />
@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: 4,
+    marginTop: -15,
   },
   wordmarkPad: {
     fontFamily: FONTS.heading.bold,
@@ -162,6 +163,7 @@ const styles = StyleSheet.create({
   },
   buttons: {
     gap: 12,
+    marginTop: 8,
   },
   fullButton: {
     width: '100%',
