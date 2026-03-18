@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.borderRadius.lg,
+    borderRadius: LAYOUT.radius.lg,
     padding: LAYOUT.padding.md,
   },
   cardPressed: {

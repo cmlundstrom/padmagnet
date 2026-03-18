@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -61,6 +61,26 @@ export default function NearbyRentalsScreen() {
         setLocationMode('pending');
       }
     })();
+  }, [listing_id, locationMode]);
+
+  // Re-check permission when returning from Settings (AppState change)
+  useEffect(() => {
+    if (listing_id || locationMode !== 'pending') return;
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      if (nextState === 'active') {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          try {
+            const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+            setCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+            setLocationMode('current');
+          } catch {
+            // GPS failed even with permission — stay on pending
+          }
+        }
+      }
+    });
+    return () => subscription.remove();
   }, [listing_id, locationMode]);
 
   // Pass listing_id for listing mode, or coords for location mode
