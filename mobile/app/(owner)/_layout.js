@@ -15,7 +15,11 @@ export default function OwnerTabLayout() {
   const unreadCount = useUnreadCount(userId);
 
   return (
-    <NativeTabs>
+    <NativeTabs
+      tintColor="#FFFFFF"
+      barTintColor="#0B1D3A"
+      inactiveTintColor="#B0BEC5"
+    >
       <NativeTabs.Trigger name="listings">
         <NativeTabs.Trigger.Icon md="home" />
         <NativeTabs.Trigger.Label>Listings</NativeTabs.Trigger.Label>

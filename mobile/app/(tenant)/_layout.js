@@ -15,7 +15,11 @@ export default function TenantTabLayout() {
   const unreadCount = useUnreadCount(userId);
 
   return (
-    <NativeTabs>
+    <NativeTabs
+      tintColor="#FFFFFF"
+      barTintColor="#0B1D3A"
+      inactiveTintColor="#B0BEC5"
+    >
       <NativeTabs.Trigger name="swipe">
         <NativeTabs.Trigger.Icon md="dashboard" />
         <NativeTabs.Trigger.Label>Swipe</NativeTabs.Trigger.Label>
