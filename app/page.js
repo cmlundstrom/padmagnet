@@ -104,9 +104,9 @@ function PhoneMockup() {
   }, [positions]);
 
   const cards = [
-    { img: '/images/card1.jpg', alt: 'Luxury apartment with pool', score: 92, price: '$2,450', street: '4521 N Ocean Blvd', city: 'Palm Beach Gardens', beds: 2, baths: 2, sqft: '1,180' },
-    { img: '/images/card2.jpg', alt: 'Mediterranean style home', score: 84, price: '$3,100', street: '1820 Jupiter Island Dr', city: 'Jupiter', beds: 4, baths: 3, sqft: '2,240' },
-    { img: '/images/card3.png', alt: 'Single family home with garage', score: 76, price: '$2,800', street: '8362 SE Magnolia Ave', city: 'Hobe Sound', beds: 3, baths: 2, sqft: '1,820' },
+    { img: '/images/card1.jpg', alt: 'Luxury apartment with pool', score: 92, price: '$2,450', street: 'Palm Beach Gardens', city: 'FL', beds: 2, baths: 2, sqft: '1,180' },
+    { img: '/images/card2.jpg', alt: 'Mediterranean style home', score: 84, price: '$3,100', street: 'Jupiter', city: 'FL', beds: 4, baths: 3, sqft: '2,240' },
+    { img: '/images/card3.png', alt: 'Single family home with garage', score: 76, price: '$2,800', street: 'Downtown Stuart', city: 'FL', beds: 3, baths: 2, sqft: '1,820' },
   ];
 
   return (
