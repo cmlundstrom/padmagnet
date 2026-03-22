@@ -66,8 +66,8 @@ export async function POST(request) {
       customer: customerId,
       mode: 'payment',
       line_items: [{ price: TIER_PRICES[tier], quantity: 1 }],
-      success_url: `https://padmagnet.com/email-confirmed?type=payment&status=complete&tier=${tier}`,
-      cancel_url: `https://padmagnet.com/email-confirmed?type=payment&status=cancelled`,
+      success_url: `https://padmagnet.com/payment-confirmed?status=complete&tier=${tier}`,
+      cancel_url: `https://padmagnet.com/payment-confirmed?status=cancelled`,
       metadata: {
         type: 'tier_pass',
         tier,

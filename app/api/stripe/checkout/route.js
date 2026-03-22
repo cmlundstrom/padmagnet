@@ -97,8 +97,8 @@ export async function POST(request) {
       customer: customerId,
       mode: 'payment',
       line_items: lineItems,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://padmagnet.com'}/dashboard/listings?success=true&listing_id=${listing_id}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://padmagnet.com'}/dashboard/listings?cancelled=true`,
+      success_url: `https://padmagnet.com/payment-confirmed?status=complete&listing_id=${listing_id}`,
+      cancel_url: `https://padmagnet.com/payment-confirmed?status=cancelled`,
       metadata: {
         listing_id,
         owner_user_id: user.id,
