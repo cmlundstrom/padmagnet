@@ -83,6 +83,7 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
               Select {tier.label} →
             </Text>
           )}
+        </Pressable>
       ) : null}
     </View>
   );
