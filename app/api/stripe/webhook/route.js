@@ -33,7 +33,41 @@ export async function POST(request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const { listing_id, owner_user_id, product_ids: productIdsJson } = session.metadata || {};
+        const metadata = session.metadata || {};
+
+        // --- Tier pass purchase (Pro/Premium 30-day pass) ---
+        if (metadata.type === 'tier_pass') {
+          const { tier, user_id } = metadata;
+          if (tier && user_id) {
+            const now = new Date();
+            const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            await supabase
+              .from('profiles')
+              .update({
+                tier,
+                tier_started_at: now.toISOString(),
+                tier_expires_at: expiresAt.toISOString(),
+                stripe_customer_id: session.customer || undefined,
+              })
+              .eq('id', user_id);
+
+            // Log to webhook_logs for admin visibility
+            await supabase.from('webhook_logs').insert({
+              source: 'stripe',
+              event_type: 'tier_pass_activated',
+              external_id: session.id,
+              status: 'processed',
+              payload: { tier, user_id, expires_at: expiresAt.toISOString() },
+            }).catch(() => {});
+
+            console.log(`Tier pass activated: ${tier} for user ${user_id}, expires ${expiresAt.toISOString()}`);
+          }
+          break;
+        }
+
+        // --- Legacy listing purchase flow ---
+        const { listing_id, owner_user_id, product_ids: productIdsJson } = metadata;
 
         if (!listing_id || !owner_user_id) {
           console.warn('Checkout session missing metadata:', session.id);

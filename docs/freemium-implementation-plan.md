@@ -1040,9 +1040,9 @@ Templates
 - [ ] EAS Build + admin testing (build in progress)
 
 ### Phase 4: Stripe & Go-Live (Week 7-8)
-- [ ] Connect Stripe
-- [ ] Build checkout flow
-- [ ] Build subscription management
+- [ ] Connect Stripe (one-time 30-day passes, NOT recurring subscriptions)
+- [ ] Build checkout flow (Pro $4.99 / Premium $9.99 one-time)
+- [ ] Simplify webhook to handle one-time pass activation + expiry
 - [ ] Add "Founding Owner" pricing logic
 - [ ] Recruit 5-10 beta testers
 - [ ] Final content review

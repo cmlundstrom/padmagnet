@@ -1,15 +1,19 @@
-import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useAlert } from '../../providers/AlertProvider';
+import { apiFetch } from '../../lib/api';
 import { TIERS } from '../../constants/tiers';
 import { useAuth } from '../../hooks/useAuth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, ctaTextColor }) {
+function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, ctaTextColor, onUpgrade, upgrading }) {
   const isCurrent = currentTier === tierKey;
   const isHighlighted = badge === 'Popular';
   const monthlyDisplay = tier.price.monthly === 0
@@ -23,7 +27,7 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
     : null;
 
   const handleSelect = () => {
-    Alert.alert('Coming Soon', 'Coming soon — Stripe not yet connected');
+    if (onUpgrade && tierKey !== 'free') onUpgrade(tierKey);
   };
 
   return (
@@ -68,13 +72,17 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
         </View>
       ) : tierKey !== 'free' ? (
         <Pressable
-          style={[styles.ctaBtn, { backgroundColor: ctaColor || COLORS.accent }]}
+          style={[styles.ctaBtn, { backgroundColor: ctaColor || COLORS.accent, opacity: upgrading ? 0.6 : 1 }]}
           onPress={handleSelect}
+          disabled={upgrading}
         >
-          <Text style={[styles.ctaBtnText, { color: ctaTextColor || COLORS.white }]}>
-            Select {tier.label} →
-          </Text>
-        </Pressable>
+          {upgrading ? (
+            <ActivityIndicator size="small" color={ctaTextColor || COLORS.white} />
+          ) : (
+            <Text style={[styles.ctaBtnText, { color: ctaTextColor || COLORS.white }]}>
+              Select {tier.label} →
+            </Text>
+          )}
       ) : null}
     </View>
   );
@@ -82,10 +90,29 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const alert = useAlert();
   const { preview } = useLocalSearchParams();
   const { role } = useAuth();
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const { tier: currentTier } = useSubscription();
+  const [upgrading, setUpgrading] = useState(false);
+
+  const handleUpgrade = async (tier) => {
+    setUpgrading(true);
+    try {
+      const { checkout_url } = await apiFetch('/api/owner/subscription/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ tier }),
+      });
+      if (checkout_url) {
+        await WebBrowser.openBrowserAsync(checkout_url);
+      }
+    } catch (err) {
+      alert('Error', err.message);
+    } finally {
+      setUpgrading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -119,6 +146,8 @@ export default function UpgradeScreen() {
           badgeColor={COLORS.accent}
           ctaColor={COLORS.accent}
           ctaTextColor={COLORS.white}
+          onUpgrade={handleUpgrade}
+          upgrading={upgrading}
         />
 
         <TierCard
@@ -129,6 +158,8 @@ export default function UpgradeScreen() {
           badgeColor={COLORS.gold}
           ctaColor={COLORS.gold}
           ctaTextColor={COLORS.black}
+          onUpgrade={handleUpgrade}
+          upgrading={upgrading}
         />
 
         <Text style={styles.footerCompare}>
