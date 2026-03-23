@@ -53,7 +53,19 @@ export default function SubscriptionScreen() {
         contentContainerStyle={{ paddingBottom: 60 }}
       >
         {/* ── Plan Card ────────────────────────────── */}
-        <View style={[styles.planCard, { borderColor: tierColor + '44' }]}>
+        <View style={[
+          styles.planCard,
+          !isFree && !isExpired && styles.planCardActive,
+          { borderColor: !isFree && !isExpired ? COLORS.success : tierColor + '44' },
+        ]}>
+          {/* Active plan banner */}
+          {!isFree && !isExpired && (
+            <View style={styles.activeBanner}>
+              <Ionicons name="shield-checkmark" size={16} color={COLORS.white} />
+              <Text style={styles.activeBannerText}>Your Active Plan</Text>
+            </View>
+          )}
+
           <View style={[styles.badgeCircle, { backgroundColor: tierColor + '22' }]}>
             <Ionicons name={tierIcon} size={32} color={tierColor} />
           </View>
@@ -230,6 +242,29 @@ const styles = StyleSheet.create({
     padding: LAYOUT.padding.lg,
     alignItems: 'center',
     marginBottom: LAYOUT.padding.md,
+  },
+  planCardActive: {
+    borderWidth: 2,
+    backgroundColor: COLORS.success + '0D',
+  },
+  activeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.success,
+    borderRadius: LAYOUT.radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    alignSelf: 'center',
+  },
+  activeBannerText: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   badgeCircle: {
     width: 64,

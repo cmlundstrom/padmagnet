@@ -287,6 +287,27 @@ function PaymentConfirmedContent() {
             </p>
           </>
         )}
+
+        {/* Return to App button */}
+        <a
+          href="padmagnet://"
+          style={{
+            display: 'block',
+            backgroundColor: THEME.logoOrange,
+            color: THEME.text,
+            fontFamily: THEME.fontBody,
+            fontSize: '16px',
+            fontWeight: 600,
+            textAlign: 'center',
+            textDecoration: 'none',
+            padding: '14px 24px',
+            borderRadius: '12px',
+            marginTop: '24px',
+            width: '100%',
+          }}
+        >
+          Return to PadMagnet App
+        </a>
       </div>
 
       {/* Footer */}

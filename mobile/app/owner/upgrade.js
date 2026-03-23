@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -9,6 +9,7 @@ import { useAlert } from '../../providers/AlertProvider';
 import { apiFetch } from '../../lib/api';
 import { TIERS } from '../../constants/tiers';
 import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -40,9 +41,17 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
       isHighlighted && styles.tierCardHighlighted,
       isCurrent && styles.tierCardCurrent,
     ]}>
+      {/* Active plan banner */}
+      {isCurrent && (
+        <View style={styles.activeBanner}>
+          <Ionicons name="shield-checkmark" size={16} color={COLORS.white} />
+          <Text style={styles.activeBannerText}>Your Active Plan</Text>
+        </View>
+      )}
+
       <View style={styles.tierHeader}>
         <Text style={styles.tierLabel}>{tier.label}</Text>
-        {badge && (
+        {badge && !isCurrent && (
           <View style={[styles.badge, { backgroundColor: (badgeColor || COLORS.accent) + '22' }]}>
             <Text style={[styles.badgeText, { color: badgeColor || COLORS.accent }]}>{badge}</Text>
           </View>
@@ -86,8 +95,9 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
       </View>
 
       {isCurrent ? (
-        <View style={[styles.ctaBtn, { backgroundColor: COLORS.slate + '33' }]}>
-          <Text style={[styles.ctaBtnText, { color: COLORS.textSecondary }]}>Current Plan</Text>
+        <View style={styles.currentPlanBtn}>
+          <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+          <Text style={styles.currentPlanBtnText}>Current Plan</Text>
         </View>
       ) : tierKey !== 'free' ? (
         <Pressable
@@ -114,8 +124,15 @@ export default function UpgradeScreen() {
   const { preview } = useLocalSearchParams();
   const { role } = useAuth();
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
-  const { tier: currentTier, daysRemaining, tierExpiresAt } = useSubscription();
+  const { tier: currentTier, daysRemaining, tierExpiresAt, refresh: refreshTier } = useSubscription();
   const [upgrading, setUpgrading] = useState(false);
+
+  // Refresh tier when screen regains focus (e.g., returning from browser)
+  useFocusEffect(
+    useCallback(() => {
+      refreshTier();
+    }, [refreshTier])
+  );
 
   // Calculate proration credit for upgrades (client-side estimate)
   let prorationCredit = 0;
@@ -133,6 +150,9 @@ export default function UpgradeScreen() {
       });
       if (checkout_url) {
         await WebBrowser.openBrowserAsync(checkout_url);
+        // User returned from browser — refresh tier and navigate to subscription
+        refreshTier();
+        router.replace('/settings/subscription');
       }
     } catch (err) {
       alert('Error', err.message);
@@ -260,6 +280,44 @@ const styles = StyleSheet.create({
   },
   tierCardCurrent: {
     borderColor: COLORS.success,
+    borderWidth: 2,
+    backgroundColor: COLORS.success + '0D',
+  },
+  activeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.success,
+    borderRadius: LAYOUT.radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    alignSelf: 'center',
+  },
+  activeBannerText: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  currentPlanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.success + '1A',
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.success + '44',
+    paddingVertical: 12,
+    marginTop: LAYOUT.padding.xs,
+  },
+  currentPlanBtnText: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.success,
   },
   tierHeader: {
     flexDirection: 'row',
