@@ -13,9 +13,13 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, ctaTextColor, onUpgrade, upgrading }) {
+function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, ctaTextColor, onUpgrade, upgrading, prorationCredit }) {
   const isCurrent = currentTier === tierKey;
   const isHighlighted = badge === 'Popular';
+  const isUpgrade = prorationCredit > 0;
+  const effectivePrice = isUpgrade
+    ? Math.max(tier.price.monthly - prorationCredit, 50)
+    : tier.price.monthly;
   const monthlyDisplay = tier.price.monthly === 0
     ? 'FREE'
     : `$${(tier.price.monthly / 100).toFixed(2)}/mo`;
@@ -49,11 +53,26 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
       {dailyDisplay && <Text style={styles.tierDaily}>({dailyDisplay})</Text>}
       {annualDisplay && <Text style={styles.tierAnnual}>{annualDisplay}</Text>}
 
+      {/* Proration credit banner for upgrades */}
+      {isUpgrade && !isCurrent && (
+        <View style={styles.creditBanner}>
+          <Ionicons name="pricetag" size={14} color={COLORS.success} />
+          <Text style={styles.creditText}>
+            ${(prorationCredit / 100).toFixed(2)} credit from your {currentTier} pass
+          </Text>
+        </View>
+      )}
+      {isUpgrade && !isCurrent && (
+        <Text style={styles.creditPrice}>
+          You pay today: ${(effectivePrice / 100).toFixed(2)}
+        </Text>
+      )}
+
       {tierKey === 'free' && (
         <Text style={styles.tierDesc}>1 listing &bull; Basic stats</Text>
       )}
 
-      {tierKey === 'premium' && (
+      {tierKey === 'premium' && !isUpgrade && (
         <Text style={styles.tierDesc}>Everything in Pro, plus:</Text>
       )}
 
@@ -80,7 +99,7 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
             <ActivityIndicator size="small" color={ctaTextColor || COLORS.white} />
           ) : (
             <Text style={[styles.ctaBtnText, { color: ctaTextColor || COLORS.white }]}>
-              Select {tier.label} →
+              {isUpgrade ? `Upgrade to ${tier.label}` : `Select ${tier.label}`} →
             </Text>
           )}
         </Pressable>
@@ -95,8 +114,15 @@ export default function UpgradeScreen() {
   const { preview } = useLocalSearchParams();
   const { role } = useAuth();
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
-  const { tier: currentTier } = useSubscription();
+  const { tier: currentTier, daysRemaining, tierExpiresAt } = useSubscription();
   const [upgrading, setUpgrading] = useState(false);
+
+  // Calculate proration credit for upgrades (client-side estimate)
+  let prorationCredit = 0;
+  if (currentTier !== 'free' && daysRemaining > 0 && tierExpiresAt) {
+    const currentPriceCents = TIERS[currentTier]?.price?.monthly || 0;
+    prorationCredit = Math.round((daysRemaining / 30) * currentPriceCents);
+  }
 
   const handleUpgrade = async (tier) => {
     setUpgrading(true);
@@ -155,6 +181,7 @@ export default function UpgradeScreen() {
           tierKey="premium"
           tier={TIERS.premium}
           currentTier={currentTier}
+          prorationCredit={currentTier === 'pro' ? prorationCredit : 0}
           badge="Best Value"
           badgeColor={COLORS.gold}
           ctaColor={COLORS.gold}
@@ -258,6 +285,29 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES['2xl'],
     color: COLORS.text,
+  },
+  creditBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.success + '1A',
+    borderRadius: LAYOUT.radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  creditText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.success,
+  },
+  creditPrice: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    marginTop: 6,
+    marginBottom: 4,
   },
   tierDaily: {
     fontFamily: FONTS.body.regular,

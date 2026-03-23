@@ -4,13 +4,23 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MarketStats from '../../components/owner/MarketStats';
 import UpgradeCTA from '../../components/owner/UpgradeCTA';
+import { useSubscription } from '../../hooks/useSubscription';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import { SCREEN } from '../../constants/screenStyles';
 
+const TIER_COLORS = { free: COLORS.textSecondary, pro: COLORS.accent, premium: COLORS.gold };
+const TIER_ICONS = { free: 'leaf-outline', pro: 'shield-checkmark', premium: 'diamond' };
+
 export default function ExploreScreen() {
   const router = useRouter();
+  const { tier, tierLabel, daysRemaining, isExpired } = useSubscription();
+  const isFree = tier === 'free';
+  const isPro = tier === 'pro';
+  const isPremium = tier === 'premium';
+  const tierColor = TIER_COLORS[tier];
+  const isUrgent = daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0;
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
@@ -49,7 +59,70 @@ export default function ExploreScreen() {
         <View style={styles.sectionLabel}>
           <Text style={styles.sectionTitle}>Your Plan</Text>
         </View>
-        <UpgradeCTA />
+
+        {/* Plan status card — shown for all tiers */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.planCard,
+            { borderColor: tierColor + '44' },
+            pressed && styles.cardPressed,
+          ]}
+          onPress={() => router.push('/settings/subscription')}
+        >
+          <View style={styles.planRow}>
+            <View style={[styles.planBadge, { backgroundColor: tierColor + '22' }]}>
+              <Ionicons name={TIER_ICONS[tier]} size={24} color={tierColor} />
+            </View>
+            <View style={styles.planInfo}>
+              <Text style={[styles.planTierText, { color: tierColor }]}>{tierLabel}</Text>
+              {!isFree && daysRemaining !== null && !isExpired && (
+                <Text style={[
+                  styles.planExpiry,
+                  isUrgent && { color: COLORS.warning },
+                ]}>
+                  {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining
+                </Text>
+              )}
+              {isExpired && (
+                <Text style={[styles.planExpiry, { color: COLORS.danger }]}>Pass expired</Text>
+              )}
+              {isFree && (
+                <Text style={styles.planExpiry}>Free plan</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </View>
+        </Pressable>
+
+        {/* Upgrade CTA for free users */}
+        {isFree && <UpgradeCTA />}
+
+        {/* Premium upsell for Pro users */}
+        {isPro && !isExpired && (
+          <Pressable
+            style={({ pressed }) => [styles.upsellCard, pressed && styles.cardPressed]}
+            onPress={() => router.push('/owner/upgrade')}
+          >
+            <View style={styles.upsellRow}>
+              <Ionicons name="diamond" size={20} color={COLORS.gold} />
+              <View style={styles.upsellTextWrap}>
+                <Text style={styles.upsellTitle}>Upgrade to Premium</Text>
+                <Text style={styles.upsellSub}>
+                  Unlimited listings, gold badge, instant push — just $5 more
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.gold} />
+            </View>
+          </Pressable>
+        )}
+
+        {/* Premium — top tier confirmation */}
+        {isPremium && !isExpired && (
+          <View style={styles.topTierRow}>
+            <Ionicons name="trophy" size={16} color={COLORS.gold} />
+            <Text style={styles.topTierText}>Every feature unlocked</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -112,5 +185,80 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
     marginBottom: 4,
+  },
+
+  // ── Plan status card ───────────────────────────
+  planCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    borderWidth: 1.5,
+    padding: LAYOUT.padding.md,
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  planBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  planInfo: {
+    flex: 1,
+  },
+  planTierText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+  },
+  planExpiry: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+
+  // ── Premium upsell ────────────────────────────
+  upsellCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    borderWidth: 1,
+    borderColor: COLORS.gold + '44',
+    padding: LAYOUT.padding.md,
+  },
+  upsellRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  upsellTextWrap: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  upsellTitle: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.gold,
+  },
+  upsellSub: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+
+  // ── Top tier ──────────────────────────────────
+  topTierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: LAYOUT.padding.sm,
+  },
+  topTierText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.gold,
   },
 });
