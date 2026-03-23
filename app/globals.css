@@ -120,7 +120,7 @@ nav.scrolled {
   min-height: 100vh;
   display: flex;
   align-items: center;
-  padding: 100px 24px 60px;
+  padding: 140px 24px 60px;
   position: relative;
   overflow: hidden;
 }
