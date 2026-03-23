@@ -424,6 +424,15 @@ export default function LandingPage() {
       <footer>
         <img src="/logo/padmagnet-icon-120-dark.png" alt="PadMagnet" width={28} height={28} style={{ borderRadius: 6, marginBottom: 8 }} />
         <p>&copy; 2026 PadMagnet LLC. Long-term rental matching for Florida&apos;s Treasure and Gold Coasts.</p>
+        <p className="footer-links">
+          <a href="#" onClick={(e) => { e.preventDefault(); window.location.href = ['ma','ilto:','sup','port','@pad','magnet','.com'].join(''); }} className="footer-link">
+            Contact Us
+          </a>
+          <span className="footer-dot">&middot;</span>
+          <a href="/privacy" className="footer-link">Privacy Policy</a>
+          <span className="footer-dot">&middot;</span>
+          <a href="/terms" className="footer-link">Terms of Service</a>
+        </p>
       </footer>
     </>
   );

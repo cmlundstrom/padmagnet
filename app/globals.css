@@ -821,6 +821,20 @@ footer a {
   color: rgba(255,255,255,0.5);
   text-decoration: none;
 }
+footer a:hover {
+  color: rgba(255,255,255,0.8);
+}
+.footer-links {
+  margin-top: 8px;
+}
+.footer-link {
+  font-size: 13px;
+}
+.footer-dot {
+  margin: 0 8px;
+  color: rgba(255,255,255,0.25);
+  font-size: 13px;
+}
 
 /* Toast notification */
 .toast {
