@@ -42,7 +42,18 @@ export async function GET(request, { params }) {
         .then(() => {}, () => {});
     }
 
-    return NextResponse.json({ ...listing, padScore });
+    // Enrich with owner tier for badge display
+    let owner_tier = null;
+    if (listing.source === 'owner' && listing.owner_user_id) {
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('tier')
+        .eq('id', listing.owner_user_id)
+        .single();
+      owner_tier = ownerProfile?.tier || 'free';
+    }
+
+    return NextResponse.json({ ...listing, padScore, owner_tier });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

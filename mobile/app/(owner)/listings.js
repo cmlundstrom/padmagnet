@@ -14,12 +14,15 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import { SCREEN } from '../../constants/screenStyles';
 import { useAuth } from '../../hooks/useAuth';
+import { useSubscription } from '../../hooks/useSubscription';
+import TierBadge from '../../components/owner/TierBadge';
 
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
   const { preview } = useLocalSearchParams();
   const { role } = useAuth();
+  const { tier: ownerTier } = useSubscription();
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -194,6 +197,7 @@ export default function OwnerListingsTab() {
           renderItem={({ item }) => (
             <OwnerListingRow
               listing={item}
+              ownerTier={ownerTier}
               onEdit={() => router.push(`/owner/edit?id=${item.id}`)}
               onDeactivate={() => handleDeactivate(item)}
               onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
@@ -256,7 +260,7 @@ function PulsingText({ style, children }) {
   return <Animated.Text style={[style, { color }]}>{children}</Animated.Text>;
 }
 
-function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
+function OwnerListingRow({ listing, ownerTier, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
   const firstPhoto = listing.photos?.[0]?.url;
@@ -272,6 +276,11 @@ function OwnerListingRow({ listing, onEdit, onDeactivate, onContinueDraft, onRel
           ) : (
             <View style={[styles.listingImage, styles.noPhoto]}>
               <Text style={styles.noPhotoText}>🏠</Text>
+            </View>
+          )}
+          {ownerTier && ownerTier !== 'free' && (
+            <View style={styles.thumbBadge}>
+              <TierBadge tier={ownerTier} size="sm" />
             </View>
           )}
         </View>
@@ -414,6 +423,13 @@ const styles = StyleSheet.create({
   listingPhoto: {
     width: 100,
     height: 110,
+    position: 'relative',
+  },
+  thumbBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    zIndex: 5,
   },
   listingImage: {
     flex: 1,

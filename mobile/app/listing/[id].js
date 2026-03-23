@@ -199,7 +199,7 @@ export default function ListingDetailScreen() {
       />
 
       <ScrollView style={styles.scroll} bounces={false}>
-        <PhotoGallery photos={listing.photos || []} />
+        <PhotoGallery photos={listing.photos || []} tierBadge={listing.owner_tier} />
         {context !== 'owner_browse' && <PadScoreBreakdown padScore={padScore} />}
         <ListingInfo listing={listing} />
         <MLSDisclaimer listing={listing} />

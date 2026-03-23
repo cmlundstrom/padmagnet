@@ -17,6 +17,8 @@ import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
 import { useAlert } from '../../providers/AlertProvider';
 import { formatCurrency, formatBedsBaths, formatDistance } from '../../utils/format';
+import TierBadge from '../../components/owner/TierBadge';
+import { useSubscription } from '../../hooks/useSubscription';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
@@ -27,6 +29,7 @@ export default function NearbyRentalsScreen() {
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
   const alert = useAlert();
+  const { tier: ownerTier } = useSubscription();
 
   // Location-based entry mode state (only used when no listing_id)
   // 'checking' = checking existing permission, 'pending' = need permission,
@@ -475,7 +478,7 @@ export default function NearbyRentalsScreen() {
           ListHeaderComponent={isLocationMode ? <LocationBanner /> : null}
           renderItem={({ item }) => (
             <View style={styles.gridItem}>
-              <NearbyListingCard listing={item} isSubject={item._isSubject} />
+              <NearbyListingCard listing={item} isSubject={item._isSubject} ownerTier={item._isSubject ? ownerTier : null} />
             </View>
           )}
           ListEmptyComponent={
@@ -529,7 +532,7 @@ export default function NearbyRentalsScreen() {
 }
 
 /** Compact card for nearby listings grid — shows distance + days on market */
-function NearbyListingCard({ listing, isSubject }) {
+function NearbyListingCard({ listing, isSubject, ownerTier }) {
   const router = useRouter();
   const firstPhoto = listing.photos?.[0]?.url;
   const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
@@ -554,6 +557,11 @@ function NearbyListingCard({ listing, isSubject }) {
             <Text style={styles.distanceText}>{formatDistance(listing.distance_miles)}</Text>
           </View>
         ) : null}
+        {isSubject && ownerTier && ownerTier !== 'free' && (
+          <View style={styles.nearbyTierBadge}>
+            <TierBadge tier={ownerTier} size="sm" />
+          </View>
+        )}
       </View>
       <View style={styles.nearbyInfo}>
         <Text style={styles.nearbyPrice} numberOfLines={1}>
@@ -972,6 +980,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.xxs,
     color: COLORS.white,
+  },
+  nearbyTierBadge: {
+    position: 'absolute',
+    bottom: 6,
+    right: 4,
+    zIndex: 5,
   },
   distanceBadge: {
     position: 'absolute',

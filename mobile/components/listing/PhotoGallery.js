@@ -3,6 +3,7 @@ import { View, FlatList, Text, Animated, StyleSheet, Dimensions } from 'react-na
 import { Image } from 'expo-image';
 import { FontAwesome } from '@expo/vector-icons';
 import NoPhotoPlaceholder from '../ui/NoPhotoPlaceholder';
+import TierBadge from '../owner/TierBadge';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -10,7 +11,7 @@ import { LAYOUT } from '../../constants/layout';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GALLERY_HEIGHT = SCREEN_WIDTH * 0.75;
 
-export default function PhotoGallery({ photos = [] }) {
+export default function PhotoGallery({ photos = [], tierBadge = null }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const hintOpacity = useRef(new Animated.Value(1)).current;
@@ -65,6 +66,13 @@ export default function PhotoGallery({ photos = [] }) {
         )}
       />
 
+      {/* Tier badge (top-left) */}
+      {tierBadge && tierBadge !== 'free' && (
+        <View style={styles.tierBadgeWrap}>
+          <TierBadge tier={tierBadge} />
+        </View>
+      )}
+
       {/* Photo counter */}
       {photos.length > 1 && (
         <View style={styles.counter}>
@@ -101,6 +109,12 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: GALLERY_HEIGHT,
+  },
+  tierBadgeWrap: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 5,
   },
   counter: {
     position: 'absolute',

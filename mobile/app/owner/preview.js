@@ -6,12 +6,14 @@ import { Header } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo } from '../../components/listing';
 import { calculatePadScore } from '../../lib/padscore';
 import { apiFetch } from '../../lib/api';
+import { useSubscription } from '../../hooks/useSubscription';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 
 // Preview a listing exactly as tenants see it (used from owner Review step + My Listings)
 export default function PreviewScreen() {
   const { listing_id } = useLocalSearchParams();
+  const { tier } = useSubscription();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +63,7 @@ export default function PreviewScreen() {
       </View>
       <ScrollView style={styles.scroll}>
         {listing.photos?.length > 0 && (
-          <PhotoGallery photos={listing.photos} />
+          <PhotoGallery photos={listing.photos} tierBadge={tier} />
         )}
         <PadScoreBreakdown score={sampleScore} />
         <ListingInfo listing={listing} />
