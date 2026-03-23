@@ -646,7 +646,8 @@ section { padding: 100px 24px; }
 .location-map {
   background: var(--cream);
   border-radius: var(--radius);
-  height: 500px;
+  height: 400px;
+  max-width: 80%;
   display: flex;
   align-items: center;
   justify-content: center;
