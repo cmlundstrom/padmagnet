@@ -340,7 +340,7 @@ export default function LandingPage() {
         <a href="#" className="logo">
           <img src="/logo/padmagnet-header.png" alt="PadMagnet — Find Your Perfect Rental with PadScore" className="logo-header-img" />
         </a>
-        <a href="#waitlist" className="nav-cta">Join Waitlist</a>
+{/* nav-cta removed — was rendering off-screen on mobile */}
       </nav>
 
       {/* HERO */}
