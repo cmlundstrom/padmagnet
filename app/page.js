@@ -316,7 +316,7 @@ export default function LandingPage() {
               Rental matching for Florida&apos;s Treasure Coast down through the entire Gold Coast, that&apos;s Fort Pierce to Miami and every town in between! — All powered by both live MLS data and Property Owner private listings!
             </p>
             <p className="hero-sub">
-              Browse homes like a dating app. Swipe, match, move in. No stale listings. No broker runaround.
+              Browse amazing rental homes. Swipe, match, communicate, move in. No stale listings. No broker runaround.
             </p>
             <WaitlistForm formId="hero" defaultRole="tenant" showRoleSelector={true} theme="light" />
             <p className="hero-trust">
