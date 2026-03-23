@@ -661,6 +661,19 @@ section { padding: 100px 24px; }
 }
 /* Hide Leaflet's default attribution watermark */
 .location-map .leaflet-control-attribution { display: none; }
+/* County name tooltip on hover */
+.county-tooltip {
+  background: rgba(11, 29, 58, 0.9) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(232, 96, 60, 0.5) !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+.county-tooltip::before { border-top-color: rgba(11, 29, 58, 0.9) !important; }
 .location-details h3 {
   font-size: 28px;
   font-weight: 800;

@@ -200,6 +200,31 @@ function PhoneMockup() {
   );
 }
 
+// Simplified county boundary polygons for SE Florida service area
+const COUNTY_BOUNDARIES = {
+  'St. Lucie': [
+    [27.573, -80.870], [27.573, -80.226], [27.573, -80.030],
+    [27.345, -80.030], [27.345, -80.226], [27.345, -80.870],
+  ],
+  'Martin': [
+    [27.345, -80.670], [27.345, -80.226], [27.345, -80.030],
+    [26.969, -80.030], [26.969, -80.226], [26.969, -80.670],
+  ],
+  'Palm Beach': [
+    [26.969, -80.880], [26.969, -80.445], [26.969, -80.030],
+    [26.320, -80.030], [26.320, -80.445], [26.320, -80.880],
+  ],
+  'Broward': [
+    [26.320, -80.880], [26.320, -80.445], [26.320, -80.070],
+    [25.957, -80.070], [25.957, -80.445], [25.957, -80.880],
+  ],
+  'Miami-Dade': [
+    [25.957, -80.880], [25.957, -80.445], [25.957, -80.070],
+    [25.636, -80.070], [25.636, -80.250], [25.240, -80.250],
+    [25.240, -80.445], [25.240, -80.880],
+  ],
+};
+
 function LocationMap() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -221,25 +246,40 @@ function LocationMap() {
       const L = window.L;
 
       const map = L.map(mapRef.current, {
-        center: [26.35, -80.15], // Midpoint — Fort Pierce to Miami
+        center: [26.35, -80.25],
         zoom: 8,
-        zoomControl: false,
+        zoomControl: true,
         attributionControl: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
         dragging: true,
-        touchZoom: false,
+        touchZoom: true,
       });
 
-      // Voyager tiles — minimal land with blue water
+      // Voyager tiles — clean, minimal land with blue water
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 16,
-        minZoom: 9,
+        maxZoom: 14,
+        minZoom: 7,
       }).addTo(map);
 
-      mapInstance.current = map;
+      // Draw county boundary polygons with PadMagnet orange fill
+      Object.entries(COUNTY_BOUNDARIES).forEach(([name, coords]) => {
+        const polygon = L.polygon(coords, {
+          color: '#E8603C',
+          weight: 1.5,
+          opacity: 0.7,
+          fillColor: '#E8603C',
+          fillOpacity: 0.15,
+        }).addTo(map);
 
-      // Fix tile rendering after container becomes visible
+        polygon.bindTooltip(name + ' County', {
+          permanent: false,
+          direction: 'center',
+          className: 'county-tooltip',
+        });
+      });
+
+      mapInstance.current = map;
       setTimeout(() => map.invalidateSize(), 200);
     };
     document.head.appendChild(script);
