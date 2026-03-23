@@ -246,8 +246,8 @@ function LocationMap() {
       const L = window.L;
 
       const map = L.map(mapRef.current, {
-        center: [26.55, -80.55],
-        zoom: 7.3,
+        center: [27.0, -81.2],
+        zoom: 7,
         zoomControl: true,
         attributionControl: false,
         scrollWheelZoom: true,
