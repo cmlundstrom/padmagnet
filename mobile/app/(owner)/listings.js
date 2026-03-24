@@ -198,6 +198,7 @@ export default function OwnerListingsTab() {
             <OwnerListingRow
               listing={item}
               ownerTier={ownerTier}
+              onView={() => router.push(`/owner/preview?listing_id=${item.id}`)}
               onEdit={() => router.push(`/owner/edit?id=${item.id}`)}
               onDeactivate={() => handleDeactivate(item)}
               onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
@@ -260,7 +261,7 @@ function PulsingText({ style, children }) {
   return <Animated.Text style={[style, { color }]}>{children}</Animated.Text>;
 }
 
-function OwnerListingRow({ listing, ownerTier, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
+function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
   const firstPhoto = listing.photos?.[0]?.url;
@@ -269,7 +270,7 @@ function OwnerListingRow({ listing, ownerTier, onEdit, onDeactivate, onContinueD
 
   return (
     <View style={styles.listingRow}>
-      <Pressable style={styles.listingContent} onPress={onEdit}>
+      <Pressable style={styles.listingContent} onPress={onView}>
         <View style={styles.listingPhoto}>
           {firstPhoto ? (
             <Image source={{ uri: firstPhoto }} style={styles.listingImage} contentFit="cover" />
@@ -346,16 +347,20 @@ function OwnerListingRow({ listing, ownerTier, onEdit, onDeactivate, onContinueD
           </>
         ) : (
           <>
+            <Pressable style={styles.actionBtn} onPress={onView}>
+              <FontAwesome name="eye" size={17} color={COLORS.white} />
+              <Text style={[styles.actionBtnText, { marginLeft: 4, color: COLORS.accent }]}>View</Text>
+            </Pressable>
             <Pressable style={styles.actionBtn} onPress={onEdit}>
-              <FontAwesome name="pencil" size={19} color={COLORS.white} />
+              <FontAwesome name="pencil" size={17} color={COLORS.white} />
               <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Edit</Text>
             </Pressable>
             <Pressable style={styles.actionBtn} onPress={onEditPrice}>
-              <FontAwesome name="dollar" size={19} color={COLORS.white} />
+              <FontAwesome name="dollar" size={17} color={COLORS.white} />
               <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Price</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
-              <FontAwesome name="archive" size={18} color={COLORS.white} />
+              <FontAwesome name="archive" size={16} color={COLORS.white} />
               <Text style={[styles.actionBtnText, styles.dangerBtnText, { marginLeft: 4 }]}>Archive</Text>
             </Pressable>
           </>
