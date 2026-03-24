@@ -3,6 +3,7 @@ import { getAuthUser } from '../../../../lib/auth-helpers';
 import { geocodeAddress } from '../../../../lib/geocode';
 import { sendTemplateEmail } from '../../../../lib/email';
 import { sanitizeText, sanitizeName } from '../../../../lib/validate';
+import { checkRateLimit } from '../../../../lib/rate-limit';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
@@ -79,6 +80,11 @@ export async function POST(request) {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) {
       return NextResponse.json({ error: authError }, { status });
+    }
+
+    const rl = await checkRateLimit('listings', user.id);
+    if (rl.limited) {
+      return NextResponse.json({ error: 'Listing creation limit reached. Please try again later.' }, { status: 429, headers: rl.headers });
     }
 
     const body = await request.json();

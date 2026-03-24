@@ -1,6 +1,7 @@
 import { createServiceClient } from '../../../lib/supabase';
 import { getAuthUser } from '../../../lib/auth-helpers';
 import { notifyRecipient, notifyExternalAgent } from '../../../lib/notify';
+import { checkRateLimit } from '../../../lib/rate-limit';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -58,6 +59,11 @@ export async function POST(request) {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) {
       return NextResponse.json({ error: authError }, { status });
+    }
+
+    const rl = await checkRateLimit('conversations', user.id);
+    if (rl.limited) {
+      return NextResponse.json({ error: 'Too many conversations. Please slow down.' }, { status: 429, headers: rl.headers });
     }
 
     const body = await request.json();

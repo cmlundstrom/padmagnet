@@ -10,10 +10,17 @@
 
 import { createServiceClient } from '../../../../lib/supabase';
 import { validateTwilioSignature } from '../../../../lib/sms';
+import { checkRateLimit, getClientIP } from '../../../../lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
+  const ip = getClientIP(request);
+  const rl = await checkRateLimit('webhooks', ip);
+  if (rl.limited) {
+    return new Response('Rate limited', { status: 429, headers: rl.headers });
+  }
+
   const supabase = createServiceClient();
   let logId = null;
 

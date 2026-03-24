@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { getAuthUser } from '../../../../lib/auth-helpers';
+import { checkRateLimit } from '../../../../lib/rate-limit';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import sharp from 'sharp';
@@ -38,6 +39,11 @@ export async function POST(request) {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) {
       return NextResponse.json({ error: authError }, { status });
+    }
+
+    const rl = await checkRateLimit('photos', user.id);
+    if (rl.limited) {
+      return NextResponse.json({ error: 'Upload limit reached. Please try again later.' }, { status: 429, headers: rl.headers });
     }
 
     const formData = await request.formData();
