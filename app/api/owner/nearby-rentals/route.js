@@ -206,8 +206,23 @@ export async function GET(request) {
     const hasMore = (listings || []).length > limit;
     const trimmed = (listings || []).slice(0, limit);
 
+    // Enrich owner listings with tier badges
+    const ownerIds = [...new Set(trimmed.filter(l => l.source === 'owner' && l.owner_user_id).map(l => l.owner_user_id))];
+    let tierMap = {};
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, tier')
+        .in('id', ownerIds);
+      tierMap = Object.fromEntries((profiles || []).map(p => [p.id, p.tier]));
+    }
+    const enriched = trimmed.map(l => ({
+      ...l,
+      owner_tier: l.source === 'owner' ? (tierMap[l.owner_user_id] || 'free') : null,
+    }));
+
     return NextResponse.json({
-      listings: trimmed,
+      listings: enriched,
       subject: subjectInfo,
       access,
       radius_miles: radius,

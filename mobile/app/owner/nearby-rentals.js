@@ -557,9 +557,9 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
             <Text style={styles.distanceText}>{formatDistance(listing.distance_miles)}</Text>
           </View>
         ) : null}
-        {isSubject && ownerTier && ownerTier !== 'free' && (
+        {(ownerTier || listing.owner_tier) && (ownerTier || listing.owner_tier) !== 'free' && (
           <View style={styles.nearbyTierBadge}>
-            <TierBadge tier={ownerTier} size="sm" />
+            <TierBadge tier={ownerTier || listing.owner_tier} size="sm" />
           </View>
         )}
       </View>
