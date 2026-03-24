@@ -350,7 +350,7 @@ export default function NearbyRentalsScreen() {
     _isSubject: true,
   } : null;
 
-  const gridData = subjectCard ? [subjectCard, ...listings] : listings;
+  const gridData = listings; // Subject card rendered separately (pinned)
 
   // Location mode banner component
   const LocationBanner = () => {
@@ -475,10 +475,20 @@ export default function NearbyRentalsScreen() {
           contentContainerStyle={styles.gridContent}
           onEndReached={loadMore}
           onEndReachedThreshold={1.5}
-          ListHeaderComponent={isLocationMode ? <LocationBanner /> : null}
+          stickyHeaderIndices={[0]}
+          ListHeaderComponent={
+            <>
+              {isLocationMode && <LocationBanner />}
+              {subjectCard && (
+                <View style={styles.stickySubject}>
+                  <NearbyListingCard listing={subjectCard} isSubject ownerTier={ownerTier} />
+                </View>
+              )}
+            </>
+          }
           renderItem={({ item }) => (
             <View style={styles.gridItem}>
-              <NearbyListingCard listing={item} isSubject={item._isSubject} ownerTier={item._isSubject ? ownerTier : null} />
+              <NearbyListingCard listing={item} isSubject={false} ownerTier={null} />
             </View>
           )}
           ListEmptyComponent={
@@ -540,7 +550,7 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
   return (
     <Pressable
       style={[styles.nearbyCard, isSubject && styles.subjectCard]}
-      onPress={isSubject ? null : () => router.push(`/listing/${listing.id}?context=owner_browse`)}
+      onPress={() => router.push(isSubject ? `/owner/preview?listing_id=${listing.id}` : `/listing/${listing.id}?context=owner_browse`)}
     >
       <View style={styles.nearbyImageContainer}>
         {firstPhoto ? (
@@ -935,6 +945,11 @@ const styles = StyleSheet.create({
   },
 
   // Grid
+  stickySubject: {
+    backgroundColor: COLORS.background,
+    paddingBottom: 8,
+    marginBottom: 4,
+  },
   gridContent: {
     paddingHorizontal: LAYOUT.padding.md,
     paddingBottom: 80,
