@@ -65,19 +65,18 @@ export default function OwnerListingsTab() {
     fetchListings();
   }, [fetchListings]);
 
-  const handleDeactivate = (listing) => {
+  const handleDelist = (listing) => {
     alert(
-      'Deactivate Listing',
-      `Are you sure you want to deactivate "${[listing.street_number, listing.street_name].filter(Boolean).join(' ')}"?`,
+      'De-List Rental',
+      `This will remove "${[listing.street_number, listing.street_name].filter(Boolean).join(' ')}" from the tenant feed. Your listing data and photos will be preserved for easy re-listing later.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Deactivate',
-          style: 'destructive',
+          text: 'De-List',
           onPress: async () => {
             try {
-              await apiFetch(`/api/owner/listings/${listing.id}`, { method: 'DELETE' });
-              setListings(prev => prev.filter(l => l.id !== listing.id));
+              await apiFetch(`/api/owner/listings/${listing.id}/delist`, { method: 'POST' });
+              handleRefresh();
             } catch (err) {
               alert('Error', err.message);
             }
@@ -85,6 +84,20 @@ export default function OwnerListingsTab() {
         },
       ]
     );
+  };
+
+  const handleRelist = async (listing) => {
+    try {
+      const result = await apiFetch(`/api/owner/listings/${listing.id}/relist`, { method: 'POST' });
+      if (result.action === 'resumed') {
+        alert('Listing Re-Activated', `Your listing is live again with ${result.days_remaining} days remaining.`);
+        handleRefresh();
+      } else if (result.action === 'payment_required') {
+        router.push(`/owner/upgrade`);
+      }
+    } catch (err) {
+      alert('Error', err.message);
+    }
   };
 
   if (loading) {
@@ -200,9 +213,9 @@ export default function OwnerListingsTab() {
               ownerTier={ownerTier}
               onView={() => router.push(`/owner/preview?listing_id=${item.id}`)}
               onEdit={() => router.push(`/owner/edit?id=${item.id}`)}
-              onDeactivate={() => handleDeactivate(item)}
+              onDelist={() => handleDelist(item)}
+              onRelist={() => handleRelist(item)}
               onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
-              onRelist={() => router.push(`/owner/relist?listing_id=${item.id}`)}
               onNearby={() => router.push(`/owner/nearby-rentals?listing_id=${item.id}`)}
               onEditPrice={() => setPriceEditListing(item)}
             />
@@ -234,9 +247,13 @@ function getStatusColor(status) {
   }
 }
 
-function getExpiresLabel(expiresAt) {
-  if (!expiresAt) return null;
-  const days = Math.ceil((new Date(expiresAt) - Date.now()) / (1000 * 60 * 60 * 24));
+function getExpiresLabel(listing) {
+  if (listing.status === 'leased' && listing.days_remaining_at_delist != null) {
+    const d = listing.days_remaining_at_delist;
+    return d > 0 ? `${d} days saved` : 'Period used';
+  }
+  if (!listing.expires_at) return null;
+  const days = Math.ceil((new Date(listing.expires_at) - Date.now()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return 'Expired';
   if (days === 1) return '1 day left';
   return `${days} days left`;
@@ -302,12 +319,12 @@ function AnimatedBarChart() {
   );
 }
 
-function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
+function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelist, onContinueDraft, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
   const firstPhoto = listing.photos?.[0]?.url;
   const status = listing.status || (listing.is_active ? 'active' : 'archived');
-  const expiresLabel = listing.source === 'owner' ? getExpiresLabel(listing.expires_at) : null;
+  const expiresLabel = listing.source === 'owner' ? getExpiresLabel(listing) : null;
 
   return (
     <View style={styles.listingRow}>
@@ -381,15 +398,23 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onC
         </View>
       )}
       <View style={[styles.listingActions, status === 'draft' && { display: 'none' }]}>
-        {status === 'expired' ? (
-          <>
-            <Pressable style={styles.actionBtn} onPress={onRelist}>
-              <Text style={styles.actionBtnText}>Re-list</Text>
+        {status === 'leased' || status === 'expired' ? (
+          <View style={styles.actionGrid}>
+            <Pressable style={styles.actionGridBtn} onPress={onView}>
+              <Ionicons name="expand-outline" size={18} color={COLORS.white} />
+              <Text style={[styles.actionGridText, { color: COLORS.white }]}>View Listing</Text>
             </Pressable>
-            <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
-              <Text style={[styles.actionBtnText, styles.dangerBtnText]}>Archive</Text>
+            <Pressable style={styles.actionGridBtn} onPress={onEdit}>
+              <Ionicons name="create-outline" size={18} color={COLORS.brandOrange} />
+              <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Edit Listing</Text>
             </Pressable>
-          </>
+            <Pressable style={[styles.actionGridBtn, { borderColor: COLORS.success, width: '97%' }]} onPress={onRelist}>
+              <Ionicons name="refresh" size={18} color={COLORS.success} />
+              <Text style={[styles.actionGridText, { color: COLORS.success }]}>
+                {status === 'leased' ? 'Re-List Rental' : 'Renew Listing'}
+              </Text>
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.actionGrid}>
             <Pressable style={styles.actionGridBtn} onPress={onView}>
@@ -404,14 +429,14 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onC
               <Ionicons name="pricetag-outline" size={18} color={COLORS.brandOrange} />
               <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Adjust Price</Text>
             </Pressable>
-            <Pressable style={[styles.actionGridBtn, styles.dangerBtn]} onPress={onDeactivate}>
-              <Ionicons name="file-tray-full-outline" size={18} color={COLORS.danger} />
-              <Text style={[styles.actionGridText, { color: COLORS.danger }]}>Archive</Text>
+            <Pressable style={styles.actionGridBtn} onPress={onDelist}>
+              <Ionicons name="pause-circle-outline" size={18} color={COLORS.warning} />
+              <Text style={[styles.actionGridText, { color: COLORS.warning }]}>De-List</Text>
             </Pressable>
           </View>
         )}
       </View>
-      {status !== 'draft' && status !== 'expired' && (
+      {status !== 'draft' && status !== 'expired' && status !== 'leased' && (
         <Pressable style={styles.nearbyBtn} onPress={onNearby}>
           <AnimatedBarChart />
           <View style={styles.nearbyText}>
