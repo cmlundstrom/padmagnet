@@ -279,42 +279,87 @@ function PulsingText({ style, children }) {
 }
 
 function AnimatedBarChart() {
-  const bar1 = useRef(new Animated.Value(0)).current;
-  const bar2 = useRef(new Animated.Value(0)).current;
-  const bar3 = useRef(new Animated.Value(0)).current;
+  const Svg = require('react-native-svg').default;
+  const { Line, Rect: SvgRect } = require('react-native-svg');
+  const { Easing } = require('react-native');
+
+  // 5 bars — each animates from 0 to full height, staggered
+  const anims = [
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+  ];
 
   useEffect(() => {
-    const animate = (anim, duration) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, { toValue: 1, duration, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
-        ])
-      );
-    animate(bar1, 1800).start();
-    animate(bar2, 2400).start();
-    animate(bar3, 2000).start();
-  }, [bar1, bar2, bar3]);
+    // Initial staggered build-in
+    const buildIn = anims.map((anim, i) =>
+      Animated.delay(i * 200)
+    );
+    anims.forEach((anim, i) => {
+      Animated.sequence([
+        Animated.delay(i * 200),
+        Animated.timing(anim, { toValue: 1, duration: 600, useNativeDriver: false, easing: Easing.out(Easing.back(1.2)) }),
+      ]).start(() => {
+        // After build-in, start gentle breathing loop
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, { toValue: 0.85, duration: 1800 + i * 400, useNativeDriver: false, easing: Easing.inOut(Easing.sin) }),
+            Animated.timing(anim, { toValue: 1, duration: 1800 + i * 400, useNativeDriver: false, easing: Easing.inOut(Easing.sin) }),
+          ])
+        ).start();
+      });
+    });
+  }, []);
 
-  const barStyle = (anim, minH, maxH) => ({
-    width: 5,
-    borderRadius: 2.5,
-    backgroundColor: COLORS.white,
-    transform: [{
-      scaleY: anim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [minH, maxH],
-      }),
-    }],
-  });
+  // Bar definitions: [x, maxHeight] — ascending pattern
+  const bars = [
+    { x: 9, maxH: 7 },
+    { x: 15, maxH: 11.5 },
+    { x: 21, maxH: 16 },
+    { x: 27, maxH: 21 },
+    { x: 33, maxH: 25.8 },
+  ];
+  const barWidth = 4.5;
+  const baseline = 31;
 
   return (
     <View style={styles.animBarWrap}>
-      <Animated.View style={[styles.animBar, barStyle(bar1, 0.4, 1.0)]} />
-      <Animated.View style={[styles.animBar, barStyle(bar2, 0.25, 0.75)]} />
-      <Animated.View style={[styles.animBar, barStyle(bar3, 0.5, 1.0)]} />
-      {/* Baseline */}
-      <View style={styles.animBaseline} />
+      <Svg width="38" height="38" viewBox="0 0 44 38">
+        {/* Y axis */}
+        <Line x1="7" y1="4" x2="7" y2={baseline} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
+        {/* X axis */}
+        <Line x1="7" y1={baseline} x2="40" y2={baseline} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
+        {/* Tick marks */}
+        <Line x1="5" y1="24" x2="7" y2="24" stroke="white" strokeWidth="0.8" opacity="0.4" />
+        <Line x1="5" y1="17" x2="7" y2="17" stroke="white" strokeWidth="0.8" opacity="0.4" />
+        <Line x1="5" y1="10" x2="7" y2="10" stroke="white" strokeWidth="0.8" opacity="0.4" />
+        {/* Bars */}
+        {bars.map((bar, i) => {
+          const height = anims[i].interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, bar.maxH],
+          });
+          const y = anims[i].interpolate({
+            inputRange: [0, 1],
+            outputRange: [baseline, baseline - bar.maxH],
+          });
+          const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
+          return (
+            <AnimatedRect
+              key={i}
+              x={bar.x}
+              y={y}
+              width={barWidth}
+              height={height}
+              rx="1.5"
+              fill={COLORS.success}
+              opacity={0.7 + i * 0.075}
+            />
+          );
+        })}
+      </Svg>
     </View>
   );
 }
@@ -441,7 +486,7 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
           <AnimatedBarChart />
           <View style={styles.nearbyText}>
             <Text style={styles.nearbyTitle}>Nearby Active Rentals</Text>
-            <Text style={styles.nearbySubtitle}>See what other rentals are asking near this property</Text>
+            <Text style={styles.nearbySubtitle}>Compare local rent rates and competitive property features!</Text>
           </View>
           <View style={styles.frostBtn}>
             <FontAwesome name="arrow-right" size={16} color={COLORS.white} />
@@ -532,17 +577,17 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xl,
     color: COLORS.white,
-    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowRadius: 6,
   },
   heroAddress: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: 'rgba(255,255,255,0.85)',
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    color: 'rgba(255,255,255,0.9)',
+    textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 5,
     marginTop: 1,
   },
   noPhoto: {
@@ -727,29 +772,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   animBarWrap: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: LAYOUT.radius.lg,
-    backgroundColor: COLORS.accent + '18',
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
-    gap: 3,
-    paddingBottom: 7,
+    alignItems: 'center',
     marginRight: 10,
-  },
-  animBar: {
-    height: 16,
-  },
-  animBaseline: {
-    position: 'absolute',
-    bottom: 2,
-    left: 7,
-    right: 7,
-    height: 1.5,
-    backgroundColor: COLORS.white,
-    borderRadius: 1,
-    opacity: 0.75,
   },
   nearbyText: {
     flex: 1,

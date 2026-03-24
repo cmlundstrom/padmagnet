@@ -134,77 +134,95 @@ export default function PreviewScreen() {
       <Header title="Listing Paused" showBack />
 
       <ScrollView style={styles.scroll} contentContainerStyle={{ padding: LAYOUT.padding.md }}>
-        {/* Hero photo */}
-        {listing.photos?.length > 0 && (
-          <View style={styles.pausedHero}>
+        {/* Address line */}
+        <Text style={styles.addressHeader} numberOfLines={1}>{address}, {listing.city}</Text>
+
+        {/* Hero photo with metrics + status overlay */}
+        <View style={styles.pausedHero}>
+          {listing.photos?.length > 0 && (
             <PhotoGallery photos={listing.photos} tierBadge={tier} />
-          </View>
-        )}
-
-        {/* Status banner */}
-        <View style={styles.pausedBanner}>
-          <Ionicons name="pause-circle" size={22} color={COLORS.warning} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.pausedTitle}>
-              {isDelisted ? 'Listing De-Listed' : 'Listing Expired'}
-            </Text>
-            <Text style={styles.pausedSub}>
-              Tenants cannot see this listing. {isDelisted ? `De-listed ${delistDate}.` : 'Your advertising period has ended.'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Performance metrics */}
-        {metrics && (
-          <View style={styles.metricsCard}>
-            <Text style={styles.metricsTitle}>Listing Performance</Text>
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricItem}>
-                <FontAwesome name="calendar" size={16} color={COLORS.accent} />
-                <Text style={styles.metricValue}>{metrics.days_on_market}</Text>
-                <Text style={styles.metricLabel}>Days on Market</Text>
-              </View>
-              <View style={styles.metricItem}>
-                <FontAwesome name="eye" size={16} color={COLORS.accent} />
-                <Text style={styles.metricValue}>{metrics.unique_views}</Text>
-                <Text style={styles.metricLabel}>Unique Views</Text>
-              </View>
-              <View style={styles.metricItem}>
-                <FontAwesome name="envelope-o" size={16} color={COLORS.accent} />
-                <Text style={styles.metricValue}>{metrics.contacts}</Text>
-                <Text style={styles.metricLabel}>Contacts</Text>
-              </View>
-              {metrics.days_remaining > 0 && (
-                <View style={styles.metricItem}>
-                  <FontAwesome name="clock-o" size={16} color={COLORS.success} />
-                  <Text style={[styles.metricValue, { color: COLORS.success }]}>{metrics.days_remaining}</Text>
-                  <Text style={styles.metricLabel}>Days Saved</Text>
-                </View>
-              )}
+          )}
+          {/* Status banner */}
+          <View style={styles.pausedOverlay}>
+            <Ionicons name="pause-circle" size={24} color={COLORS.warning} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pausedTitle}>
+                {isDelisted ? 'Property Status: De-Listed' : 'Property Status: Expired'}
+              </Text>
+              <Text style={styles.pausedSub}>
+                Not visible to tenants. Data & photos preserved. {isDelisted ? `De-listed ${delistDate}.` : 'Advertising period ended.'}
+              </Text>
             </View>
           </View>
-        )}
-
-        {/* Preserved data notice */}
-        <View style={styles.preservedCard}>
-          <Ionicons name="shield-checkmark" size={18} color={COLORS.accent} />
-          <Text style={styles.preservedText}>
-            Your listing data, photos, and conversations are preserved. Re-list anytime with one tap.
-          </Text>
         </View>
 
-        {/* Re-list CTA */}
-        <Pressable style={styles.relistBtn} onPress={handleRelist}>
-          <Ionicons name="refresh" size={20} color={COLORS.white} />
-          <Text style={styles.relistBtnText}>
-            {isDelisted && metrics?.days_remaining > 0
-              ? `Re-List Now — ${metrics.days_remaining} days remaining`
-              : 'Re-List — Purchase New Pass'}
-          </Text>
+        {/* Re-list CTA — immediately after hero */}
+        <Pressable style={({ pressed }) => [styles.relistBtn, pressed && styles.relistBtnPressed]} onPress={handleRelist}>
+          <View style={styles.relistIconWrap}>
+            <Ionicons name="rocket-outline" size={20} color={COLORS.white} />
+          </View>
+          <View>
+            <Text style={styles.relistBtnTitle}>
+              {isDelisted && metrics?.days_remaining > 0
+                ? 'Re-List Now'
+                : 'Re-List Property'}
+            </Text>
+            <Text style={styles.relistBtnSub}>
+              {isDelisted && metrics?.days_remaining > 0
+                ? `${metrics.days_remaining} advertising days remaining`
+                : 'Purchase a new 30-day pass'}
+            </Text>
+          </View>
+          <Ionicons name="arrow-forward-circle" size={28} color="rgba(255,255,255,0.6)" style={{ marginLeft: 'auto' }} />
         </Pressable>
 
-        {/* Address footer */}
-        <Text style={styles.addressFooter}>{address}, {listing.city}</Text>
+        {/* Performance dashboard */}
+        {metrics && (
+          <View style={styles.statsDash}>
+            <Text style={styles.statsDashTitle}>Listing Performance Summary</Text>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statsCard}>
+                <Ionicons name="calendar-outline" size={20} color={COLORS.accent} />
+                <Text style={styles.statsCardValue}>{metrics.days_on_market}</Text>
+                <Text style={styles.statsCardLabel}>Days on Market</Text>
+              </View>
+              <View style={styles.statsCard}>
+                <Ionicons name="eye-outline" size={20} color={COLORS.accent} />
+                <Text style={styles.statsCardValue}>{metrics.unique_views}</Text>
+                <Text style={styles.statsCardLabel}>Unique Views</Text>
+              </View>
+            </View>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statsCard}>
+                <Ionicons name="mail-outline" size={20} color={COLORS.accent} />
+                <Text style={styles.statsCardValue}>{metrics.contacts}</Text>
+                <Text style={styles.statsCardLabel}>Tenant Contacts</Text>
+              </View>
+              <View style={styles.statsCard}>
+                <Ionicons name="time-outline" size={20} color={metrics.days_remaining > 0 ? COLORS.success : COLORS.textSecondary} />
+                <Text style={[styles.statsCardValue, metrics.days_remaining > 0 && { color: COLORS.success }]}>
+                  {metrics.days_remaining}
+                </Text>
+                <Text style={styles.statsCardLabel}>Days Saved</Text>
+              </View>
+            </View>
+
+            {metrics.unique_views > 0 && (
+              <View style={styles.insightRow}>
+                <Ionicons name="trending-up" size={16} color={COLORS.brandOrange} />
+                <Text style={styles.insightText}>
+                  {metrics.contacts > 0
+                    ? `${Math.round((metrics.contacts / metrics.unique_views) * 100)}% of viewers contacted you`
+                    : `${metrics.unique_views} tenants viewed your listing`}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -260,16 +278,19 @@ const styles = StyleSheet.create({
     borderRadius: LAYOUT.radius.lg,
     overflow: 'hidden',
     marginBottom: LAYOUT.padding.md,
-    opacity: 0.7,
+    position: 'relative',
   },
-  pausedBanner: {
+  pausedOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
-    backgroundColor: COLORS.warning + '15',
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
-    marginBottom: LAYOUT.padding.md,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   pausedTitle: {
     fontFamily: FONTS.heading.bold,
@@ -279,81 +300,140 @@ const styles = StyleSheet.create({
   },
   pausedSub: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+    fontSize: FONT_SIZES.xs,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 18,
   },
-  metricsCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.lg,
-    padding: LAYOUT.padding.md,
-    marginBottom: LAYOUT.padding.md,
-  },
-  metricsTitle: {
-    fontFamily: FONTS.heading.semiBold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text,
-    marginBottom: 14,
-  },
-  metricsGrid: {
+  metricsOverlay: {
+    position: 'absolute',
+    bottom: 52,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
   },
-  metricItem: {
-    width: '46%',
+  metricChip: {
     alignItems: 'center',
-    backgroundColor: COLORS.background + 'AA',
-    borderRadius: LAYOUT.radius.md,
-    padding: 12,
-    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minWidth: 58,
   },
-  metricValue: {
+  metricChipValue: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.text,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
   },
-  metricLabel: {
+  metricChipLabel: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xxs,
-    color: COLORS.textSecondary,
-  },
-  preservedCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: COLORS.accent + '12',
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
-    marginBottom: LAYOUT.padding.lg,
-  },
-  preservedText: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
-    flex: 1,
-    lineHeight: 20,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   relistBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     backgroundColor: COLORS.success,
-    borderRadius: LAYOUT.radius.full,
+    borderRadius: LAYOUT.radius.lg,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: LAYOUT.padding.md,
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  relistBtnText: {
-    fontFamily: FONTS.body.bold,
+  relistBtnPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  relistIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  relistBtnTitle: {
+    fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
   },
-  addressFooter: {
+  relistBtnSub: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
+    fontSize: FONT_SIZES.xxs,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 1,
+  },
+  addressHeader: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+
+  // Performance dashboard
+  statsDash: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    padding: LAYOUT.padding.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  statsDashTitle: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    marginBottom: 12,
     textAlign: 'center',
-    marginBottom: 40,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  statsCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.radius.md,
+    paddingVertical: 14,
+    gap: 4,
+  },
+  statsCardValue: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES['2xl'] || 28,
+    color: COLORS.text,
+  },
+  statsCardLabel: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  insightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.brandOrange + '12',
+    borderRadius: LAYOUT.radius.sm,
+    padding: 10,
+    marginTop: 4,
+  },
+  insightText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brandOrange,
+    flex: 1,
   },
 });

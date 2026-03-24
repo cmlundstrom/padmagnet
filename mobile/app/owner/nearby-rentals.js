@@ -23,7 +23,7 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
-const RADIUS_OPTIONS = [1, 3, 5, 10];
+const RADIUS_OPTIONS = [2, 5, 7];
 
 export default function NearbyRentalsScreen() {
   const { listing_id } = useLocalSearchParams();
@@ -441,7 +441,7 @@ export default function NearbyRentalsScreen() {
 
       {/* Filter title */}
       <View style={styles.filterSection}>
-        <Text style={styles.filterSectionTitle}>Filter Views for Competitive Active Rental Listings</Text>
+        <Text style={styles.filterSectionTitle}>Filter views for other Competitive Active Rentals with 'Search Radius'</Text>
       </View>
 
       {/* Subject card + filters side by side (or full-width filters if no listing) */}
@@ -575,7 +575,7 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
       style={[styles.nearbyCard, isSubject && styles.subjectCard]}
       onPress={() => router.push(isSubject ? `/owner/preview?listing_id=${listing.id}` : `/listing/${listing.id}?context=owner_browse`)}
     >
-      <View style={styles.nearbyImageContainer}>
+      <View style={isSubject ? styles.nearbyImageContainerSubject : styles.nearbyImageContainer}>
         {firstPhoto ? (
           <Image source={{ uri: firstPhoto }} style={styles.nearbyImage} contentFit="cover" transition={200} />
         ) : (
@@ -595,20 +595,35 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
             <TierBadge tier={ownerTier || listing.owner_tier} size="sm" />
           </View>
         )}
+        {/* Subject card: overlay price + address + stats on image */}
+        {isSubject && (
+          <View style={styles.subjectOverlay}>
+            <Text style={styles.subjectPrice}>
+              {formatCurrency(listing.list_price)}<Text style={styles.subjectPerMonth}>/mo</Text>
+            </Text>
+            <Text style={styles.subjectAddress} numberOfLines={1}>{street || 'No address'}</Text>
+            <Text style={styles.subjectStats}>
+              {listing.bedrooms_total === 0 ? 'Studio' : `${listing.bedrooms_total} bed`} · {listing.bathrooms_total} bath
+              {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
+            </Text>
+          </View>
+        )}
       </View>
-      <View style={styles.nearbyInfo}>
-        <Text style={styles.nearbyPrice} numberOfLines={1}>
-          {formatCurrency(listing.list_price)}
-          <Text style={styles.nearbyPerMonth}>/mo</Text>
-        </Text>
-        <Text style={styles.nearbyAddress} numberOfLines={2}>{street || 'No address'}</Text>
-        <Text style={styles.nearbyCity} numberOfLines={1}>{listing.city || '—'}</Text>
-        <Text style={styles.nearbyDetails} numberOfLines={1}>
-          {listing.bedrooms_total === 0 ? 'Studio' : `${listing.bedrooms_total}b`} · {listing.bathrooms_total}ba
-          {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
-        </Text>
-        {!isSubject && <Text style={styles.nearbyDom}>{listing.days_on_market != null ? `${listing.days_on_market}d on market` : '—'}</Text>}
-      </View>
+      {!isSubject && (
+        <View style={styles.nearbyInfo}>
+          <Text style={styles.nearbyPrice} numberOfLines={1}>
+            {formatCurrency(listing.list_price)}
+            <Text style={styles.nearbyPerMonth}>/mo</Text>
+          </Text>
+          <Text style={styles.nearbyAddress} numberOfLines={2}>{street || 'No address'}</Text>
+          <Text style={styles.nearbyCity} numberOfLines={1}>{listing.city || '—'}</Text>
+          <Text style={styles.nearbyDetails} numberOfLines={1}>
+            {listing.bedrooms_total === 0 ? 'Studio' : `${listing.bedrooms_total}b`} · {listing.bathrooms_total}ba
+            {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
+          </Text>
+          <Text style={styles.nearbyDom}>{listing.days_on_market != null ? `${listing.days_on_market}d on market` : '—'}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -975,10 +990,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerSubject: {
-    flex: 60,
+    flex: 65,
+    height: 230,
+    borderRadius: LAYOUT.radius.lg,
+    overflow: 'hidden',
   },
   headerFilters: {
-    flex: 37,
+    flex: 32,
+    height: 230,
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.lg,
     borderWidth: 1,
@@ -997,6 +1016,7 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    textAlign: 'center',
   },
   headerFilterUnderline: {
     width: '50%',
@@ -1053,12 +1073,57 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
-    height: 280,
   },
   nearbyImageContainer: {
     height: 100,
     backgroundColor: COLORS.surface,
     position: 'relative',
+  },
+  nearbyImageContainerSubject: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: COLORS.surface,
+    position: 'relative',
+  },
+  subjectOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+    paddingTop: 24,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  subjectPrice: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.white,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  subjectPerMonth: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.body.regular,
+  },
+  subjectAddress: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 1,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  subjectStats: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
   },
   nearbyImage: {
     flex: 1,
