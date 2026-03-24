@@ -24,6 +24,16 @@ export async function POST(request) {
     event = stripe.webhooks.constructEvent(body, sig, WEBHOOK_SECRET);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
+    // Log failure to webhook_logs for admin visibility
+    try {
+      const sb = createServiceClient();
+      await sb.from('webhook_logs').insert({
+        source: 'stripe',
+        event_type: 'signature_verification_failed',
+        status: 'error',
+        payload: { error: err.message },
+      });
+    } catch (_) {}
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
