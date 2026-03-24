@@ -87,8 +87,7 @@ export default function useNearbyRentals(listingId, { lat, lng } = {}) {
     setFiltersState(prev => {
       const updated = { ...prev, ...newFilters };
       console.log('[NearbyRentals] Updated filters:', JSON.stringify(updated));
-      // Clear and re-fetch with new filters
-      setListings([]);
+      // Re-fetch with new filters (keep current listings visible until new ones arrive)
       pageRef.current = 1;
       doFetch(1, updated);
       return updated;

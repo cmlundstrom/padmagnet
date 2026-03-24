@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
@@ -23,7 +23,7 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
-const RADIUS_OPTIONS = [3, 5, 10];
+const RADIUS_OPTIONS = [1, 3, 5, 10];
 
 export default function NearbyRentalsScreen() {
   const { listing_id } = useLocalSearchParams();
@@ -309,8 +309,8 @@ export default function NearbyRentalsScreen() {
     );
   }
 
-  // --- Standard loading state (listing_id mode) ---
-  if (listing_id && loading && listings.length === 0) {
+  // --- Initial loading state (listing_id mode, no data yet) ---
+  if (listing_id && loading && !subject && listings.length === 0) {
     return (
       <SafeAreaView style={styles.centered} edges={['top']}>
         <Header title="Nearby Rentals" showBack />
@@ -439,31 +439,64 @@ export default function NearbyRentalsScreen() {
       />
 
 
-      {/* Filter rows */}
+      {/* Filter title */}
       <View style={styles.filterSection}>
         <Text style={styles.filterSectionTitle}>Filter Views for Competitive Active Rental Listings</Text>
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Radius</Text>
-          {RADIUS_OPTIONS.map(r => (
-            <Pressable
-              key={`r-${r}`}
-              style={[CHIP_STYLES.chip, radius === r && CHIP_STYLES.chipActive]}
-              onPress={() => handleRadiusChange(r)}
-            >
-              <Text style={[CHIP_STYLES.chipText, radius === r && CHIP_STYLES.chipTextActive]}>
-                {r} mi
-              </Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
 
-      {/* Results count */}
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>
-          {listings.length} listing{listings.length !== 1 ? 's' : ''} within {radius} mi
-        </Text>
-      </View>
+      {/* Subject card + filters side by side (or full-width filters if no listing) */}
+      {subjectCard ? (
+        <View style={styles.headerRow}>
+          <View style={styles.headerSubject}>
+            <NearbyListingCard listing={subjectCard} isSubject ownerTier={ownerTier} />
+          </View>
+          <View style={styles.headerFilters}>
+            <Ionicons name="radio-outline" size={18} color={COLORS.accent} style={styles.headerFilterIcon} />
+            <Text style={styles.headerFilterLabel}>Search Radius</Text>
+            <View style={styles.headerFilterUnderline} />
+            {RADIUS_OPTIONS.map(r => (
+              <Pressable
+                key={`r-${r}`}
+                style={[styles.headerChip, radius === r && styles.headerChipActive]}
+                onPress={() => handleRadiusChange(r)}
+              >
+                <Text style={[styles.headerChipText, radius === r && styles.headerChipTextActive]}>
+                  {r} mi
+                </Text>
+              </Pressable>
+            ))}
+            {loading ? (
+              <ActivityIndicator size="small" color={COLORS.accent} style={{ marginTop: 2 }} />
+            ) : (
+              <Text style={styles.headerResultsCount}>
+                {listings.length} listing{listings.length !== 1 ? 's' : ''}
+              </Text>
+            )}
+          </View>
+        </View>
+      ) : (
+        <View style={styles.filterSection}>
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Radius</Text>
+            {RADIUS_OPTIONS.map(r => (
+              <Pressable
+                key={`r-${r}`}
+                style={[CHIP_STYLES.chip, radius === r && CHIP_STYLES.chipActive]}
+                onPress={() => handleRadiusChange(r)}
+              >
+                <Text style={[CHIP_STYLES.chipText, radius === r && CHIP_STYLES.chipTextActive]}>
+                  {r} mi
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsCount}>
+              {listings.length} listing{listings.length !== 1 ? 's' : ''} within {radius} mi
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Content area */}
       {viewMode === 'grid' ? (
@@ -475,17 +508,7 @@ export default function NearbyRentalsScreen() {
           contentContainerStyle={styles.gridContent}
           onEndReached={loadMore}
           onEndReachedThreshold={1.5}
-          stickyHeaderIndices={[0]}
-          ListHeaderComponent={
-            <>
-              {isLocationMode && <LocationBanner />}
-              {subjectCard && (
-                <View style={styles.stickySubject}>
-                  <NearbyListingCard listing={subjectCard} isSubject ownerTier={ownerTier} />
-                </View>
-              )}
-            </>
-          }
+          ListHeaderComponent={isLocationMode ? <LocationBanner /> : null}
           renderItem={({ item }) => (
             <View style={styles.gridItem}>
               <NearbyListingCard listing={item} isSubject={false} ownerTier={null} />
@@ -584,7 +607,7 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
           {listing.bedrooms_total === 0 ? 'Studio' : `${listing.bedrooms_total}b`} · {listing.bathrooms_total}ba
           {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
         </Text>
-        <Text style={styles.nearbyDom}>{listing.days_on_market != null ? `${listing.days_on_market}d on market` : '—'}</Text>
+        {!isSubject && <Text style={styles.nearbyDom}>{listing.days_on_market != null ? `${listing.days_on_market}d on market` : '—'}</Text>}
       </View>
     </Pressable>
   );
@@ -944,12 +967,73 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
-  // Grid
-  stickySubject: {
-    backgroundColor: COLORS.background,
-    paddingBottom: 8,
-    marginBottom: 4,
+  // Header row: subject card + filters side by side
+  headerRow: {
+    flexDirection: 'row',
+    paddingHorizontal: LAYOUT.padding.md,
+    marginBottom: 8,
+    gap: 8,
   },
+  headerSubject: {
+    flex: 60,
+  },
+  headerFilters: {
+    flex: 37,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
+    padding: LAYOUT.padding.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  headerFilterIcon: {
+    marginBottom: 2,
+  },
+  headerFilterLabel: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  headerFilterUnderline: {
+    width: '50%',
+    height: 1,
+    backgroundColor: COLORS.accent + '44',
+    marginBottom: 4,
+    marginTop: 1,
+  },
+  headerChip: {
+    width: '92%',
+    paddingVertical: 6,
+    borderRadius: LAYOUT.radius.full,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  headerChipActive: {
+    borderColor: COLORS.success,
+    backgroundColor: COLORS.success + '22',
+  },
+  headerChipText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  headerChipTextActive: {
+    color: COLORS.success,
+    fontFamily: FONTS.body.bold,
+  },
+  headerResultsCount: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.accent,
+    marginTop: 2,
+  },
+
+  //
   gridContent: {
     paddingHorizontal: LAYOUT.padding.md,
     paddingBottom: 80,
