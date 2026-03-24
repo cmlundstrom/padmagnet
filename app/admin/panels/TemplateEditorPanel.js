@@ -475,6 +475,25 @@ export default function TemplateEditorPanel() {
       {/* Share Templates — stored in site_config */}
       <ShareTemplateSection />
 
+      {/* Supabase Auth Emails — admin note */}
+      <div style={{
+        marginTop: 32, padding: '16px 20px',
+        backgroundColor: COLORS.surface,
+        borderRadius: 8, border: `1px solid ${COLORS.border}`,
+      }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted || '#999', marginBottom: 8 }}>
+          Supabase Auth Emails (not editable here)
+        </h3>
+        <p style={{ fontSize: '12px', color: COLORS.textMuted || '#999', lineHeight: '1.5', margin: 0 }}>
+          The following emails are sent directly by Supabase Auth and must be edited in the{' '}
+          <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" style={{ color: '#3B82F6' }}>
+            Supabase Dashboard
+          </a>{' '}
+          under Authentication &gt; Email Templates:
+          <br />• Signup confirmation &nbsp;• Password reset &nbsp;• Email change confirmation &nbsp;• Magic link
+        </p>
+      </div>
+
       {templates.length === 0 && (
         <div style={{
           padding: '40px 16px', textAlign: 'center',
