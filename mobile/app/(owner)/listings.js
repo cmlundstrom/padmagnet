@@ -261,6 +261,47 @@ function PulsingText({ style, children }) {
   return <Animated.Text style={[style, { color }]}>{children}</Animated.Text>;
 }
 
+function AnimatedBarChart() {
+  const bar1 = useRef(new Animated.Value(0)).current;
+  const bar2 = useRef(new Animated.Value(0)).current;
+  const bar3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animate = (anim, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, { toValue: 1, duration, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
+        ])
+      );
+    animate(bar1, 1800).start();
+    animate(bar2, 2400).start();
+    animate(bar3, 2000).start();
+  }, [bar1, bar2, bar3]);
+
+  const barStyle = (anim, minH, maxH) => ({
+    width: 5,
+    borderRadius: 2.5,
+    backgroundColor: COLORS.white,
+    transform: [{
+      scaleY: anim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [minH, maxH],
+      }),
+    }],
+  });
+
+  return (
+    <View style={styles.animBarWrap}>
+      <Animated.View style={[styles.animBar, barStyle(bar1, 0.4, 1.0)]} />
+      <Animated.View style={[styles.animBar, barStyle(bar2, 0.25, 0.75)]} />
+      <Animated.View style={[styles.animBar, barStyle(bar3, 0.5, 1.0)]} />
+      {/* Baseline */}
+      <View style={styles.animBaseline} />
+    </View>
+  );
+}
+
 function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onContinueDraft, onRelist, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
@@ -270,56 +311,60 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onC
 
   return (
     <View style={styles.listingRow}>
-      <Pressable style={styles.listingContent} onPress={onView}>
-        <View style={styles.listingPhoto}>
+      {/* Hero photo — full width with overlay */}
+      <Pressable onPress={onView}>
+        <View style={styles.heroWrap}>
           {firstPhoto ? (
-            <Image source={{ uri: firstPhoto }} style={styles.listingImage} contentFit="cover" />
+            <Image source={{ uri: firstPhoto }} style={styles.heroImage} contentFit="cover" />
           ) : (
-            <View style={[styles.listingImage, styles.noPhoto]}>
+            <View style={[styles.heroImage, styles.noPhoto]}>
               <Text style={styles.noPhotoText}>🏠</Text>
             </View>
           )}
+          {/* Gradient scrim at bottom for text readability */}
+          <View style={styles.heroScrim} />
+          {/* Tier badge — top left */}
           {ownerTier && ownerTier !== 'free' && (
-            <View style={styles.thumbBadge}>
+            <View style={styles.heroBadge}>
               <TierBadge tier={ownerTier} size="sm" />
             </View>
           )}
-        </View>
-        <View style={styles.listingInfo}>
-          <Text style={styles.listingPrice}>
-            {listing.list_price ? `${formatCurrency(listing.list_price)}/mo` : 'Draft'}
-          </Text>
-          <Text style={styles.listingAddress}>
-            {address || 'No address'}{cityLine ? `, ${cityLine}` : ''}
-          </Text>
+          {/* Price + address overlay */}
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroPrice}>
+              {listing.list_price ? `${formatCurrency(listing.list_price)}/mo` : 'Draft'}
+            </Text>
+            <Text style={styles.heroAddress} numberOfLines={1}>
+              {address || 'No address'}{cityLine ? `, ${cityLine}` : ''}
+            </Text>
+          </View>
         </View>
       </Pressable>
+
+      {/* Stats dashboard row */}
       {status !== 'draft' && (
-        <View style={styles.statusStatsRow}>
-          <View style={styles.statusColumn}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '22' }]}>
-              <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
-                Listing: {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Text>
-            </View>
-            {expiresLabel && (
-              <View style={styles.expiresPill}>
-                <FontAwesome name="clock-o" size={11} color={COLORS.textSecondary} />
-                <Text style={styles.expiresLabel}>{expiresLabel}</Text>
-              </View>
-            )}
+        <View style={styles.dashRow}>
+          <View style={styles.dashItem}>
+            <View style={[styles.dashDot, { backgroundColor: getStatusColor(status) }]} />
+            <Text style={[styles.dashValue, { color: getStatusColor(status) }]}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Text>
           </View>
-          <View style={styles.statsColumn}>
-            <View style={styles.statItem}>
-              <FontAwesome name="eye" size={12} color={COLORS.text} />
-              <Text style={styles.statsText}>
-                {listing.unique_view_count || 0} Unique Views
-              </Text>
+          {expiresLabel && (
+            <View style={styles.dashItem}>
+              <FontAwesome name="clock-o" size={11} color={COLORS.textSecondary} />
+              <Text style={styles.dashLabel}>{expiresLabel}</Text>
             </View>
-            <View style={styles.statItem}>
-              <FontAwesome name="envelope-o" size={11} color={COLORS.text} />
-              <Text style={styles.statsText}>{listing.inquiry_count || 0} Contacts</Text>
-            </View>
+          )}
+          <View style={styles.dashItem}>
+            <FontAwesome name="eye" size={11} color={COLORS.accent} />
+            <Text style={styles.dashValue}>{listing.unique_view_count || 0}</Text>
+            <Text style={styles.dashLabel}>Views</Text>
+          </View>
+          <View style={styles.dashItem}>
+            <FontAwesome name="envelope-o" size={11} color={COLORS.accent} />
+            <Text style={styles.dashValue}>{listing.inquiry_count || 0}</Text>
+            <Text style={styles.dashLabel}>Contacts</Text>
           </View>
         </View>
       )}
@@ -346,31 +391,29 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDeactivate, onC
             </Pressable>
           </>
         ) : (
-          <>
-            <Pressable style={styles.actionBtn} onPress={onView}>
-              <FontAwesome name="eye" size={17} color={COLORS.white} />
-              <Text style={[styles.actionBtnText, { marginLeft: 4, color: COLORS.accent }]}>View</Text>
+          <View style={styles.actionGrid}>
+            <Pressable style={styles.actionGridBtn} onPress={onView}>
+              <Ionicons name="expand-outline" size={18} color={COLORS.white} />
+              <Text style={[styles.actionGridText, { color: COLORS.white }]}>View Listing</Text>
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={onEdit}>
-              <FontAwesome name="pencil" size={17} color={COLORS.white} />
-              <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Edit</Text>
+            <Pressable style={styles.actionGridBtn} onPress={onEdit}>
+              <Ionicons name="create-outline" size={18} color={COLORS.brandOrange} />
+              <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Edit Listing</Text>
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={onEditPrice}>
-              <FontAwesome name="dollar" size={17} color={COLORS.white} />
-              <Text style={[styles.actionBtnText, styles.orangeText, { marginLeft: 4 }]}>Price</Text>
+            <Pressable style={styles.actionGridBtn} onPress={onEditPrice}>
+              <Ionicons name="pricetag-outline" size={18} color={COLORS.brandOrange} />
+              <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Adjust Price</Text>
             </Pressable>
-            <Pressable style={[styles.actionBtn, styles.dangerBtn]} onPress={onDeactivate}>
-              <FontAwesome name="archive" size={16} color={COLORS.white} />
-              <Text style={[styles.actionBtnText, styles.dangerBtnText, { marginLeft: 4 }]}>Archive</Text>
+            <Pressable style={[styles.actionGridBtn, styles.dangerBtn]} onPress={onDeactivate}>
+              <Ionicons name="file-tray-full-outline" size={18} color={COLORS.danger} />
+              <Text style={[styles.actionGridText, { color: COLORS.danger }]}>Archive</Text>
             </Pressable>
-          </>
+          </View>
         )}
       </View>
       {status !== 'draft' && status !== 'expired' && (
         <Pressable style={styles.nearbyBtn} onPress={onNearby}>
-          <View style={styles.nearbyIcon}>
-            <FontAwesome name="bar-chart" size={26} color={COLORS.white} />
-          </View>
+          <AnimatedBarChart />
           <View style={styles.nearbyText}>
             <Text style={styles.nearbyTitle}>Nearby Active Rentals</Text>
             <Text style={styles.nearbySubtitle}>See what other rentals are asking near this property</Text>
@@ -415,53 +458,105 @@ const styles = StyleSheet.create({
     padding: LAYOUT.padding.md,
   },
   listingRow: {
-    backgroundColor: COLORS.card,
-    borderRadius: LAYOUT.radius.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  listingContent: {
-    flexDirection: 'row',
-  },
-  listingPhoto: {
-    width: 100,
-    height: 110,
+
+  // Hero photo
+  heroWrap: {
+    height: 180,
     position: 'relative',
   },
-  thumbBadge: {
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroScrim: {
     position: 'absolute',
-    bottom: 4,
-    left: 4,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: 'transparent',
+    // Gradient approximation via layered shadow
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -40 },
+    shadowOpacity: 0.7,
+    shadowRadius: 30,
+  },
+  heroBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
     zIndex: 5,
   },
-  listingImage: {
-    flex: 1,
+  heroOverlay: {
+    position: 'absolute',
+    bottom: 10,
+    left: 12,
+    right: 12,
+    zIndex: 5,
+  },
+  heroPrice: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.white,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  heroAddress: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: 'rgba(255,255,255,0.85)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    marginTop: 1,
   },
   noPhoto: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     justifyContent: 'center',
     alignItems: 'center',
   },
   noPhotoText: {
-    fontSize: 28,
+    fontSize: 36,
   },
-  listingInfo: {
-    flex: 1,
-    padding: LAYOUT.padding.sm,
-    justifyContent: 'center',
+
+  // Dashboard stats row
+  dashRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: LAYOUT.padding.sm,
+    backgroundColor: COLORS.background + 'AA',
   },
-  listingPrice: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.md,
+  dashItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dashDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  dashValue: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.text,
   },
-  listingAddress: {
+  dashLabel: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
   listingCity: {
     fontFamily: FONTS.body.regular,
@@ -547,6 +642,30 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     paddingHorizontal: 4,
   },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
+  actionGridBtn: {
+    width: '47%',
+    flexDirection: 'row',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.background + '88',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: LAYOUT.radius.full,
+    marginHorizontal: '1.5%',
+    marginBottom: 6,
+  },
+  actionGridText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+  },
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -581,6 +700,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+  },
+  animBarWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: LAYOUT.radius.lg,
+    backgroundColor: COLORS.accent + '18',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 3,
+    paddingBottom: 7,
+    marginRight: 10,
+  },
+  animBar: {
+    height: 16,
+  },
+  animBaseline: {
+    position: 'absolute',
+    bottom: 2,
+    left: 7,
+    right: 7,
+    height: 1.5,
+    backgroundColor: COLORS.white,
+    borderRadius: 1,
+    opacity: 0.75,
   },
   nearbyText: {
     flex: 1,

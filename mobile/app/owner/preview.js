@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { ScrollView, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { ScrollView, View, Text, Pressable, ActivityIndicator, Share, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo } from '../../components/listing';
 import { calculatePadScore } from '../../lib/padscore';
@@ -36,6 +37,17 @@ export default function PreviewScreen() {
     })();
   }, [listing_id]);
 
+  const handleShare = useCallback(async () => {
+    if (!listing) return;
+    const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+    const price = listing.list_price ? `$${Number(listing.list_price).toLocaleString()}/mo` : '';
+    try {
+      await Share.share({
+        message: `Check out this rental on PadMagnet! ${address}, ${listing.city || ''} — ${price}\nhttps://padmagnet.com/listing/${listing.id}`,
+      });
+    } catch (e) { /* user cancelled */ }
+  }, [listing]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -57,7 +69,16 @@ export default function PreviewScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Header title="Preview as Tenant" showBack />
+      <Header
+        title="Preview as Tenant"
+        showBack
+        rightAction={
+          <Pressable onPress={handleShare} style={styles.shareBtn}>
+            <FontAwesome name="share-alt" size={14} color={COLORS.background} />
+            <Text style={styles.shareBtnText}>Share</Text>
+          </Pressable>
+        }
+      />
       <View style={styles.previewBanner}>
         <Text style={styles.previewBannerText}>This is how tenants will see your listing</Text>
       </View>
@@ -65,7 +86,7 @@ export default function PreviewScreen() {
         {listing.photos?.length > 0 && (
           <PhotoGallery photos={listing.photos} tierBadge={tier} />
         )}
-        <PadScoreBreakdown score={sampleScore} />
+        <PadScoreBreakdown padScore={sampleScore} />
         <ListingInfo listing={listing} />
       </ScrollView>
     </SafeAreaView>
@@ -101,5 +122,19 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  shareBtnText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
   },
 });
