@@ -92,6 +92,10 @@ export default function TenantProfileScreen() {
       <TouchableOpacity style={SIGN_OUT.button} onPress={handleSignOut}>
         <Text style={SIGN_OUT.text}>Sign Out</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity style={[MENU.item, { marginTop: 24 }]} onPress={() => router.push('/settings/delete-account')}>
+        <Text style={[MENU.text, { color: COLORS.danger, fontSize: 13 }]}>Delete Account</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }

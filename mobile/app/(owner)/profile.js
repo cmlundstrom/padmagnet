@@ -6,6 +6,7 @@ import { signOut } from '../../lib/auth';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import ProfileCard from '../../components/screens/ProfileCard';
+import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
 export default function OwnerProfileScreen() {
@@ -59,6 +60,10 @@ export default function OwnerProfileScreen() {
 
       <TouchableOpacity style={SIGN_OUT.button} onPress={handleSignOut}>
         <Text style={SIGN_OUT.text}>Sign Out</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[MENU.item, { marginTop: 24 }]} onPress={() => router.push('/settings/delete-account')}>
+        <Text style={[MENU.text, { color: COLORS.danger, fontSize: 13 }]}>Delete Account</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
