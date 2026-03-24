@@ -959,6 +959,7 @@ const styles = StyleSheet.create({
   nearbyImageContainer: {
     height: 100,
     backgroundColor: COLORS.surface,
+    position: 'relative',
   },
   nearbyImage: {
     flex: 1,
@@ -983,7 +984,7 @@ const styles = StyleSheet.create({
   },
   nearbyTierBadge: {
     position: 'absolute',
-    bottom: 6,
+    top: 4,
     right: 4,
     zIndex: 5,
   },
