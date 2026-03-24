@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../../../../lib/supabase';
 import { getAuthUser } from '../../../../../../lib/auth-helpers';
+import { sendTemplateEmail } from '../../../../../../lib/email';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,7 @@ export async function POST(request, { params }) {
 
     const { data: listing, error: fetchErr } = await supabase
       .from('listings')
-      .select('id, owner_user_id, source, status, is_active, expires_at')
+      .select('id, owner_user_id, source, status, is_active, expires_at, created_at, street_number, street_name, city, state_or_province')
       .eq('id', id)
       .single();
 
@@ -38,6 +39,22 @@ export async function POST(request, { params }) {
       daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
     }
 
+    // Fetch performance metrics
+    const daysOnMarket = listing.created_at
+      ? Math.max(1, Math.floor((Date.now() - new Date(listing.created_at).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    const { count: uniqueViews } = await supabase
+      .from('listing_views')
+      .select('*', { count: 'exact', head: true })
+      .eq('listing_id', id);
+
+    const { count: contacts } = await supabase
+      .from('conversations')
+      .select('*', { count: 'exact', head: true })
+      .eq('listing_id', id);
+
+    // De-list the listing
     const { error: updateErr } = await supabase
       .from('listings')
       .update({
@@ -51,7 +68,34 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, days_remaining: daysRemaining });
+    // Send de-list confirmation email
+    const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+    const fullAddress = [address, listing.city, listing.state_or_province].filter(Boolean).join(', ');
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single();
+
+    sendTemplateEmail('listing_delisted', user.email, {
+      owner_name: profile?.display_name || 'Property Owner',
+      listing_address: fullAddress,
+      days_on_market: String(daysOnMarket),
+      unique_views: String(uniqueViews || 0),
+      contacts: String(contacts || 0),
+      days_remaining: String(daysRemaining || 0),
+    }).catch(() => {}); // Non-blocking
+
+    return NextResponse.json({
+      success: true,
+      days_remaining: daysRemaining,
+      metrics: {
+        days_on_market: daysOnMarket,
+        unique_views: uniqueViews || 0,
+        contacts: contacts || 0,
+      },
+    });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
