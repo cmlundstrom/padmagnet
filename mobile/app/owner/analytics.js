@@ -6,12 +6,12 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   ScrollView,
-  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetch } from '../../lib/api';
+import { shareListing } from '../../lib/share-listing';
 import { useSubscription } from '../../hooks/useSubscription';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -36,13 +36,7 @@ export default function AnalyticsScreen() {
   }, [listing_id, canViewAnalytics]);
 
   async function handleShare() {
-    try {
-      await Share.share({
-        message: `Check out this rental on PadMagnet: https://padmagnet.com/listing/${listing_id}`,
-      });
-    } catch (_) {
-      // user cancelled
-    }
+    await shareListing(data || { id: listing_id });
   }
 
   function handleEdit() {

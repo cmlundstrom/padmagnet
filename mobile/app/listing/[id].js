@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, View, Text, Pressable, ActivityIndicator, Share, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withDelay } from 'react-native-reanimated';
@@ -11,6 +11,7 @@ import useSwipe from '../../hooks/useSwipe';
 import { calculatePadScore } from '../../lib/padscore';
 import { FontAwesome } from '@expo/vector-icons';
 import { apiFetch } from '../../lib/api';
+import { shareListing } from '../../lib/share-listing';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -119,32 +120,7 @@ export default function ListingDetailScreen() {
 
   const padScore = listing ? calculatePadScore(preferences, listing) : null;
 
-  const handleShare = useCallback(async () => {
-    if (!listing) return;
-    const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
-    const price = listing.list_price ? `$${Number(listing.list_price).toLocaleString()}/mo` : '';
-    const vars = { address, city: listing.city || '', price, id: listing.id };
-    const fill = (tpl) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || '');
-
-    let subjectTpl = 'Check out this rental: {{address}}, {{city}} — {{price}}';
-    let messageTpl = 'Check out this rental on PadMagnet! {{address}}, {{city}} — {{price}}\nhttps://padmagnet.com/listing/{{id}}';
-
-    try {
-      const cfg = await apiFetch('/api/config/public?keys=share_subject,share_message,share_templates_active');
-      if (cfg?.share_templates_active !== 'false') {
-        if (cfg?.share_subject) subjectTpl = cfg.share_subject;
-        if (cfg?.share_message) messageTpl = cfg.share_message;
-      }
-    } catch (_) {}
-
-    try {
-      await Share.share({
-        title: `Rental in ${listing.city} — ${price} | PadMagnet`,
-        subject: fill(subjectTpl),
-        message: fill(messageTpl),
-      });
-    } catch (_) {}
-  }, [listing]);
+  const handleShare = useCallback(() => shareListing(listing), [listing]);
 
   const handleContact = async () => {
     if (!listing) return;

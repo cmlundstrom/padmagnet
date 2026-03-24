@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, ActivityIndicator, Share, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { Header } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo } from '../../components/listing';
 import { calculatePadScore } from '../../lib/padscore';
 import { apiFetch } from '../../lib/api';
+import { shareListing } from '../../lib/share-listing';
 import { useSubscription } from '../../hooks/useSubscription';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -37,16 +38,7 @@ export default function PreviewScreen() {
     })();
   }, [listing_id]);
 
-  const handleShare = useCallback(async () => {
-    if (!listing) return;
-    const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
-    const price = listing.list_price ? `$${Number(listing.list_price).toLocaleString()}/mo` : '';
-    try {
-      await Share.share({
-        message: `Check out this rental on PadMagnet! ${address}, ${listing.city || ''} — ${price}\nhttps://padmagnet.com/listing/${listing.id}`,
-      });
-    } catch (e) { /* user cancelled */ }
-  }, [listing]);
+  const handleShare = useCallback(() => shareListing(listing), [listing]);
 
   if (loading) {
     return (
