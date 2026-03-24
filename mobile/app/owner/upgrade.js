@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: LAYOUT.padding.md,
-    paddingBottom: 60,
+    paddingBottom: 80,
   },
 
   // ── Tier card ──────────────────────────────────────────────

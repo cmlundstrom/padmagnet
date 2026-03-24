@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/ui';
-import { PhotoGallery, PadScoreBreakdown, ListingInfo } from '../../components/listing';
-import { calculatePadScore } from '../../lib/padscore';
+import { PhotoGallery, ListingInfo } from '../../components/listing';
 import { apiFetch } from '../../lib/api';
 import { shareListing } from '../../lib/share-listing';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -96,7 +95,6 @@ export default function PreviewScreen() {
 
   // Active listing — show tenant preview
   if (!isPaused) {
-    const sampleScore = calculatePadScore(null, listing);
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <Header
@@ -112,11 +110,10 @@ export default function PreviewScreen() {
         <View style={styles.previewBanner}>
           <Text style={styles.previewBannerText}>This is how tenants will see your listing</Text>
         </View>
-        <ScrollView style={styles.scroll}>
+        <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 100 }}>
           {listing.photos?.length > 0 && (
             <PhotoGallery photos={listing.photos} tierBadge={tier} />
           )}
-          <PadScoreBreakdown padScore={sampleScore} />
           <ListingInfo listing={listing} />
         </ScrollView>
       </SafeAreaView>

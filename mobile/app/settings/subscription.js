@@ -50,7 +50,7 @@ export default function SubscriptionScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 60 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
       >
         {/* ── Plan Card ────────────────────────────── */}
         <View style={[

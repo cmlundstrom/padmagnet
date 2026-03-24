@@ -409,7 +409,7 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
           <View style={styles.dashItem}>
             <View style={[styles.dashDot, { backgroundColor: getStatusColor(status) }]} />
             <Text style={[styles.dashValue, { color: getStatusColor(status) }]}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status === 'leased' ? 'Off-MKT' : status.charAt(0).toUpperCase() + status.slice(1)}
             </Text>
           </View>
           {expiresLabel && (
@@ -526,6 +526,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: LAYOUT.padding.md,
+    paddingBottom: 80,
   },
   listingRow: {
     backgroundColor: COLORS.surface,
@@ -835,7 +836,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: LAYOUT.padding.xl,
-    paddingBottom: 60,
+    paddingBottom: 80,
   },
   emptyIcon: {
     width: 80,

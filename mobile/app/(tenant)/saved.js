@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: LAYOUT.padding.md,
-    paddingBottom: LAYOUT.padding.lg,
+    paddingBottom: 80,
   },
   row: {
     gap: 12,

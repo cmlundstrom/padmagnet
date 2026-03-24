@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: LAYOUT.padding['2xl'],
-    paddingBottom: 60,
+    paddingBottom: 80,
   },
   celebrationIcon: {
     marginBottom: LAYOUT.padding.lg,
