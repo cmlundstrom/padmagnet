@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { COLORS, Badge, StatCard, baseButton, timeAgo, formatDate } from '../shared';
+import { createSupabaseBrowser } from '../../../lib/supabase-browser';
 
 const PROPERTY_TYPES = [
   { value: 'Single Family Residence', label: 'Single Family Home' },
@@ -55,12 +56,21 @@ export default function RentRangePanel() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Get auth token for Places API calls (requires Bearer header)
+  async function getAuthHeaders() {
+    const supabase = createSupabaseBrowser();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return {};
+    return { 'Authorization': `Bearer ${session.access_token}` };
+  }
+
   // Google Places autocomplete
   async function handleAddressChange(value) {
     setForm(f => ({ ...f, address: value }));
     if (value.length < 4) { setShowAutocomplete(false); return; }
     try {
-      const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(value)}`);
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(value)}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setAutocompleteResults(data.predictions || []);
@@ -73,7 +83,8 @@ export default function RentRangePanel() {
     setShowAutocomplete(false);
     setForm(f => ({ ...f, address: description }));
     try {
-      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(placeId)}`);
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(placeId)}`, { headers });
       if (res.ok) {
         const data = await res.json();
         // Places details returns flat: street_number, street_name, city, state_or_province, postal_code, county, latitude, longitude
