@@ -1,6 +1,6 @@
 -- Email templates for listing review flow + refunds
 
-INSERT INTO email_templates (slug, subject, body, variables, is_active) VALUES
+INSERT INTO email_templates (slug, subject, body_html, variables, is_active) VALUES
 (
   'listing_submitted',
   'Your listing has been submitted — {{confirmation_code}}',
