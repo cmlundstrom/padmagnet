@@ -24,6 +24,8 @@ export default function RentRangePanel() {
   const [activeReport, setActiveReport] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [scraping, setScraping] = useState(false);
+  const [scrapeResults, setScrapeResults] = useState(null); // for multi-unit selection
 
   // Form state
   const [form, setForm] = useState({
@@ -55,6 +57,21 @@ export default function RentRangePanel() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Apply scraped property data to form fields
+  function applyScrapedData(data) {
+    setForm(f => ({
+      ...f,
+      propertySubType: data.propertySubType || f.propertySubType,
+      beds: data.beds != null ? String(data.beds) : f.beds,
+      baths: data.baths != null ? String(data.baths) : f.baths,
+      sqft: data.sqft != null ? String(data.sqft) : f.sqft,
+      yearBuilt: data.yearBuilt != null ? String(data.yearBuilt) : f.yearBuilt,
+      subdivision: data.subdivision || f.subdivision,
+      appraiserUrl: data.appraiserUrl || f.appraiserUrl,
+      hoa: data.subdivision ? true : f.hoa, // if subdivision exists, likely has HOA
+    }));
+  }
 
   // Get auth token for Places API calls (requires Bearer header)
   async function getAuthHeaders() {
@@ -479,22 +496,98 @@ export default function RentRangePanel() {
                 🔗 Open {info.name} ↗
               </a>
             ))}
-            <div style={{ position: 'relative' }}>
-              <button disabled title="FRAGILE — Scrapes county appraiser site. May break when site redesigns. May violate site Terms of Service. Use manual lookup when possible. Admin assumes all risk."
-                style={{ ...baseButton, background: COLORS.border, color: COLORS.textDim, fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }}>
-                ⚠️ Auto-Scrape (disabled)
-              </button>
-            </div>
           </div>
           <div style={{ fontSize: 11, color: COLORS.textDim, marginBottom: 8, lineHeight: 1.5 }}>
-            Look up the property on the county appraiser site, then paste the direct property page URL below. This links the appraiser record to this report for reference.
+            Open the appraiser site, find the property, then paste the URL below and click "Fetch Property Data" to auto-fill details. Or enter the street address above and fetch by address.
           </div>
-          <input
-            value={form.appraiserUrl}
-            onChange={e => setForm(f => ({ ...f, appraiserUrl: e.target.value }))}
-            placeholder="Paste property appraiser URL here (optional)"
-            style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
-          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              value={form.appraiserUrl}
+              onChange={e => { setForm(f => ({ ...f, appraiserUrl: e.target.value })); setScrapeResults(null); }}
+              placeholder="Paste property appraiser URL here, or enter address above first"
+              style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12, flex: 1 }}
+            />
+            <button
+              onClick={async () => {
+                setScraping(true);
+                setError(null);
+                setScrapeResults(null);
+                try {
+                  const res = await fetch('/api/admin/rent-range/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      county: form.county,
+                      address: form.address,
+                      appraiserUrl: form.appraiserUrl,
+                    }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.multiple) {
+                      setScrapeResults(data.results);
+                    } else {
+                      applyScrapedData(data);
+                    }
+                  } else {
+                    const data = await res.json();
+                    setError(`Appraiser fetch failed: ${data.error}`);
+                  }
+                } catch (err) {
+                  setError(`Appraiser fetch failed: ${err.message}`);
+                }
+                setScraping(false);
+              }}
+              disabled={scraping || (!form.appraiserUrl && !form.address)}
+              title="FRAGILE — Fetches data from county appraiser website. May break when site redesigns. May violate site Terms of Service. Admin assumes all risk."
+              style={{
+                ...baseButton,
+                background: scraping ? COLORS.border : COLORS.amber + '22',
+                color: scraping ? COLORS.textDim : COLORS.amber,
+                border: `1px solid ${COLORS.amber}44`,
+                fontSize: 12, whiteSpace: 'nowrap',
+                opacity: (!form.appraiserUrl && !form.address) ? 0.4 : 1,
+              }}
+            >
+              {scraping ? 'Fetching...' : '⚠️ Fetch Property Data'}
+            </button>
+          </div>
+          <div style={{ fontSize: 10, color: COLORS.red + 'aa', marginTop: 6 }}>
+            ⚠️ FRAGILE — Scrapes county appraiser site. May break when site redesigns. May violate site Terms of Service. Use manual entry when possible.
+          </div>
+
+          {/* Multi-property selection (condos, multi-unit) */}
+          {scrapeResults && (
+            <div style={{ marginTop: 12, background: COLORS.bg, borderRadius: 6, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+              <div style={{ padding: '8px 12px', fontSize: 11, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', borderBottom: `1px solid ${COLORS.border}` }}>
+                Multiple Properties Found — Select One
+              </div>
+              {scrapeResults.map((r, i) => (
+                <div key={i} onClick={async () => {
+                  setScraping(true);
+                  setScrapeResults(null);
+                  try {
+                    const res = await fetch('/api/admin/rent-range/scrape', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ county: form.county, appraiserUrl: `https://www.pamartinfl.gov/app/search/view/${r.ain}` }),
+                    });
+                    if (res.ok) applyScrapedData(await res.json());
+                  } catch { /* silent */ }
+                  setScraping(false);
+                }} style={{
+                  padding: '10px 12px', cursor: 'pointer', borderBottom: `1px solid ${COLORS.border}`,
+                  display: 'flex', gap: 12, alignItems: 'center',
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>{r.address}</div>
+                    <div style={{ fontSize: 11, color: COLORS.textDim }}>{r.useClass} · {r.subdivision || 'No subdivision'}</div>
+                  </div>
+                  <div style={{ fontSize: 13, color: COLORS.green, fontWeight: 600 }}>${r.marketValue?.toLocaleString() || '—'}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* MLS/Web Weight Slider */}
