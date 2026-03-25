@@ -35,15 +35,16 @@ export async function POST(request) {
 
     const scraper = SCRAPERS[county];
 
-    // Strategy 1: If we have a direct appraiser URL with AIN, search by AIN to get full data
+    // Strategy 1: If we have a direct appraiser URL with AIN, fetch detail + search by exact AIN
     if (appraiserUrl) {
       const ainMatch = appraiserUrl.match(/\/view\/(\d+)/);
       if (ainMatch) {
         const ain = ainMatch[1];
-        // Search by AIN to get the JSON record (has address, value, subdivision)
-        const searchRes = await fetch(`${scraper.searchUrl}&search=${ain}&limit=1&offset=0`);
+        // Search by AIN — filter to exact match, not substring
+        const searchRes = await fetch(`${scraper.searchUrl}&search=${ain}&limit=10&offset=0`);
         const searchData = searchRes.ok ? await searchRes.json() : { records: [] };
-        const property = searchData.records?.[0];
+        // Find exact AIN match (search is text-based, may return partial matches)
+        const property = (searchData.records || []).find(r => String(r.AIN) === ain) || searchData.records?.[0];
 
         const detail = await fetchPropertyDetail(scraper.detailUrl, ain);
 
@@ -205,16 +206,32 @@ async function fetchPropertyDetail(detailUrl, ain) {
 }
 
 function parseAddress(property) {
-  // SitusAddress: "966 SW MAGNOLIA BLUFF DR PALM CITY FL"
-  // SitusCity: "PALM CITY"
-  // MailCityStateZip: "PALM CITY FL 34990"
-  const situs = property.SitusAddress || '';
-  const city = property.SitusCity || '';
-  const mailCSZ = property.MailCityStateZip || '';
+  // SitusAddress: "966 SW MAGNOLIA BLUFF DR PALM CITY FL" (property location)
+  // SitusCity: "PALM CITY" (property city)
+  // MailCityStateZip: "NEW YORK NY 10033" (mailing address — DO NOT use for property zip)
+  // FullSitusAddress may include zip in some records
+  const situs = (property.SitusAddress || '').trim();
+  const fullSitus = (property.FullSitusAddress || '').trim();
+  const city = (property.SitusCity || '').trim();
 
-  // Extract zip from MailCityStateZip (e.g., "PALM CITY FL 34990")
-  const zipMatch = mailCSZ.match(/(\d{5}(-\d{4})?)\s*$/);
-  const zip = zipMatch ? zipMatch[1] : '';
+  // Try to extract zip from situs address first, then from PIN/PCN area
+  // Martin County situs addresses typically don't include zip, so we derive from city
+  const MARTIN_COUNTY_ZIPS = {
+    'STUART': '34994', 'PALM CITY': '34990', 'HOBE SOUND': '33455',
+    'JENSEN BEACH': '34957', 'PORT SALERNO': '34992', 'INDIANTOWN': '34956',
+    'SEWALLS POINT': '34996', 'JUPITER ISLAND': '33455', 'OCEAN BREEZE': '34957',
+    'OKEECHOBEE': '34972', 'PORT ST LUCIE': '34952',
+  };
+
+  // Check if zip is in situs string
+  let zip = '';
+  const zipMatch = (fullSitus || situs).match(/(\d{5})\s*$/);
+  if (zipMatch) {
+    zip = zipMatch[1];
+  } else {
+    // Derive from city lookup
+    zip = MARTIN_COUNTY_ZIPS[city.toUpperCase()] || '';
+  }
 
   // Street address = SitusAddress minus city and state
   let streetAddress = situs;
@@ -225,12 +242,16 @@ function parseAddress(property) {
   // Remove trailing FL if present
   streetAddress = streetAddress.replace(/\s+FL\s*$/i, '').trim();
 
-  // Title case the street address and city
+  // Handle "UNASSIGNED" or empty addresses
+  if (!streetAddress || streetAddress.toUpperCase() === 'UNASSIGNED') {
+    streetAddress = '';
+  }
+
   const titleCase = (s) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
   return {
-    streetAddress: titleCase(streetAddress),
-    city: titleCase(city),
+    streetAddress: streetAddress ? titleCase(streetAddress) : '',
+    city: city ? titleCase(city) : '',
     zip,
   };
 }
