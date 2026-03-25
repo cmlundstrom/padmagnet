@@ -429,73 +429,9 @@ export default function RentRangePanel() {
       <div>
         <button onClick={() => setView('list')} style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted, marginBottom: 20 }}>← Back</button>
 
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', marginBottom: 16 }}>Property Details</h3>
-
         {error && <div style={{ background: COLORS.redDim, color: COLORS.red, padding: '10px 14px', borderRadius: 6, marginBottom: 16, fontSize: 13 }}>{error}</div>}
 
-        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 20, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
-          {/* Address with autocomplete */}
-          <div style={{ position: 'relative', marginBottom: 12 }}>
-            <label style={labelStyle}>Street Address</label>
-            <input
-              value={form.address}
-              onChange={e => handleAddressChange(e.target.value)}
-              onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
-              placeholder="Start typing an address..."
-              style={inputStyle}
-            />
-            {showAutocomplete && autocompleteResults.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6, zIndex: 10, maxHeight: 200, overflow: 'auto' }}>
-                {autocompleteResults.map((r, i) => (
-                  <div key={i} onClick={() => selectPlace(r.place_id, r.description)}
-                    style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: COLORS.text, borderBottom: `1px solid ${COLORS.border}` }}>
-                    {r.description}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 200px', gap: 12, marginBottom: 12 }}>
-            <div><label style={labelStyle}>City</label><input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inputStyle} /></div>
-            <div><label style={labelStyle}>State</label><input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={inputStyle} /></div>
-            <div><label style={labelStyle}>Zip</label><input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inputStyle} /></div>
-            <div>
-              <label style={labelStyle}>County</label>
-              <select value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inputStyle}>
-                <option value="Martin County">Martin County</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px 100px', gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={labelStyle}>Property Type</label>
-              <select value={form.propertySubType} onChange={e => setForm(f => ({ ...f, propertySubType: e.target.value }))} style={inputStyle}>
-                {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <div><label style={labelStyle}>Beds</label><input type="number" value={form.beds} onChange={e => setForm(f => ({ ...f, beds: e.target.value }))} style={inputStyle} placeholder="3" /></div>
-            <div><label style={labelStyle}>Baths</label><input type="number" step="0.5" value={form.baths} onChange={e => setForm(f => ({ ...f, baths: e.target.value }))} style={inputStyle} placeholder="2" /></div>
-            <div><label style={labelStyle}>Sqft</label><input type="number" value={form.sqft} onChange={e => setForm(f => ({ ...f, sqft: e.target.value }))} style={inputStyle} placeholder="1,450" /></div>
-            <div><label style={labelStyle}>Year Built</label><input type="number" value={form.yearBuilt} onChange={e => setForm(f => ({ ...f, yearBuilt: e.target.value }))} style={inputStyle} placeholder="2005" /></div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '100px 100px 100px 1fr', gap: 12, marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" checked={form.hoa} onChange={e => setForm(f => ({ ...f, hoa: e.target.checked }))} />
-              <label style={{ fontSize: 12, color: COLORS.textMuted }}>HOA</label>
-            </div>
-            {form.hoa && <div><label style={labelStyle}>HOA $/mo</label><input type="number" value={form.hoaFee} onChange={e => setForm(f => ({ ...f, hoaFee: e.target.value }))} style={inputStyle} /></div>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" checked={form.gated} onChange={e => setForm(f => ({ ...f, gated: e.target.checked }))} />
-              <label style={{ fontSize: 12, color: COLORS.textMuted }}>Gated</label>
-            </div>
-            <div><label style={labelStyle}>Subdivision / Community</label><input value={form.subdivision} onChange={e => setForm(f => ({ ...f, subdivision: e.target.value }))} style={inputStyle} placeholder="Optional" /></div>
-          </div>
-        </div>
-
-        {/* County Appraiser — lookup + URL field */}
+        {/* County Property Appraiser — FIRST: fetch data to auto-fill property details */}
         <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 10 }}>County Property Appraiser</div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
@@ -597,6 +533,70 @@ export default function RentRangePanel() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Property Details — auto-filled by appraiser fetch, editable by admin */}
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', marginBottom: 16 }}>Property Details</h3>
+        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 20, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
+          {/* Address with autocomplete */}
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <label style={labelStyle}>Street Address</label>
+            <input
+              value={form.address}
+              onChange={e => handleAddressChange(e.target.value)}
+              onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
+              placeholder="Start typing an address..."
+              style={inputStyle}
+            />
+            {showAutocomplete && autocompleteResults.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6, zIndex: 10, maxHeight: 200, overflow: 'auto' }}>
+                {autocompleteResults.map((r, i) => (
+                  <div key={i} onClick={() => selectPlace(r.place_id, r.description)}
+                    style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: COLORS.text, borderBottom: `1px solid ${COLORS.border}` }}>
+                    {r.description}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 200px', gap: 12, marginBottom: 12 }}>
+            <div><label style={labelStyle}>City</label><input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>State</label><input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Zip</label><input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>County</label>
+              <select value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inputStyle}>
+                <option value="Martin County">Martin County</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px 100px', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={labelStyle}>Property Type</label>
+              <select value={form.propertySubType} onChange={e => setForm(f => ({ ...f, propertySubType: e.target.value }))} style={inputStyle}>
+                {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div><label style={labelStyle}>Beds</label><input type="number" value={form.beds} onChange={e => setForm(f => ({ ...f, beds: e.target.value }))} style={inputStyle} placeholder="3" /></div>
+            <div><label style={labelStyle}>Baths</label><input type="number" step="0.5" value={form.baths} onChange={e => setForm(f => ({ ...f, baths: e.target.value }))} style={inputStyle} placeholder="2" /></div>
+            <div><label style={labelStyle}>Sqft</label><input type="number" value={form.sqft} onChange={e => setForm(f => ({ ...f, sqft: e.target.value }))} style={inputStyle} placeholder="1,450" /></div>
+            <div><label style={labelStyle}>Year Built</label><input type="number" value={form.yearBuilt} onChange={e => setForm(f => ({ ...f, yearBuilt: e.target.value }))} style={inputStyle} placeholder="2005" /></div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '100px 100px 100px 1fr', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={form.hoa} onChange={e => setForm(f => ({ ...f, hoa: e.target.checked }))} />
+              <label style={{ fontSize: 12, color: COLORS.textMuted }}>HOA</label>
+            </div>
+            {form.hoa && <div><label style={labelStyle}>HOA $/mo</label><input type="number" value={form.hoaFee} onChange={e => setForm(f => ({ ...f, hoaFee: e.target.value }))} style={inputStyle} /></div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={form.gated} onChange={e => setForm(f => ({ ...f, gated: e.target.checked }))} />
+              <label style={{ fontSize: 12, color: COLORS.textMuted }}>Gated</label>
+            </div>
+            <div><label style={labelStyle}>Subdivision / Community</label><input value={form.subdivision} onChange={e => setForm(f => ({ ...f, subdivision: e.target.value }))} style={inputStyle} placeholder="Optional" /></div>
+          </div>
         </div>
 
         {/* MLS/Web Weight Slider */}
