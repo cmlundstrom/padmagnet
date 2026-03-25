@@ -2,7 +2,7 @@ import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '../../../../lib/admin-auth';
 import {
-  scoreComp, calculateRentRange, getCompRent,
+  scoreComp, calculateRentRange, getCompRent, computeDistance,
   DEFAULT_COMP_WEIGHTS, DEFAULT_DATA_MULTIPLIERS, DEFAULT_SOURCE_WEIGHTS,
 } from '../../../../lib/rent-range-engine';
 import { runWebSearchPipeline } from '../../../../lib/rent-range-web-search';
@@ -245,6 +245,7 @@ async function searchMlsComps(supabase, subject, property) {
   const scored = (comps || []).map(comp => ({
     ...comp,
     _score: scoreComp(subject, comp),
+    _distance: computeDistance(subject, comp),
     _rent: getCompRent(comp),
   })).filter(c => c._rent && c._rent > 0);
 

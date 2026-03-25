@@ -37,6 +37,7 @@ export default function RentRangePanel() {
   });
   const [mlsWeight, setMlsWeight] = useState(70);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
+  const [expandedComp, setExpandedComp] = useState(null);
 
   // Google Places autocomplete
   const [autocompleteResults, setAutocompleteResults] = useState([]);
@@ -263,37 +264,87 @@ export default function RentRangePanel() {
         <div style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Comparable Properties</h3>
           <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '30px 50px 1fr 80px 70px 80px 36px',
+              padding: '8px 16px', borderBottom: `1px solid ${COLORS.border}`,
+              fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase',
+            }}>
+              <span>#</span><span>Src</span><span>Address</span><span>Type</span><span>Dist</span><span style={{ textAlign: 'right' }}>Rent</span><span style={{ textAlign: 'right' }}>Score</span>
+            </div>
             {[...mlsComps.slice(0, 10), ...webComps.slice(0, 5)].map((comp, i) => {
               const isMls = !comp._source || comp._source !== 'web';
               const rent = comp.close_price || comp.list_price || comp.rent || 0;
               const address = isMls
                 ? `${comp.street_number || ''} ${comp.street_name || ''}`.trim() || comp.listing_id
                 : comp.source_title || 'Web listing';
+              const subType = shortType(comp.property_sub_type);
+              const dist = comp._distance != null ? `${comp._distance} mi` : '—';
+              const isExpanded = expandedComp === i;
+
               return (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
-                  borderBottom: `1px solid ${COLORS.border}`,
-                }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, minWidth: 24 }}>#{i + 1}</span>
-                  <Badge color={isMls ? 'blue' : 'purple'}>{isMls ? 'MLS' : 'Web'}</Badge>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>{address}{isMls && comp.city ? `, ${comp.city}` : ''}</div>
-                    <div style={{ fontSize: 11, color: COLORS.textDim }}>
-                      {isMls && `${comp.bedrooms || '—'}bd/${comp.bathrooms || '—'}ba · ${comp.living_area ? `${Number(comp.living_area).toLocaleString()}sf` : '—'}`}
-                      {!isMls && comp.source_url && (
-                        <a href={comp.source_url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.brand, textDecoration: 'none' }}>View source ↗</a>
-                      )}
+                <div key={i}>
+                  <div
+                    onClick={() => setExpandedComp(isExpanded ? null : i)}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '30px 50px 1fr 80px 70px 80px 36px',
+                      alignItems: 'center', padding: '10px 16px', cursor: 'pointer',
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      background: isExpanded ? COLORS.bg : 'transparent',
+                    }}
+                  >
+                    <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim }}>#{i + 1}</span>
+                    <Badge color={isMls ? 'blue' : 'purple'}>{isMls ? 'MLS' : 'Web'}</Badge>
+                    <div>
+                      <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>{address}{isMls && comp.city ? `, ${comp.city}` : ''}</div>
+                      <div style={{ fontSize: 11, color: COLORS.textDim }}>
+                        {isMls ? `${comp.bedrooms || '—'}bd/${comp.bathrooms || '—'}ba · ${comp.living_area ? `${Number(comp.living_area).toLocaleString()}sf` : '—'}` : ''}
+                        {!isMls && comp.source_url && (
+                          <a href={comp.source_url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.brand, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View source ↗</a>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.green }}>${rent.toLocaleString()}/mo</div>
-                    <div style={{ fontSize: 10, color: COLORS.textDim }}>
-                      {isMls && comp.standard_status === 'Closed' ? `Leased ${comp.close_date || ''}` : isMls ? `Active · ${comp.days_on_market || '—'} DOM` : ''}
+                    <span style={{ fontSize: 11, color: COLORS.textMuted }}>{subType}</span>
+                    <span style={{ fontSize: 11, color: COLORS.textMuted }}>{dist}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.green }}>${rent.toLocaleString()}</div>
+                      <div style={{ fontSize: 10, color: COLORS.textDim }}>
+                        {isMls && comp.standard_status === 'Closed' ? 'Leased' : isMls ? 'Active' : ''}
+                      </div>
                     </div>
+                    <span style={{ fontSize: 12, color: COLORS.textMuted, textAlign: 'right' }}>{comp._score || '—'}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: COLORS.textMuted, minWidth: 36, textAlign: 'right' }}>
-                    {comp._score || '—'}
-                  </div>
+
+                  {/* Expanded detail */}
+                  {isExpanded && isMls && (
+                    <div style={{ padding: '12px 16px', background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
+                        {[
+                          ['MLS #', comp.listing_id || '—'],
+                          ['Type', comp.property_sub_type || '—'],
+                          ['Beds/Baths', `${comp.bedrooms || '—'} / ${comp.bathrooms || '—'}`],
+                          ['Sqft', comp.living_area ? Number(comp.living_area).toLocaleString() : '—'],
+                          ['Year Built', comp.year_built || '—'],
+                          ['List Price', comp.list_price ? `$${Number(comp.list_price).toLocaleString()}` : '—'],
+                          ['Close Price', comp.close_price ? `$${Number(comp.close_price).toLocaleString()}` : '—'],
+                          ['DOM', comp.days_on_market != null ? `${comp.days_on_market} days` : '—'],
+                          ['Close Date', comp.close_date || '—'],
+                          ['Distance', dist],
+                          ['Subdivision', comp.subdivision_name || '—'],
+                          ['Pets', comp.pets_allowed ? 'Yes' : comp.pets_allowed === false ? 'No' : '—'],
+                          ['Pool', comp.pool ? 'Yes' : '—'],
+                          ['Furnished', comp.furnished ? 'Yes' : '—'],
+                          ['Agent', comp.listing_agent_name || '—'],
+                          ['Office', comp.listing_office_name || '—'],
+                        ].map(([label, val]) => (
+                          <div key={label} style={{ background: COLORS.surface, borderRadius: 4, padding: '6px 8px' }}>
+                            <div style={{ fontSize: 9, color: COLORS.textDim, fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+                            <div style={{ fontSize: 12, color: COLORS.text, fontWeight: 500, marginTop: 1 }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -713,6 +764,18 @@ function formatWeightName(key) {
     marketReport: 'Market report median',
   };
   return map[key] || key;
+}
+
+function shortType(type) {
+  if (!type) return '—';
+  const t = type.toLowerCase();
+  if (t.includes('single family')) return 'SFR';
+  if (t.includes('condo') || t.includes('cooperative')) return 'Condo';
+  if (t.includes('townhouse') || t.includes('townhome')) return 'TH';
+  if (t.includes('duplex')) return 'Duplex';
+  if (t.includes('triplex')) return 'Triplex';
+  if (t.includes('quad')) return 'Quad';
+  return type.slice(0, 10);
 }
 
 const labelStyle = { display: 'block', fontSize: 11, color: COLORS.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 };
