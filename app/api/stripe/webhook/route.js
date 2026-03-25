@@ -62,13 +62,35 @@ export async function POST(request) {
               })
               .eq('id', user_id);
 
+            // Record payment for revenue tracking
+            const tierAmount = session.amount_total || 0;
+            if (tierAmount > 0) {
+              await supabase.from('payments').insert({
+                owner_user_id: user_id,
+                stripe_payment_intent_id: session.payment_intent,
+                amount_cents: tierAmount,
+                status: 'succeeded',
+                purchase_type: 'tier_pass',
+                method: session.payment_method_types?.[0] || 'card',
+              }).catch(() => {});
+
+              // Ledger entry for revenue
+              await supabase.from('ledger_entries').insert({
+                owner_user_id: user_id,
+                entry_type: 'revenue',
+                reference_type: 'tier_pass',
+                amount_cents: tierAmount,
+                description: `${tier} pass (30-day)`,
+              }).catch(() => {});
+            }
+
             // Log to webhook_logs for admin visibility
             await supabase.from('webhook_logs').insert({
               source: 'stripe',
               event_type: 'tier_pass_activated',
               external_id: session.id,
               status: 'processed',
-              payload: { tier, user_id, expires_at: expiresAt.toISOString() },
+              payload: { tier, user_id, amount_cents: tierAmount, expires_at: expiresAt.toISOString() },
             }).catch(() => {});
 
             console.log(`Tier pass activated: ${tier} for user ${user_id}, expires ${expiresAt.toISOString()}`);
