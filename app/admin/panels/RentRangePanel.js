@@ -584,31 +584,53 @@ export default function RentRangePanel() {
             <div><label style={labelStyle}>Year Built</label><input type="number" value={form.yearBuilt} onChange={e => setForm(f => ({ ...f, yearBuilt: e.target.value }))} style={inputStyle} placeholder="2005" /></div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '100px 100px 100px 1fr', gap: 12 }}>
+          {/* Subdivision — full width row */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Subdivision / Community</label>
+            <input value={form.subdivision} onChange={e => setForm(f => ({ ...f, subdivision: e.target.value }))} style={inputStyle} placeholder="Optional" />
+          </div>
+
+          {/* HOA + Gated — manual only */}
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" checked={form.hoa} onChange={e => setForm(f => ({ ...f, hoa: e.target.checked }))} />
               <label style={{ fontSize: 12, color: COLORS.textMuted }}>HOA</label>
+              <span style={{ fontSize: 10, color: COLORS.textDim, fontStyle: 'italic' }}>Optional, not scraped</span>
             </div>
-            {form.hoa && <div><label style={labelStyle}>HOA $/mo</label><input type="number" value={form.hoaFee} onChange={e => setForm(f => ({ ...f, hoaFee: e.target.value }))} style={inputStyle} /></div>}
+            {form.hoa && <div style={{ minWidth: 100 }}><label style={labelStyle}>HOA $/mo</label><input type="number" value={form.hoaFee} onChange={e => setForm(f => ({ ...f, hoaFee: e.target.value }))} style={inputStyle} /></div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" checked={form.gated} onChange={e => setForm(f => ({ ...f, gated: e.target.checked }))} />
               <label style={{ fontSize: 12, color: COLORS.textMuted }}>Gated</label>
+              <span style={{ fontSize: 10, color: COLORS.textDim, fontStyle: 'italic' }}>Optional, not scraped</span>
             </div>
-            <div><label style={labelStyle}>Subdivision / Community</label><input value={form.subdivision} onChange={e => setForm(f => ({ ...f, subdivision: e.target.value }))} style={inputStyle} placeholder="Optional" /></div>
           </div>
         </div>
 
         {/* MLS/Web Weight Slider */}
         <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Source Weighting</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600, minWidth: 70 }}>MLS {mlsWeight}%</span>
-            <input type="range" min={0} max={100} value={mlsWeight} onChange={e => setMlsWeight(Number(e.target.value))}
-              style={{ flex: 1, accentColor: COLORS.brand }} />
-            <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600, minWidth: 70, textAlign: 'right' }}>Web {100 - mlsWeight}%</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase' }}>Source Weighting</div>
+            <span style={{ fontSize: 11, color: COLORS.amber, fontWeight: 600 }}>Drag slider to adjust</span>
           </div>
-          <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 6 }}>
-            ℹ️ Default: 70% MLS / 30% Web. Adjust based on available comp data quality.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ textAlign: 'center', minWidth: 70 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: mlsWeight >= 50 ? COLORS.brand : COLORS.textDim }}>{mlsWeight}%</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase' }}>MLS</div>
+            </div>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <div style={{ height: 8, borderRadius: 4, background: COLORS.border, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${mlsWeight}%`, background: `linear-gradient(90deg, ${COLORS.brand}, ${COLORS.purple})`, borderRadius: 4, transition: 'width 0.15s' }} />
+              </div>
+              <input type="range" min={0} max={100} step={5} value={mlsWeight} onChange={e => setMlsWeight(Number(e.target.value))}
+                style={{ position: 'absolute', top: -4, left: 0, width: '100%', height: 16, opacity: 0, cursor: 'pointer' }} />
+            </div>
+            <div style={{ textAlign: 'center', minWidth: 70 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: (100 - mlsWeight) >= 50 ? COLORS.purple : COLORS.textDim }}>{100 - mlsWeight}%</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase' }}>Web</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 8, textAlign: 'center' }}>
+            Default: 70/30. Auto-switches to 100% Web when no MLS comps available.
           </div>
         </div>
 
