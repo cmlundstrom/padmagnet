@@ -31,7 +31,7 @@ export default function RentRangePanel() {
     propertySubType: 'Single Family Residence',
     beds: '', baths: '', sqft: '', yearBuilt: '',
     hoa: false, hoaFee: '', gated: false, subdivision: '',
-    lat: null, lng: null,
+    lat: null, lng: null, appraiserUrl: '',
   });
   const [mlsWeight, setMlsWeight] = useState(70);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
@@ -184,6 +184,14 @@ export default function RentRangePanel() {
             {pd.hoa && ` · HOA $${pd.hoaFee || '—'}/mo`}
             {pd.gated && ' · Gated'}
           </div>
+          {pd.appraiserUrl && (
+            <div style={{ marginTop: 6 }}>
+              <a href={pd.appraiserUrl} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 12, color: COLORS.brand, textDecoration: 'none' }}>
+                🔗 County Appraiser Record ↗
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Rent Range Display */}
@@ -461,21 +469,32 @@ export default function RentRangePanel() {
           </div>
         </div>
 
-        {/* County Appraiser Links */}
-        <div style={{ background: COLORS.bg, borderRadius: 6, padding: '10px 14px', border: `1px solid ${COLORS.border}`, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: COLORS.textDim, fontWeight: 600 }}>County Appraiser:</span>
-          {Object.entries(countyAppraisers).map(([county, info]) => (
-            <a key={county} href={info.url} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 12, color: COLORS.brand, textDecoration: 'none' }}>
-              🔗 {info.name} ↗
-            </a>
-          ))}
-          <div style={{ marginLeft: 'auto', position: 'relative' }}>
-            <button disabled title="FRAGILE — Scrapes county appraiser site. May break when site redesigns. May violate site Terms of Service. Use manual lookup when possible. Admin assumes all risk."
-              style={{ ...baseButton, background: COLORS.border, color: COLORS.textDim, fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }}>
-              ⚠️ Auto-Scrape (disabled)
-            </button>
+        {/* County Appraiser — lookup + URL field */}
+        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 10 }}>County Property Appraiser</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+            {Object.entries(countyAppraisers).map(([county, info]) => (
+              <a key={county} href={info.url} target="_blank" rel="noopener noreferrer"
+                style={{ ...baseButton, background: COLORS.brand + '22', color: COLORS.brand, border: `1px solid ${COLORS.brand}44`, textDecoration: 'none', fontSize: 12 }}>
+                🔗 Open {info.name} ↗
+              </a>
+            ))}
+            <div style={{ position: 'relative' }}>
+              <button disabled title="FRAGILE — Scrapes county appraiser site. May break when site redesigns. May violate site Terms of Service. Use manual lookup when possible. Admin assumes all risk."
+                style={{ ...baseButton, background: COLORS.border, color: COLORS.textDim, fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }}>
+                ⚠️ Auto-Scrape (disabled)
+              </button>
+            </div>
           </div>
+          <div style={{ fontSize: 11, color: COLORS.textDim, marginBottom: 8, lineHeight: 1.5 }}>
+            Look up the property on the county appraiser site, then paste the direct property page URL below. This links the appraiser record to this report for reference.
+          </div>
+          <input
+            value={form.appraiserUrl}
+            onChange={e => setForm(f => ({ ...f, appraiserUrl: e.target.value }))}
+            placeholder="Paste property appraiser URL here (optional)"
+            style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
+          />
         </div>
 
         {/* MLS/Web Weight Slider */}

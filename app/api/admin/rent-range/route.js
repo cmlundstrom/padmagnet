@@ -102,6 +102,7 @@ export async function POST(request) {
           hoaFee: property.hoaFee,
           gated: property.gated,
           subdivision: property.subdivision,
+          appraiserUrl: property.appraiserUrl || null,
         },
         scoring_weights: sourceWeights || DEFAULT_SOURCE_WEIGHTS,
         status: 'generating',
