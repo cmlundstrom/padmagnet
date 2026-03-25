@@ -84,15 +84,18 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
             <StatCard label="Owners Registered" value={metrics.funnel.ownersRegistered} accent={COLORS.brand} />
             <StatCard label="Listings Created" value={metrics.funnel.listingsCreated} accent={COLORS.purple} />
             <StatCard
-              label="Listings Activated"
-              value={metrics.funnel.listingsActive}
+              label="Owner Listings Active"
+              value={metrics.funnel.ownerListingsActive}
               sub={metrics.funnel.listingsCreated > 0
-                ? `${Math.round((metrics.funnel.listingsActive / metrics.funnel.listingsCreated) * 100)}% activation rate`
+                ? `${Math.round((metrics.funnel.ownerListingsActive / metrics.funnel.listingsCreated) * 100)}% activation rate`
                 : 'No listings yet'}
               accent={COLORS.green}
             />
-            <StatCard label="Pro Upgrades" value={metrics.revenue.proSubscribers} accent={COLORS.amber} />
-            <StatCard label="Premium Upgrades" value={metrics.revenue.premiumSubscribers} accent={COLORS.amber} />
+            <StatCard label="Pro Purchased" value={metrics.funnel.proPurchases} sub={`${metrics.funnel.proActive} active now`} accent={COLORS.amber} />
+            <StatCard label="Premium Purchased" value={metrics.funnel.premiumPurchases} sub={`${metrics.funnel.premiumActive} active now`} accent={COLORS.amber} />
+            <StatCard label="Upgrades" value={metrics.funnel.upgrades} sub="Pro → Premium" accent={COLORS.purple} />
+            <StatCard label="Refunds" value={metrics.funnel.refunds} accent={metrics.funnel.refunds > 0 ? COLORS.red : COLORS.green} />
+            <StatCard label="Credits Issued" value={`$${((metrics.funnel.totalCreditsIssued || 0) / 100).toFixed(2)}`} sub="Proration credits" accent={COLORS.textMuted} />
           </div>
         ) : null}
       </div>

@@ -40,6 +40,12 @@ export async function GET(request) {
       expiring7dRes,
       expiring3dRes,
       expiring1dRes,
+      // Owner funnel
+      ownerActiveListingsRes,
+      // Payment-based metrics
+      allPaymentsRes,
+      upgradeCountRes,
+      creditsRes,
     ] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'owner'),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'tenant'),
@@ -50,6 +56,7 @@ export async function GET(request) {
       supabase.from('swipes').select('id', { count: 'exact', head: true }).eq('direction', 'right').gte('created_at', sevenDaysAgo),
       supabase.from('messages').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
       supabase.from('conversations').select('id', { count: 'exact', head: true }),
+      // Tier: current active subscribers (for "active now" display)
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tier', 'pro'),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tier', 'premium'),
       // Tenant funnel: tenants who set preferences
@@ -69,6 +76,14 @@ export async function GET(request) {
       supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').lte('expires_at', new Date(Date.now() + 7 * 86400000).toISOString()).gte('expires_at', now.toISOString()),
       supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').lte('expires_at', new Date(Date.now() + 3 * 86400000).toISOString()).gte('expires_at', now.toISOString()),
       supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').lte('expires_at', new Date(Date.now() + 1 * 86400000).toISOString()).gte('expires_at', now.toISOString()),
+      // Owner funnel: active owner listings only (not MLS)
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').eq('is_active', true),
+      // Payment-based funnel metrics (historical, not just current state)
+      supabase.from('payments').select('purchase_type, status'),
+      // Upgrade tracking from webhook_logs
+      supabase.from('webhook_logs').select('id', { count: 'exact', head: true }).eq('event_type', 'tier_upgrade'),
+      // Ledger: total credits issued
+      supabase.from('ledger_entries').select('amount_cents').eq('entry_type', 'credit'),
     ]);
 
     const owners = ownerRes.count || 0;
@@ -108,11 +123,28 @@ export async function GET(request) {
         month: sumPayments(revenueMonthRes),
         total: sumPayments(revenueTotalRes),
       },
-      funnel: {
-        ownersRegistered: owners,
-        listingsCreated: ownerCreated,
-        listingsActive: active,
-      },
+      funnel: (() => {
+        const payments = allPaymentsRes.data || [];
+        const tierPayments = payments.filter(p => p.purchase_type === 'tier_pass');
+        const proPurchased = tierPayments.filter(p => p.status === 'succeeded' || p.status === 'refunded').length; // refunded = superseded by upgrade
+        const premiumPurchased = tierPayments.filter(p => p.status === 'succeeded').length;
+        const refunded = payments.filter(p => p.status === 'refunded').length;
+        const upgrades = upgradeCountRes.count || 0;
+        const totalCredits = (creditsRes.data || []).reduce((sum, e) => sum + Math.abs(e.amount_cents || 0), 0);
+
+        return {
+          ownersRegistered: owners,
+          listingsCreated: ownerCreated,
+          ownerListingsActive: ownerActiveListingsRes.count || 0,
+          proPurchases: proPurchased,
+          premiumPurchases: premiumPurchased,
+          proActive: proSubscribers,
+          premiumActive: premiumSubscribers,
+          upgrades,
+          refunds: refunded,
+          totalCreditsIssued: totalCredits,
+        };
+      })(),
       tenantFunnel: {
         registered: tenants,
         preferencesSet: tenantsWithPrefsRes.count || 0,
