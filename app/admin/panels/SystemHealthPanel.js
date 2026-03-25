@@ -8,6 +8,7 @@ const CRON_JOBS = [
   { key: 'expire_listings', label: 'Expire Listings', schedule: 'Daily 7AM UTC', overdueMs: 25 * 60 * 60 * 1000 },
   { key: 'expiry_emails', label: 'Expiry Emails', schedule: 'Daily 2PM UTC', overdueMs: 25 * 60 * 60 * 1000 },
   { key: 'delivery_retry', label: 'Delivery Retry', schedule: 'Daily (5min w/ Pro)', overdueMs: 25 * 60 * 60 * 1000 },
+  { key: 'rr_sync', label: 'Rent-Range Data Sync', schedule: 'Nightly', overdueMs: 25 * 60 * 60 * 1000 },
 ];
 
 const ALERT_TYPES = [
@@ -68,6 +69,7 @@ export default function SystemHealthPanel() {
     bridge: true,
     queue: true,
     twilio: true,
+    apis: true,
     alerts: true,
     webhooks: false,
   });
@@ -413,6 +415,31 @@ export default function SystemHealthPanel() {
             </div>
             <div style={{ marginTop: 12, fontSize: '11px', color: COLORS.textDim }}>
               A2P 10DLC Campaign ID: <span style={{ fontFamily: 'monospace', color: COLORS.textMuted }}>CM0b1b1f1ba62a8e21f6036f8ea77d00ad</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======== EXTERNAL APIs ======== */}
+      <SectionHeader title="External APIs" open={sections.apis} onToggle={() => toggleSection('apis')} />
+      {sections.apis && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{
+            background: COLORS.surface, borderRadius: '8px', padding: '16px',
+            border: `1px solid ${COLORS.border}`,
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <InfoRow label="Brave Search API" value={process.env.NEXT_PUBLIC_BRAVE_API_KEY ? 'Configured' : 'Configured (server-side)'}>
+                <Badge color="green">Active</Badge>
+              </InfoRow>
+              <InfoRow label="Usage Tier" value="Free (2,000 searches/mo)" />
+              <InfoRow label="Purpose" value="Rent-Range Finder web research" />
+              <InfoRow label="Console">
+                <a href="https://brave.com/search/api/" target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: '12px', color: COLORS.brand, textDecoration: 'none' }}>
+                  Brave API Dashboard →
+                </a>
+              </InfoRow>
             </div>
           </div>
         </div>

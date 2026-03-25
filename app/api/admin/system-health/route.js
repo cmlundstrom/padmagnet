@@ -27,7 +27,7 @@ export async function GET(request) {
       .limit(5);
 
     // Group by job_name, get latest per job
-    const jobNames = ['bridge_sync', 'expire_listings', 'expiry_emails', 'delivery_retry'];
+    const jobNames = ['bridge_sync', 'expire_listings', 'expiry_emails', 'delivery_retry', 'rr_sync'];
     const cronHealth = {};
     for (const name of jobNames) {
       const logs = (cronLogs || []).filter(l => l.job_name === name);

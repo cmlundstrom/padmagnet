@@ -1,20 +1,577 @@
 'use client';
 
-import { COLORS } from '../shared';
+import { useState, useEffect, useCallback } from 'react';
+import { COLORS, Badge, StatCard, baseButton, timeAgo, formatDate } from '../shared';
+
+const PROPERTY_TYPES = [
+  { value: 'Single Family Residence', label: 'Single Family Home' },
+  { value: 'Condominium', label: 'Condo' },
+  { value: 'Townhouse', label: 'Townhouse' },
+  { value: 'Duplex', label: 'Duplex' },
+  { value: 'Triplex', label: 'Triplex' },
+  { value: 'Quadruplex', label: 'Quadplex' },
+];
 
 export default function RentRangePanel() {
+  // Page state: 'form' | 'generating' | 'report' | 'list'
+  const [view, setView] = useState('list');
+  const [reports, setReports] = useState([]);
+  const [compStats, setCompStats] = useState({});
+  const [countyAppraisers, setCountyAppraisers] = useState({});
+  const [defaults, setDefaults] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeReport, setActiveReport] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Form state
+  const [form, setForm] = useState({
+    address: '', city: '', state: 'FL', zip: '', county: 'Martin County',
+    propertySubType: 'Single Family Residence',
+    beds: '', baths: '', sqft: '', yearBuilt: '',
+    hoa: false, hoaFee: '', gated: false, subdivision: '',
+    lat: null, lng: null,
+  });
+  const [mlsWeight, setMlsWeight] = useState(70);
+  const [methodologyOpen, setMethodologyOpen] = useState(false);
+
+  // Google Places autocomplete
+  const [autocompleteResults, setAutocompleteResults] = useState([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/rent-range');
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data.reports || []);
+        setCompStats(data.compStats || {});
+        setCountyAppraisers(data.countyAppraisers || {});
+        setDefaults(data.defaults || null);
+      }
+    } catch { /* silent */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Google Places autocomplete
+  async function handleAddressChange(value) {
+    setForm(f => ({ ...f, address: value }));
+    if (value.length < 4) { setShowAutocomplete(false); return; }
+    try {
+      const res = await fetch('/api/places/autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: value, types: 'address', components: 'country:us' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAutocompleteResults(data.predictions || []);
+        setShowAutocomplete(true);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function selectPlace(placeId, description) {
+    setShowAutocomplete(false);
+    setForm(f => ({ ...f, address: description }));
+    try {
+      const res = await fetch('/api/places/details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ place_id: placeId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const addr = data.address || {};
+        setForm(f => ({
+          ...f,
+          address: [addr.street_number, addr.street_name].filter(Boolean).join(' ') || f.address,
+          city: addr.city || f.city,
+          state: addr.state || 'FL',
+          zip: addr.zip || f.zip,
+          lat: data.lat || null,
+          lng: data.lng || null,
+        }));
+      }
+    } catch { /* silent */ }
+  }
+
+  async function generateReport() {
+    setGenerating(true);
+    setError(null);
+    setView('generating');
+    try {
+      const res = await fetch('/api/admin/rent-range', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          property: {
+            ...form,
+            beds: form.beds ? parseInt(form.beds) : null,
+            baths: form.baths ? parseFloat(form.baths) : null,
+            sqft: form.sqft ? parseInt(form.sqft) : null,
+            yearBuilt: form.yearBuilt ? parseInt(form.yearBuilt) : null,
+            hoaFee: form.hoaFee ? parseFloat(form.hoaFee) : null,
+          },
+          sourceWeights: { mlsWeight, webWeight: 100 - mlsWeight },
+        }),
+      });
+      if (res.ok) {
+        const report = await res.json();
+        setActiveReport(report);
+        setView('report');
+        fetchData(); // refresh list
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to generate report');
+        setView('form');
+      }
+    } catch (err) {
+      setError(err.message);
+      setView('form');
+    }
+    setGenerating(false);
+  }
+
+  async function viewReport(id) {
+    try {
+      const res = await fetch(`/api/admin/rent-range?id=${id}`);
+      if (res.ok) {
+        setActiveReport(await res.json());
+        setView('report');
+      }
+    } catch { /* silent */ }
+  }
+
+  if (loading) {
+    return <div style={{ color: COLORS.textDim, padding: 40, textAlign: 'center' }}>Loading...</div>;
+  }
+
+  // ============================================================
+  // REPORT VIEW
+  // ============================================================
+  if (view === 'report' && activeReport) {
+    const rr = activeReport.rent_range || {};
+    const pd = activeReport.property_details || {};
+    const mkt = activeReport.market_data || {};
+    const trend = mkt.trend || {};
+    const mlsComps = activeReport.mls_comps || [];
+    const webComps = activeReport.web_comps || [];
+    const sources = activeReport.sources || [];
+    const meth = activeReport.methodology || {};
+
+    return (
+      <div>
+        <button onClick={() => { setActiveReport(null); setView('list'); }} style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted, marginBottom: 20 }}>
+          ← Back to Reports
+        </button>
+
+        {/* Subject Property */}
+        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: COLORS.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Subject Property</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.text }}>{activeReport.property_address}</div>
+          <div style={{ fontSize: 13, color: COLORS.textDim, marginTop: 4 }}>
+            {activeReport.city}, {activeReport.state} {activeReport.zip} · {activeReport.county}
+          </div>
+          <div style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 4 }}>
+            {pd.propertySubType} · {pd.beds}bd/{pd.baths}ba · {pd.sqft ? `${Number(pd.sqft).toLocaleString()} sqft` : '—'} · Built {pd.yearBuilt || '—'}
+            {pd.hoa && ` · HOA $${pd.hoaFee || '—'}/mo`}
+            {pd.gated && ' · Gated'}
+          </div>
+        </div>
+
+        {/* Rent Range Display */}
+        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 20, border: `1px solid ${COLORS.border}`, marginBottom: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: COLORS.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 16 }}>Estimated Rent Range</div>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 24 }}>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.amber }}>${(rr.low || 0).toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: COLORS.textDim, fontWeight: 600 }}>LOW</div>
+            </div>
+            <div style={{ fontSize: 14, color: COLORS.textDim }}>——</div>
+            <div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: COLORS.green }}>${(rr.target || 0).toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: COLORS.green, fontWeight: 600 }}>TARGET</div>
+            </div>
+            <div style={{ fontSize: 14, color: COLORS.textDim }}>——</div>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.brand }}>${(rr.high || 0).toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: COLORS.textDim, fontWeight: 600 }}>HIGH</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 16 }}>
+            <div style={{ fontSize: 12, color: COLORS.textMuted }}>
+              Confidence: <strong style={{ color: rr.confidence >= 70 ? COLORS.green : rr.confidence >= 40 ? COLORS.amber : COLORS.red }}>{rr.confidence}/100</strong>
+            </div>
+            <div style={{ fontSize: 12, color: COLORS.textMuted }}>
+              Trend: <strong style={{ color: trend.direction === 'rising' ? COLORS.green : trend.direction === 'declining' ? COLORS.red : COLORS.textMuted }}>
+                {trend.direction === 'rising' ? '↗' : trend.direction === 'declining' ? '↘' : '→'} {trend.direction || 'stable'}
+                {trend.yoyPct != null && ` (${trend.yoyPct > 0 ? '+' : ''}${trend.yoyPct.toFixed(1)}% YoY)`}
+              </strong>
+            </div>
+            <div style={{ fontSize: 12, color: COLORS.textMuted }}>
+              Sources: <strong>{rr.compCount?.mls || 0} MLS · {rr.compCount?.web || 0} web</strong>
+            </div>
+          </div>
+          {rr.trendAdjustmentPct !== 0 && (
+            <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 8 }}>
+              Trend adjustment applied: {rr.trendAdjustmentPct > 0 ? '+' : ''}{rr.trendAdjustmentPct}%
+            </div>
+          )}
+        </div>
+
+        {/* Comparable Properties */}
+        <div style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Comparable Properties</h3>
+          <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+            {[...mlsComps.slice(0, 10), ...webComps.slice(0, 5)].map((comp, i) => {
+              const isMls = !comp._source || comp._source !== 'web';
+              const rent = comp.close_price || comp.list_price || comp.rent || 0;
+              const address = isMls
+                ? `${comp.street_number || ''} ${comp.street_name || ''}`.trim() || comp.listing_id
+                : comp.source_title || 'Web listing';
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+                  borderBottom: `1px solid ${COLORS.border}`,
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, minWidth: 24 }}>#{i + 1}</span>
+                  <Badge color={isMls ? 'blue' : 'purple'}>{isMls ? 'MLS' : 'Web'}</Badge>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>{address}{isMls && comp.city ? `, ${comp.city}` : ''}</div>
+                    <div style={{ fontSize: 11, color: COLORS.textDim }}>
+                      {isMls && `${comp.bedrooms || '—'}bd/${comp.bathrooms || '—'}ba · ${comp.living_area ? `${Number(comp.living_area).toLocaleString()}sf` : '—'}`}
+                      {!isMls && comp.source_url && (
+                        <a href={comp.source_url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.brand, textDecoration: 'none' }}>View source ↗</a>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.green }}>${rent.toLocaleString()}/mo</div>
+                    <div style={{ fontSize: 10, color: COLORS.textDim }}>
+                      {isMls && comp.standard_status === 'Closed' ? `Leased ${comp.close_date || ''}` : isMls ? `Active · ${comp.days_on_market || '—'} DOM` : ''}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, color: COLORS.textMuted, minWidth: 36, textAlign: 'right' }}>
+                    {comp._score || '—'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Market Context */}
+        {(mkt.keyDrivers?.length > 0 || mkt.vacancy != null) && (
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Market Context</h3>
+            <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}` }}>
+              {mkt.vacancy != null && <div style={{ fontSize: 13, color: COLORS.text, marginBottom: 6 }}>• Vacancy rate: {mkt.vacancy.toFixed(1)}%{mkt.vacancy < 5 ? ' (tight)' : mkt.vacancy < 8 ? ' (moderate)' : ' (soft)'}</div>}
+              {(mkt.keyDrivers || []).map((d, i) => <div key={i} style={{ fontSize: 13, color: COLORS.text, marginBottom: 4 }}>• {d}</div>)}
+            </div>
+          </div>
+        )}
+
+        {/* Sources & Citations */}
+        <div style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Sources & Citations</h3>
+          <div style={{ background: COLORS.surface, borderRadius: 8, padding: 12, border: `1px solid ${COLORS.border}` }}>
+            {sources.map((s, i) => (
+              <div key={i} style={{ fontSize: 12, color: COLORS.textMuted, padding: '4px 0' }}>
+                [{i + 1}] {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.brand, textDecoration: 'none' }}>{s.title} ↗</a> : <span>{s.title}</span>}
+                <Badge color={s.quality_score >= 80 ? 'green' : s.quality_score >= 50 ? 'blue' : 'gray'}>{s.type}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Methodology (collapsible) */}
+        <div style={{ marginBottom: 20 }}>
+          <div onClick={() => setMethodologyOpen(!methodologyOpen)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 0' }}>
+            <span style={{ fontSize: 12, color: COLORS.textDim, transform: methodologyOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▶</span>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>How This Rent Range Was Calculated</h3>
+          </div>
+          {methodologyOpen && (
+            <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}` }}>
+              {/* Comp Scoring Table */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Comp Scoring (per comparable)</div>
+              <table style={{ width: '100%', fontSize: 12, color: COLORS.text, marginBottom: 16, borderCollapse: 'collapse' }}>
+                <thead><tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                  <th style={{ textAlign: 'left', padding: '4px 8px', color: COLORS.textDim }}>Factor</th>
+                  <th style={{ textAlign: 'right', padding: '4px 8px', color: COLORS.textDim }}>Weight</th>
+                </tr></thead>
+                <tbody>
+                  {Object.entries(meth.compWeights || defaults?.compWeights || {}).map(([k, v]) => (
+                    <tr key={k} style={{ borderBottom: `1px solid ${COLORS.border}22` }}>
+                      <td style={{ padding: '4px 8px' }}>{formatWeightName(k)}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{v} pts</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Data Type Multipliers */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Data Type Multipliers</div>
+              <table style={{ width: '100%', fontSize: 12, color: COLORS.text, marginBottom: 16, borderCollapse: 'collapse' }}>
+                <thead><tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                  <th style={{ textAlign: 'left', padding: '4px 8px', color: COLORS.textDim }}>Data Type</th>
+                  <th style={{ textAlign: 'right', padding: '4px 8px', color: COLORS.textDim }}>Multiplier</th>
+                </tr></thead>
+                <tbody>
+                  {Object.entries(meth.dataMultipliers || defaults?.dataMultipliers || {}).map(([k, v]) => (
+                    <tr key={k} style={{ borderBottom: `1px solid ${COLORS.border}22` }}>
+                      <td style={{ padding: '4px 8px' }}>{formatWeightName(k)}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{v}x</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Source Weighting */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Source Weighting</div>
+              <div style={{ fontSize: 13, color: COLORS.text, marginBottom: 4 }}>
+                MLS Data: <strong>{meth.sourceWeights?.mlsWeight || 70}%</strong> · Web Data: <strong>{meth.sourceWeights?.webWeight || 30}%</strong>
+              </div>
+              <div style={{ fontSize: 11, color: COLORS.textDim, marginBottom: 16 }}>Default: 70% MLS / 30% Web. Auto-switches to 100% Web when no MLS comps available.</div>
+
+              {/* Range Calculation */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Range Calculation</div>
+              <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8 }}>
+                <div>LOW = Weighted 25th percentile</div>
+                <div>TARGET = Weighted median</div>
+                <div>HIGH = Weighted 75th percentile</div>
+              </div>
+              {rr.trendAdjustmentPct !== 0 && (
+                <div style={{ fontSize: 12, color: COLORS.amber, marginTop: 8 }}>
+                  Trend adjustment: {rr.trendAdjustmentPct > 0 ? '+' : ''}{rr.trendAdjustmentPct}% ({trend.direction})
+                </div>
+              )}
+
+              <div style={{ fontSize: 10, color: COLORS.textDim, marginTop: 12 }}>
+                Report generated: {formatDate(activeReport.created_at)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Future: Generate Branded Report button */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button disabled style={{ ...baseButton, background: COLORS.border, color: COLORS.textDim, opacity: 0.5 }}>
+            📄 Generate Branded Report (coming soon)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // GENERATING VIEW
+  // ============================================================
+  if (view === 'generating') {
+    return (
+      <div style={{ padding: 60, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+        <h3 style={{ color: COLORS.text, margin: '0 0 8px' }}>Generating Rent-Range Report</h3>
+        <p style={{ color: COLORS.textDim, fontSize: 14 }}>Searching MLS comps, running web research, synthesizing data...</p>
+        <div style={{ marginTop: 20, width: 200, height: 4, background: COLORS.border, borderRadius: 2, margin: '20px auto', overflow: 'hidden' }}>
+          <div style={{ width: '60%', height: '100%', background: COLORS.brand, borderRadius: 2, animation: 'rr-pulse 1.5s ease-in-out infinite' }} />
+        </div>
+        <style>{`@keyframes rr-pulse { 0%,100% { width: 30%; } 50% { width: 90%; } }`}</style>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // FORM VIEW
+  // ============================================================
+  if (view === 'form') {
+    return (
+      <div>
+        <button onClick={() => setView('list')} style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted, marginBottom: 20 }}>← Back</button>
+
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', marginBottom: 16 }}>Property Details</h3>
+
+        {error && <div style={{ background: COLORS.redDim, color: COLORS.red, padding: '10px 14px', borderRadius: 6, marginBottom: 16, fontSize: 13 }}>{error}</div>}
+
+        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 20, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
+          {/* Address with autocomplete */}
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <label style={labelStyle}>Street Address</label>
+            <input
+              value={form.address}
+              onChange={e => handleAddressChange(e.target.value)}
+              onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
+              placeholder="Start typing an address..."
+              style={inputStyle}
+            />
+            {showAutocomplete && autocompleteResults.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6, zIndex: 10, maxHeight: 200, overflow: 'auto' }}>
+                {autocompleteResults.map((r, i) => (
+                  <div key={i} onClick={() => selectPlace(r.place_id, r.description)}
+                    style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: COLORS.text, borderBottom: `1px solid ${COLORS.border}` }}>
+                    {r.description}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 200px', gap: 12, marginBottom: 12 }}>
+            <div><label style={labelStyle}>City</label><input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>State</label><input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Zip</label><input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>County</label>
+              <select value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inputStyle}>
+                <option value="Martin County">Martin County</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 100px 100px', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={labelStyle}>Property Type</label>
+              <select value={form.propertySubType} onChange={e => setForm(f => ({ ...f, propertySubType: e.target.value }))} style={inputStyle}>
+                {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div><label style={labelStyle}>Beds</label><input type="number" value={form.beds} onChange={e => setForm(f => ({ ...f, beds: e.target.value }))} style={inputStyle} placeholder="3" /></div>
+            <div><label style={labelStyle}>Baths</label><input type="number" step="0.5" value={form.baths} onChange={e => setForm(f => ({ ...f, baths: e.target.value }))} style={inputStyle} placeholder="2" /></div>
+            <div><label style={labelStyle}>Sqft</label><input type="number" value={form.sqft} onChange={e => setForm(f => ({ ...f, sqft: e.target.value }))} style={inputStyle} placeholder="1,450" /></div>
+            <div><label style={labelStyle}>Year Built</label><input type="number" value={form.yearBuilt} onChange={e => setForm(f => ({ ...f, yearBuilt: e.target.value }))} style={inputStyle} placeholder="2005" /></div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '100px 100px 100px 1fr', gap: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={form.hoa} onChange={e => setForm(f => ({ ...f, hoa: e.target.checked }))} />
+              <label style={{ fontSize: 12, color: COLORS.textMuted }}>HOA</label>
+            </div>
+            {form.hoa && <div><label style={labelStyle}>HOA $/mo</label><input type="number" value={form.hoaFee} onChange={e => setForm(f => ({ ...f, hoaFee: e.target.value }))} style={inputStyle} /></div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={form.gated} onChange={e => setForm(f => ({ ...f, gated: e.target.checked }))} />
+              <label style={{ fontSize: 12, color: COLORS.textMuted }}>Gated</label>
+            </div>
+            <div><label style={labelStyle}>Subdivision / Community</label><input value={form.subdivision} onChange={e => setForm(f => ({ ...f, subdivision: e.target.value }))} style={inputStyle} placeholder="Optional" /></div>
+          </div>
+        </div>
+
+        {/* County Appraiser Links */}
+        <div style={{ background: COLORS.bg, borderRadius: 6, padding: '10px 14px', border: `1px solid ${COLORS.border}`, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: COLORS.textDim, fontWeight: 600 }}>County Appraiser:</span>
+          {Object.entries(countyAppraisers).map(([county, info]) => (
+            <a key={county} href={info.url} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 12, color: COLORS.brand, textDecoration: 'none' }}>
+              🔗 {info.name} ↗
+            </a>
+          ))}
+          <div style={{ marginLeft: 'auto', position: 'relative' }}>
+            <button disabled title="FRAGILE — Scrapes county appraiser site. May break when site redesigns. May violate site Terms of Service. Use manual lookup when possible. Admin assumes all risk."
+              style={{ ...baseButton, background: COLORS.border, color: COLORS.textDim, fontSize: 11, opacity: 0.5, cursor: 'not-allowed' }}>
+              ⚠️ Auto-Scrape (disabled)
+            </button>
+          </div>
+        </div>
+
+        {/* MLS/Web Weight Slider */}
+        <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}`, marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Source Weighting</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600, minWidth: 70 }}>MLS {mlsWeight}%</span>
+            <input type="range" min={0} max={100} value={mlsWeight} onChange={e => setMlsWeight(Number(e.target.value))}
+              style={{ flex: 1, accentColor: COLORS.brand }} />
+            <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600, minWidth: 70, textAlign: 'right' }}>Web {100 - mlsWeight}%</span>
+          </div>
+          <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 6 }}>
+            ℹ️ Default: 70% MLS / 30% Web. Adjust based on available comp data quality.
+          </div>
+        </div>
+
+        <button onClick={generateReport} disabled={!form.address || !form.city || generating}
+          style={{ ...baseButton, background: COLORS.brand, color: '#000', fontWeight: 700, fontSize: 14, padding: '12px 24px', opacity: (!form.address || !form.city) ? 0.5 : 1 }}>
+          🔍 Generate Rent-Range Report
+        </button>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // LIST VIEW (default)
+  // ============================================================
   return (
     <div>
-      <div style={{
-        background: COLORS.surface, borderRadius: '10px', border: `1px dashed ${COLORS.border}`,
-        padding: 40, textAlign: 'center',
-      }}>
-        <div style={{ fontSize: '40px', marginBottom: 12 }}>🏷️</div>
-        <h3 style={{ color: COLORS.text, margin: '0 0 8px' }}>Rent-Range Finder</h3>
-        <p style={{ color: COLORS.textDim, fontSize: '14px', maxWidth: 500, margin: '0 auto', lineHeight: 1.6 }}>
-          Coming soon. This tool will help admins analyze competitive rent pricing across South Florida markets.
-        </p>
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+        <StatCard label="Reports Generated" value={reports.length} accent={COLORS.brand} />
+        {Object.entries(compStats).map(([county, stats]) => (
+          <StatCard key={county} label={county} value={stats.active + stats.closed} sub={`${stats.active} active · ${stats.closed} closed`} accent={COLORS.purple} />
+        ))}
+        <StatCard label="Data Source" value="Bridge IDX" sub="Active + Closed rentals" accent={COLORS.green} />
+      </div>
+
+      <button onClick={() => setView('form')} style={{ ...baseButton, background: COLORS.brand, color: '#000', fontWeight: 700, marginBottom: 20 }}>
+        + New Rent-Range Report
+      </button>
+
+      {/* Recent Reports */}
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Recent Reports</h3>
+      <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+        {reports.length === 0 ? (
+          <div style={{ padding: '20px 16px', color: COLORS.textDim, textAlign: 'center', fontSize: 13 }}>No reports yet. Click "New Rent-Range Report" to get started.</div>
+        ) : (
+          reports.map((r, i) => {
+            const rr = r.rent_range || {};
+            return (
+              <div key={r.id} onClick={() => viewReport(r.id)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer',
+                borderBottom: i < reports.length - 1 ? `1px solid ${COLORS.border}` : 'none',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>{r.property_address}</div>
+                  <div style={{ fontSize: 12, color: COLORS.textDim }}>{r.city}, {r.county}</div>
+                </div>
+                {rr.target > 0 && (
+                  <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.green }}>
+                    ${rr.low?.toLocaleString()} — ${rr.high?.toLocaleString()}
+                  </div>
+                )}
+                <Badge color={r.status === 'complete' ? 'green' : r.status === 'archived' ? 'gray' : 'amber'}>{r.status}</Badge>
+                <span style={{ fontSize: 12, color: COLORS.textDim }}>{timeAgo(r.created_at)}</span>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function formatWeightName(key) {
+  const map = {
+    propertySubType: 'Same property sub-type',
+    bedBathMatch: 'Bed/bath exact match',
+    sqftSimilarity: 'Sqft within 10%',
+    distance: 'Distance (<1 mi)',
+    priceTier: 'Similar price tier',
+    communityMatch: 'Same community/HOA/gated',
+    freshness: 'Data freshness (<30 days)',
+    actualLeased: 'Actual leased price (MLS)',
+    activeAsking: 'Active asking rent (MLS)',
+    expiredAsking: 'Expired asking rent (MLS)',
+    webPortal: 'Web portal listing',
+    marketReport: 'Market report median',
+  };
+  return map[key] || key;
+}
+
+const labelStyle = { display: 'block', fontSize: 11, color: COLORS.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 };
+const inputStyle = {
+  width: '100%', background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+  borderRadius: 6, padding: '7px 10px', color: COLORS.text, fontSize: 13,
+  fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box',
+};
