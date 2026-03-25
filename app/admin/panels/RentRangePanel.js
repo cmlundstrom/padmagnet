@@ -318,6 +318,25 @@ export default function RentRangePanel() {
                   {/* Expanded detail */}
                   {isExpanded && isMls && (
                     <div style={{ padding: '12px 16px', background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
+                      {/* Photos */}
+                      {Array.isArray(comp.photos) && comp.photos.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                          {comp.photos.slice(0, 6).map((p, pi) => (
+                            <img
+                              key={pi}
+                              src={p.url}
+                              alt={`Comp photo ${pi + 1}`}
+                              style={{ width: 100, height: 75, objectFit: 'cover', borderRadius: 4, border: `1px solid ${COLORS.border}`, cursor: 'pointer' }}
+                              onClick={() => window.open(p.url, '_blank')}
+                            />
+                          ))}
+                          {comp.photos.length > 6 && (
+                            <div style={{ width: 100, height: 75, borderRadius: 4, background: COLORS.surface, border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: COLORS.textDim }}>
+                              +{comp.photos.length - 6} more
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
                         {[
                           ['MLS #', comp.listing_id || '—'],

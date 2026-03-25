@@ -34,7 +34,7 @@ const SELECT_FIELDS = [
   'OnMarketDate', 'CloseDate', 'DaysOnMarket',
   'AssociationYN', 'AssociationFee', 'CommunityFeatures',
   'PetsAllowed', 'Furnished', 'PoolPrivateYN', 'WaterfrontYN', 'ParkingTotal', 'GarageSpaces',
-  'LeaseTerm', 'ListAgentFullName', 'ListOfficeName', 'ModificationTimestamp',
+  'LeaseTerm', 'ListAgentFullName', 'ListOfficeName', 'ModificationTimestamp', 'Media',
 ].join(',');
 
 function verifyCronSecret(token) {
@@ -87,6 +87,11 @@ function mapBridgeToComp(prop) {
     lease_term: prop.LeaseTerm,
     listing_agent_name: prop.ListAgentFullName,
     listing_office_name: prop.ListOfficeName,
+    photos: (prop.Media || [])
+      .filter(m => m.MediaCategory === 'Photo')
+      .sort((a, b) => (a.Order || 0) - (b.Order || 0))
+      .slice(0, 10) // cap at 10 photos per comp
+      .map(m => ({ url: m.MediaURL, order: m.Order || 0 })),
     modification_timestamp: prop.ModificationTimestamp,
     synced_at: new Date().toISOString(),
   };
