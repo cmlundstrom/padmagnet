@@ -21,6 +21,7 @@ import MessagingPanel from "./panels/MessagingPanel";
 import SystemHealthPanel from "./panels/SystemHealthPanel";
 import TemplateEditorPanel from "./panels/TemplateEditorPanel";
 import SalesPagesPanel from "./panels/SalesPagesPanel";
+import RentRangePanel from "./panels/RentRangePanel";
 
 // ============================================================
 // MAIN DASHBOARD
@@ -41,6 +42,10 @@ const NAV_ITEMS = [
   { id: "owners", label: "Owners", icon: "🔑" },
   { id: "users", label: "Administrators", icon: "🔐" },
   { id: "audit", label: "Audit Log", icon: "📝" },
+];
+
+const TOOLS_NAV_ITEMS = [
+  { id: "rent-range", label: "Rent-Range Finder", icon: "🏷️" },
 ];
 
 export default function PadMagnetAdmin() {
@@ -111,6 +116,7 @@ export default function PadMagnetAdmin() {
     owners: <OwnersPanel />,
     users: <UsersPanel />,
     audit: <AuditLogPanel />,
+    "rent-range": <RentRangePanel />,
   };
 
   return (
@@ -192,6 +198,49 @@ export default function PadMagnetAdmin() {
           })}
         </div>
 
+        {/* Real Estate Tools — visually separated */}
+        <div style={{
+          margin: "0 8px",
+          borderTop: `1px solid ${COLORS.border}`,
+          paddingTop: 12,
+          marginTop: 4,
+        }}>
+          {!sidebarCollapsed && (
+            <div style={{
+              fontSize: "10px", fontWeight: 700, color: COLORS.textDim,
+              textTransform: "uppercase", letterSpacing: "0.08em",
+              padding: "0 12px 8px",
+            }}>
+              Real Estate Tools
+            </div>
+          )}
+          {sidebarCollapsed && (
+            <div style={{
+              width: "100%", height: 1, background: COLORS.border, marginBottom: 8,
+            }} />
+          )}
+          {TOOLS_NAV_ITEMS.map(item => {
+            const isActive = activeTab === item.id;
+            return (
+              <div key={item.id} onClick={() => setActiveTab(item.id)} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: sidebarCollapsed ? "10px 0" : "10px 12px",
+                justifyContent: sidebarCollapsed ? "center" : "flex-start",
+                borderRadius: "6px", cursor: "pointer",
+                background: isActive ? COLORS.brand + "15" : "transparent",
+                color: isActive ? COLORS.brand : COLORS.textMuted,
+                fontWeight: isActive ? 700 : 500,
+                fontSize: "14px",
+                marginBottom: 2,
+                transition: "all 0.1s",
+              }}>
+                <span style={{ fontSize: "16px", width: 24, textAlign: "center" }}>{item.icon}</span>
+                {!sidebarCollapsed && <span>{item.label}</span>}
+              </div>
+            );
+          })}
+        </div>
+
         {/* Footer */}
         {!sidebarCollapsed && (
           <div style={{ padding: "12px 20px", borderTop: `1px solid ${COLORS.border}`, fontSize: "11px", color: COLORS.textDim }}>
@@ -220,7 +269,7 @@ export default function PadMagnetAdmin() {
             margin: 0, fontSize: "20px", fontWeight: 800,
             color: COLORS.text, letterSpacing: "-0.02em",
           }}>
-            {NAV_ITEMS.find(n => n.id === activeTab)?.icon} {NAV_ITEMS.find(n => n.id === activeTab)?.label}
+            {[...NAV_ITEMS, ...TOOLS_NAV_ITEMS].find(n => n.id === activeTab)?.icon} {[...NAV_ITEMS, ...TOOLS_NAV_ITEMS].find(n => n.id === activeTab)?.label}
           </h1>
           {adminName && (
             <div style={{
