@@ -35,12 +35,46 @@ export async function POST(request) {
 
     const scraper = SCRAPERS[county];
 
-    // Strategy 1: If we have a direct appraiser URL with AIN, fetch detail directly
+    // Strategy 1: If we have a direct appraiser URL with AIN, search by AIN to get full data
     if (appraiserUrl) {
       const ainMatch = appraiserUrl.match(/\/view\/(\d+)/);
       if (ainMatch) {
-        const detail = await fetchPropertyDetail(scraper.detailUrl, ainMatch[1]);
-        return NextResponse.json(detail);
+        const ain = ainMatch[1];
+        // Search by AIN to get the JSON record (has address, value, subdivision)
+        const searchRes = await fetch(`${scraper.searchUrl}&search=${ain}&limit=1&offset=0`);
+        const searchData = searchRes.ok ? await searchRes.json() : { records: [] };
+        const property = searchData.records?.[0];
+
+        const detail = await fetchPropertyDetail(scraper.detailUrl, ain);
+
+        if (property) {
+          const parsed = parseAddress(property);
+          return NextResponse.json({
+            ...detail,
+            address: parsed.streetAddress,
+            city: parsed.city,
+            state: 'FL',
+            zip: parsed.zip,
+            county: county,
+            lat: property.YCoordinates ? parseFloat(property.YCoordinates) : null,
+            lng: property.XCoordinates ? parseFloat(property.XCoordinates) : null,
+            marketValue: property.TotalMarketValue,
+            assessedValue: property.AssessedValue,
+            landValue: property.LandMarketValue,
+            improvementValue: property.ImprovementMarketValue,
+            subdivision: property.Subdivision || detail.subdivision,
+            neighborhood: property.NeighborhoodName,
+            useClass: property.PropertyUseClass,
+            legalDescription: property.LegalDescription,
+            acres: property.LegalAcres,
+            owner: property.PrimaryOwner,
+            ain: property.AIN,
+            pin: property.PIN,
+            appraiserUrl: `${scraper.detailUrl}/${ain}`,
+          });
+        }
+        // Fallback: just detail page data
+        return NextResponse.json({ ...detail, appraiserUrl: `${scraper.detailUrl}/${ain}` });
       }
     }
 
@@ -63,6 +97,7 @@ export async function POST(request) {
         results: searchResults.map(r => ({
           ain: r.AIN,
           address: r.SitusAddress,
+          city: r.SitusCity,
           owner: r.PrimaryOwner,
           useClass: r.PropertyUseClass,
           marketValue: r.TotalMarketValue,
@@ -75,16 +110,31 @@ export async function POST(request) {
     const property = searchResults[0];
     const detail = await fetchPropertyDetail(scraper.detailUrl, property.AIN);
 
-    // Merge search data (value, subdivision) with detail data (beds, baths, sqft)
+    // Merge search data (value, subdivision, address) with detail data (beds, baths, sqft)
+    const parsed = parseAddress(property);
     return NextResponse.json({
       ...detail,
+      // Address fields
+      address: parsed.streetAddress,
+      city: parsed.city,
+      state: 'FL',
+      zip: parsed.zip,
+      county: county,
+      lat: property.YCoordinates ? parseFloat(property.YCoordinates) : null,
+      lng: property.XCoordinates ? parseFloat(property.XCoordinates) : null,
+      // Property data
       marketValue: property.TotalMarketValue,
       assessedValue: property.AssessedValue,
+      landValue: property.LandMarketValue,
+      improvementValue: property.ImprovementMarketValue,
       subdivision: property.Subdivision || detail.subdivision,
       neighborhood: property.NeighborhoodName,
       useClass: property.PropertyUseClass,
+      legalDescription: property.LegalDescription,
+      acres: property.LegalAcres,
       owner: property.PrimaryOwner,
       ain: property.AIN,
+      pin: property.PIN,
       appraiserUrl: `${scraper.detailUrl}/${property.AIN}`,
     });
   } catch (err) {
@@ -151,6 +201,37 @@ async function fetchPropertyDetail(detailUrl, ain) {
     numberOfUnits: numberOfUnits ? parseInt(numberOfUnits, 10) : 1,
     buildingType,
     subdivision: null, // comes from search results, not detail page
+  };
+}
+
+function parseAddress(property) {
+  // SitusAddress: "966 SW MAGNOLIA BLUFF DR PALM CITY FL"
+  // SitusCity: "PALM CITY"
+  // MailCityStateZip: "PALM CITY FL 34990"
+  const situs = property.SitusAddress || '';
+  const city = property.SitusCity || '';
+  const mailCSZ = property.MailCityStateZip || '';
+
+  // Extract zip from MailCityStateZip (e.g., "PALM CITY FL 34990")
+  const zipMatch = mailCSZ.match(/(\d{5}(-\d{4})?)\s*$/);
+  const zip = zipMatch ? zipMatch[1] : '';
+
+  // Street address = SitusAddress minus city and state
+  let streetAddress = situs;
+  if (city) {
+    const cityIdx = streetAddress.toUpperCase().lastIndexOf(city.toUpperCase());
+    if (cityIdx > 0) streetAddress = streetAddress.substring(0, cityIdx).trim();
+  }
+  // Remove trailing FL if present
+  streetAddress = streetAddress.replace(/\s+FL\s*$/i, '').trim();
+
+  // Title case the street address and city
+  const titleCase = (s) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+  return {
+    streetAddress: titleCase(streetAddress),
+    city: titleCase(city),
+    zip,
   };
 }
 

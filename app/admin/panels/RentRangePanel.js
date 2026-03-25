@@ -58,10 +58,19 @@ export default function RentRangePanel() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Apply scraped property data to form fields
+  // Apply scraped property data to ALL form fields
   function applyScrapedData(data) {
     setForm(f => ({
       ...f,
+      // Address fields
+      address: data.address || f.address,
+      city: data.city || f.city,
+      state: data.state || f.state,
+      zip: data.zip || f.zip,
+      county: data.county || f.county,
+      lat: data.lat || f.lat,
+      lng: data.lng || f.lng,
+      // Property details
       propertySubType: data.propertySubType || f.propertySubType,
       beds: data.beds != null ? String(data.beds) : f.beds,
       baths: data.baths != null ? String(data.baths) : f.baths,
@@ -69,7 +78,7 @@ export default function RentRangePanel() {
       yearBuilt: data.yearBuilt != null ? String(data.yearBuilt) : f.yearBuilt,
       subdivision: data.subdivision || f.subdivision,
       appraiserUrl: data.appraiserUrl || f.appraiserUrl,
-      hoa: data.subdivision ? true : f.hoa, // if subdivision exists, likely has HOA
+      hoa: data.subdivision ? true : f.hoa,
     }));
   }
 
