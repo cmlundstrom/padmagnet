@@ -184,7 +184,7 @@ export async function GET(request) {
 async function fetchBridgeData(county, status, closeDateAfter) {
   const results = [];
   let skip = 0;
-  const top = 200;
+  const top = 500;
 
   while (true) {
     let filter = `PropertyType eq 'Residential Lease' and CountyOrParish eq '${county}' and StandardStatus eq '${status}'`;
