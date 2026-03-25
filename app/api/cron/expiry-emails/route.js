@@ -31,8 +31,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const startTime = Date.now();
+  const supabase = createServiceClient();
+
   try {
-    const supabase = createServiceClient();
     const now = new Date();
     let sent = 0;
 
@@ -114,8 +116,10 @@ export async function GET(request) {
       sent++;
     }
 
+    await supabase.from('cron_logs').insert({ job_name: 'expiry_emails', status: 'success', duration_ms: Date.now() - startTime, result: { sent } });
     return NextResponse.json({ sent });
   } catch (err) {
+    await supabase.from('cron_logs').insert({ job_name: 'expiry_emails', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message }).catch(() => {});
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

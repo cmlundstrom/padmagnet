@@ -105,14 +105,15 @@ export async function POST(request) {
     }
 
     // Whitelist fields
+    // Non-draft listings go to pending_review for admin approval before appearing in feed
     const listing = {
       listing_key: `owner-${randomUUID()}`,
       source: 'owner',
       owner_user_id: user.id,
       property_type: 'Residential Lease',
       state_or_province: 'FL',
-      is_active: isDraft ? false : true,
-      status: isDraft ? 'draft' : 'active',
+      is_active: false,
+      status: isDraft ? 'draft' : 'pending_review',
     };
 
     // Sanitize text fields to prevent XSS
@@ -142,11 +143,10 @@ export async function POST(request) {
       }
     }
 
-    // Generate confirmation code + set 30-day expiry for non-draft listings
-    // First listing period is free; renewals will require payment (Stripe)
+    // Generate confirmation code for non-draft listings
+    // Expiry + is_active set by admin on approval, not here
     if (!isDraft) {
       listing.confirmation_code = generateConfirmationCode(listing.listing_key);
-      listing.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const { data, error } = await supabase
@@ -159,11 +159,11 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Send confirmation email for non-draft listings
+    // Send submission email for non-draft listings (pending review)
     if (!isDraft && data.confirmation_code) {
       const address = [data.street_number, data.street_name].filter(Boolean).join(' ');
       const fullAddress = [address, data.city, data.state_or_province].filter(Boolean).join(', ');
-      sendTemplateEmail('listing_confirmed', user.email, {
+      sendTemplateEmail('listing_submitted', user.email, {
         owner_name: data.listing_agent_name || user.user_metadata?.display_name || 'Property Owner',
         confirmation_code: data.confirmation_code,
         listing_address: fullAddress,

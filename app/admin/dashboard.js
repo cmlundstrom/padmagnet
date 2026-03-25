@@ -10,18 +10,15 @@ import OverviewPanel from "./panels/OverviewPanel";
 import PadScorePanel from "./panels/PadScorePanel";
 import ListingsPanel from "./panels/ListingsPanel";
 import SupportPanel from "./panels/SupportPanel";
-import WaitlistPanel from "./panels/WaitlistPanel";
 import ProductsPanel from "./panels/ProductsPanel";
-import BillingPanel from "./panels/BillingPanel";
 import UsersPanel from "./panels/UsersPanel";
 import TenantsPanel from "./panels/TenantsPanel";
 import OwnersPanel from "./panels/OwnersPanel";
 import AuditLogPanel from "./panels/AuditLogPanel";
-import BacklogPanel from "./panels/BacklogPanel";
 import DisplayFieldsPanel from "./panels/DisplayFieldsPanel";
 import DisclaimersPanel from "./panels/DisclaimersPanel";
 import MessagingPanel from "./panels/MessagingPanel";
-import WebhookLogPanel from "./panels/WebhookLogPanel";
+import SystemHealthPanel from "./panels/SystemHealthPanel";
 import TemplateEditorPanel from "./panels/TemplateEditorPanel";
 import SalesPagesPanel from "./panels/SalesPagesPanel";
 
@@ -30,23 +27,20 @@ import SalesPagesPanel from "./panels/SalesPagesPanel";
 // ============================================================
 const NAV_ITEMS = [
   { id: "overview", label: "Metrics & Overview", icon: "📊" },
-  { id: "waitlist", label: "Waitlist", icon: "📧" },
-{ id: "padscore", label: "PadScore", icon: "🎯" },
+  { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
   { id: "disclaimers", label: "Disclaimers", icon: "⚖️" },
   { id: "support", label: "Support", icon: "💬" },
   { id: "messaging", label: "Messaging", icon: "📨" },
-  { id: "webhooks", label: "Webhook Log", icon: "🔗" },
+  { id: "system-health", label: "System Health", icon: "🔗" },
   { id: "templates", label: "Templates", icon: "📝" },
   { id: "sales-pages", label: "Sales Pages", icon: "📄" },
-  { id: "products", label: "App Products", icon: "📦" },
-  { id: "billing", label: "Billing", icon: "💳" },
+  { id: "products", label: "Revenue & Products", icon: "💰" },
   { id: "tenants", label: "Tenants", icon: "🏘️" },
   { id: "owners", label: "Owners", icon: "🔑" },
   { id: "users", label: "Administrators", icon: "🔐" },
   { id: "audit", label: "Audit Log", icon: "📝" },
-  { id: "backlog", label: "Backlog", icon: "📋" },
 ];
 
 export default function PadMagnetAdmin() {
@@ -103,23 +97,20 @@ export default function PadMagnetAdmin() {
 
   const panels = {
     overview: <OverviewPanel openTicketCount={openTicketCount} />,
-    waitlist: <WaitlistPanel />,
-padscore: <PadScorePanel />,
+    padscore: <PadScorePanel />,
     listings: <ListingsPanel />,
     "display-fields": <DisplayFieldsPanel />,
     disclaimers: <DisclaimersPanel />,
     support: <SupportPanel onTicketChange={refreshTicketCount} />,
     messaging: <MessagingPanel />,
-    webhooks: <WebhookLogPanel />,
+    "system-health": <SystemHealthPanel />,
     templates: <TemplateEditorPanel />,
     "sales-pages": <SalesPagesPanel />,
     products: <ProductsPanel />,
-    billing: <BillingPanel />,
     tenants: <TenantsPanel />,
     owners: <OwnersPanel />,
     users: <UsersPanel />,
     audit: <AuditLogPanel />,
-    backlog: <BacklogPanel />,
   };
 
   return (
@@ -166,7 +157,6 @@ padscore: <PadScorePanel />,
           {NAV_ITEMS.map(item => {
             const isActive = activeTab === item.id;
             const isSupport = item.id === "support";
-            if (item.id === "backlog") return null;
             return (
               <div key={item.id} onClick={() => setActiveTab(item.id)} style={{
                 display: "flex", alignItems: "center", gap: 10,
@@ -200,63 +190,6 @@ padscore: <PadScorePanel />,
               </div>
             );
           })}
-        </div>
-
-        {/* Backlog — separated from main nav */}
-        <div style={{ padding: "0 8px 8px" }}>
-          <div onClick={() => setActiveTab("backlog")} style={{
-            borderRadius: "8px", cursor: "pointer",
-            padding: "2px",
-            background: activeTab === "backlog"
-              ? "linear-gradient(135deg, #f59e0b, #ef4444, #a855f7, #3b82f6, #22d3ee)"
-              : "linear-gradient(135deg, #f59e0b, #ef4444, #a855f7, #3b82f6)",
-            backgroundSize: "300% 300%",
-            animation: "backlog-glow 3s ease infinite",
-            boxShadow: activeTab === "backlog"
-              ? "0 0 20px rgba(168,85,247,0.5), 0 0 40px rgba(239,68,68,0.3)"
-              : "0 0 12px rgba(168,85,247,0.3), 0 0 24px rgba(239,68,68,0.15)",
-          }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: sidebarCollapsed ? "10px 0" : "10px 12px",
-              justifyContent: sidebarCollapsed ? "center" : "flex-start",
-              borderRadius: "6px",
-              background: activeTab === "backlog" ? "rgba(10,14,23,0.85)" : "rgba(10,14,23,0.92)",
-              color: activeTab === "backlog" ? "#fff" : "#e2e8f0",
-              fontWeight: 800,
-              fontSize: "14px",
-              letterSpacing: "0.02em",
-            }}>
-              <span style={{ fontSize: "18px", width: 24, textAlign: "center", animation: "backlog-bounce 2s ease-in-out infinite" }}>📋</span>
-              {!sidebarCollapsed && (
-                <span style={{
-                  background: "linear-gradient(90deg, #f59e0b, #ef4444, #a855f7, #22d3ee)",
-                  backgroundSize: "200% auto",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  animation: "backlog-text 4s linear infinite",
-                }}>
-                  Backlog
-                </span>
-              )}
-            </div>
-            <style>{`
-              @keyframes backlog-glow {
-                0%, 100% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-              }
-              @keyframes backlog-bounce {
-                0%, 100% { transform: scale(1) rotate(0deg); }
-                25% { transform: scale(1.2) rotate(-8deg); }
-                50% { transform: scale(1) rotate(0deg); }
-                75% { transform: scale(1.2) rotate(8deg); }
-              }
-              @keyframes backlog-text {
-                0% { background-position: 0% center; }
-                100% { background-position: 200% center; }
-              }
-            `}</style>
-          </div>
         </div>
 
         {/* Footer */}

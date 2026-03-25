@@ -7,7 +7,11 @@ export async function GET(request) {
   if (auth instanceof NextResponse) return auth;
 
   const supabase = createServiceClient();
+  const now = new Date();
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const weekStart = new Date(Date.now() - 7 * 86400000).toISOString();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   try {
     const [
@@ -22,6 +26,20 @@ export async function GET(request) {
       conversationsRes,
       proRes,
       premiumRes,
+      // Tenant funnel
+      tenantsWithPrefsRes,
+      tenantsWithSwipeRes,
+      tenantsWithConvoRes,
+      tenantsWithMsgRes,
+      // Revenue
+      revenueTodayRes,
+      revenueWeekRes,
+      revenueMonthRes,
+      revenueTotalRes,
+      // Expiry forecast
+      expiring7dRes,
+      expiring3dRes,
+      expiring1dRes,
     ] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'owner'),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'tenant'),
@@ -34,6 +52,23 @@ export async function GET(request) {
       supabase.from('conversations').select('id', { count: 'exact', head: true }),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tier', 'pro'),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tier', 'premium'),
+      // Tenant funnel: tenants who set preferences
+      supabase.from('tenant_preferences').select('user_id', { count: 'exact', head: true }),
+      // Tenants who swiped at least once (distinct user_ids)
+      supabase.from('swipes').select('user_id'),
+      // Tenants who started a conversation (distinct tenant_user_ids)
+      supabase.from('conversations').select('tenant_user_id'),
+      // Tenants who sent a message (distinct sender_ids)
+      supabase.from('messages').select('sender_id'),
+      // Revenue: payments with status=succeeded
+      supabase.from('payments').select('amount_cents').eq('status', 'succeeded').gte('created_at', todayStart),
+      supabase.from('payments').select('amount_cents').eq('status', 'succeeded').gte('created_at', weekStart),
+      supabase.from('payments').select('amount_cents').eq('status', 'succeeded').gte('created_at', monthStart),
+      supabase.from('payments').select('amount_cents').eq('status', 'succeeded'),
+      // Expiry forecast
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').lte('expires_at', new Date(Date.now() + 7 * 86400000).toISOString()).gte('expires_at', now.toISOString()),
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').lte('expires_at', new Date(Date.now() + 3 * 86400000).toISOString()).gte('expires_at', now.toISOString()),
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('source', 'owner').eq('status', 'active').lte('expires_at', new Date(Date.now() + 1 * 86400000).toISOString()).gte('expires_at', now.toISOString()),
     ]);
 
     const owners = ownerRes.count || 0;
@@ -52,6 +87,9 @@ export async function GET(request) {
       ? Math.round((rightSwipes7d / swipes7d) * 100)
       : 0;
 
+    // Sum revenue from payments
+    const sumPayments = (res) => (res.data || []).reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+
     const data = {
       users: { owners, tenants, total: owners + tenants },
       listings: { active, draft, ownerCreated },
@@ -62,11 +100,30 @@ export async function GET(request) {
         messages7d,
         totalConversations,
       },
-      revenue: { proSubscribers, premiumSubscribers, mrr: 0 },
+      revenue: {
+        proSubscribers,
+        premiumSubscribers,
+        today: sumPayments(revenueTodayRes),
+        week: sumPayments(revenueWeekRes),
+        month: sumPayments(revenueMonthRes),
+        total: sumPayments(revenueTotalRes),
+      },
       funnel: {
         ownersRegistered: owners,
         listingsCreated: ownerCreated,
         listingsActive: active,
+      },
+      tenantFunnel: {
+        registered: tenants,
+        preferencesSet: tenantsWithPrefsRes.count || 0,
+        swiped: new Set((tenantsWithSwipeRes.data || []).map(r => r.user_id)).size,
+        conversationStarted: new Set((tenantsWithConvoRes.data || []).map(r => r.tenant_user_id)).size,
+        messageSent: new Set((tenantsWithMsgRes.data || []).map(r => r.sender_id)).size,
+      },
+      expiryForecast: {
+        next7d: expiring7dRes.count || 0,
+        next3d: expiring3dRes.count || 0,
+        next1d: expiring1dRes.count || 0,
       },
     };
 

@@ -11,6 +11,9 @@ const ALLOWED_CONFIG_KEYS = [
   'owner_empty_state', 'owner_upgrade_page', 'owner_post_activation',
   'owner_explore_tab', 'market_stats', 'upgrade_page',
   'share_subject', 'share_message', 'share_templates_active',
+  'alert_email', 'alert_cron_failure', 'alert_webhook_failure',
+  'alert_delivery_backup', 'alert_sync_failure',
+  'twilio_phone', 'twilio_caller_id', 'twilio_console_url', 'twilio_a2p_status',
 ];
 
 // GET /api/admin/config?keys=bridge_portal_url,bridge_notes

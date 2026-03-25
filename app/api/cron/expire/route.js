@@ -29,9 +29,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const supabase = createServiceClient();
+  const startTime = Date.now();
+  const supabase = createServiceClient();
 
+  try {
     // Expire owner listings that have passed their expires_at
     // MLS listings are controlled by Bridge sync only — never touch them here
     const { data: expired, error } = await supabase
@@ -43,11 +44,15 @@ export async function GET(request) {
       .select('id');
 
     if (error) {
+      await supabase.from('cron_logs').insert({ job_name: 'expire_listings', status: 'failed', duration_ms: Date.now() - startTime, error_message: error.message });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ expired: expired?.length || 0 });
+    const count = expired?.length || 0;
+    await supabase.from('cron_logs').insert({ job_name: 'expire_listings', status: 'success', duration_ms: Date.now() - startTime, result: { expired: count } });
+    return NextResponse.json({ expired: count });
   } catch (err) {
+    await supabase.from('cron_logs').insert({ job_name: 'expire_listings', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message }).catch(() => {});
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

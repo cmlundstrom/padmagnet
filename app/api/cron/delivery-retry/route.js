@@ -43,6 +43,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const startTime = Date.now();
   const supabase = createServiceClient();
   let processed = 0;
   let succeeded = 0;
@@ -121,9 +122,12 @@ export async function GET(request) {
       }
     }
 
+    const status = failed > 0 && succeeded === 0 ? 'failed' : failed > 0 ? 'partial' : 'success';
+    await supabase.from('cron_logs').insert({ job_name: 'delivery_retry', status, duration_ms: Date.now() - startTime, result: { processed, succeeded, failed } });
     return NextResponse.json({ processed, succeeded, failed });
   } catch (err) {
     console.error('Delivery retry cron error:', err);
+    await supabase.from('cron_logs').insert({ job_name: 'delivery_retry', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message }).catch(() => {});
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

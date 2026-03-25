@@ -140,6 +140,45 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
         ) : null}
       </div>
 
+      {/* Revenue */}
+      {!metricsLoading && !metricsError && metrics && (
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Revenue</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <StatCard label="Today" value={`$${((metrics.revenue.today || 0) / 100).toFixed(2)}`} accent={COLORS.green} />
+            <StatCard label="This Week" value={`$${((metrics.revenue.week || 0) / 100).toFixed(2)}`} accent={COLORS.green} />
+            <StatCard label="This Month" value={`$${((metrics.revenue.month || 0) / 100).toFixed(2)}`} accent={COLORS.brand} />
+            <StatCard label="All Time" value={`$${((metrics.revenue.total || 0) / 100).toFixed(2)}`} accent={COLORS.purple} />
+          </div>
+        </div>
+      )}
+
+      {/* Tenant Funnel */}
+      {!metricsLoading && !metricsError && metrics?.tenantFunnel && (
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Tenant Funnel</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <StatCard label="Registered" value={metrics.tenantFunnel.registered} accent={COLORS.brand} />
+            <StatCard label="Preferences Set" value={metrics.tenantFunnel.preferencesSet} accent={COLORS.purple} />
+            <StatCard label="First Swipe" value={metrics.tenantFunnel.swiped} accent={COLORS.amber} />
+            <StatCard label="First Conversation" value={metrics.tenantFunnel.conversationStarted} accent={COLORS.green} />
+            <StatCard label="First Message" value={metrics.tenantFunnel.messageSent} accent={COLORS.green} />
+          </div>
+        </div>
+      )}
+
+      {/* Expiring Soon */}
+      {!metricsLoading && !metricsError && metrics?.expiryForecast && (
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Expiring Soon</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <StatCard label="Next 7 Days" value={metrics.expiryForecast.next7d} accent={metrics.expiryForecast.next7d > 0 ? COLORS.amber : COLORS.green} />
+            <StatCard label="Next 3 Days" value={metrics.expiryForecast.next3d} accent={metrics.expiryForecast.next3d > 0 ? COLORS.amber : COLORS.green} />
+            <StatCard label="Tomorrow" value={metrics.expiryForecast.next1d} accent={metrics.expiryForecast.next1d > 0 ? COLORS.red : COLORS.green} />
+          </div>
+        </div>
+      )}
+
       {/* Last Owner Listing Signup */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Last Owner Listing Signup</h3>

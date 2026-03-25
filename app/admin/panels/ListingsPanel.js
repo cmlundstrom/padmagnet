@@ -13,6 +13,9 @@ export default function ListingsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [reviewAction, setReviewAction] = useState(null); // { id, action: 'approve'|'reject' }
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -32,7 +35,8 @@ export default function ListingsPanel() {
 
   const TYPE_ABBREV = { "Single Family Residence": "SFR", "Condominium": "Condo", "Townhouse": "TH", "Duplex": "Duplex", "Apartment": "Apt", "Mobile Home": "MH" };
 
-  const STATUS_FILTERS = ["all", "active", "draft", "expired", "leased", "archived", "suppressed"];
+  const STATUS_FILTERS = ["all", "pending_review", "active", "draft", "expired", "leased", "archived", "suppressed"];
+  const pendingReviewCount = listings.filter(l => l.status === "pending_review").length;
 
   const enriched = useMemo(() => {
     return listings.map(l => {
@@ -52,6 +56,8 @@ export default function ListingsPanel() {
     return enriched.filter(l => {
       if (statusFilter === "suppressed") {
         if (l.is_active) return false;
+      } else if (statusFilter === "pending_review") {
+        if (l.status !== "pending_review") return false;
       } else if (statusFilter !== "all") {
         if (l.status !== statusFilter) return false;
         if (!l.is_active) return false;
@@ -111,6 +117,21 @@ export default function ListingsPanel() {
   const handleBulkUnsuppress = useCallback((ids) => {
     handleSave(ids, { is_active: true, status: "active" });
   }, [handleSave]);
+
+  const handleReviewAction = useCallback(async (id, action, reason) => {
+    setReviewLoading(true);
+    try {
+      await fetch("/api/admin/listings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action, rejection_reason: reason }),
+      });
+      setReviewAction(null);
+      setRejectionReason("");
+      fetchListings();
+    } catch { /* silent */ }
+    setReviewLoading(false);
+  }, [fetchListings]);
 
   const confirmExecute = useCallback(async () => {
     if (!confirmAction) return;
@@ -188,7 +209,7 @@ export default function ListingsPanel() {
       header: "Status",
       cell: ({ getValue }) => {
         const v = getValue();
-        const statusColors = { active: "green", draft: "amber", expired: "red", leased: "blue", archived: "gray" };
+        const statusColors = { active: "green", pending_review: "purple", draft: "amber", expired: "red", leased: "blue", archived: "gray", rejected: "red" };
         return <Badge color={statusColors[v] || "gray"}>{v}</Badge>;
       },
       size: 90,
@@ -227,9 +248,46 @@ export default function ListingsPanel() {
   const renderExpandedRow = useCallback((row) => {
     const handleSuppress = () => handleSave([row.id], { is_active: false });
     const handleUnsuppress = () => handleSave([row.id], { is_active: true, status: "active" });
-    const handleApprove = () => handleSave([row.id], { status: "active", is_active: true });
+    const photos = Array.isArray(row.photos) ? row.photos : [];
+    const isPending = row.status === "pending_review";
+
     return (
       <div>
+        {/* Photo gallery for review */}
+        {photos.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: "11px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>
+              Photos ({photos.length})
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {photos.map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Listing photo ${i + 1}`}
+                  style={{
+                    width: 120, height: 90, objectFit: "cover", borderRadius: 6,
+                    border: `1px solid ${COLORS.border}`, cursor: "pointer",
+                  }}
+                  onClick={() => window.open(url, '_blank')}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Public remarks */}
+        {row.public_remarks && (
+          <div style={{
+            marginBottom: 16, padding: "10px 12px", background: COLORS.bg, borderRadius: 6,
+            border: `1px solid ${COLORS.border}`,
+          }}>
+            <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Description</div>
+            <div style={{ fontSize: "13px", color: COLORS.text, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{row.public_remarks}</div>
+          </div>
+        )}
+
+        {/* Detail grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
           {[
             ["Rent", row.list_price ? `$${Number(row.list_price).toLocaleString()}/mo` : "\u2014"],
@@ -242,7 +300,7 @@ export default function ListingsPanel() {
             ["DOM", `${row.days_on_market} days`],
             ["Views", row.view_count ?? 0],
             ["Inquiries", row.inquiry_count ?? 0],
-            ["Photos", Array.isArray(row.photos) ? row.photos.length : 0],
+            ["Photos", photos.length],
             ["Boosted", row.is_boosted ? "Yes" : "No"],
           ].map(([label, val]) => (
             <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px" }}>
@@ -251,21 +309,37 @@ export default function ListingsPanel() {
             </div>
           ))}
         </div>
+
+        {/* Action buttons */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {row.is_active && (
+          {isPending && (
+            <>
+              <button
+                onClick={() => handleReviewAction(row.id, "approve")}
+                disabled={reviewLoading}
+                style={{ ...baseButton, background: COLORS.green, color: "#000", fontSize: "12px", fontWeight: 700 }}
+              >
+                ✓ Approve Listing
+              </button>
+              <button
+                onClick={() => setReviewAction({ id: row.id, action: "reject" })}
+                style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}
+              >
+                ✕ Reject
+              </button>
+            </>
+          )}
+          {!isPending && row.is_active && (
             <button onClick={handleSuppress} style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
           )}
-          {!row.is_active && (
+          {!isPending && !row.is_active && row.status !== "pending_review" && (
             <button onClick={handleUnsuppress} style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Unsuppress</button>
-          )}
-          {row.status === "draft" && (
-            <button onClick={handleApprove} style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Approve</button>
           )}
         </div>
         <AuditHistory tableName="listings" rowId={row.id} />
       </div>
     );
-  }, [handleSave]);
+  }, [handleSave, handleReviewAction, reviewLoading]);
 
   return (
     <div>
@@ -273,7 +347,8 @@ export default function ListingsPanel() {
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Listings" value={totalCount} sub={`${mlsCount} MLS / ${ownerCount} owner`} accent={COLORS.brand} />
         <StatCard label="Active" value={activeCount} sub={totalCount > 0 ? `${Math.round(activeCount / totalCount * 100)}% of total` : "\u2014"} accent={COLORS.green} />
-        <StatCard label="Drafts" value={draftCount} sub="Pending review" accent={COLORS.amber} />
+        <StatCard label="Pending Review" value={pendingReviewCount} accent={pendingReviewCount > 0 ? COLORS.purple : COLORS.green} />
+        <StatCard label="Drafts" value={draftCount} accent={COLORS.amber} />
         <StatCard label="Suppressed" value={suppressedCount} sub="Hidden from tenants" accent={COLORS.red} />
       </div>
 
@@ -292,7 +367,7 @@ export default function ListingsPanel() {
             color: statusFilter === s ? COLORS.brand : COLORS.textMuted,
             border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : COLORS.border}`,
           }}>
-            {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === "all" ? "All" : s === "pending_review" ? "Pending Review" : s.charAt(0).toUpperCase() + s.slice(1)}
             <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{statusCountFor(s)}</span>
           </button>
         ))}
@@ -319,6 +394,54 @@ export default function ListingsPanel() {
           onConfirm={confirmExecute}
           onCancel={() => setConfirmAction(null)}
         />
+      )}
+
+      {/* Rejection reason dialog */}
+      {reviewAction?.action === "reject" && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999,
+        }} onClick={() => { setReviewAction(null); setRejectionReason(""); }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: COLORS.surface, borderRadius: 12, padding: 24,
+              border: `1px solid ${COLORS.border}`, width: 440, maxWidth: "90vw",
+            }}
+          >
+            <h3 style={{ margin: "0 0 12px", color: COLORS.text, fontSize: 16, fontWeight: 700 }}>Reject Listing</h3>
+            <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "0 0 12px" }}>
+              The owner will receive an email with your reason. Be specific so they can fix and resubmit.
+            </p>
+            <textarea
+              value={rejectionReason}
+              onChange={e => setRejectionReason(e.target.value)}
+              placeholder="Reason for rejection..."
+              rows={4}
+              style={{
+                width: "100%", background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+                borderRadius: 6, padding: "8px 12px", color: COLORS.text, fontSize: 13,
+                fontFamily: "'DM Sans', sans-serif", outline: "none", resize: "vertical",
+                boxSizing: "border-box",
+              }}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setReviewAction(null); setRejectionReason(""); }}
+                style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReviewAction(reviewAction.id, "reject", rejectionReason)}
+                disabled={reviewLoading}
+                style={{ ...baseButton, background: COLORS.red, color: "#fff", fontWeight: 700, opacity: reviewLoading ? 0.6 : 1 }}
+              >
+                {reviewLoading ? "Rejecting..." : "Reject Listing"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

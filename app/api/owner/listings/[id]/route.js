@@ -123,14 +123,15 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Generate confirmation code + set 30-day expiry when status transitions to active
-    // First listing period is free; renewals will require payment (Stripe)
-    const activating = updates.status === 'active' && existing.status !== 'active';
-    if (activating) {
+    // When owner submits listing for activation, route to pending_review for admin approval
+    // Expiry + is_active set by admin on approval, not here
+    const submitting = updates.status === 'active' && existing.status !== 'active';
+    if (submitting) {
+      updates.status = 'pending_review';
+      updates.is_active = false;
       if (!existing.confirmation_code) {
         updates.confirmation_code = generateConfirmationCode(id);
       }
-      updates.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const { data, error } = await supabase
@@ -144,11 +145,11 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Send confirmation email on activation
-    if (activating) {
+    // Send submission email when listing enters review
+    if (submitting) {
       const address = [data.street_number, data.street_name].filter(Boolean).join(' ');
       const fullAddress = [address, data.city, data.state_or_province].filter(Boolean).join(', ');
-      sendTemplateEmail('listing_confirmed', user.email, {
+      sendTemplateEmail('listing_submitted', user.email, {
         owner_name: data.listing_agent_name || user.user_metadata?.display_name || 'Property Owner',
         confirmation_code: data.confirmation_code,
         listing_address: fullAddress,

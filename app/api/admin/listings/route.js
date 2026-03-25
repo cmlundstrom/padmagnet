@@ -1,11 +1,12 @@
 import { createServiceClient } from '../../../../lib/supabase';
 import { writeAuditLog, writeAuditLogBatch } from '../../../../lib/api-helpers';
+import { sendTemplateEmail } from '../../../../lib/email';
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-const LISTING_COLUMNS = 'id, listing_key, listing_id, street_number, street_name, city, state_or_province, postal_code, property_type, property_sub_type, list_price, bedrooms_total, bathrooms_total, living_area, pets_allowed, fenced_yard, source, owner_user_id, status, is_active, is_boosted, view_count, inquiry_count, photos, created_at, updated_at';
+const LISTING_COLUMNS = 'id, listing_key, listing_id, street_number, street_name, city, state_or_province, postal_code, property_type, property_sub_type, list_price, bedrooms_total, bathrooms_total, living_area, pets_allowed, fenced_yard, source, owner_user_id, status, is_active, is_boosted, view_count, inquiry_count, photos, public_remarks, confirmation_code, expires_at, created_at, updated_at';
 
 export async function GET(request) {
   const auth = await requireAdmin(request);
@@ -87,6 +88,103 @@ export async function PATCH(request) {
     await writeAuditLogBatch(auditEntries);
 
     return NextResponse.json(updatedRows);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// PUT /api/admin/listings — approve or reject a pending_review listing
+export async function PUT(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
+  try {
+    const { id, action, rejection_reason } = await request.json();
+
+    if (!id || !['approve', 'reject'].includes(action)) {
+      return NextResponse.json({ error: 'id and action (approve|reject) required' }, { status: 400 });
+    }
+
+    const supabase = createServiceClient();
+
+    // Fetch listing + owner profile
+    const { data: listing, error: fetchErr } = await supabase
+      .from('listings')
+      .select('*, profiles!listings_owner_user_id_fkey(email, display_name)')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !listing) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+    }
+
+    if (listing.status !== 'pending_review') {
+      return NextResponse.json({ error: 'Listing is not pending review' }, { status: 400 });
+    }
+
+    const ownerEmail = listing.profiles?.email;
+    const ownerName = listing.profiles?.display_name || 'Property Owner';
+    const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+    const fullAddress = [address, listing.city, listing.state_or_province].filter(Boolean).join(', ');
+
+    if (action === 'approve') {
+      // Approve: set active + 30-day expiry
+      const { data: updated, error: updateErr } = await supabase
+        .from('listings')
+        .update({
+          status: 'active',
+          is_active: true,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq('id', id)
+        .select(LISTING_COLUMNS)
+        .single();
+
+      if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+
+      await writeAuditLogBatch([{
+        tableName: 'listings', rowId: id, action: 'approve',
+        fieldChanged: 'status', oldValue: 'pending_review', newValue: 'active',
+      }]);
+
+      // Send approval email
+      if (ownerEmail) {
+        sendTemplateEmail('listing_approved', ownerEmail, {
+          owner_name: ownerName,
+          confirmation_code: listing.confirmation_code || '',
+          listing_address: fullAddress,
+        }).catch(() => {});
+      }
+
+      return NextResponse.json(updated);
+    } else {
+      // Reject: set status to rejected
+      const { data: updated, error: updateErr } = await supabase
+        .from('listings')
+        .update({ status: 'rejected', is_active: false })
+        .eq('id', id)
+        .select(LISTING_COLUMNS)
+        .single();
+
+      if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+
+      await writeAuditLogBatch([{
+        tableName: 'listings', rowId: id, action: 'reject',
+        fieldChanged: 'status', oldValue: 'pending_review', newValue: 'rejected',
+        metadata: { rejection_reason },
+      }]);
+
+      // Send rejection email
+      if (ownerEmail) {
+        sendTemplateEmail('listing_rejected', ownerEmail, {
+          owner_name: ownerName,
+          listing_address: fullAddress,
+          rejection_reason: rejection_reason || 'Your listing did not meet our content guidelines. Please review and resubmit.',
+        }).catch(() => {});
+      }
+
+      return NextResponse.json(updated);
+    }
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

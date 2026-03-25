@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { COLORS, Badge, StatCard, timeAgo, formatDate } from '../shared';
+import { COLORS, Badge, StatCard, baseButton, timeAgo, formatDate } from '../shared';
 import AdminTable from '../components/AdminTable';
+import AuditHistory from '../components/AuditHistory';
 
 export default function OwnersPanel() {
   const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [refundModal, setRefundModal] = useState(null); // { owner_user_id, payment }
+  const [refundReason, setRefundReason] = useState("");
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [payments, setPayments] = useState({}); // owner_id -> payments[]
 
   const fetchOwners = useCallback(async () => {
     setLoading(true);
@@ -113,6 +118,49 @@ export default function OwnersPanel() {
       size: 90,
     },
     {
+      accessorKey: "tier",
+      header: "Tier",
+      cell: ({ getValue, row }) => {
+        const tier = getValue() || "free";
+        const colors = { free: "gray", pro: "blue", premium: "purple" };
+        const expires = row.original.tier_expires_at;
+        const isExpired = expires && new Date(expires) < new Date();
+        return (
+          <div>
+            <Badge color={isExpired ? "red" : colors[tier] || "gray"}>{tier.toUpperCase()}</Badge>
+            {expires && !isExpired && (
+              <div style={{ fontSize: "10px", color: COLORS.textDim, marginTop: 2 }}>
+                exp {new Date(expires).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+        );
+      },
+      size: 90,
+    },
+    {
+      id: "stripe",
+      header: "Stripe",
+      accessorFn: (row) => row.stripe_customer_id,
+      cell: ({ row }) => {
+        const cid = row.original.stripe_customer_id;
+        if (!cid) return <span style={{ fontSize: "12px", color: COLORS.textDim }}>—</span>;
+        return (
+          <a
+            href={`https://dashboard.stripe.com/customers/${cid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: "12px", color: COLORS.brand, textDecoration: "none" }}
+            onClick={e => e.stopPropagation()}
+          >
+            View →
+          </a>
+        );
+      },
+      size: 70,
+      enableSorting: false,
+    },
+    {
       id: "auth_status",
       header: "Status",
       accessorFn: (row) => row.auth_status,
@@ -151,6 +199,88 @@ export default function OwnersPanel() {
 
   const activeListingOwners = owners.filter(o => o.listing_counts?.active > 0).length;
 
+  // Fetch payments for an owner (on expand)
+  const fetchPayments = useCallback(async (ownerId) => {
+    if (payments[ownerId]) return;
+    try {
+      const supabase = (await import('../../../lib/supabase-browser')).createSupabaseBrowser();
+      // We'll use admin API — but payments table may not have an admin route yet
+      // For now, show stripe link as primary action
+    } catch { /* silent */ }
+  }, [payments]);
+
+  const handleRefund = useCallback(async () => {
+    if (!refundModal) return;
+    setRefundLoading(true);
+    try {
+      const res = await fetch("/api/admin/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner_user_id: refundModal.owner_user_id,
+          payment_id: refundModal.payment.id,
+          reason: refundReason,
+        }),
+      });
+      if (res.ok) {
+        setRefundModal(null);
+        setRefundReason("");
+        alert("Refund processed successfully. Owner will receive a confirmation email.");
+      } else {
+        const data = await res.json();
+        alert(`Refund failed: ${data.error}`);
+      }
+    } catch (err) {
+      alert(`Refund failed: ${err.message}`);
+    }
+    setRefundLoading(false);
+  }, [refundModal, refundReason]);
+
+  const renderExpandedRow = useCallback((row) => {
+    const stripeUrl = row.stripe_customer_id
+      ? `https://dashboard.stripe.com/customers/${row.stripe_customer_id}`
+      : null;
+
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 16 }}>
+          {[
+            ["Tier", (row.tier || "free").toUpperCase()],
+            ["Tier Started", row.tier_started_at ? formatDate(row.tier_started_at) : "—"],
+            ["Tier Expires", row.tier_expires_at ? formatDate(row.tier_expires_at) : "—"],
+            ["Stripe Customer", row.stripe_customer_id || "None"],
+            ["Active Listings", row.listing_counts?.active || 0],
+            ["Total Listings", row.listing_counts?.total || 0],
+          ].map(([label, val]) => (
+            <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "8px 12px" }}>
+              <div style={{ fontSize: "10px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase" }}>{label}</div>
+              <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600, marginTop: 2 }}>{val}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {stripeUrl && (
+            <a href={stripeUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              <button style={{ ...baseButton, background: "#635bff", color: "#fff", fontSize: "12px" }}>
+                Open in Stripe →
+              </button>
+            </a>
+          )}
+          {stripeUrl && (
+            <a href={`${stripeUrl}#payments`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              <button style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, fontSize: "12px" }}>
+                View Payments
+              </button>
+            </a>
+          )}
+        </div>
+
+        <AuditHistory tableName="profiles" rowId={row.id} />
+      </div>
+    );
+  }, []);
+
   return (
     <div>
       {/* Stat Cards */}
@@ -180,6 +310,7 @@ export default function OwnersPanel() {
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
         emptyMessage="No owner accounts yet"
+        renderExpandedRow={renderExpandedRow}
       />
 
       {/* Delete Confirmation Dialog */}
