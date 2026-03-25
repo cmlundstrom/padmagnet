@@ -26,7 +26,7 @@ import SalesPagesPanel from "./panels/SalesPagesPanel";
 // MAIN DASHBOARD
 // ============================================================
 const NAV_ITEMS = [
-  { id: "overview", label: "Metrics & Overview", icon: "📊" },
+  { id: "overview", label: "Metrics & KPIs", icon: "📊" },
   { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
