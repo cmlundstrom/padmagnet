@@ -60,11 +60,7 @@ export default function RentRangePanel() {
     setForm(f => ({ ...f, address: value }));
     if (value.length < 4) { setShowAutocomplete(false); return; }
     try {
-      const res = await fetch('/api/places/autocomplete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: value, types: 'address', components: 'country:us' }),
-      });
+      const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(value)}`);
       if (res.ok) {
         const data = await res.json();
         setAutocompleteResults(data.predictions || []);
@@ -77,22 +73,19 @@ export default function RentRangePanel() {
     setShowAutocomplete(false);
     setForm(f => ({ ...f, address: description }));
     try {
-      const res = await fetch('/api/places/details', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ place_id: placeId }),
-      });
+      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(placeId)}`);
       if (res.ok) {
         const data = await res.json();
-        const addr = data.address || {};
+        // Places details returns flat: street_number, street_name, city, state_or_province, postal_code, county, latitude, longitude
         setForm(f => ({
           ...f,
-          address: [addr.street_number, addr.street_name].filter(Boolean).join(' ') || f.address,
-          city: addr.city || f.city,
-          state: addr.state || 'FL',
-          zip: addr.zip || f.zip,
-          lat: data.lat || null,
-          lng: data.lng || null,
+          address: [data.street_number, data.street_name].filter(Boolean).join(' ') || f.address,
+          city: data.city || f.city,
+          state: data.state_or_province || 'FL',
+          zip: data.postal_code || f.zip,
+          county: data.county || f.county,
+          lat: data.latitude || null,
+          lng: data.longitude || null,
         }));
       }
     } catch { /* silent */ }
