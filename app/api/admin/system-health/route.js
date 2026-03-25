@@ -19,6 +19,13 @@ export async function GET(request) {
       .order('created_at', { ascending: false })
       .limit(50);
 
+    // Fallback: pull latest sync_logs for Bridge Sync (historical data before cron_logs existed)
+    const { data: syncLogs } = await supabase
+      .from('sync_logs')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(5);
+
     // Group by job_name, get latest per job
     const jobNames = ['bridge_sync', 'expire_listings', 'expiry_emails', 'delivery_retry'];
     const cronHealth = {};
@@ -29,6 +36,32 @@ export async function GET(request) {
         recentLogs: logs.slice(0, 5),
         failCount24h: logs.filter(l => l.status === 'failed' && new Date(l.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)).length,
       };
+    }
+
+    // If bridge_sync has no cron_logs yet, synthesize from sync_logs
+    if (!cronHealth.bridge_sync.lastRun && syncLogs && syncLogs.length > 0) {
+      const last = syncLogs[0];
+      cronHealth.bridge_sync.lastRun = {
+        job_name: 'bridge_sync',
+        status: last.status,
+        duration_ms: last.duration_ms,
+        result: {
+          added: last.listings_added,
+          updated: last.listings_updated,
+          deactivated: last.listings_deactivated,
+          skipped: last.listings_skipped,
+        },
+        error_message: last.error_message,
+        created_at: last.completed_at || last.started_at,
+      };
+      cronHealth.bridge_sync.recentLogs = syncLogs.map(s => ({
+        job_name: 'bridge_sync',
+        status: s.status,
+        duration_ms: s.duration_ms,
+        result: { added: s.listings_added, updated: s.listings_updated, deactivated: s.listings_deactivated },
+        error_message: s.error_message,
+        created_at: s.completed_at || s.started_at,
+      }));
     }
 
     // Delivery queue stats

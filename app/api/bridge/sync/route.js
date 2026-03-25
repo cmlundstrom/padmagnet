@@ -217,6 +217,14 @@ async function handleSync(request) {
         .eq('id', syncLogId);
     }
 
+    // Log to cron_logs for System Health dashboard
+    await supabase.from('cron_logs').insert({
+      job_name: 'bridge_sync',
+      status: 'success',
+      duration_ms: durationMs,
+      result: { fetched, added, updated, deactivated: deactivatedCount, skipped },
+    });
+
     await writeAuditLog({
       tableName: 'listings',
       rowId: 'bridge_sync',
@@ -235,6 +243,7 @@ async function handleSync(request) {
   } catch (err) {
     console.error('Bridge sync error:', err);
 
+    const failDuration = Date.now() - startTime;
     if (syncLogId) {
       const supabase = createServiceClient();
       await supabase
@@ -242,10 +251,18 @@ async function handleSync(request) {
         .update({
           status: 'failed',
           completed_at: new Date().toISOString(),
-          duration_ms: Date.now() - startTime,
+          duration_ms: failDuration,
           error_message: err.message,
         })
         .eq('id', syncLogId);
+
+      // Log to cron_logs for System Health dashboard
+      await supabase.from('cron_logs').insert({
+        job_name: 'bridge_sync',
+        status: 'failed',
+        duration_ms: failDuration,
+        error_message: err.message,
+      }).catch(() => {});
     }
 
     return NextResponse.json({ error: err.message }, { status: 500 });
