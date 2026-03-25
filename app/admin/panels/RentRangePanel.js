@@ -78,7 +78,6 @@ export default function RentRangePanel() {
       yearBuilt: data.yearBuilt != null ? String(data.yearBuilt) : f.yearBuilt,
       subdivision: data.subdivision || f.subdivision,
       appraiserUrl: data.appraiserUrl || f.appraiserUrl,
-      hoa: data.subdivision ? true : f.hoa,
     }));
   }
 
