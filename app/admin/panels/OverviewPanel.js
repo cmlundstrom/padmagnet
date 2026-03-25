@@ -98,7 +98,49 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
         />
       </div>
 
-      {/* Last Owner Listing Signup — top position */}
+      {/* Conversion Funnel */}
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Conversion Funnel</h3>
+        {metricsLoading ? (
+          <div style={{ color: COLORS.textDim, padding: 20, textAlign: 'center', fontSize: '13px' }}>Loading metrics...</div>
+        ) : metricsError ? (
+          <div style={{ color: COLORS.red, padding: 20, textAlign: 'center', fontSize: '13px' }}>{metricsError}</div>
+        ) : metrics ? (
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <StatCard label="Owners Registered" value={metrics.funnel.ownersRegistered} accent={COLORS.brand} />
+            <StatCard label="Listings Created" value={metrics.funnel.listingsCreated} accent={COLORS.purple} />
+            <StatCard
+              label="Listings Activated"
+              value={metrics.funnel.listingsActive}
+              sub={metrics.funnel.listingsCreated > 0
+                ? `${Math.round((metrics.funnel.listingsActive / metrics.funnel.listingsCreated) * 100)}% activation rate`
+                : 'No listings yet'}
+              accent={COLORS.green}
+            />
+            <StatCard label="Pro Upgrades" value={metrics.revenue.proSubscribers} accent={COLORS.amber} />
+            <StatCard label="Premium Upgrades" value={metrics.revenue.premiumSubscribers} accent={COLORS.amber} />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Engagement (7 days) */}
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Engagement (7 days)</h3>
+        {metricsLoading ? (
+          <div style={{ color: COLORS.textDim, padding: 20, textAlign: 'center', fontSize: '13px' }}>Loading metrics...</div>
+        ) : metricsError ? (
+          <div style={{ color: COLORS.red, padding: 20, textAlign: 'center', fontSize: '13px' }}>{metricsError}</div>
+        ) : metrics ? (
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <StatCard label="Total Swipes" value={metrics.engagement.swipes7d} accent={COLORS.brand} />
+            <StatCard label="Right Swipe Rate" value={`${metrics.engagement.rightSwipeRate}%`} sub={`${metrics.engagement.rightSwipes7d} right swipes`} accent={COLORS.green} />
+            <StatCard label="Conversations" value={metrics.engagement.totalConversations} accent={COLORS.purple} />
+            <StatCard label="Messages Sent" value={metrics.engagement.messages7d} accent={COLORS.brand} />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Last Owner Listing Signup */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Last Owner Listing Signup</h3>
         <div style={{
@@ -260,47 +302,6 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
         </div>
       </div>
 
-      {/* Conversion Funnel */}
-      <div style={{ marginTop: 28 }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Conversion Funnel</h3>
-        {metricsLoading ? (
-          <div style={{ color: COLORS.textDim, padding: 20, textAlign: 'center', fontSize: '13px' }}>Loading metrics...</div>
-        ) : metricsError ? (
-          <div style={{ color: COLORS.red, padding: 20, textAlign: 'center', fontSize: '13px' }}>{metricsError}</div>
-        ) : metrics ? (
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <StatCard label="Owners Registered" value={metrics.funnel.ownersRegistered} accent={COLORS.brand} />
-            <StatCard label="Listings Created" value={metrics.funnel.listingsCreated} accent={COLORS.purple} />
-            <StatCard
-              label="Listings Activated"
-              value={metrics.funnel.listingsActive}
-              sub={metrics.funnel.listingsCreated > 0
-                ? `${Math.round((metrics.funnel.listingsActive / metrics.funnel.listingsCreated) * 100)}% activation rate`
-                : 'No listings yet'}
-              accent={COLORS.green}
-            />
-            <StatCard label="Pro Upgrades" value={metrics.revenue.proSubscribers} accent={COLORS.amber} />
-            <StatCard label="Premium Upgrades" value={metrics.revenue.premiumSubscribers} accent={COLORS.amber} />
-          </div>
-        ) : null}
-      </div>
-
-      {/* Engagement (7 days) */}
-      <div style={{ marginTop: 28 }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Engagement (7 days)</h3>
-        {metricsLoading ? (
-          <div style={{ color: COLORS.textDim, padding: 20, textAlign: 'center', fontSize: '13px' }}>Loading metrics...</div>
-        ) : metricsError ? (
-          <div style={{ color: COLORS.red, padding: 20, textAlign: 'center', fontSize: '13px' }}>{metricsError}</div>
-        ) : metrics ? (
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <StatCard label="Total Swipes" value={metrics.engagement.swipes7d} accent={COLORS.brand} />
-            <StatCard label="Right Swipe Rate" value={`${metrics.engagement.rightSwipeRate}%`} sub={`${metrics.engagement.rightSwipes7d} right swipes`} accent={COLORS.green} />
-            <StatCard label="Conversations" value={metrics.engagement.totalConversations} accent={COLORS.purple} />
-            <StatCard label="Messages Sent" value={metrics.engagement.messages7d} accent={COLORS.brand} />
-          </div>
-        ) : null}
-      </div>
     </div>
   );
 }
