@@ -46,6 +46,14 @@ export default function SystemHealthPanel() {
     twilio_a2p_status: 'Pending Vetting',
   });
 
+  // Bridge IDX feed state
+  const [syncLogs, setSyncLogs] = useState([]);
+  const [lastSync, setLastSync] = useState(null);
+  const [bridgePortalUrl, setBridgePortalUrl] = useState('');
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [bridgeNote, setBridgeNote] = useState('');
+  const [editingNote, setEditingNote] = useState(false);
+
   // Webhook log state
   const [webhookLogs, setWebhookLogs] = useState([]);
   const [webhookLoading, setWebhookLoading] = useState(true);
@@ -57,6 +65,7 @@ export default function SystemHealthPanel() {
   // Section collapse state
   const [sections, setSections] = useState({
     cron: true,
+    bridge: true,
     queue: true,
     twilio: true,
     alerts: true,
@@ -103,7 +112,36 @@ export default function SystemHealthPanel() {
     setWebhookLoading(false);
   }, [webhookSource, webhookStatus, webhookLimit]);
 
-  useEffect(() => { fetchHealth(); }, [fetchHealth]);
+  const fetchBridgeData = useCallback(async () => {
+    try {
+      const [overviewRes, configRes] = await Promise.all([
+        fetch('/api/admin/overview'),
+        fetch('/api/admin/config?keys=bridge_portal_url,bridge_notes'),
+      ]);
+      if (overviewRes.ok) {
+        const data = await overviewRes.json();
+        setLastSync(data.lastSync);
+        setSyncLogs(data.syncLogs || []);
+      }
+      if (configRes.ok) {
+        const data = await configRes.json();
+        if (data.bridge_portal_url) setBridgePortalUrl(data.bridge_portal_url);
+        if (data.bridge_notes) setBridgeNote(data.bridge_notes);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  async function saveConfig(key, value) {
+    try {
+      await fetch('/api/admin/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value }),
+      });
+    } catch { /* silent */ }
+  }
+
+  useEffect(() => { fetchHealth(); fetchBridgeData(); }, [fetchHealth, fetchBridgeData]);
   useEffect(() => { fetchWebhookLogs(); }, [fetchWebhookLogs]);
 
   async function saveAlertConfig() {
@@ -187,6 +225,124 @@ export default function SystemHealthPanel() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ======== BRIDGE IDX FEED ======== */}
+      <SectionHeader title="Bridge IDX Feed" open={sections.bridge} onToggle={() => toggleSection('bridge')} />
+      {sections.bridge && (
+        <div style={{ marginBottom: 28 }}>
+          {/* Feed status row */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+            background: COLORS.surface, borderRadius: '8px', border: `1px solid ${COLORS.border}`,
+            marginBottom: 8,
+          }}>
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: lastSync?.status === 'success' ? COLORS.green : lastSync?.status === 'failed' ? COLORS.red : COLORS.amber,
+              boxShadow: `0 0 8px ${lastSync?.status === 'success' ? COLORS.green : COLORS.amber}44`,
+            }} />
+            <div style={{ flex: 1 }}>
+              <span style={{ fontWeight: 700, color: COLORS.text }}>Bridge IDX</span>
+              <span style={{ color: COLORS.textDim, fontSize: '12px', marginLeft: 8 }}>MIAMIRE</span>
+            </div>
+            <span style={{ fontSize: '12px', color: COLORS.textMuted }}>
+              Last sync: {lastSync ? timeAgo(lastSync.completed_at) : 'never'}
+            </span>
+            <Badge color={lastSync ? 'green' : 'gray'}>{lastSync ? 'Active' : 'No Data'}</Badge>
+          </div>
+
+          {/* Notes */}
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8,
+            padding: '8px 16px', background: COLORS.bg, borderRadius: '6px',
+            border: `1px solid ${COLORS.border}`,
+          }}>
+            <span style={{ fontSize: '11px', color: COLORS.textDim, fontWeight: 600, whiteSpace: 'nowrap', marginTop: 2 }}>Notes:</span>
+            {editingNote ? (
+              <textarea
+                value={bridgeNote}
+                onChange={e => setBridgeNote(e.target.value)}
+                onBlur={() => { setEditingNote(false); saveConfig('bridge_notes', bridgeNote); }}
+                autoFocus
+                rows={3}
+                style={{
+                  flex: 1, background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                  borderRadius: '4px', padding: '4px 8px', color: COLORS.text,
+                  fontSize: '11px', fontFamily: "'DM Sans', sans-serif", outline: 'none',
+                  resize: 'vertical', lineHeight: 1.5,
+                }}
+              />
+            ) : (
+              <span style={{ flex: 1, fontSize: '11px', color: COLORS.textDim, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                {bridgeNote}
+              </span>
+            )}
+            <button
+              onClick={() => { if (editingNote) saveConfig('bridge_notes', bridgeNote); setEditingNote(!editingNote); }}
+              style={{ background: 'none', border: 'none', color: COLORS.textDim, cursor: 'pointer', fontSize: '11px', padding: '2px 6px', whiteSpace: 'nowrap' }}
+            >
+              {editingNote ? 'done' : 'edit'}
+            </button>
+          </div>
+
+          {/* Feed Portal URL */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
+            padding: '8px 16px', background: COLORS.bg, borderRadius: '6px',
+            border: `1px solid ${COLORS.border}`,
+          }}>
+            <span style={{ fontSize: '11px', color: COLORS.textDim, fontWeight: 600, whiteSpace: 'nowrap' }}>Feed Portal:</span>
+            {editingUrl ? (
+              <input
+                value={bridgePortalUrl}
+                onChange={e => setBridgePortalUrl(e.target.value)}
+                onBlur={() => { setEditingUrl(false); saveConfig('bridge_portal_url', bridgePortalUrl); }}
+                onKeyDown={e => { if (e.key === 'Enter') { setEditingUrl(false); saveConfig('bridge_portal_url', bridgePortalUrl); } }}
+                autoFocus
+                style={{
+                  flex: 1, background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                  borderRadius: '4px', padding: '3px 8px', color: COLORS.text,
+                  fontSize: '12px', fontFamily: 'monospace', outline: 'none',
+                }}
+              />
+            ) : (
+              <a href={bridgePortalUrl} target="_blank" rel="noopener noreferrer"
+                style={{ flex: 1, fontSize: '12px', color: COLORS.brand, textDecoration: 'none', fontFamily: 'monospace' }}>
+                {bridgePortalUrl}
+              </a>
+            )}
+            <button
+              onClick={() => { if (editingUrl) saveConfig('bridge_portal_url', bridgePortalUrl); setEditingUrl(!editingUrl); }}
+              style={{ background: 'none', border: 'none', color: COLORS.textDim, cursor: 'pointer', fontSize: '11px', padding: '2px 6px' }}
+            >
+              {editingUrl ? 'done' : 'edit'}
+            </button>
+          </div>
+
+          {/* Recent Sync Activity */}
+          <div style={{ fontSize: '11px', color: COLORS.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Recent Sync Activity</div>
+          <div style={{ background: COLORS.surface, borderRadius: '8px', border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+            {syncLogs.length === 0 ? (
+              <div style={{ padding: '20px 16px', color: COLORS.textDim, textAlign: 'center', fontSize: '13px' }}>No sync records yet</div>
+            ) : (
+              syncLogs.map((log, i) => (
+                <div key={log.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+                  borderBottom: i < syncLogs.length - 1 ? `1px solid ${COLORS.border}` : 'none',
+                }}>
+                  <Badge color={log.status === 'success' ? 'green' : log.status === 'partial' ? 'amber' : 'red'}>{log.status}</Badge>
+                  <span style={{ fontSize: '13px', color: COLORS.text, flex: 1 }}>
+                    +{log.listings_added} added · {log.listings_updated} updated · -{log.listings_deactivated} removed
+                    {log.listings_skipped > 0 && <span style={{ color: COLORS.amber }}> · {log.listings_skipped} skipped</span>}
+                  </span>
+                  <span style={{ fontSize: '12px', color: COLORS.textDim }}>{(log.duration_ms / 1000).toFixed(1)}s</span>
+                  <span style={{ fontSize: '12px', color: COLORS.textDim }}>{formatDate(log.started_at)}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
