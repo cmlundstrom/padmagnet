@@ -59,12 +59,12 @@ export function Badge({ color = "blue", children, style }) {
 export function StatCard({ label, value, sub, accent = COLORS.brand }) {
   return (
     <div style={{
-      background: COLORS.surface, borderRadius: "10px", padding: "18px 20px",
-      border: `1px solid ${COLORS.border}`, flex: "1 1 180px", minWidth: 160,
+      background: COLORS.surface, borderRadius: "8px", padding: "12px 14px",
+      border: `1px solid ${COLORS.border}`, flex: "1 1 140px", minWidth: 120,
     }}>
-      <div style={{ fontSize: "12px", color: COLORS.textDim, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: "28px", fontWeight: 800, color: accent, lineHeight: 1.1, fontFamily: "'DM Sans', sans-serif" }}>{value}</div>
-      {sub && <div style={{ fontSize: "12px", color: COLORS.textMuted, marginTop: 4 }}>{sub}</div>}
+      <div style={{ fontSize: "11px", color: COLORS.textDim, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: "22px", fontWeight: 800, color: accent, lineHeight: 1.1, fontFamily: "'DM Sans', sans-serif" }}>{value}</div>
+      {sub && <div style={{ fontSize: "11px", color: COLORS.textMuted, marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }

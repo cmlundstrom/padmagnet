@@ -81,7 +81,7 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
   return (
     <div>
       {/* Stat Cards */}
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 28 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
         <StatCard
           label="Total Owner Active Listings"
           value={stats.ownerListings}
@@ -106,7 +106,7 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
         ) : metricsError ? (
           <div style={{ color: COLORS.red, padding: 20, textAlign: 'center', fontSize: '13px' }}>{metricsError}</div>
         ) : metrics ? (
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <StatCard label="Owners Registered" value={metrics.funnel.ownersRegistered} accent={COLORS.brand} />
             <StatCard label="Listings Created" value={metrics.funnel.listingsCreated} accent={COLORS.purple} />
             <StatCard
@@ -131,7 +131,7 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
         ) : metricsError ? (
           <div style={{ color: COLORS.red, padding: 20, textAlign: 'center', fontSize: '13px' }}>{metricsError}</div>
         ) : metrics ? (
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <StatCard label="Total Swipes" value={metrics.engagement.swipes7d} accent={COLORS.brand} />
             <StatCard label="Right Swipe Rate" value={`${metrics.engagement.rightSwipeRate}%`} sub={`${metrics.engagement.rightSwipes7d} right swipes`} accent={COLORS.green} />
             <StatCard label="Conversations" value={metrics.engagement.totalConversations} accent={COLORS.purple} />
