@@ -13,7 +13,7 @@ import { requireAdmin } from '../../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-const GOOGLE_KEY = process.env.GOOGLE_SERVER_GEOCODING_KEY || process.env.GOOGLE_GEOCODING_KEY;
+const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY || process.env.GOOGLE_SERVER_GEOCODING_KEY;
 
 const BRANDS = {
   sfrm: {
