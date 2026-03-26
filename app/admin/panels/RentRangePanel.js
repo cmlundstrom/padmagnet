@@ -581,18 +581,19 @@ export default function RentRangePanel() {
           <button
             onClick={async () => {
               setGeneratingReport(true);
+              setError(null);
+              setBrandedHtml(null); // clear old preview while generating
               try {
                 const res = await fetch('/api/admin/rent-range/report', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ reportId: activeReport.id, brand: 'sfrm' }),
                 });
+                const data = await res.json();
                 if (res.ok) {
-                  const data = await res.json();
                   setBrandedHtml(data.html);
                 } else {
-                  const data = await res.json();
-                  setError(`Report generation failed: ${data.error}`);
+                  setError(`Report generation failed: ${data.error || 'Unknown error'}`);
                 }
               } catch (err) {
                 setError(`Report generation failed: ${err.message}`);
