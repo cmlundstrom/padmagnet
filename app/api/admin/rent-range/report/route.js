@@ -18,7 +18,7 @@ const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY || process.env.GOOGLE_SERVER
 const BRANDS = {
   sfrm: {
     name: 'South Florida Realty Management',
-    logo: '/logo/sfrm-logo.jpg',
+    logo: '/logo/sfrm-logo-tp.png',
     website: 'www.floridapm.net',
     phone: '(772) 220-0844',
     email: 'info@floridapm.net',

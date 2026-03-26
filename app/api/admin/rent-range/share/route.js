@@ -21,7 +21,7 @@ const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY || process.env.GOOGLE_SERVER
 const BRANDS = {
   sfrm: {
     name: 'South Florida Realty Management',
-    logo: 'https://padmagnet.com/logo/sfrm-logo.jpg',
+    logo: 'https://padmagnet.com/logo/sfrm-logo-tp.png',
     website: 'www.floridapm.net',
     phone: '(772) 220-0844',
     email: 'info@floridapm.net',
@@ -188,11 +188,11 @@ function buildGmailHtml(report, brand, firstName) {
     // Main container 600px
     + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #ddd;">'
 
-    // Header — split design: white logo area + blue title area
-    + '<tr><td style="padding:0;">'
+    // Header — full blue with transparent PNG logo
+    + '<tr><td style="background:' + c.primary + ';padding:18px 24px;">'
     + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
-    + '<td width="240" style="background:#ffffff;padding:14px 20px;vertical-align:middle;"><img src="' + brand.logo + '" alt="' + brand.name + '" height="48" style="display:block;" /></td>'
-    + '<td style="background:' + c.primary + ';padding:14px 24px;vertical-align:middle;text-align:right;">'
+    + '<td style="vertical-align:middle;"><img src="' + brand.logo + '" alt="' + brand.name + '" height="50" style="display:block;" /></td>'
+    + '<td style="text-align:right;vertical-align:middle;">'
     + '<div style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:-0.3px;">Rental Market</div>'
     + '<div style="font-size:20px;font-weight:bold;color:' + c.accent + ';letter-spacing:-0.3px;">Analysis Report</div>'
     + '<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;">' + reportDate + '</div>'
