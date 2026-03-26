@@ -628,7 +628,7 @@ export default function RentRangePanel() {
             }}>
               <iframe
                 srcDoc={brandedHtml}
-                style={{ width: '100%', height: 820, border: 'none' }}
+                style={{ width: '100%', height: 1640, border: 'none' }}
                 title="Branded Report Preview"
               />
             </div>
