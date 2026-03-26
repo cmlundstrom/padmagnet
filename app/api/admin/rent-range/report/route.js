@@ -164,6 +164,15 @@ function median(arr) {
   return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
+function buildWebSourcesHtml(sources, c) {
+  if (sources.length === 0) return '';
+  const links = sources.map(function(s) {
+    var domain = s.url ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : s.title;
+    return s.url ? '<a href="' + s.url + '" style="color:' + c.primary + ';text-decoration:none;">' + domain + '</a>' : domain;
+  });
+  return '<div style="margin-top:4px;"><strong>Web Sources:</strong> ' + links.join(' &middot; ') + '</div>';
+}
+
 function generateReportHtml(report, pd, rr, mkt, trend, page1Comps, allComps, totalCompsUsed, brand, streetViewUrl, typeStats) {
   const c = brand.colors;
   const reportDate = new Date(report.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -453,10 +462,7 @@ ${addressBlockHtml}
   <div style="background:${c.light};border:1px solid ${c.border};border-radius:4px;padding:8px 10px;font-size:9px;color:${c.brown};line-height:1.6;">
     <div><strong>MLS/IDX Data:</strong> Bridge Interactive (MIAMIRE dataset) — Active and Closed rental listings</div>
     <div><strong>County Records:</strong> ${report.county} Property Appraiser${appraiserUrl ? ` (<a href="${appraiserUrl}" style="color:${c.primary};">${appraiserUrl}</a>)` : ''}</div>
-    ${sources.length > 0 ? `<div style="margin-top:4px;"><strong>Web Sources:</strong> ${sources.map(s => {
-      const domain = s.url ? s.url.replace(/^https?:\\/\\/(www\\.)?/, '').split('/')[0] : s.title;
-      return s.url ? `<a href="${s.url}" style="color:${c.primary};text-decoration:none;">${domain}</a>` : domain;
-    }).join(' · ')}</div>` : ''}
+    ${buildWebSourcesHtml(sources, c)}
     <div style="margin-top:4px;font-size:8px;color:#999;">Rental comparables are collected from a national network of strategic resources including MLS/IDX feeds, property management databases, real estate technology providers, and public web data. Information is acquired in accordance with the resource terms of use and/or licensed data-usage agreements.</div>
   </div>
 </div>
