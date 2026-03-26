@@ -390,6 +390,35 @@ export default function RentRangePanel() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Feature Adjustments (Appraiser Grid) */}
+                      {Array.isArray(comp._adjustments) && comp._adjustments.length > 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 6 }}>Feature Adjustments</div>
+                          <div style={{ background: COLORS.surface, borderRadius: 4, overflow: 'hidden' }}>
+                            {comp._adjustments.map((adj, ai) => (
+                              <div key={ai} style={{
+                                display: 'flex', justifyContent: 'space-between', padding: '4px 8px',
+                                borderBottom: ai < comp._adjustments.length - 1 ? `1px solid ${COLORS.border}22` : 'none',
+                                fontSize: 11,
+                              }}>
+                                <span style={{ color: COLORS.textMuted }}>{adj.feature}: {adj.reason}</span>
+                                <span style={{ fontWeight: 700, color: adj.amount > 0 ? COLORS.green : adj.amount < 0 ? COLORS.red : COLORS.textDim, minWidth: 60, textAlign: 'right' }}>
+                                  {adj.amount > 0 ? '+' : ''}{adj.amount < 0 ? '' : ''}{`$${Math.abs(adj.amount).toLocaleString()}`}{adj.amount < 0 ? '' : ''}
+                                  {adj.amount < 0 && <span style={{ color: COLORS.red }}> ({'-'}${Math.abs(adj.amount).toLocaleString()})</span>}
+                                </span>
+                              </div>
+                            ))}
+                            <div style={{
+                              display: 'flex', justifyContent: 'space-between', padding: '6px 8px',
+                              borderTop: `1px solid ${COLORS.border}`, fontSize: 12, fontWeight: 700,
+                            }}>
+                              <span style={{ color: COLORS.text }}>Adjusted Rent</span>
+                              <span style={{ color: COLORS.green }}>${(comp._adjustedRent || 0).toLocaleString()}/mo</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -430,25 +459,51 @@ export default function RentRangePanel() {
           </div>
           {methodologyOpen && (
             <div style={{ background: COLORS.surface, borderRadius: 8, padding: 16, border: `1px solid ${COLORS.border}` }}>
-              {/* Comp Scoring Table */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Comp Scoring (per comparable)</div>
+              <div style={{ fontSize: 11, color: COLORS.amber, marginBottom: 16, padding: '8px 10px', background: COLORS.amber + '11', borderRadius: 4 }}>
+                Appraiser-grade Market Comparison Approach (MCA) — modeled after Fannie Mae 1007 / HUD 92273
+              </div>
+
+              {/* Similarity Scoring */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Similarity Scoring (0.0–1.0 per comp)</div>
               <table style={{ width: '100%', fontSize: 12, color: COLORS.text, marginBottom: 16, borderCollapse: 'collapse' }}>
                 <thead><tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
                   <th style={{ textAlign: 'left', padding: '4px 8px', color: COLORS.textDim }}>Factor</th>
                   <th style={{ textAlign: 'right', padding: '4px 8px', color: COLORS.textDim }}>Weight</th>
+                  <th style={{ textAlign: 'left', padding: '4px 8px', color: COLORS.textDim }}>Scoring</th>
                 </tr></thead>
                 <tbody>
-                  {Object.entries(meth.compWeights || defaults?.compWeights || {}).map(([k, v]) => (
+                  {Object.entries(meth.similarityWeights || defaults?.similarityWeights || {}).map(([k, v]) => (
                     <tr key={k} style={{ borderBottom: `1px solid ${COLORS.border}22` }}>
                       <td style={{ padding: '4px 8px' }}>{formatWeightName(k)}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{v} pts</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{(v * 100).toFixed(0)}%</td>
+                      <td style={{ padding: '4px 8px', fontSize: 10, color: COLORS.textDim }}>{getScoringDesc(k)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              {/* Data Type Multipliers */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Data Type Multipliers</div>
+              {/* Feature Adjustments */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Feature Adjustments (Appraiser Grid)</div>
+              <div style={{ fontSize: 11, color: COLORS.textDim, marginBottom: 8 }}>Dollar-for-dollar adjustments applied to each comp to normalize to subject features:</div>
+              <table style={{ width: '100%', fontSize: 12, color: COLORS.text, marginBottom: 16, borderCollapse: 'collapse' }}>
+                <thead><tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                  <th style={{ textAlign: 'left', padding: '4px 8px', color: COLORS.textDim }}>Feature</th>
+                  <th style={{ textAlign: 'right', padding: '4px 8px', color: COLORS.textDim }}>Adjustment</th>
+                </tr></thead>
+                <tbody>
+                  {Object.entries(meth.featureAdjustments || defaults?.featureAdjustments || {}).map(([k, v]) => (
+                    <tr key={k} style={{ borderBottom: `1px solid ${COLORS.border}22` }}>
+                      <td style={{ padding: '4px 8px' }}>{formatWeightName(k)}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>
+                        {k === 'yearBuiltPer10yr' ? `${(v * 100).toFixed(0)}% per decade` : `$${v}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Data Quality */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Data Quality Multipliers</div>
               <table style={{ width: '100%', fontSize: 12, color: COLORS.text, marginBottom: 16, borderCollapse: 'collapse' }}>
                 <thead><tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
                   <th style={{ textAlign: 'left', padding: '4px 8px', color: COLORS.textDim }}>Data Type</th>
@@ -464,31 +519,17 @@ export default function RentRangePanel() {
                 </tbody>
               </table>
 
-              {/* Source Weighting */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Source Weighting</div>
-              <div style={{ fontSize: 13, color: COLORS.text, marginBottom: 4 }}>
-                MLS Data: <strong>{meth.sourceWeights?.mlsWeight || 70}%</strong> · Web Data: <strong>{meth.sourceWeights?.webWeight || 30}%</strong>
+              {/* Source + Range */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Source Weighting & Range</div>
+              <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8, marginBottom: 8 }}>
+                <div>MLS: <strong>{meth.sourceWeights?.mlsWeight || 70}%</strong> · Web: <strong>{meth.sourceWeights?.webWeight || 30}%</strong></div>
+                <div>Comp Weight = similarity × data_multiplier × source_weight</div>
+                <div>Comps with weight {'<'} 0.15 are dropped as too dissimilar</div>
               </div>
-              <div style={{ fontSize: 11, color: COLORS.textDim, marginBottom: 16 }}>Default: 70% MLS / 30% Web. Auto-switches to 100% Web when no MLS comps available.</div>
-
-              {/* Sqft Adjustment */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Sqft-Adjusted Rent</div>
-              <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8, marginBottom: 16 }}>
-                <div>Each MLS comp's rent is normalized to the subject's sqft:</div>
-                <div style={{ fontFamily: 'monospace', fontSize: 11, color: COLORS.amber, marginTop: 4 }}>
-                  Adjusted Rent = (Comp Rent / Comp Sqft) × Subject Sqft
-                </div>
-                <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4 }}>
-                  This prevents larger comps from inflating the range. A 1,700sf comp renting at $2,500 has a $/sf of $1.47. Applied to an 1,100sf subject = $1,618 adjusted rent.
-                </div>
-              </div>
-
-              {/* Range Calculation */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Range Calculation</div>
               <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8 }}>
-                <div>LOW = Weighted 25th percentile (sqft-adjusted)</div>
-                <div>TARGET = Weighted median (sqft-adjusted)</div>
-                <div>HIGH = Weighted 75th percentile (sqft-adjusted)</div>
+                <div>LOW = Weighted 25th percentile of adjusted rents</div>
+                <div>TARGET = Weighted median (50th percentile)</div>
+                <div>HIGH = Weighted 75th percentile</div>
               </div>
               {rr.trendAdjustmentPct !== 0 && (
                 <div style={{ fontSize: 12, color: COLORS.amber, marginTop: 8 }}>
@@ -851,20 +892,42 @@ export default function RentRangePanel() {
 
 function formatWeightName(key) {
   const map = {
-    propertySubType: 'Same property sub-type',
-    bedBathMatch: 'Bed/bath exact match',
-    sqftSimilarity: 'Sqft within 10%',
-    distance: 'Distance (<1 mi)',
-    priceTier: 'Similar price tier',
-    communityMatch: 'Same community/HOA/gated',
-    freshness: 'Data freshness (<30 days)',
-    actualLeased: 'Actual leased price (MLS)',
+    propertySubType: 'Property sub-type',
+    bedBathMatch: 'Bed/bath match',
+    sqftSimilarity: 'Sqft similarity',
+    distance: 'Distance',
+    priceTier: 'Price tier ($/sqft)',
+    communityMatch: 'Community match',
+    freshness: 'Data freshness',
+    actualLeased: 'Verified closed lease (MLS)',
     activeAsking: 'Active asking rent (MLS)',
     expiredAsking: 'Expired asking rent (MLS)',
     webPortal: 'Web portal listing',
     marketReport: 'Market report median',
+    extraBedroom: 'Per extra bedroom',
+    extraBathroom: 'Per extra bathroom',
+    pool: 'Pool premium',
+    waterfront: 'Waterfront premium',
+    yearBuiltPer10yr: 'Age (per decade newer)',
+    furnished: 'Furnished premium',
+    petsAllowed: 'Pet-friendly premium',
+    parkingPerSpace: 'Per parking space',
+    gatedCommunity: 'Gated / HOA amenities',
   };
   return map[key] || key;
+}
+
+function getScoringDesc(key) {
+  const map = {
+    propertySubType: 'Exact=1.0, compatible=0.75, else=0.4',
+    sqftSimilarity: 'Linear decay: 0→1.0, 30% diff→0',
+    bedBathMatch: 'Exact=1.0, ±1 room=0.85, ±2=0.6',
+    distance: 'Linear decay to 0 at 2.0 miles',
+    priceTier: '$/sqft within 20% of market=1.0',
+    communityMatch: 'Same subdivision=1.0, zip=0.7, else=0.4',
+    freshness: '≤30d=1.0, ≤90d=0.85, ≤180d=0.6',
+  };
+  return map[key] || '';
 }
 
 function shortType(type) {

@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '../../../../lib/admin-auth';
 import {
   scoreComp, calculateRentRange, getCompRent, computeDistance, computeRentPerSqft,
-  DEFAULT_COMP_WEIGHTS, DEFAULT_DATA_MULTIPLIERS, DEFAULT_SOURCE_WEIGHTS,
+  applyFeatureAdjustments,
+  DEFAULT_SIMILARITY_WEIGHTS, DEFAULT_DATA_MULTIPLIERS, DEFAULT_SOURCE_WEIGHTS, DEFAULT_FEATURE_ADJUSTMENTS,
 } from '../../../../lib/rent-range-engine';
 import { runWebSearchPipeline } from '../../../../lib/rent-range-web-search';
 
@@ -58,7 +59,7 @@ export async function GET(request) {
       reports: reports || [],
       compStats: stats,
       countyAppraisers: COUNTY_APPRAISERS,
-      defaults: { compWeights: DEFAULT_COMP_WEIGHTS, dataMultipliers: DEFAULT_DATA_MULTIPLIERS, sourceWeights: DEFAULT_SOURCE_WEIGHTS },
+      defaults: { similarityWeights: DEFAULT_SIMILARITY_WEIGHTS, dataMultipliers: DEFAULT_DATA_MULTIPLIERS, sourceWeights: DEFAULT_SOURCE_WEIGHTS, featureAdjustments: DEFAULT_FEATURE_ADJUSTMENTS },
     });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -121,12 +122,20 @@ export async function POST(request) {
       beds: property.beds,
       baths: property.baths,
       sqft: property.sqft,
+      yearBuilt: property.yearBuilt,
       lat: property.lat,
       lng: property.lng,
+      zip: property.zip,
       estimatedValue: property.estimatedValue,
+      estimatedRentPerSqft: null, // computed below from comps
       subdivision: property.subdivision,
       gated: property.gated,
       hoa: property.hoa,
+      pool: property.pool || false,
+      waterfront: property.waterfront || false,
+      furnished: property.furnished || false,
+      petsAllowed: property.petsAllowed || false,
+      parkingSpaces: property.parkingSpaces || 0,
     };
 
     const mlsComps = await searchMlsComps(supabase, subject, property);
@@ -146,7 +155,7 @@ export async function POST(request) {
     });
 
     // =========================================================
-    // STEP 4: SYNTHESIS
+    // STEP 4: SYNTHESIS (Appraiser-Grade)
     // =========================================================
     const weights = sourceWeights || DEFAULT_SOURCE_WEIGHTS;
 
@@ -155,13 +164,31 @@ export async function POST(request) {
       ? { mlsWeight: 0, webWeight: 100 }
       : weights;
 
-    const subjectSqft = property.sqft ? parseInt(property.sqft) : null;
-    const rentRange = calculateRentRange(mlsComps, webComps, effectiveWeights, marketData.trend, subjectSqft);
+    // Compute estimated rent/sqft from comp pool (for price tier scoring)
+    const compRents = mlsComps.map(c => computeRentPerSqft(c)).filter(Boolean);
+    if (compRents.length > 0) {
+      subject.estimatedRentPerSqft = compRents.reduce((s, v) => s + v, 0) / compRents.length;
+    }
+
+    // Apply feature adjustments to each MLS comp and store on the comp object
+    for (const comp of mlsComps) {
+      const { adjustedRent, adjustments, totalAdjustment, rawRent } = applyFeatureAdjustments(subject, comp);
+      comp._adjustedRent = adjustedRent;
+      comp._adjustments = adjustments;
+      comp._totalAdjustment = totalAdjustment;
+      comp._rawRent = rawRent;
+    }
+
+    const rentRange = calculateRentRange(mlsComps, webComps, effectiveWeights, {
+      ...marketData.trend,
+      vacancy: marketData.vacancy,
+    }, subject);
 
     // Build methodology snapshot
     const methodology = {
-      compWeights: DEFAULT_COMP_WEIGHTS,
+      similarityWeights: DEFAULT_SIMILARITY_WEIGHTS,
       dataMultipliers: DEFAULT_DATA_MULTIPLIERS,
+      featureAdjustments: DEFAULT_FEATURE_ADJUSTMENTS,
       sourceWeights: effectiveWeights,
       trendData: marketData.trend,
       timestamp: new Date().toISOString(),
