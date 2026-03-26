@@ -278,7 +278,7 @@ function getTypeGroup(subType) {
   return null;
 }
 
-const MIN_COMP_SCORE = 20;
+const MIN_COMP_SCORE = 0.20; // 0-1.0 scale (v2 engine)
 
 async function searchMlsComps(supabase, subject, property) {
   const subType = property.propertySubType || '';
