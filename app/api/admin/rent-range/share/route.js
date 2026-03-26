@@ -191,7 +191,7 @@ function buildGmailHtml(report, brand, firstName) {
     // Header — full blue with transparent PNG logo
     + '<tr><td style="background:' + c.primary + ';padding:18px 24px;">'
     + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
-    + '<td style="vertical-align:middle;"><img src="' + brand.logo + '" alt="' + brand.name + '" height="50" style="display:block;" /></td>'
+    + '<td width="200" style="vertical-align:middle;"><img src="' + brand.logo + '" alt="' + brand.name + '" width="180" height="49" style="display:block;width:180px;height:49px;" /></td>'
     + '<td style="text-align:right;vertical-align:middle;">'
     + '<div style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:-0.3px;">Rental Market</div>'
     + '<div style="font-size:20px;font-weight:bold;color:' + c.accent + ';letter-spacing:-0.3px;">Analysis Report</div>'
