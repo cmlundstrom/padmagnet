@@ -442,12 +442,17 @@ export default function RentRangePanel() {
         <div style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Sources & Citations</h3>
           <div style={{ background: COLORS.surface, borderRadius: 8, padding: 12, border: `1px solid ${COLORS.border}` }}>
-            {sources.map((s, i) => (
-              <div key={i} style={{ fontSize: 12, color: COLORS.textMuted, padding: '4px 0' }}>
-                [{i + 1}] {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.brand, textDecoration: 'none' }}>{s.title} ↗</a> : <span>{s.title}</span>}
-                <Badge color={s.quality_score >= 80 ? 'green' : s.quality_score >= 50 ? 'blue' : 'gray'}>{s.type}</Badge>
-              </div>
-            ))}
+            {sources.map((s, i) => {
+              const domain = s.url ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
+              return (
+                <div key={i} style={{ fontSize: 12, color: COLORS.textMuted, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ color: COLORS.textDim }}>[{i + 1}]</span>
+                  {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.brand, textDecoration: 'none' }}>{s.title} ↗</a> : <span>{s.title}</span>}
+                  {domain && <span style={{ fontSize: 10, color: COLORS.textDim, fontFamily: 'monospace', background: COLORS.bg, padding: '1px 6px', borderRadius: 3 }}>{domain}</span>}
+                  <Badge color={s.quality_score >= 80 ? 'green' : s.quality_score >= 50 ? 'blue' : 'gray'}>{s.type}</Badge>
+                </div>
+              );
+            })}
           </div>
         </div>
 
