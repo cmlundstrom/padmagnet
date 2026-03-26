@@ -2,7 +2,7 @@ import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '../../../../lib/admin-auth';
 import {
-  scoreComp, calculateRentRange, getCompRent, computeDistance,
+  scoreComp, calculateRentRange, getCompRent, computeDistance, computeRentPerSqft,
   DEFAULT_COMP_WEIGHTS, DEFAULT_DATA_MULTIPLIERS, DEFAULT_SOURCE_WEIGHTS,
 } from '../../../../lib/rent-range-engine';
 import { runWebSearchPipeline } from '../../../../lib/rent-range-web-search';
@@ -155,7 +155,8 @@ export async function POST(request) {
       ? { mlsWeight: 0, webWeight: 100 }
       : weights;
 
-    const rentRange = calculateRentRange(mlsComps, webComps, effectiveWeights, marketData.trend);
+    const subjectSqft = property.sqft ? parseInt(property.sqft) : null;
+    const rentRange = calculateRentRange(mlsComps, webComps, effectiveWeights, marketData.trend, subjectSqft);
 
     // Build methodology snapshot
     const methodology = {
@@ -277,6 +278,7 @@ async function searchMlsComps(supabase, subject, property) {
     _score: scoreComp(subject, comp),
     _distance: computeDistance(subject, comp),
     _rent: getCompRent(comp),
+    _rentPerSqft: computeRentPerSqft(comp),
   })).filter(c => c._rent && c._rent > 0);
 
   // Sort by score descending, take top 15

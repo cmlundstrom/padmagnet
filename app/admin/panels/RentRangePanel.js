@@ -291,11 +291,11 @@ export default function RentRangePanel() {
           <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
             {/* Header */}
             <div style={{
-              display: 'grid', gridTemplateColumns: '30px 50px 1fr 80px 70px 80px 36px',
+              display: 'grid', gridTemplateColumns: '30px 50px 1fr 70px 55px 60px 80px 36px',
               padding: '8px 16px', borderBottom: `1px solid ${COLORS.border}`,
               fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase',
             }}>
-              <span>#</span><span>Src</span><span>Address</span><span>Type</span><span>Dist</span><span style={{ textAlign: 'right' }}>Rent</span><span style={{ textAlign: 'right' }}>Score</span>
+              <span>#</span><span>Src</span><span>Address</span><span>Type</span><span>Dist</span><span style={{ textAlign: 'right' }}>$/SF</span><span style={{ textAlign: 'right' }}>Rent</span><span style={{ textAlign: 'right' }}>Score</span>
             </div>
             {[...mlsComps.slice(0, 10), ...webComps.slice(0, 5)].map((comp, i) => {
               const isMls = !comp._source || comp._source !== 'web';
@@ -312,7 +312,7 @@ export default function RentRangePanel() {
                   <div
                     onClick={() => setExpandedComp(isExpanded ? null : i)}
                     style={{
-                      display: 'grid', gridTemplateColumns: '30px 50px 1fr 80px 70px 80px 36px',
+                      display: 'grid', gridTemplateColumns: '30px 50px 1fr 70px 55px 60px 80px 36px',
                       alignItems: 'center', padding: '10px 16px', cursor: 'pointer',
                       borderBottom: `1px solid ${COLORS.border}`,
                       background: isExpanded ? COLORS.bg : 'transparent',
@@ -331,6 +331,9 @@ export default function RentRangePanel() {
                     </div>
                     <span style={{ fontSize: 11, color: COLORS.textMuted }}>{subType}</span>
                     <span style={{ fontSize: 11, color: COLORS.textMuted }}>{dist}</span>
+                    <span style={{ fontSize: 11, color: COLORS.amber, textAlign: 'right', fontWeight: 600 }}>
+                      {comp._rentPerSqft ? `$${comp._rentPerSqft.toFixed(2)}` : '—'}
+                    </span>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.green }}>${rent.toLocaleString()}</div>
                       <div style={{ fontSize: 10, color: COLORS.textDim }}>
@@ -468,12 +471,24 @@ export default function RentRangePanel() {
               </div>
               <div style={{ fontSize: 11, color: COLORS.textDim, marginBottom: 16 }}>Default: 70% MLS / 30% Web. Auto-switches to 100% Web when no MLS comps available.</div>
 
+              {/* Sqft Adjustment */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Sqft-Adjusted Rent</div>
+              <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8, marginBottom: 16 }}>
+                <div>Each MLS comp's rent is normalized to the subject's sqft:</div>
+                <div style={{ fontFamily: 'monospace', fontSize: 11, color: COLORS.amber, marginTop: 4 }}>
+                  Adjusted Rent = (Comp Rent / Comp Sqft) × Subject Sqft
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4 }}>
+                  This prevents larger comps from inflating the range. A 1,700sf comp renting at $2,500 has a $/sf of $1.47. Applied to an 1,100sf subject = $1,618 adjusted rent.
+                </div>
+              </div>
+
               {/* Range Calculation */}
               <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Range Calculation</div>
               <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8 }}>
-                <div>LOW = Weighted 25th percentile</div>
-                <div>TARGET = Weighted median</div>
-                <div>HIGH = Weighted 75th percentile</div>
+                <div>LOW = Weighted 25th percentile (sqft-adjusted)</div>
+                <div>TARGET = Weighted median (sqft-adjusted)</div>
+                <div>HIGH = Weighted 75th percentile (sqft-adjusted)</div>
               </div>
               {rr.trendAdjustmentPct !== 0 && (
                 <div style={{ fontSize: 12, color: COLORS.amber, marginTop: 8 }}>
