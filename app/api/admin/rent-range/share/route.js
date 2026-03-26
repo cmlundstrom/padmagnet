@@ -188,14 +188,15 @@ function buildGmailHtml(report, brand, firstName) {
     // Main container 600px
     + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #ddd;">'
 
-    // Header
-    + '<tr><td style="background:' + c.primary + ';padding:16px 24px;">'
+    // Header — white background so logo blends, blue accent stripe below
+    + '<tr><td style="background:#ffffff;padding:20px 24px 16px;">'
     + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
-    + '<td><img src="' + brand.logo + '" alt="' + brand.name + '" height="44" style="display:block;" /></td>'
-    + '<td style="text-align:right;">'
-    + '<div style="font-size:18px;font-weight:bold;color:#ffffff;">Rental Market Analysis</div>'
-    + '<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px;">' + reportDate + '</div>'
+    + '<td><img src="' + brand.logo + '" alt="' + brand.name + '" height="48" style="display:block;" /></td>'
+    + '<td style="text-align:right;vertical-align:bottom;">'
+    + '<div style="font-size:20px;font-weight:bold;color:' + c.primary + ';letter-spacing:-0.3px;">Rental Market Analysis</div>'
+    + '<div style="font-size:11px;color:#888;margin-top:2px;">' + reportDate + '</div>'
     + '</td></tr></table></td></tr>'
+    + '<tr><td style="height:4px;background:' + c.primary + ';font-size:0;line-height:0;">&nbsp;</td></tr>'
 
     // Greeting
     + '<tr><td style="padding:20px 24px 8px;">'
