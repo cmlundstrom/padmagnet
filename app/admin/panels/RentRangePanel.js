@@ -26,6 +26,7 @@ export default function RentRangePanel() {
   const [error, setError] = useState(null);
   const [scraping, setScraping] = useState(false);
   const [scrapeResults, setScrapeResults] = useState(null); // for multi-unit selection
+  const [reportMenu, setReportMenu] = useState(null); // report id for open action menu
 
   // Form state
   const [form, setForm] = useState({
@@ -163,6 +164,30 @@ export default function RentRangePanel() {
       setView('form');
     }
     setGenerating(false);
+  }
+
+  async function archiveReport(id) {
+    try {
+      await fetch('/api/admin/rent-range', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'archived' }),
+      });
+      setReportMenu(null);
+      fetchData();
+    } catch { /* silent */ }
+  }
+
+  async function unarchiveReport(id) {
+    try {
+      await fetch('/api/admin/rent-range', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'complete' }),
+      });
+      setReportMenu(null);
+      fetchData();
+    } catch { /* silent */ }
   }
 
   async function viewReport(id) {
@@ -738,22 +763,64 @@ export default function RentRangePanel() {
         ) : (
           reports.map((r, i) => {
             const rr = r.rent_range || {};
+            const created = new Date(r.created_at);
+            const dateStr = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const timeStr = created.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const isArchived = r.status === 'archived';
+
             return (
-              <div key={r.id} onClick={() => viewReport(r.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer',
+              <div key={r.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
                 borderBottom: i < reports.length - 1 ? `1px solid ${COLORS.border}` : 'none',
+                opacity: isArchived ? 0.5 : 1,
               }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => viewReport(r.id)}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>{r.property_address}</div>
                   <div style={{ fontSize: 12, color: COLORS.textDim }}>{r.city}, {r.county}</div>
                 </div>
                 {rr.target > 0 && (
-                  <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.green }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: isArchived ? COLORS.textDim : COLORS.green, cursor: 'pointer' }} onClick={() => viewReport(r.id)}>
                     ${rr.low?.toLocaleString()} — ${rr.high?.toLocaleString()}
                   </div>
                 )}
                 <Badge color={r.status === 'complete' ? 'green' : r.status === 'archived' ? 'gray' : 'amber'}>{r.status}</Badge>
-                <span style={{ fontSize: 12, color: COLORS.textDim }}>{timeAgo(r.created_at)}</span>
+                <div style={{ textAlign: 'right', minWidth: 100 }}>
+                  <div style={{ fontSize: 12, color: COLORS.textMuted }}>{dateStr}</div>
+                  <div style={{ fontSize: 11, color: COLORS.textDim }}>{timeStr}</div>
+                </div>
+                {/* Action menu */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); setReportMenu(reportMenu === r.id ? null : r.id); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: 16, color: COLORS.textDim, lineHeight: 1 }}
+                  >
+                    ⋮
+                  </button>
+                  {reportMenu === r.id && (
+                    <div style={{
+                      position: 'absolute', top: '100%', right: 0, zIndex: 20,
+                      background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 6,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)', minWidth: 160, overflow: 'hidden',
+                    }}>
+                      <div onClick={() => { setReportMenu(null); viewReport(r.id); }}
+                        style={{ padding: '8px 14px', fontSize: 13, color: COLORS.text, cursor: 'pointer', borderBottom: `1px solid ${COLORS.border}` }}>
+                        View Report
+                      </div>
+                      {r.status === 'complete' && (
+                        <div onClick={() => archiveReport(r.id)}
+                          style={{ padding: '8px 14px', fontSize: 13, color: COLORS.amber, cursor: 'pointer' }}>
+                          Archive Report
+                        </div>
+                      )}
+                      {r.status === 'archived' && (
+                        <div onClick={() => unarchiveReport(r.id)}
+                          style={{ padding: '8px 14px', fontSize: 13, color: COLORS.green, cursor: 'pointer' }}>
+                          Restore Report
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })

@@ -202,6 +202,36 @@ export async function POST(request) {
   }
 }
 
+// PATCH /api/admin/rent-range — archive a report
+export async function PATCH(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
+  try {
+    const { id, status } = await request.json();
+    if (!id || !['archived', 'complete'].includes(status)) {
+      return NextResponse.json({ error: 'id and status (archived|complete) required' }, { status: 400 });
+    }
+
+    const supabase = createServiceClient();
+    const updates = { status };
+    if (status === 'archived') updates.archived_at = new Date().toISOString();
+    if (status === 'complete') updates.archived_at = null;
+
+    const { data, error } = await supabase
+      .from('rent_range_reports')
+      .update(updates)
+      .eq('id', id)
+      .select('id, status')
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 // ============================================================
 // MLS COMP SEARCH — queries rr_rental_comps (standalone table)
 // ============================================================
