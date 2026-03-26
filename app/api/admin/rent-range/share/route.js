@@ -70,6 +70,7 @@ export async function POST(request) {
     const { data: sendResult, error: sendError } = await resend.emails.send({
       from: `${brandConfig.name} <${brandConfig.fromEmail}>`,
       to: email,
+      cc: 'chris@floridapm.net',
       replyTo: brandConfig.replyTo,
       subject: `Rental Market Analysis — ${report.property_address}`,
       html: emailHtml,
