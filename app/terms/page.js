@@ -54,7 +54,7 @@ export default function TermsOfServicePage() {
           <p>Owner tier passes (Pro, Premium) are one-time purchases valid for 30 days. Payments are processed by Stripe. All sales are final — passes cannot be refunded once activated. If you upgrade mid-pass, unused time on your current pass is credited toward the new purchase.</p>
 
           <h2 style={{ color: '#FFFFFF', fontFamily: "'Outfit', sans-serif", fontSize: '20px', marginTop: '32px', marginBottom: '12px' }}>7. SMS / Text Messaging Terms</h2>
-          <p>PadMagnet offers optional SMS text message notifications for account activity including new tenant inquiries, listing confirmations, listing expiry reminders, and message delivery alerts.</p>
+          <p>PadMagnet offers optional SMS text message notifications for account activity including new tenant inquiries, listing confirmations, listing expiry reminders, and message delivery alerts. For a complete description of our SMS consent process, including the in-app opt-in flow and all message types, visit our <a href="/sms-consent" style={{ color: '#E8603C' }}>SMS Consent &amp; Opt-In</a> page.</p>
 
           <p style={{ marginTop: '12px' }}><strong style={{ color: '#FFFFFF' }}>Opt-In:</strong> You must explicitly opt in to receive SMS messages by enabling &quot;SMS Notifications&quot; in the PadMagnet app&apos;s Notification Settings. Your consent to receive SMS is not a condition of purchase or use of the PadMagnet platform. By opting in, you consent to receive transactional text messages from PadMagnet at the phone number associated with your account.</p>
 

@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
             <li>Calculate PadScore™ recommendations based on your preferences</li>
             <li>Facilitate communication between tenants and property owners</li>
             <li>Send transactional emails (listing confirmations, expiry reminders)</li>
-            <li>Send notifications you have opted in to (push, email, SMS)</li>
+            <li>Send notifications you have opted in to (push, email, SMS — see our <a href="/sms-consent" style={{ color: '#E8603C' }}>SMS Consent &amp; Opt-In</a> page for details)</li>
             <li>Process payments through our payment processor (Stripe)</li>
           </ul>
 
