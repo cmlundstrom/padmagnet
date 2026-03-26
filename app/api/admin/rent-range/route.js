@@ -263,66 +263,60 @@ export async function PATCH(request) {
 // ============================================================
 // MLS COMP SEARCH — queries rr_rental_comps (standalone table)
 // ============================================================
-// Property type groups — comps should come from same group first
-const TYPE_GROUPS = {
-  multifamily: ['Duplex', 'Triplex', 'Quadruplex', 'Multi Family', 'Apartment'],
-  attached: ['Condominium', 'Townhouse', 'Villa', 'Stock Cooperative'],
-  detached: ['Single Family Residence', 'Mobile Home'],
-};
 
-function getTypeGroup(subType) {
-  if (!subType) return null;
-  for (const [group, types] of Object.entries(TYPE_GROUPS)) {
-    if (types.some(t => subType.toLowerCase().includes(t.toLowerCase()))) return group;
-  }
-  return null;
-}
+// NOTE: MLS property_sub_type is SUBJECTIVE to the listing agent.
+// A duplex may be listed as "Multi Family", "Villa", "Apartment",
+// or "Single Family Residence". We do NOT gate comps by type at
+// the query level — we pull broadly by beds/county and let the
+// similarity scoring (which includes type match, sqft, distance,
+// $/sqft) determine comp quality. This prevents missing comps
+// that are mislabeled in MLS.
 
-const MIN_COMP_SCORE = 0.20; // 0-1.0 scale (v2 engine)
+const MIN_COMP_SCORE = 0.20; // 0-1.0 scale — drop truly dissimilar comps
 
 async function searchMlsComps(supabase, subject, property) {
-  const subType = property.propertySubType || '';
-  const typeGroup = getTypeGroup(subType);
-  const sameGroupTypes = TYPE_GROUPS[typeGroup] || [];
-
-  // ---- PASS 1: Same type group, county-wide (type group is the primary filter) ----
+  // Broad pull: same county, beds ±1, all property types
+  // The scoring engine handles type matching, sqft, distance, etc.
   let query = supabase
     .from('rr_rental_comps')
     .select('*')
     .eq('property_type', 'Residential Lease')
     .eq('county', property.county);
 
-  if (sameGroupTypes.length > 0) {
-    query = query.in('property_sub_type', sameGroupTypes);
-  }
-
   if (property.beds) {
     query = query.gte('bedrooms', property.beds - 1).lte('bedrooms', property.beds + 1);
   }
 
-  const { data: primaryComps, error } = await query
+  // Pre-filter by sqft range (70-130% of subject) if available
+  if (property.sqft) {
+    const sqft = parseInt(property.sqft);
+    query = query.gte('living_area', Math.round(sqft * 0.70)).lte('living_area', Math.round(sqft * 1.30));
+  }
+
+  const { data: comps, error } = await query
     .order('close_date', { ascending: false, nullsFirst: false })
-    .limit(50);
+    .limit(80);
 
   if (error) {
     console.error('MLS comp search error:', error.message);
     return [];
   }
 
-  let scored = (primaryComps || []).map(comp => ({
+  // Score all comps — let the algorithm sort by quality
+  let scored = (comps || []).map(comp => ({
     ...comp,
     _score: scoreComp(subject, comp),
     _distance: computeDistance(subject, comp),
     _rent: getCompRent(comp),
     _rentPerSqft: computeRentPerSqft(comp),
-    _typeMatch: 'same_group',
   })).filter(c => c._rent && c._rent > 0 && c._score >= MIN_COMP_SCORE);
 
-  // ---- PASS 2: If <3 same-group comps, add other types (capped at 30% of pool) ----
-  if (scored.length < 3 && sameGroupTypes.length > 0) {
-    const existingKeys = new Set(scored.map(c => c.listing_key));
+  // Sort by score, take best 15
+  scored.sort((a, b) => b._score - a._score);
 
-    const { data: otherComps } = await supabase
+  // If <3 comps after sqft filter, widen sqft range
+  if (scored.length < 3) {
+    const { data: wider } = await supabase
       .from('rr_rental_comps')
       .select('*')
       .eq('property_type', 'Residential Lease')
@@ -330,28 +324,23 @@ async function searchMlsComps(supabase, subject, property) {
       .gte('bedrooms', (property.beds || 2) - 1)
       .lte('bedrooms', (property.beds || 2) + 1)
       .order('close_date', { ascending: false, nullsFirst: false })
-      .limit(30);
+      .limit(80);
 
-    const additional = (otherComps || [])
-      .filter(c => !existingKeys.has(c.listing_key))
-      .filter(c => !sameGroupTypes.includes(c.property_sub_type))
+    const existing = new Set(scored.map(c => c.listing_key));
+    const additional = (wider || [])
+      .filter(c => !existing.has(c.listing_key))
       .map(comp => ({
         ...comp,
         _score: scoreComp(subject, comp),
         _distance: computeDistance(subject, comp),
         _rent: getCompRent(comp),
         _rentPerSqft: computeRentPerSqft(comp),
-        _typeMatch: 'different_group',
       }))
       .filter(c => c._rent && c._rent > 0 && c._score >= MIN_COMP_SCORE);
 
-    // Cap mismatched types: max 30% of total pool, minimum 2
-    const sameCount = scored.length;
-    const maxOther = Math.max(2, Math.ceil(sameCount * 0.43)); // 30% of total = ~43% of same
-    additional.sort((a, b) => b._score - a._score);
-    scored.push(...additional.slice(0, maxOther));
+    scored.push(...additional);
+    scored.sort((a, b) => b._score - a._score);
   }
 
-  scored.sort((a, b) => b._score - a._score);
   return scored.slice(0, 15);
 }
