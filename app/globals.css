@@ -1560,7 +1560,7 @@ input[type="range"]::-moz-range-thumb {
    Clears the fixed nav bar (position:fixed, ~70px tall).
    ALWAYS use this — never hardcode paddingTop inline. */
 .page-content {
-  padding-top: 100px;
+  padding-top: 140px;
 }
 
 /* ========== LEGAL / SMS CONSENT PAGE ========== */
