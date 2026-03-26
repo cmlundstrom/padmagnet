@@ -27,6 +27,10 @@ export default function RentRangePanel() {
   const [scraping, setScraping] = useState(false);
   const [brandedHtml, setBrandedHtml] = useState(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [shareModal, setShareModal] = useState(false);
+  const [shareForm, setShareForm] = useState({ firstName: '', lastName: '', email: '' });
+  const [sharing, setSharing] = useState(false);
+  const [shareHistory, setShareHistory] = useState([]);
   const [scrapeResults, setScrapeResults] = useState(null); // for multi-unit selection
   const [reportMenu, setReportMenu] = useState(null); // report id for open action menu
 
@@ -194,13 +198,18 @@ export default function RentRangePanel() {
 
   async function viewReport(id) {
     try {
-      const res = await fetch(`/api/admin/rent-range?id=${id}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [reportRes, histRes] = await Promise.all([
+        fetch(`/api/admin/rent-range?id=${id}`),
+        fetch(`/api/admin/rent-range/share?reportId=${id}`),
+      ]);
+      if (reportRes.ok) {
+        const data = await reportRes.json();
         setActiveReport(data);
         setBrandedHtml(data.branded_reports?.sfrm || null);
         setView('report');
       }
+      if (histRes.ok) setShareHistory(await histRes.json());
+      else setShareHistory([]);
     } catch { /* silent */ }
   }
 
@@ -617,7 +626,88 @@ export default function RentRangePanel() {
               🖨️ View / Print Report
             </button>
           )}
+          {brandedHtml && (
+            <button
+              onClick={() => { setShareModal(true); setShareForm({ firstName: '', lastName: '', email: '' }); }}
+              style={{ ...baseButton, background: COLORS.purple + '22', color: COLORS.purple, border: `1px solid ${COLORS.purple}44` }}
+            >
+              📧 Share via Email
+            </button>
+          )}
         </div>
+
+        {/* Share Modal */}
+        {shareModal && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+          }} onClick={() => setShareModal(false)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: COLORS.surface, borderRadius: 12, padding: 24,
+              border: `1px solid ${COLORS.border}`, width: 420, maxWidth: '90vw',
+            }}>
+              <h3 style={{ margin: '0 0 4px', color: COLORS.text, fontSize: 16, fontWeight: 700 }}>Email Rent-Range Report</h3>
+              <p style={{ fontSize: 12, color: COLORS.textDim, margin: '0 0 16px' }}>
+                Send the SFRM branded report to a property owner. The email is optimized for Gmail.
+              </p>
+              {error && <div style={{ background: COLORS.redDim, color: COLORS.red, padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 12 }}>{error}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: COLORS.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>First Name</label>
+                  <input value={shareForm.firstName} onChange={e => setShareForm(f => ({ ...f, firstName: e.target.value }))} placeholder="John" style={{
+                    width: '100%', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '8px 10px', color: COLORS.text, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: COLORS.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Last Name</label>
+                  <input value={shareForm.lastName} onChange={e => setShareForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Smith" style={{
+                    width: '100%', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '8px 10px', color: COLORS.text, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  }} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 11, color: COLORS.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Email</label>
+                <input type="email" value={shareForm.email} onChange={e => setShareForm(f => ({ ...f, email: e.target.value }))} placeholder="owner@example.com" style={{
+                  width: '100%', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: '8px 10px', color: COLORS.text, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShareModal(false)} style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted }}>Cancel</button>
+                <button
+                  onClick={async () => {
+                    if (!shareForm.firstName || !shareForm.lastName || !shareForm.email) return;
+                    setSharing(true);
+                    setError(null);
+                    try {
+                      const res = await fetch('/api/admin/rent-range/share', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reportId: activeReport.id, brand: 'sfrm', ...shareForm }),
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setShareModal(false);
+                        alert(`Report sent to ${shareForm.email}`);
+                        // Refresh share history
+                        const histRes = await fetch(`/api/admin/rent-range/share?reportId=${activeReport.id}`);
+                        if (histRes.ok) setShareHistory(await histRes.json());
+                      } else {
+                        setError(data.error || 'Failed to send');
+                      }
+                    } catch (err) {
+                      setError(err.message);
+                    }
+                    setSharing(false);
+                  }}
+                  disabled={sharing || !shareForm.firstName || !shareForm.lastName || !shareForm.email}
+                  style={{ ...baseButton, background: COLORS.purple, color: '#fff', fontWeight: 700, opacity: sharing ? 0.6 : 1 }}
+                >
+                  {sharing ? 'Sending...' : '📧 Send Report'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Branded Report Preview */}
         {brandedHtml && (
@@ -632,6 +722,29 @@ export default function RentRangePanel() {
                 style={{ width: '100%', height: 1640, border: 'none' }}
                 title="Branded Report Preview"
               />
+            </div>
+          </div>
+        )}
+
+        {/* Share History */}
+        {shareHistory.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Email Share History</h3>
+            <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+              {shareHistory.map((s, i) => (
+                <div key={s.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+                  borderBottom: i < shareHistory.length - 1 ? `1px solid ${COLORS.border}` : 'none',
+                }}>
+                  <span style={{ fontSize: 14 }}>📧</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>{s.first_name} {s.last_name}</div>
+                    <div style={{ fontSize: 12, color: COLORS.textDim }}>{s.email}</div>
+                  </div>
+                  <Badge color="green">Sent</Badge>
+                  <span style={{ fontSize: 11, color: COLORS.textDim }}>{formatDate(s.sent_at)}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
