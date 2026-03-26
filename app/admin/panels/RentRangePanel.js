@@ -537,6 +537,29 @@ export default function RentRangePanel() {
                 </div>
               )}
 
+              {/* Comp Selection Strategy */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8, marginTop: 16 }}>Comp Selection Strategy</div>
+              <div style={{ fontSize: 11, color: COLORS.text, lineHeight: 1.8, marginBottom: 16 }}>
+                <div>• Pull broadly: same county, beds ±1, sqft 70-130% of subject, <strong>all property types</strong></div>
+                <div>• MLS property types are subjective — agents may label a duplex as Villa, Multi Family, Apartment, or SFR</div>
+                <div>• Type match is scored but not used as a hard filter to avoid missing mislabeled comps</div>
+                <div>• Sqft, beds/baths, distance, and $/sqft are the most reliable comp indicators</div>
+                <div>• If {'<'}3 comps in sqft range, widens to all sqft in county</div>
+                <div>• Minimum 8 comps preferred; {'<'}5 flags "Low confidence"</div>
+                <div>• Vacancy {'>'} 8% widens low range by 5% (soft market adjustment)</div>
+              </div>
+
+              {/* Web Source Quality Tiers */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textDim, textTransform: 'uppercase', marginBottom: 8 }}>Web Source Quality Tiers</div>
+              <div style={{ fontSize: 11, color: COLORS.text, lineHeight: 1.6, marginBottom: 8 }}>
+                <div style={{ color: COLORS.green, fontWeight: 600, marginBottom: 4 }}>HIGH (score: 90) — used with highest confidence</div>
+                <div style={{ marginBottom: 8, paddingLeft: 12 }}>CoStar, CBRE, Marcus & Millichap, Zillow Research, ApartmentList Research, RentCafe Trends, Redfin News, NAR, Freddie Mac</div>
+                <div style={{ color: COLORS.brand, fontWeight: 600, marginBottom: 4 }}>MEDIUM (score: 60) — supplemental data</div>
+                <div style={{ marginBottom: 8, paddingLeft: 12 }}>Zillow, Realtor.com, Redfin, Apartments.com, RentCafe, Zumper, HotPads, Rent.com, ApartmentList, Norada RE</div>
+                <div style={{ color: COLORS.red, fontWeight: 600, marginBottom: 4 }}>BLOCKED (score: 0) — excluded from all results</div>
+                <div style={{ paddingLeft: 12 }}>Craigslist, Facebook, Reddit, Quora, ApartmentHomeLiving.com</div>
+              </div>
+
               <div style={{ fontSize: 10, color: COLORS.textDim, marginTop: 12 }}>
                 Report generated: {formatDate(activeReport.created_at)}
               </div>
