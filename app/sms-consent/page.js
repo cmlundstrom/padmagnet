@@ -6,201 +6,211 @@ export const metadata = {
 export default function SmsConsentPage() {
   return (
     <>
-      {/* Nav — matches padmagnet.com */}
-      <nav style={{ position: 'relative', background: 'rgba(237,228,220,0.92)', backdropFilter: 'blur(16px)', boxShadow: '0 4px 24px rgba(27,33,56,0.08)' }}>
+      {/* NAV — identical to padmagnet.com landing page */}
+      <nav className="scrolled">
         <a href="/" className="logo">
-          <img src="/logo/padmagnet-icon-120.png" alt="" width={38} height={38} style={{ borderRadius: 10 }} />
-          <span className="logo-text">
-            <span style={{ color: 'var(--navy)' }}>Pad</span>
-            <span style={{ color: 'var(--coral)' }}>Magnet</span>
-          </span>
+          <img src="/logo/padmagnet-header.png" alt="PadMagnet — Find Your Perfect Rental with PadScore" className="logo-header-img" />
         </a>
       </nav>
 
-      <div style={{ maxWidth: 820, margin: '0 auto', padding: '48px 24px 60px' }}>
-        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: 'var(--navy)', marginBottom: 8, lineHeight: 1.15 }}>
-          SMS Consent & Opt-In
-        </h1>
-        <p style={{ fontSize: 16, color: 'var(--text-muted)', marginBottom: 40, lineHeight: 1.7 }}>
-          PadMagnet collects explicit, informed consent from users before sending any SMS text messages.
-          This page documents our TCPA-compliant opt-in process.
-        </p>
-
-        {/* Section 1 */}
-        <Section title="1. How Users Opt In">
-          <p>
-            SMS consent is collected <strong>exclusively within the PadMagnet mobile application</strong> through
-            the Notification Settings screen. Users must manually toggle on
-            &ldquo;SMS Notifications&rdquo; — an affirmative action — before any text messages are sent.
-          </p>
-          <p style={{ marginTop: 12 }}>
-            <strong>SMS is never enabled by default.</strong> Consent is collected separately from account registration.
-            Users can fully use PadMagnet without enabling SMS. SMS consent is not a condition of purchase or use of the app.
-          </p>
-        </Section>
-
-        {/* Section 2: Mockup */}
-        <Section title="2. In-App Opt-In Flow">
-          <p style={{ marginBottom: 24 }}>
-            Below is the exact opt-in flow within the PadMagnet mobile app. Users navigate to
-            Settings → Notification Settings to find the SMS toggle.
+      {/* Content — uses section-inner pattern from landing page */}
+      <section style={{ paddingTop: 100 }}>
+        <div className="section-inner" style={{ maxWidth: 840 }}>
+          <h1 className="section-title">SMS Consent &amp; Opt-In</h1>
+          <p className="section-sub" style={{ marginBottom: 40 }}>
+            PadMagnet collects explicit, informed consent from users before sending any SMS text messages.
+            This page documents our TCPA-compliant opt-in process.
           </p>
 
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 16 }}>
-            {/* Phone: Before */}
-            <PhoneMockup
-              label="Step 1 — SMS is OFF by default"
-              highlight={false}
-            >
-              <ToggleRow on={false} />
-              <div style={{ padding: '20px 20px', textAlign: 'center' }}>
-                <p style={{ fontSize: 12, color: '#94a3b8' }}>Toggle SMS to see the consent disclosure and enter your phone number.</p>
-              </div>
-            </PhoneMockup>
+          {/* 1. How Users Opt In */}
+          <div className="legal-card">
+            <h2>1. How Users Opt In</h2>
+            <p>
+              SMS consent is collected <strong>exclusively within the PadMagnet mobile application</strong> through
+              the Notification Settings screen. Users must manually toggle on
+              &ldquo;SMS Notifications&rdquo; — an affirmative action — before any text messages are sent.
+            </p>
+            <p>
+              <strong>SMS is never enabled by default.</strong> Consent is collected separately from account registration.
+              Users can fully use PadMagnet without enabling SMS. SMS consent is not a condition of purchase or use of the app.
+            </p>
+          </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', fontSize: 28, color: 'var(--coral)', fontWeight: 700 }}>→</div>
+          {/* 2. In-App Opt-In Flow */}
+          <div className="legal-card">
+            <h2>2. In-App Opt-In Flow</h2>
+            <p style={{ marginBottom: 24 }}>
+              Below is the opt-in flow within the PadMagnet mobile app. Users navigate to
+              Settings → Notification Settings to find the SMS toggle.
+            </p>
 
-            {/* Phone: After */}
-            <PhoneMockup
-              label="Step 2 — User toggles ON, sees disclosure"
-              highlight={true}
-            >
-              <ToggleRow on={true} />
-              {/* Disclosure */}
-              <div style={{
-                margin: '12px 16px', padding: '10px 12px',
-                background: 'rgba(59,130,246,0.08)', borderRadius: 8,
-                border: '1px solid rgba(59,130,246,0.2)',
-              }}>
-                <p style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5 }}>
-                  By enabling SMS, you consent to receive transactional text message notifications from
-                  PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
-                  not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
-                  varies, typically 1-5 per week. Reply STOP to unsubscribe at any time.
-                </p>
-                <p style={{ fontSize: 11, color: '#3b82f6', marginTop: 6 }}>
-                  Privacy Policy · Terms of Service
-                </p>
-              </div>
-              {/* Phone input */}
-              <div style={{ padding: '8px 20px 16px' }}>
-                <p style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Phone Number</p>
-                <div style={{
-                  background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
-                  padding: '10px 12px', fontSize: 14, color: '#fff',
-                }}>
-                  (772) 555-0123
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {/* Phone: Before */}
+              <div style={{ textAlign: 'center' }}>
+                <div className="phone-label">Step 1 — SMS is OFF by default</div>
+                <div className="phone-mock">
+                  <div className="phone-notch" />
+                  <div className="phone-title">Notification Settings</div>
+                  <div className="phone-row">
+                    <div>
+                      <div className="phone-row-title">SMS Notifications</div>
+                      <div className="phone-row-sub">Receive text message notifications</div>
+                    </div>
+                    <div className="phone-toggle off"><div className="phone-toggle-thumb" style={{ left: 2 }} /></div>
+                  </div>
+                  <div style={{ padding: '24px 20px', textAlign: 'center' }}>
+                    <p style={{ fontSize: 12, color: '#94a3b8' }}>Toggle SMS to see the consent disclosure and enter your phone number.</p>
+                  </div>
                 </div>
               </div>
-            </PhoneMockup>
-          </div>
-        </Section>
 
-        {/* Section 3: Disclosure Text */}
-        <Section title="3. TCPA Disclosure (Exact Text)">
-          <div style={{
-            background: 'var(--cream-dark)', borderRadius: 12, padding: 20,
-            border: '1px solid #e2d8cf', fontSize: 15, color: 'var(--navy)',
-            lineHeight: 1.7, fontStyle: 'italic',
-          }}>
-            &ldquo;By enabling SMS, you consent to receive transactional text message notifications from
-            PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
-            not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
-            varies based on account activity, typically 1-5 per week. Reply STOP to unsubscribe at
-            any time.&rdquo;
-          </div>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 12 }}>
-            The disclosure includes links to our{' '}
-            <a href="/privacy" style={{ color: 'var(--coral)' }}>Privacy Policy</a> and{' '}
-            <a href="/terms" style={{ color: 'var(--coral)' }}>Terms of Service</a> (Section 7: SMS Terms).
-          </p>
-        </Section>
+              <div style={{ display: 'flex', alignItems: 'center', fontSize: 28, color: 'var(--coral)', fontWeight: 700 }}>→</div>
 
-        {/* Section 4: Message Types */}
-        <Section title="4. Message Types">
-          <p style={{ marginBottom: 16 }}>
-            PadMagnet sends only <strong>transactional SMS notifications</strong> related to user activity.
-            No marketing or promotional messages are sent.
-          </p>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--coral)' }}>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontFamily: "'Outfit', sans-serif", fontWeight: 700, color: 'var(--navy)' }}>Type</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontFamily: "'Outfit', sans-serif", fontWeight: 700, color: 'var(--navy)' }}>Recipient</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontFamily: "'Outfit', sans-serif", fontWeight: 700, color: 'var(--navy)' }}>Example</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ['New inquiry alert', 'Owner', '"PadMagnet: A tenant is interested in your listing at 1234 SE Magnolia Ave, Hobe Sound. Open the app to view their message."'],
-                  ['Listing expiry reminder', 'Owner', '"PadMagnet: Your listing at 1234 SE Magnolia Ave expires in 3 days. Renew your pass to stay visible to tenants. Reply STOP to opt out."'],
-                  ['New message notification', 'Tenant', '"PadMagnet: You have a new message from a property owner about 8075 SE Palm St, Hobe Sound. Open PadMagnet to read it."'],
-                  ['Listing activation', 'Owner', '"PadMagnet: Your listing is now live! Tenants in your area can see 1234 SE Magnolia Ave in their feed. Manage it anytime in the app."'],
-                  ['Delivery confirmation', 'Both', '"PadMagnet: Your message to the property owner was delivered. You\'ll be notified when they reply. Reply STOP to opt out of SMS."'],
-                ].map(([type, recipient, example], i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #e2d8cf' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)' }}>{type}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{recipient}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{example}</td>
+              {/* Phone: After */}
+              <div style={{ textAlign: 'center' }}>
+                <div className="phone-label">Step 2 — User toggles ON, sees disclosure</div>
+                <div className="phone-mock active">
+                  <div className="phone-notch" />
+                  <div className="phone-title">Notification Settings</div>
+                  <div className="phone-row">
+                    <div>
+                      <div className="phone-row-title">SMS Notifications</div>
+                      <div className="phone-row-sub">Receive text message notifications</div>
+                    </div>
+                    <div className="phone-toggle on"><div className="phone-toggle-thumb" style={{ left: 22 }} /></div>
+                  </div>
+                  <div className="phone-disclosure">
+                    <p>
+                      By enabling SMS, you consent to receive transactional text message notifications from
+                      PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
+                      not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
+                      varies, typically 1-5 per week. Reply STOP to unsubscribe at any time.
+                    </p>
+                    <p style={{ color: '#3b82f6', marginTop: 6 }}>
+                      Privacy Policy · Terms of Service
+                    </p>
+                  </div>
+                  <div style={{ padding: '8px 20px 16px' }}>
+                    <p style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Phone Number</p>
+                    <div className="phone-input">(772) 555-0123</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. TCPA Disclosure */}
+          <div className="legal-card">
+            <h2>3. TCPA Disclosure (Exact Text)</h2>
+            <blockquote className="legal-quote">
+              &ldquo;By enabling SMS, you consent to receive transactional text message notifications from
+              PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
+              not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
+              varies based on account activity, typically 1-5 per week. Reply STOP to unsubscribe at
+              any time.&rdquo;
+            </blockquote>
+            <p>
+              The disclosure includes links to our{' '}
+              <a href="/privacy">Privacy Policy</a> and{' '}
+              <a href="/terms">Terms of Service</a> (Section 7: SMS Terms).
+            </p>
+          </div>
+
+          {/* 4. Message Types */}
+          <div className="legal-card">
+            <h2>4. Message Types Sent</h2>
+            <p style={{ marginBottom: 16 }}>
+              PadMagnet sends only <strong>transactional SMS notifications</strong> related to user activity.
+              No marketing or promotional messages are sent.
+            </p>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="legal-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Recipient</th>
+                    <th>Example</th>
                   </tr>
-                ))}
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>New inquiry alert</strong></td>
+                    <td>Owner</td>
+                    <td>&ldquo;PadMagnet: A tenant is interested in your listing at 1234 SE Magnolia Ave, Hobe Sound. Open the app to view their message.&rdquo;</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Listing expiry reminder</strong></td>
+                    <td>Owner</td>
+                    <td>&ldquo;PadMagnet: Your listing at 1234 SE Magnolia Ave expires in 3 days. Renew your pass to stay visible. Reply STOP to opt out.&rdquo;</td>
+                  </tr>
+                  <tr>
+                    <td><strong>New message notification</strong></td>
+                    <td>Tenant</td>
+                    <td>&ldquo;PadMagnet: You have a new message from a property owner about 8075 SE Palm St. Open PadMagnet to read it.&rdquo;</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Listing activation</strong></td>
+                    <td>Owner</td>
+                    <td>&ldquo;PadMagnet: Your listing is now live! Tenants in your area can see 1234 SE Magnolia Ave. Manage it anytime in the app.&rdquo;</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Delivery confirmation</strong></td>
+                    <td>Both</td>
+                    <td>&ldquo;PadMagnet: Your message to the property owner was delivered. You&apos;ll be notified when they reply. Reply STOP to opt out.&rdquo;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 5. Opt-Out */}
+          <div className="legal-card">
+            <h2>5. How Users Opt Out</h2>
+            <p style={{ marginBottom: 16 }}>
+              Users can opt out of SMS notifications at any time:
+            </p>
+            <div className="opt-out-grid">
+              <div className="opt-out-method">
+                <div className="opt-out-icon">💬</div>
+                <h3>Reply STOP</h3>
+                <p>Text STOP to the PadMagnet number. Immediately unsubscribed. Confirmation sent.</p>
+              </div>
+              <div className="opt-out-method">
+                <div className="opt-out-icon">📱</div>
+                <h3>In-App Toggle</h3>
+                <p>Toggle off &ldquo;SMS Notifications&rdquo; in the app&apos;s Notification Settings screen at any time.</p>
+              </div>
+              <div className="opt-out-method">
+                <div className="opt-out-icon">🔑</div>
+                <h3>Keyword Variants</h3>
+                <p>OPTOUT, CANCEL, END, QUIT, UNSUBSCRIBE, REVOKE, STOPALL — all honored immediately.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Compliance Summary */}
+          <div className="legal-card">
+            <h2>6. Compliance Summary</h2>
+            <table className="legal-table">
+              <tbody>
+                <tr><td><strong>Sender</strong></td><td>PadMagnet LLC</td></tr>
+                <tr><td><strong>Phone Number</strong></td><td>(253) 600-3665</td></tr>
+                <tr><td><strong>Caller ID</strong></td><td>PadMagnet</td></tr>
+                <tr><td><strong>Message Prefix</strong></td><td>All messages begin with &ldquo;PadMagnet:&rdquo;</td></tr>
+                <tr><td><strong>Content</strong></td><td>Transactional only — no marketing or promotional messages</td></tr>
+                <tr><td><strong>Frequency</strong></td><td>1-5 messages per week based on account activity</td></tr>
+                <tr><td><strong>Opt-In</strong></td><td>In-app toggle with full TCPA disclosure (explicit, affirmative consent)</td></tr>
+                <tr><td><strong>Opt-Out</strong></td><td>Reply STOP, in-app toggle, or any standard keyword</td></tr>
+                <tr><td><strong>HELP Response</strong></td><td>&ldquo;Reply STOP to unsubscribe. Msg &amp; Data Rates May Apply.&rdquo;</td></tr>
+                <tr><td><strong>Privacy Policy</strong></td><td><a href="/privacy">padmagnet.com/privacy</a></td></tr>
+                <tr><td><strong>Terms of Service</strong></td><td><a href="/terms">padmagnet.com/terms</a> (Section 7: SMS Terms)</td></tr>
               </tbody>
             </table>
           </div>
-        </Section>
+        </div>
+      </section>
 
-        {/* Section 5: Opt-Out */}
-        <Section title="5. How Users Opt Out">
-          <p style={{ marginBottom: 16 }}>
-            Users can opt out of SMS notifications at any time through any of these methods:
-          </p>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {[
-              { icon: '💬', title: 'Reply STOP', desc: 'Text STOP to the PadMagnet number. Immediately unsubscribed. Confirmation sent.' },
-              { icon: '📱', title: 'In-App Toggle', desc: 'Toggle off "SMS Notifications" in the app\'s Notification Settings screen at any time.' },
-              { icon: '🔑', title: 'Keyword Variants', desc: 'OPTOUT, CANCEL, END, QUIT, UNSUBSCRIBE, REVOKE, STOPALL — all honored immediately.' },
-            ].map((m, i) => (
-              <div key={i} style={{
-                flex: '1 1 200px', background: 'var(--white)', borderRadius: 12,
-                padding: 20, border: '1px solid #e2d8cf', boxShadow: 'var(--shadow-soft)',
-              }}>
-                <div style={{ fontSize: 24, marginBottom: 8 }}>{m.icon}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', fontFamily: "'Outfit', sans-serif", marginBottom: 4 }}>{m.title}</div>
-                <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>{m.desc}</div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* Section 6: Compliance */}
-        <Section title="6. Compliance Summary">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <tbody>
-              {[
-                ['Sender', 'PadMagnet LLC'],
-                ['Phone Number', '(253) 600-3665'],
-                ['Caller ID', 'PadMagnet'],
-                ['Message Prefix', 'All messages begin with "PadMagnet:"'],
-                ['Content', 'Transactional only — no marketing or promotional messages'],
-                ['Frequency', '1-5 messages per week based on account activity'],
-                ['Opt-In', 'In-app toggle with full TCPA disclosure (explicit, affirmative consent)'],
-                ['Opt-Out', 'Reply STOP, in-app toggle, or any standard keyword'],
-                ['HELP Response', '"Reply STOP to unsubscribe. Msg & Data Rates May Apply."'],
-                ['Privacy Policy', 'padmagnet.com/privacy'],
-                ['Terms of Service', 'padmagnet.com/terms (Section 7: SMS Terms)'],
-              ].map(([label, value], i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #e2d8cf' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', fontFamily: "'Outfit', sans-serif", width: '30%' }}>{label}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
-      </div>
-
-      {/* Footer — matches padmagnet.com */}
+      {/* FOOTER — identical to padmagnet.com landing page */}
       <footer>
         <img src="/logo/padmagnet-icon-120-dark.png" alt="PadMagnet" width={28} height={28} style={{ borderRadius: 6, marginBottom: 8 }} />
         <p>&copy; 2026 PadMagnet LLC. Long-term rental matching for Florida&apos;s Treasure and Gold Coasts.</p>
@@ -213,72 +223,5 @@ export default function SmsConsentPage() {
         </p>
       </footer>
     </>
-  );
-}
-
-function Section({ title, children }) {
-  return (
-    <div style={{
-      background: 'var(--white)', borderRadius: 16, padding: 32,
-      border: '1px solid #e2d8cf', marginBottom: 24,
-      boxShadow: 'var(--shadow-soft)',
-    }}>
-      <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 700, color: 'var(--navy)', marginBottom: 16, lineHeight: 1.2 }}>
-        {title}
-      </h2>
-      <div style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function PhoneMockup({ label, highlight, children }) {
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{
-        fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 10,
-        textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: "'Outfit', sans-serif",
-      }}>
-        {label}
-      </div>
-      <div style={{
-        width: 280, background: '#0f1724', borderRadius: 28, padding: '20px 0 8px',
-        border: highlight ? '2px solid var(--coral)' : '2px solid #334155',
-        boxShadow: highlight ? '0 8px 32px rgba(232,96,60,0.15)' : '0 8px 24px rgba(0,0,0,0.15)',
-      }}>
-        {/* Notch */}
-        <div style={{ width: 100, height: 6, background: '#1e293b', borderRadius: 3, margin: '0 auto 12px' }} />
-        {/* Screen title */}
-        <div style={{ padding: '0 20px 14px', borderBottom: '1px solid #1e293b' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>Notification Settings</div>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ToggleRow({ on }) {
-  return (
-    <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>SMS Notifications</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Receive text message notifications</div>
-        </div>
-        <div style={{
-          width: 44, height: 24, borderRadius: 12,
-          background: on ? '#3b82f6' : '#334155', position: 'relative',
-        }}>
-          <div style={{
-            width: 20, height: 20, borderRadius: 10,
-            background: '#fff', position: 'absolute',
-            top: 2, left: on ? 22 : 2,
-            transition: 'left 0.2s',
-          }} />
-        </div>
-      </div>
-    </div>
   );
 }
