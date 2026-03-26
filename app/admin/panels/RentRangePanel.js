@@ -841,7 +841,7 @@ export default function RentRangePanel() {
 
       {/* Recent Reports */}
       <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Recent Reports</h3>
-      <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+      <div style={{ background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, overflow: 'visible', marginBottom: 80 }}>
         {reports.length === 0 ? (
           <div style={{ padding: '20px 16px', color: COLORS.textDim, textAlign: 'center', fontSize: 13 }}>No reports yet. Click "New Rent-Range Report" to get started.</div>
         ) : (
