@@ -25,6 +25,8 @@ export default function RentRangePanel() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [scraping, setScraping] = useState(false);
+  const [brandedHtml, setBrandedHtml] = useState(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [scrapeResults, setScrapeResults] = useState(null); // for multi-unit selection
   const [reportMenu, setReportMenu] = useState(null); // report id for open action menu
 
@@ -194,7 +196,9 @@ export default function RentRangePanel() {
     try {
       const res = await fetch(`/api/admin/rent-range?id=${id}`);
       if (res.ok) {
-        setActiveReport(await res.json());
+        const data = await res.json();
+        setActiveReport(data);
+        setBrandedHtml(data.branded_reports?.sfrm || null);
         setView('report');
       }
     } catch { /* silent */ }
@@ -572,12 +576,64 @@ export default function RentRangePanel() {
           )}
         </div>
 
-        {/* Future: Generate Branded Report button */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button disabled style={{ ...baseButton, background: COLORS.border, color: COLORS.textDim, opacity: 0.5 }}>
-            📄 Generate Branded Report (coming soon)
+        {/* Branded Report Generation */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <button
+            onClick={async () => {
+              setGeneratingReport(true);
+              try {
+                const res = await fetch('/api/admin/rent-range/report', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ reportId: activeReport.id, brand: 'sfrm' }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  setBrandedHtml(data.html);
+                } else {
+                  const data = await res.json();
+                  setError(`Report generation failed: ${data.error}`);
+                }
+              } catch (err) {
+                setError(`Report generation failed: ${err.message}`);
+              }
+              setGeneratingReport(false);
+            }}
+            disabled={generatingReport}
+            style={{ ...baseButton, background: '#344c9b', color: '#fff', fontWeight: 700, opacity: generatingReport ? 0.6 : 1 }}
+          >
+            {generatingReport ? 'Generating...' : '📄 Generate SFRM Report'}
           </button>
+          {brandedHtml && (
+            <button
+              onClick={() => {
+                const win = window.open('', '_blank');
+                win.document.write(brandedHtml);
+                win.document.close();
+              }}
+              style={{ ...baseButton, background: COLORS.green + '22', color: COLORS.green, border: `1px solid ${COLORS.green}44` }}
+            >
+              🖨️ View / Print Report
+            </button>
+          )}
         </div>
+
+        {/* Branded Report Preview */}
+        {brandedHtml && (
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Branded Report Preview</h3>
+            <div style={{
+              background: '#fff', borderRadius: 8, border: `1px solid ${COLORS.border}`,
+              overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+            }}>
+              <iframe
+                srcDoc={brandedHtml}
+                style={{ width: '100%', height: 820, border: 'none' }}
+                title="Branded Report Preview"
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
