@@ -14,7 +14,7 @@ export default function SmsConsentPage() {
       </nav>
 
       {/* Content — uses section-inner pattern from landing page */}
-      <section style={{ paddingTop: 100 }}>
+      <section className="page-content">
         <div className="section-inner" style={{ maxWidth: 840 }}>
           <h1 className="section-title">SMS Consent &amp; Opt-In</h1>
           <p className="section-sub" style={{ marginBottom: 40 }}>

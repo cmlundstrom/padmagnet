@@ -1555,6 +1555,14 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* ========== PUBLIC PAGE UTILITIES ========== */
+/* Use .page-content on the first <section> of any public page.
+   Clears the fixed nav bar (position:fixed, ~70px tall).
+   ALWAYS use this — never hardcode paddingTop inline. */
+.page-content {
+  padding-top: 100px;
+}
+
 /* ========== LEGAL / SMS CONSENT PAGE ========== */
 .legal-card {
   background: var(--white);
