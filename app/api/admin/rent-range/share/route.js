@@ -188,16 +188,15 @@ function buildGmailHtml(report, brand, firstName) {
     // Main container 600px
     + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #ddd;">'
 
-    // Header — brown background with transparent PNG logo
-    + '<tr><td style="background:' + c.brown + ';padding:18px 24px;">'
+    // Header — warm cream background with transparent PNG logo + brown title
+    + '<tr><td style="background:#f5efe6;padding:18px 24px;border-bottom:3px solid ' + c.brown + ';">'
     + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
     + '<td width="260" style="vertical-align:middle;"><img src="' + brand.logo + '" alt="' + brand.name + '" width="230" height="62" style="display:block;width:230px;height:62px;" /></td>'
     + '<td style="text-align:right;vertical-align:middle;">'
-    + '<div style="font-size:22px;font-weight:bold;color:#ffffff;">Rental Market</div>'
+    + '<div style="font-size:22px;font-weight:bold;color:' + c.brown + ';">Rental Market</div>'
     + '<div style="font-size:22px;font-weight:bold;color:' + c.accent + ';">Analysis Report</div>'
-    + '<div style="font-size:11px;color:#a89080;margin-top:4px;">' + reportDate + '</div>'
+    + '<div style="font-size:11px;color:#8a7b6b;margin-top:4px;">' + reportDate + '</div>'
     + '</td></tr></table></td></tr>'
-    + '<tr><td style="height:3px;background:' + c.accent + ';font-size:0;line-height:0;">&nbsp;</td></tr>'
 
     // Greeting
     + '<tr><td style="padding:20px 24px 8px;">'
