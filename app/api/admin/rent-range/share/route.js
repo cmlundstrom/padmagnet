@@ -21,7 +21,7 @@ const GOOGLE_KEY = process.env.GOOGLE_GEOCODING_KEY || process.env.GOOGLE_SERVER
 const BRANDS = {
   sfrm: {
     name: 'South Florida Realty Management',
-    logo: 'https://padmagnet.com/logo/sfrm-logo.jpg',
+    logo: 'https://padmagnet.com/logo/sfrm-logo-tp.png',
     website: 'www.floridapm.net',
     phone: '(772) 220-0844',
     email: 'info@floridapm.net',
@@ -188,15 +188,14 @@ function buildGmailHtml(report, brand, firstName) {
     // Main container 600px
     + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #ddd;">'
 
-    // Header — white logo cell + blue title cell side by side
-    + '<tr><td style="padding:0;"><table width="100%" cellpadding="0" cellspacing="0"><tr>'
-    + '<td width="250" style="background:#ffffff;padding:12px 16px;vertical-align:middle;">'
-    + '<img src="' + brand.logo + '" alt="' + brand.name + '" width="220" height="76" style="display:block;width:220px;height:76px;" />'
-    + '</td>'
-    + '<td style="background:' + c.primary + ';padding:16px 24px;vertical-align:middle;text-align:right;">'
+    // Header — brown background with transparent PNG logo
+    + '<tr><td style="background:' + c.brown + ';padding:18px 24px;">'
+    + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
+    + '<td width="260" style="vertical-align:middle;"><img src="' + brand.logo + '" alt="' + brand.name + '" width="230" height="62" style="display:block;width:230px;height:62px;" /></td>'
+    + '<td style="text-align:right;vertical-align:middle;">'
     + '<div style="font-size:22px;font-weight:bold;color:#ffffff;">Rental Market</div>'
     + '<div style="font-size:22px;font-weight:bold;color:' + c.accent + ';">Analysis Report</div>'
-    + '<div style="font-size:11px;color:#aab8d8;margin-top:4px;">' + reportDate + '</div>'
+    + '<div style="font-size:11px;color:#a89080;margin-top:4px;">' + reportDate + '</div>'
     + '</td></tr></table></td></tr>'
     + '<tr><td style="height:3px;background:' + c.accent + ';font-size:0;line-height:0;">&nbsp;</td></tr>'
 
@@ -211,7 +210,7 @@ function buildGmailHtml(report, brand, firstName) {
 
     // Subject Property
     + '<tr><td style="padding:0 24px 16px;">'
-    + '<table width="100%" cellpadding="0" cellspacing="0" style="background:' + c.light + ';border:1px solid ' + c.border + ';border-radius:6px;">'
+    + '<table width="100%" cellpadding="0" cellspacing="0" style="background:' + c.light + ';border:1px solid ' + c.brown + '44;border-top:3px solid ' + c.brown + ';">'
     + '<tr><td style="padding:14px 16px;">'
     + '<div style="font-size:10px;font-weight:bold;color:' + c.accent + ';text-transform:uppercase;letter-spacing:1px;">Subject Property</div>'
     + '<div style="font-size:18px;font-weight:bold;color:' + c.primary + ';margin-top:4px;">' + report.property_address + '</div>'
@@ -222,7 +221,7 @@ function buildGmailHtml(report, brand, firstName) {
 
     // Rent Range Hero
     + '<tr><td style="padding:0 24px 16px;">'
-    + '<table width="100%" cellpadding="0" cellspacing="0" style="background:' + c.light + ';border:2px solid ' + c.primary + ';border-radius:8px;">'
+    + '<table width="100%" cellpadding="0" cellspacing="0" style="background:' + c.light + ';border:2px solid ' + c.brown + ';">'
     + '<tr><td style="padding:16px;text-align:center;">'
     + '<div style="font-size:10px;font-weight:bold;color:' + c.primary + ';text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Estimated Monthly Rent Range</div>'
     + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
@@ -239,8 +238,8 @@ function buildGmailHtml(report, brand, firstName) {
     // Comparable Properties
     + '<tr><td style="padding:0 24px 16px;">'
     + '<div style="font-size:11px;font-weight:bold;color:' + c.primary + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Top Comparable Properties</div>'
-    + '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ' + c.border + ';border-radius:4px;border-collapse:collapse;">'
-    + '<tr style="background:' + c.primary + ';">'
+    + '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ' + c.brown + '44;border-collapse:collapse;">'
+    + '<tr style="background:' + c.brown + ';">'
     + '<th style="padding:8px 10px;font-size:11px;color:#fff;text-align:left;font-weight:600;">Address</th>'
     + '<th style="padding:8px 10px;font-size:11px;color:#fff;text-align:center;font-weight:600;">Type</th>'
     + '<th style="padding:8px 10px;font-size:11px;color:#fff;text-align:center;font-weight:600;">Bd/Ba</th>'
@@ -255,8 +254,8 @@ function buildGmailHtml(report, brand, firstName) {
 
     // Market Context
     + (marketHtml ? '<tr><td style="padding:0 24px 16px;">'
-    + '<div style="background:' + c.light + ';border:1px solid ' + c.border + ';border-radius:4px;padding:10px 14px;">'
-    + '<div style="font-size:10px;font-weight:bold;color:' + c.primary + ';text-transform:uppercase;margin-bottom:4px;">Market Context</div>'
+    + '<div style="background:' + c.light + ';border:1px solid ' + c.brown + '44;border-top:2px solid ' + c.brown + ';padding:10px 14px;">'
+    + '<div style="font-size:10px;font-weight:bold;color:' + c.brown + ';text-transform:uppercase;margin-bottom:4px;">Market Context</div>'
     + '<div style="font-size:12px;color:' + c.brown + ';">' + marketHtml + '</div>'
     + '</div></td></tr>' : '')
 
@@ -267,7 +266,7 @@ function buildGmailHtml(report, brand, firstName) {
     + '</td></tr>'
 
     // Footer
-    + '<tr><td style="background:' + c.light + ';padding:16px 24px;border-top:2px solid ' + c.primary + ';">'
+    + '<tr><td style="background:' + c.light + ';padding:16px 24px;border-top:3px solid ' + c.brown + ';">'
     + '<table width="100%" cellpadding="0" cellspacing="0"><tr>'
     + '<td>'
     + '<div style="font-size:12px;font-weight:bold;color:' + c.primary + ';">' + brand.name + '</div>'
