@@ -6,9 +6,12 @@ import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, w
 import * as Haptics from 'expo-haptics';
 import { Header, GlossyHeart } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
+import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 import usePreferences from '../../hooks/usePreferences';
 import useSwipe from '../../hooks/useSwipe';
+import usePadPoints from '../../hooks/usePadPoints';
 import { calculatePadScore } from '../../lib/padscore';
+import { supabase } from '../../lib/supabase';
 import { FontAwesome } from '@expo/vector-icons';
 import { apiFetch } from '../../lib/api';
 import { shareListing } from '../../lib/share-listing';
@@ -122,9 +125,21 @@ export default function ListingDetailScreen() {
 
   const handleShare = useCallback(() => shareListing(listing), [listing]);
 
+  const [showAuth, setShowAuth] = useState(false);
+  const padPoints = usePadPoints();
+
   const handleContact = async () => {
     if (!listing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Check if anonymous — gate behind auth
+    const { data: { session } } = await supabase.auth.getSession();
+    const isAnon = session?.user?.is_anonymous || session?.user?.app_metadata?.provider === 'anonymous';
+    if (isAnon || !session) {
+      setShowAuth(true);
+      return;
+    }
+
     try {
       const result = await apiFetch('/api/conversations', {
         method: 'POST',
@@ -213,6 +228,14 @@ export default function ListingDetailScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Auth gate for anonymous users */}
+      <AuthBottomSheet
+        visible={showAuth}
+        onClose={() => setShowAuth(false)}
+        context="message"
+        padpoints={padPoints.padpoints}
+      />
     </SafeAreaView>
   );
 }
