@@ -19,14 +19,32 @@ const LEVELS = [
 const PADPOINTS = {
   rightSwipe: 5,
   rightSwipeHighMatch: 8,   // 80+ PadScore
-  leftSwipe: 2,
+  leftSwipe: 2,             // no tier bonus (always +2)
   preferenceFilled: 15,
   allPreferencesBonus: 25,
   firstMessage: 25,
   dailyOpen: 10,
   weeklyStreakBonus: 50,
   share: 5,
+  askPadQuery: 3,           // only on successful on-topic queries
 };
+
+// Actions that get the +20% tier bonus (Explorer/Master)
+const TIER_BONUS_ACTIONS = [
+  'rightSwipe', 'rightSwipeHighMatch', 'preferenceFilled',
+  'allPreferencesBonus', 'firstMessage', 'dailyOpen',
+  'weeklyStreakBonus', 'share',
+];
+
+/**
+ * Apply tier earn bonus. Explorer and Master get +20% on most actions.
+ * Left swipes and Ask Pad queries are NOT boosted.
+ */
+export function applyTierBonus(baseAmount, actionKey, tierBonus) {
+  if (!tierBonus || tierBonus <= 1.0) return baseAmount;
+  if (!TIER_BONUS_ACTIONS.includes(actionKey)) return baseAmount;
+  return Math.round(baseAmount * tierBonus);
+}
 
 export function getLevelForPoints(points) {
   let current = LEVELS[0];

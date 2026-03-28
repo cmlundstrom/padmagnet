@@ -137,6 +137,36 @@ export async function POST(request) {
           break;
         }
 
+        // --- Renter tier purchase (Ask Pad Explorer / Pad Master) ---
+        if (metadata.type === 'renter_tier') {
+          const { tier, user_id } = metadata;
+          if (tier && user_id) {
+            const updates = { renter_tier: tier };
+
+            if (tier === 'master') {
+              updates.verified_renter = true;
+              updates.search_zones_count = 3;
+            } else if (tier === 'explorer') {
+              updates.verified_renter = false;
+              updates.search_zones_count = 2;
+            }
+
+            await supabase.from('profiles').update(updates).eq('id', user_id);
+
+            // Log for debugging
+            console.log(`Renter tier activated: ${tier} for user ${user_id}${tier === 'master' ? ' (Verified Renter)' : ''}`);
+
+            await supabase.from('webhook_logs').insert({
+              source: 'stripe',
+              event_type: 'renter_tier_activated',
+              external_id: session.id,
+              status: 'processed',
+              payload: { tier, user_id, amount: session.amount_total, verified: tier === 'master' },
+            }).catch(function() {});
+          }
+          break;
+        }
+
         // --- Legacy listing purchase flow ---
         const { listing_id, owner_user_id, product_ids: productIdsJson } = metadata;
 
