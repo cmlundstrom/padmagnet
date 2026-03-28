@@ -201,6 +201,7 @@ export default function SwipeScreen() {
           <View style={styles.promptOverlay}>
             <SmartPromptCard
               prompt={activePrompt}
+              onAskPad={() => { setActivePrompt(null); setShowAskPad(true); }}
               onAnswer={async (key, value) => {
                 setAnsweredPrompts(prev => new Set([...prev, key]));
                 setActivePrompt(null);

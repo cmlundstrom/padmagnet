@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { Header, GlossyHeart } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
+import { AskPadChat } from '../../components/askpad';
 import usePreferences from '../../hooks/usePreferences';
 import useSwipe from '../../hooks/useSwipe';
 import usePadPoints from '../../hooks/usePadPoints';
@@ -126,6 +127,7 @@ export default function ListingDetailScreen() {
   const handleShare = useCallback(() => shareListing(listing), [listing]);
 
   const [showAuth, setShowAuth] = useState(false);
+  const [showAskPadDetail, setShowAskPadDetail] = useState(false);
   const padPoints = usePadPoints();
 
   const handleContact = async () => {
@@ -220,14 +222,28 @@ export default function ListingDetailScreen() {
         </Pressable>
       )}
 
-      {/* Sticky bottom CTA */}
+      {/* Sticky bottom CTAs */}
       <View style={styles.bottomBar}>
+        {context !== 'owner_browse' && (
+          <Pressable
+            style={[styles.ctaButton, { backgroundColor: COLORS.accent, marginBottom: 8 }]}
+            onPress={() => setShowAskPadDetail(true)}
+          >
+            <Text style={styles.ctaButtonText}>✨ Ask Pad About This Property</Text>
+          </Pressable>
+        )}
         <Pressable style={styles.ctaButton} onPress={handleContact}>
           <Text style={styles.ctaButtonText}>
             {context === 'owner_browse' ? 'Contact Listing Agent' : 'Check Availability'}
           </Text>
         </Pressable>
       </View>
+
+      {/* Ask Pad about this property */}
+      <AskPadChat
+        visible={showAskPadDetail}
+        onClose={() => setShowAskPadDetail(false)}
+      />
 
       {/* Auth gate for anonymous users */}
       <AuthBottomSheet

@@ -10,7 +10,7 @@ import { LAYOUT } from '../../constants/layout';
  *
  * Designed to look like a special listing card with a branded gradient.
  */
-export default function SmartPromptCard({ prompt, onAnswer, onSkip }) {
+export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) {
   if (!prompt) return null;
 
   const handleAnswer = (value) => {
@@ -49,6 +49,13 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip }) {
         <Text style={styles.rewardText}>+{prompt.padpoints} PadPoints</Text>
         <Text style={styles.rewardHint}>{prompt.hint}</Text>
       </View>
+
+      {/* Ask Pad CTA (on later prompts) */}
+      {prompt.afterSwipe >= 25 && onAskPad && (
+        <TouchableOpacity style={styles.askPadButton} onPress={onAskPad} activeOpacity={0.7}>
+          <Text style={styles.askPadText}>✨ Too many options? Ask Pad instead</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Skip */}
       <TouchableOpacity style={styles.skipButton} onPress={onSkip} activeOpacity={0.7}>
@@ -235,6 +242,20 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
+  },
+  askPadButton: {
+    alignItems: 'center',
+    backgroundColor: COLORS.accent + '15',
+    borderRadius: LAYOUT.radius.sm,
+    paddingVertical: 10,
+    marginBottom: LAYOUT.padding.sm,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
+  },
+  askPadText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
   },
   skipButton: {
     alignItems: 'center',
