@@ -8,7 +8,7 @@ import CardStack from '../../components/cards/CardStack';
 import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
 import { GlossyHeart } from '../../components/ui';
-import { PadPointsBar, SmartPromptCard, SMART_PROMPTS } from '../../components/padpoints';
+import { PadPointsBar, SmartPromptCard, SMART_PROMPTS, LevelUpCelebration } from '../../components/padpoints';
 import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
@@ -279,6 +279,13 @@ export default function SwipeScreen() {
         <Text style={styles.mlsFooter}>
           {MLS_COPYRIGHT.replace('{year}', new Date().getFullYear())}
         </Text>
+
+        {/* Level Up Celebration */}
+        <LevelUpCelebration
+          visible={padPoints.lastEarned?.leveledUp === true}
+          level={padPoints.lastEarned?.newLevel}
+          onDismiss={() => {}}
+        />
       </SafeAreaView>
   );
 }
