@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -8,9 +8,11 @@ import CardStack from '../../components/cards/CardStack';
 import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
 import { GlossyHeart } from '../../components/ui';
+import { PadPointsBar, SmartPromptCard, SMART_PROMPTS } from '../../components/padpoints';
 import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
+import usePadPoints, { PADPOINTS } from '../../hooks/usePadPoints';
 import { useAlert } from '../../providers/AlertProvider';
 import { AuthContext } from '../../providers/AuthProvider';
 import { apiFetch } from '../../lib/api';
@@ -43,7 +45,14 @@ export default function SwipeScreen() {
       });
   }, [user]);
   const [viewMode, setViewMode] = useState('cards');
+  const [swipeCount, setSwipeCount] = useState(0);
+  const [activePrompt, setActivePrompt] = useState(null);
+  const [answeredPrompts, setAnsweredPrompts] = useState(new Set());
+  const padPoints = usePadPoints();
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
+
+  // Check streak on mount
+  useEffect(() => { padPoints.checkStreak(); }, []);
 
   // Auto-refresh listings when navigated here with ?refresh=true (e.g. after preferences change)
   useEffect(() => {
@@ -94,7 +103,24 @@ export default function SwipeScreen() {
     if (!saved) {
       prependToList(listing);
     }
-  }, [removeFromDeck, recordSwipe, prependToList]);
+
+    // Award PadPoints
+    const newCount = swipeCount + 1;
+    setSwipeCount(newCount);
+
+    if (direction === 'right') {
+      const points = score >= 80 ? PADPOINTS.rightSwipeHighMatch : PADPOINTS.rightSwipe;
+      padPoints.earnPoints(points, direction === 'right' && score >= 80 ? 'High match save' : 'Saved listing');
+    } else {
+      padPoints.earnPoints(PADPOINTS.leftSwipe, 'Passed');
+    }
+
+    // Check if it's time for a Smart Prompt Card
+    const nextPrompt = SMART_PROMPTS.find(p => p.afterSwipe === newCount && !answeredPrompts.has(p.key));
+    if (nextPrompt) {
+      setActivePrompt(nextPrompt);
+    }
+  }, [removeFromDeck, recordSwipe, prependToList, swipeCount, padPoints, answeredPrompts]);
 
   const handleTapCard = useCallback((listing) => {
     router.push(`/listing/${listing.id}`);
@@ -138,15 +164,48 @@ export default function SwipeScreen() {
           </View>
         </View>
 
-        {/* Personalized intro */}
-        {viewMode === 'cards' && firstName ? (
-          <Text style={styles.introText} numberOfLines={2}>
-            <Text style={styles.introBold}>{firstName}</Text>, <Text style={styles.introBold}>PadScore™</Text> is now live! Refine your rental matches anytime in <Text style={styles.introBold}>Profile</Text>.
-          </Text>
-        ) : null}
+        {/* PadPoints bar */}
+        {viewMode === 'cards' && (
+          <PadPointsBar
+            padpoints={padPoints.padpoints}
+            level={padPoints.level}
+            progress={padPoints.progress}
+            streakDays={padPoints.streakDays}
+            lastEarned={padPoints.lastEarned}
+          />
+        )}
+
+        {/* Smart Prompt Card (appears between swipes at scheduled intervals) */}
+        {activePrompt && viewMode === 'cards' && (
+          <View style={styles.promptOverlay}>
+            <SmartPromptCard
+              prompt={activePrompt}
+              onAnswer={async (key, value) => {
+                setAnsweredPrompts(prev => new Set([...prev, key]));
+                setActivePrompt(null);
+
+                // Award PadPoints for answering
+                padPoints.earnPoints(activePrompt.padpoints, `Answered: ${activePrompt.title}`);
+
+                // Save preference to server
+                try {
+                  const prefUpdate = {};
+                  prefUpdate[activePrompt.prefKey] = value;
+                  await supabase
+                    .from('tenant_preferences')
+                    .upsert({ user_id: user?.id, ...prefUpdate }, { onConflict: 'user_id' });
+                } catch { /* silent — preference saved locally via hook */ }
+              }}
+              onSkip={() => {
+                setAnsweredPrompts(prev => new Set([...prev, activePrompt.key]));
+                setActivePrompt(null);
+              }}
+            />
+          </View>
+        )}
 
         {/* Card area */}
-        <View style={[styles.cardArea, { marginTop: 35 }]}>
+        <View style={[styles.cardArea, { marginTop: activePrompt ? 0 : 35 }]}>
           {viewMode === 'cards' && (
             <CardStack
               listings={scoredListings}
@@ -340,5 +399,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingBottom: LAYOUT.padding.sm,
     paddingHorizontal: LAYOUT.padding.md,
+  },
+  promptOverlay: {
+    paddingVertical: LAYOUT.padding.md,
+    alignItems: 'center',
   },
 });
