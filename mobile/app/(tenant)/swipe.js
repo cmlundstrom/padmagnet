@@ -90,15 +90,21 @@ export default function SwipeScreen() {
   });
 
   const handleSwipe = useCallback(async (listing, direction) => {
-    Haptics.impactAsync(
-      direction === 'right'
-        ? Haptics.ImpactFeedbackStyle.Medium
-        : Haptics.ImpactFeedbackStyle.Light
-    );
+    const score = listing.padScore?.score ?? 50;
+
+    // Haptic feedback — varies by action and match quality
+    if (direction === 'right' && score >= 80) {
+      // High match save — strong, satisfying double-tap
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 100);
+    } else if (direction === 'right') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
 
     removeFromDeck(listing.id);
 
-    const score = listing.padScore?.score ?? 50;
     const saved = await recordSwipe(listing.id, direction, score);
     if (!saved) {
       prependToList(listing);
@@ -110,9 +116,9 @@ export default function SwipeScreen() {
 
     if (direction === 'right') {
       const points = score >= 80 ? PADPOINTS.rightSwipeHighMatch : PADPOINTS.rightSwipe;
-      padPoints.earnPoints(points, direction === 'right' && score >= 80 ? 'High match save' : 'Saved listing');
+      await padPoints.earnPoints(points, score >= 80 ? 'High match save' : 'Saved listing');
     } else {
-      padPoints.earnPoints(PADPOINTS.leftSwipe, 'Passed');
+      await padPoints.earnPoints(PADPOINTS.leftSwipe, 'Passed');
     }
 
     // Check if it's time for a Smart Prompt Card

@@ -1,36 +1,35 @@
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withSequence, withSpring, withTiming,
+} from 'react-native-reanimated';
+import PadScoreRing from './PadScoreRing';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 /**
- * PadPoints header bar — shows current PadPoints, PadLevel, and progress.
- * Displays in the swipe screen header. Animates on point gain.
+ * PadPoints header bar — shows animated ring, level name, progress, streak.
+ * Lives in the swipe screen header.
  */
 export default function PadPointsBar({ padpoints, level, progress, streakDays, lastEarned }) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const floatOpacity = useRef(new Animated.Value(0)).current;
+  const floatY = useSharedValue(0);
+  const floatOpacity = useSharedValue(0);
 
-  // Pulse animation when points earned
+  // Float-up animation for "+N PadPoints" text
   useEffect(() => {
     if (!lastEarned) return;
-
-    // Pulse the PadPoints number
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.3, duration: 150, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
-
-    // Float-up "+N" text
-    floatAnim.setValue(0);
-    floatOpacity.setValue(1);
-    Animated.parallel([
-      Animated.timing(floatAnim, { toValue: -30, duration: 1200, useNativeDriver: true }),
-      Animated.timing(floatOpacity, { toValue: 0, duration: 1200, useNativeDriver: true }),
-    ]).start();
+    floatY.value = 0;
+    floatOpacity.value = 1;
+    floatY.value = withTiming(-24, { duration: 1000 });
+    floatOpacity.value = withTiming(0, { duration: 1000 });
   }, [lastEarned]);
+
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+    opacity: floatOpacity.value,
+  }));
 
   const levelColor = level.level >= 4 ? COLORS.gold :
                      level.level >= 3 ? COLORS.brandOrange :
@@ -38,36 +37,34 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
 
   return (
     <View style={styles.container}>
-      {/* PadPoints count */}
-      <View style={styles.pointsSection}>
-        <Animated.Text style={[styles.points, { color: levelColor, transform: [{ scale: scaleAnim }] }]}>
-          {padpoints}
-        </Animated.Text>
-        <Text style={styles.pointsLabel}>PadPoints</Text>
-
-        {/* Float-up animation */}
+      {/* Animated PadScore Ring */}
+      <View style={styles.ringSection}>
+        <PadScoreRing
+          progress={progress}
+          level={level}
+          padpoints={padpoints}
+          lastEarned={lastEarned}
+        />
+        {/* Float-up text */}
         {lastEarned && (
-          <Animated.Text style={[styles.floatText, {
-            color: COLORS.success,
-            transform: [{ translateY: floatAnim }],
-            opacity: floatOpacity,
-          }]}>
+          <Animated.Text style={[styles.floatText, floatStyle]}>
             +{lastEarned.amount}
           </Animated.Text>
         )}
       </View>
 
-      {/* Level + progress bar */}
+      {/* Level + progress */}
       <View style={styles.levelSection}>
         <Text style={[styles.levelName, { color: levelColor }]}>{level.name}</Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: levelColor }]} />
         </View>
+        <Text style={styles.pointsLabel}>{padpoints} PadPoints</Text>
       </View>
 
       {/* Streak */}
       {streakDays > 0 && (
-        <View style={styles.streakSection}>
+        <View style={styles.streakPill}>
           <Text style={styles.streakIcon}>🔥</Text>
           <Text style={styles.streakCount}>{streakDays}</Text>
         </View>
@@ -80,39 +77,27 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: LAYOUT.padding.sm,
+    paddingHorizontal: LAYOUT.padding.md,
     paddingVertical: LAYOUT.padding.xs,
-    gap: 10,
+    gap: 12,
   },
-  pointsSection: {
-    alignItems: 'center',
+  ringSection: {
     position: 'relative',
-    minWidth: 50,
-  },
-  points: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.lg,
-  },
-  pointsLabel: {
-    fontFamily: FONTS.body.medium,
-    fontSize: 8,
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   floatText: {
     position: 'absolute',
-    top: -4,
-    right: -14,
+    top: -2,
+    right: -16,
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xs,
+    color: COLORS.success,
   },
   levelSection: {
     flex: 1,
   },
   levelName: {
     fontFamily: FONTS.heading.semiBold,
-    fontSize: FONT_SIZES.xxs,
+    fontSize: FONT_SIZES.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 3,
@@ -122,12 +107,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
     borderRadius: LAYOUT.radius.xs,
     overflow: 'hidden',
+    marginBottom: 3,
   },
   progressFill: {
     height: '100%',
     borderRadius: LAYOUT.radius.xs,
   },
-  streakSection: {
+  pointsLabel: {
+    fontFamily: FONTS.body.regular,
+    fontSize: 9,
+    color: COLORS.slate,
+  },
+  streakPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
@@ -135,6 +126,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: LAYOUT.radius.full,
+    borderWidth: 1,
+    borderColor: COLORS.brandOrange + '44',
   },
   streakIcon: {
     fontSize: 12,

@@ -17,9 +17,12 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
   useEffect(() => {
     if (!visible) return;
 
+    // Celebration haptic pattern: success + delayed impact + delayed impact
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 200);
+    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 400);
 
-    // Entrance
+    // Entrance animation
     Animated.parallel([
       Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
