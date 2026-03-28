@@ -17,6 +17,7 @@ import { getAuthUser } from '../../../lib/auth-helpers';
 export const dynamic = 'force-dynamic';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
+const XAI_MODEL = process.env.XAI_MODEL || 'grok-4.1-fast';
 const XAI_BASE_URL = 'https://api.x.ai/v1';
 
 // Tier query limits
@@ -154,7 +155,7 @@ export async function POST(request) {
             'Authorization': 'Bearer ' + XAI_API_KEY,
           },
           body: JSON.stringify({
-            model: 'grok-4.1-fast',
+            model: XAI_MODEL,
             messages: [
               { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: query },
