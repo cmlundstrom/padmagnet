@@ -53,8 +53,13 @@ If the user asks anything off-topic (weather, jokes, science, current events, ho
 2. "Nice try 😂 I'm the rental whisperer, not the science guy. What's your budget and vibe for the next place?"
 3. "I'm laser-focused on killer rentals and PadScores. Hit me with a housing question and I'll blow your mind!"
 Never break character. Never say "I can help with that" for off-topic requests.
-When searching for listings, always include the PadScore for each result. Recommend the highest-scoring matches first. If the user hasn't set preferences yet, suggest they answer a few questions to improve their PadScore accuracy.
-Keep responses concise — 2-3 sentences max for text, followed by listing cards if applicable. Be enthusiastic and helpful about rentals, like a friend who knows every listing in town.`;
+CRITICAL: You MUST use the search_rentals tool to find listings. NEVER invent, fabricate, or guess addresses, prices, or property details. If the user asks about listings, ALWAYS call search_rentals first. Only reference data returned by your tools.
+
+When presenting listings from search results, format each as:
+- Address, City — $X,XXX/mo — Xbd/Xba — X,XXX sqft
+
+If no results are found, say so honestly and suggest broadening the search.
+Keep responses concise — 2-3 sentences max, then list the results. Be enthusiastic and helpful, like a friend who knows every listing in town.`;
 
 function isRentalRelated(query) {
   const lower = query.toLowerCase();
@@ -139,52 +144,14 @@ export async function POST(request) {
     let grokResponse;
 
     if (!XAI_API_KEY) {
-      // Placeholder response until xAI key is configured
       grokResponse = {
         type: 'text',
-        message: `🔧 Ask Pad is being configured! Your query: "${query}"\n\nOnce connected to Grok, I'll search ${tier === 'free' ? 'your local' : 'expanded'} listings and show you matches with live PadScore™. Stay tuned!`,
+        message: '🔧 Ask Pad is being configured! Stay tuned.',
         placeholder: true,
       };
     } else {
-      // Real Grok API call
-      try {
-        const res = await fetch(XAI_BASE_URL + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + XAI_API_KEY,
-          },
-          body: JSON.stringify({
-            model: XAI_MODEL,
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: query },
-            ],
-            max_tokens: 500,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          grokResponse = {
-            type: 'text',
-            message: data.choices?.[0]?.message?.content || 'Ask Pad is thinking...',
-          };
-        } else {
-          const errText = await res.text();
-          console.error('Grok API error:', res.status, errText);
-          grokResponse = {
-            type: 'error',
-            message: 'Ask Pad hit a snag. Try again in a moment!',
-          };
-        }
-      } catch (err) {
-        console.error('Grok API call failed:', err);
-        grokResponse = {
-          type: 'error',
-          message: 'Ask Pad is temporarily unavailable. Try again shortly!',
-        };
-      }
+      // Grok API call with function calling (tool use)
+      grokResponse = await callGrokWithTools(supabase, user.id, query);
     }
 
     // Increment query count (only on successful on-topic queries)
@@ -215,4 +182,254 @@ export async function POST(request) {
     console.error('Ask Pad error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
+}
+
+// ============================================================
+// GROK FUNCTION CALLING — Tools + Execution
+// ============================================================
+
+const TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'search_rentals',
+      description: 'Search PadMagnet MLS rental listings. Returns real listings with addresses, prices, and details. Always use this to find listings — never make up addresses or prices.',
+      parameters: {
+        type: 'object',
+        properties: {
+          city: { type: 'string', description: 'City to search in (e.g., "Stuart", "Palm City", "Jensen Beach")' },
+          county: { type: 'string', description: 'County (e.g., "Martin County", "Palm Beach County")' },
+          min_beds: { type: 'integer', description: 'Minimum bedrooms' },
+          max_beds: { type: 'integer', description: 'Maximum bedrooms' },
+          max_rent: { type: 'number', description: 'Maximum monthly rent in dollars' },
+          min_rent: { type: 'number', description: 'Minimum monthly rent in dollars' },
+          pets_allowed: { type: 'boolean', description: 'Filter for pet-friendly properties' },
+          pool: { type: 'boolean', description: 'Filter for properties with a pool' },
+          property_type: { type: 'string', description: 'Property type (e.g., "Single Family Residence", "Condo", "Townhouse", "Apartment")' },
+          furnished: { type: 'boolean', description: 'Filter for furnished properties' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_market_stats',
+      description: 'Get rental market statistics for a county or city. Returns median rents by property type, active listing count, and price ranges.',
+      parameters: {
+        type: 'object',
+        properties: {
+          county: { type: 'string', description: 'County name (e.g., "Martin County")' },
+          city: { type: 'string', description: 'City name (optional, for more specific stats)' },
+        },
+      },
+    },
+  },
+];
+
+async function callGrokWithTools(supabase, userId, query) {
+  var messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: query },
+  ];
+
+  try {
+    // First call — Grok may respond directly or request tool calls
+    var res = await fetch(XAI_BASE_URL + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + XAI_API_KEY,
+      },
+      body: JSON.stringify({
+        model: XAI_MODEL,
+        messages: messages,
+        tools: TOOLS,
+        max_tokens: 600,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('Grok API error:', res.status, await res.text());
+      return { type: 'error', message: 'Ask Pad hit a snag. Try again in a moment!' };
+    }
+
+    var data = await res.json();
+    var choice = data.choices && data.choices[0];
+    if (!choice) return { type: 'error', message: 'Ask Pad got an empty response.' };
+
+    var assistantMessage = choice.message;
+
+    // If no tool calls, return the text response directly
+    if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+      return { type: 'text', message: assistantMessage.content || 'Ask Pad is thinking...' };
+    }
+
+    // Execute tool calls
+    messages.push(assistantMessage);
+    var listings = [];
+
+    for (var i = 0; i < assistantMessage.tool_calls.length; i++) {
+      var toolCall = assistantMessage.tool_calls[i];
+      var toolName = toolCall.function.name;
+      var toolArgs = {};
+      try { toolArgs = JSON.parse(toolCall.function.arguments); } catch (e) { toolArgs = {}; }
+
+      var toolResult;
+      if (toolName === 'search_rentals') {
+        toolResult = await executeSearchRentals(supabase, toolArgs);
+        listings = toolResult.listings || [];
+      } else if (toolName === 'get_market_stats') {
+        toolResult = await executeMarketStats(supabase, toolArgs);
+      } else {
+        toolResult = { error: 'Unknown tool' };
+      }
+
+      messages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(toolResult),
+      });
+    }
+
+    // Second call — Grok now has the real data, formats the response
+    var res2 = await fetch(XAI_BASE_URL + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + XAI_API_KEY,
+      },
+      body: JSON.stringify({
+        model: XAI_MODEL,
+        messages: messages,
+        max_tokens: 600,
+      }),
+    });
+
+    if (!res2.ok) {
+      console.error('Grok follow-up error:', res2.status);
+      return { type: 'error', message: 'Ask Pad hit a snag processing results.' };
+    }
+
+    var data2 = await res2.json();
+    var finalContent = data2.choices && data2.choices[0] && data2.choices[0].message && data2.choices[0].message.content;
+
+    return {
+      type: listings.length > 0 ? 'listings' : 'text',
+      message: finalContent || 'Here are your results!',
+      listings: listings.length > 0 ? listings : null,
+    };
+
+  } catch (err) {
+    console.error('Grok tool calling error:', err);
+    return { type: 'error', message: 'Ask Pad is temporarily unavailable. Try again shortly!' };
+  }
+}
+
+// ============================================================
+// TOOL IMPLEMENTATIONS
+// ============================================================
+
+async function executeSearchRentals(supabase, args) {
+  var query = supabase
+    .from('listings')
+    .select('id, listing_id, street_number, street_name, city, state_or_province, postal_code, county, property_sub_type, list_price, bedrooms_total, bathrooms_total, living_area, year_built, pets_allowed, pool, furnished, photos, days_on_market, status')
+    .eq('is_active', true)
+    .eq('status', 'active');
+
+  if (args.city) query = query.ilike('city', args.city);
+  if (args.county) query = query.ilike('county', args.county);
+  if (args.min_beds) query = query.gte('bedrooms_total', args.min_beds);
+  if (args.max_beds) query = query.lte('bedrooms_total', args.max_beds);
+  if (args.max_rent) query = query.lte('list_price', args.max_rent);
+  if (args.min_rent) query = query.gte('list_price', args.min_rent);
+  if (args.pets_allowed === true) query = query.eq('pets_allowed', true);
+  if (args.pool === true) query = query.eq('pool', true);
+  if (args.furnished === true) query = query.eq('furnished', true);
+  if (args.property_type) query = query.ilike('property_sub_type', '%' + args.property_type + '%');
+
+  query = query.order('list_price', { ascending: true }).limit(5);
+
+  var result = await query;
+  var data = result.data || [];
+
+  var listings = data.map(function(l) {
+    var address = ((l.street_number || '') + ' ' + (l.street_name || '')).trim();
+    return {
+      id: l.id,
+      mls: l.listing_id,
+      address: address,
+      city: l.city,
+      state: l.state_or_province,
+      zip: l.postal_code,
+      type: l.property_sub_type,
+      rent: l.list_price,
+      beds: l.bedrooms_total,
+      baths: l.bathrooms_total,
+      sqft: l.living_area,
+      yearBuilt: l.year_built,
+      pets: l.pets_allowed,
+      pool: l.pool,
+      furnished: l.furnished,
+      dom: l.days_on_market,
+      photo: l.photos && l.photos[0] ? l.photos[0].url || l.photos[0] : null,
+    };
+  });
+
+  return {
+    count: listings.length,
+    listings: listings,
+    searchParams: args,
+  };
+}
+
+async function executeMarketStats(supabase, args) {
+  var query = supabase
+    .from('listings')
+    .select('list_price, property_sub_type, bedrooms_total, living_area')
+    .eq('is_active', true)
+    .eq('status', 'active');
+
+  if (args.county) query = query.ilike('county', args.county);
+  if (args.city) query = query.ilike('city', args.city);
+
+  var result = await query;
+  var data = result.data || [];
+
+  if (data.length === 0) {
+    return { message: 'No active listings found in this area.', count: 0 };
+  }
+
+  var prices = data.map(function(l) { return Number(l.list_price) || 0; }).filter(function(p) { return p > 0; });
+  prices.sort(function(a, b) { return a - b; });
+
+  var median = prices[Math.floor(prices.length / 2)] || 0;
+  var min = prices[0] || 0;
+  var max = prices[prices.length - 1] || 0;
+
+  // Group by type
+  var byType = {};
+  data.forEach(function(l) {
+    var t = l.property_sub_type || 'Unknown';
+    if (!byType[t]) byType[t] = { count: 0, prices: [] };
+    byType[t].count++;
+    if (l.list_price) byType[t].prices.push(Number(l.list_price));
+  });
+
+  var typeStats = Object.keys(byType).map(function(type) {
+    var p = byType[type].prices.sort(function(a, b) { return a - b; });
+    return {
+      type: type,
+      count: byType[type].count,
+      medianRent: p[Math.floor(p.length / 2)] || 0,
+    };
+  });
+
+  return {
+    area: args.city || args.county || 'Unknown',
+    totalActive: data.length,
+    medianRent: median,
+    priceRange: { min: min, max: max },
+    byPropertyType: typeStats,
+  };
 }
