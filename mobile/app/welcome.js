@@ -1,43 +1,44 @@
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import ImageRotator from '../components/auth/ImageRotator';
-import { Button } from '../components/ui';
-import { saveUserRole } from '../lib/storage';
+import { saveUserRole, setRoleSelected } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
 
-const { height } = Dimensions.get('window');
+/**
+ * Welcome / Role Selector — shown ONCE on first app open.
+ * After role selection, saved to device storage and never shown again.
+ * Renters: creates anonymous Supabase session → instant swipe feed.
+ * Owners: routes to auth flow (owners need real identity to list).
+ */
 
-const WELCOME_IMAGES = [
-  require('../assets/images/welcome-1.jpg'),
-  require('../assets/images/welcome-2.jpg'),
-  require('../assets/images/welcome-3.jpg'),
-];
+async function handleRenterRole() {
+  await saveUserRole('tenant');
+  await setRoleSelected();
 
-function handleRole(role) {
-  saveUserRole(role);
-  router.replace({ pathname: '/(auth)/email', params: { role } });
+  // Create anonymous session — renter can swipe immediately
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (!error && data?.session) {
+    await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+  }
+
+  router.replace('/(tenant)/swipe');
+}
+
+async function handleOwnerRole() {
+  await saveUserRole('owner');
+  await setRoleSelected();
+  router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
 }
 
 export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
-      {/* Image rotator — top 33% */}
-      <View style={styles.imageSection}>
-        <ImageRotator images={WELCOME_IMAGES} interval={4000} />
-        {/* Gradient overlay for text readability */}
-        <LinearGradient
-          colors={['transparent', COLORS.background]}
-          style={styles.gradient}
-        />
-      </View>
-
-      <SafeAreaView style={styles.bottomSection} edges={['bottom']}>
+      <SafeAreaView style={styles.inner}>
         {/* Branding */}
         <View style={styles.branding}>
           <Image
@@ -52,44 +53,26 @@ export default function WelcomeScreen() {
           <Text style={styles.tagline}>
             Find Your Perfect Pad with PadScore<Text style={styles.tm}>{'\u2122'}</Text>
           </Text>
-          <Text style={styles.socialProof}>
-            11K+ South Florida rental listings
-          </Text>
         </View>
 
         {/* Role buttons */}
         <View style={styles.buttons}>
-          <Button
-            title="I'm a Tenant"
-            variant="primary"
-            size="md"
-            onPress={() => handleRole('tenant')}
-            style={styles.fullButton}
-          />
-          <Button
-            title="I'm a Property Owner"
-            variant="outline"
-            size="md"
-            onPress={() => handleRole('owner')}
-            style={styles.fullButton}
-          />
-          {/* Future: Broker button */}
-          <View style={{ height: 12 }} />
-        </View>
+          <TouchableOpacity style={styles.renterButton} onPress={handleRenterRole} activeOpacity={0.85}>
+            <Ionicons name="home" size={22} color={COLORS.white} style={styles.buttonIcon} />
+            <View>
+              <Text style={styles.buttonTitle}>I'm Looking for a Rental Home</Text>
+              <Text style={styles.buttonHint}>Swipe, match, and discover rentals instantly</Text>
+            </View>
+          </TouchableOpacity>
 
-        {/* Trust badge */}
-        <View style={styles.trustBadge}>
-          <Ionicons name="shield-checkmark" size={14} color={COLORS.success} />
-          <Text style={styles.trustText}>
-            Free to list. No broker fees. No catch.
-          </Text>
+          <TouchableOpacity style={styles.ownerButton} onPress={handleOwnerRole} activeOpacity={0.85}>
+            <Ionicons name="key" size={22} color={COLORS.white} style={styles.buttonIcon} />
+            <View>
+              <Text style={styles.buttonTitle}>I Own Rental Property</Text>
+              <Text style={styles.buttonHint}>List your property and find qualified renters</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-
-        {/* Founder quote */}
-        <Text style={styles.founderQuote}>
-          {'"I built PadMagnet because listing a rental shouldn\u2019t cost $40 or take all day."'}
-        </Text>
-        <Text style={styles.founderAttribution}>— Chris, Founder</Text>
 
         {/* Sign in link */}
         <TouchableOpacity
@@ -100,6 +83,12 @@ export default function WelcomeScreen() {
             Already have an account? <Text style={styles.signInBold}>Sign In</Text>
           </Text>
         </TouchableOpacity>
+
+        {/* Trust badge */}
+        <View style={styles.trustBadge}>
+          <Ionicons name="shield-checkmark" size={14} color={COLORS.success} />
+          <Text style={styles.trustText}>Free for renters. Always.</Text>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -110,36 +99,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  imageSection: {
-    height: height * 0.28,
-    position: 'relative',
-  },
-  gradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
-  bottomSection: {
+  inner: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: LAYOUT.padding.lg,
   },
   branding: {
     alignItems: 'center',
-    paddingTop: 16,
+    marginBottom: 48,
   },
   icon: {
-    width: 72,
-    height: 72,
-    marginBottom: 10,
+    width: 80,
+    height: 80,
+    marginBottom: 12,
   },
   wordmarkRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 4,
-    marginTop: -15,
+    marginBottom: 6,
   },
   wordmarkPad: {
     fontFamily: FONTS.heading.bold,
@@ -159,18 +136,46 @@ const styles = StyleSheet.create({
   },
   tm: {
     fontSize: FONT_SIZES.xxs,
-    lineHeight: 18,
   },
   buttons: {
-    gap: 12,
-    marginTop: 8,
+    gap: 14,
+    marginBottom: 24,
   },
-  fullButton: {
-    width: '100%',
+  renterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.logoOrange,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.md,
+    gap: 14,
+  },
+  ownerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 14,
+  },
+  buttonIcon: {
+    width: 28,
+  },
+  buttonTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+  },
+  buttonHint: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.overlayWhiteStrong,
+    marginTop: 2,
   },
   signInLink: {
     alignItems: 'center',
-    paddingBottom: 16,
+    paddingVertical: LAYOUT.padding.md,
   },
   signInText: {
     fontFamily: FONTS.body.regular,
@@ -181,39 +186,16 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     color: COLORS.accent,
   },
-  socialProof: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-  },
   trustBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginBottom: 8,
+    paddingTop: LAYOUT.padding.sm,
   },
   trustText: {
-    fontFamily: FONTS.body.semiBold,
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.success,
-  },
-  founderQuote: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    fontStyle: 'italic',
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: LAYOUT.padding.md,
-    marginBottom: 2,
-  },
-  founderAttribution: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 8,
+    color: COLORS.slate,
   },
 });

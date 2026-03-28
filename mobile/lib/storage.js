@@ -5,6 +5,7 @@ const KEYS = {
   ONBOARDED: 'padmagnet_onboarded',
   ONBOARDING_STEP: 'padmagnet_onboarding_step',
   USER_ROLE: 'padmagnet_user_role',
+  ROLE_SELECTED: 'padmagnet_role_selected', // true after first role selection (skip welcome on re-open)
   SEARCH_ZONES: '@padmagnet_search_zones',
 };
 
@@ -45,6 +46,15 @@ export async function getUserRole() {
 
 export async function clearUserRole() {
   await AsyncStorage.removeItem(KEYS.USER_ROLE);
+}
+
+// Role selector: has the user ever picked a role? (first-open only)
+export async function hasSelectedRole() {
+  return (await AsyncStorage.getItem(KEYS.ROLE_SELECTED)) === 'true';
+}
+
+export async function setRoleSelected() {
+  await AsyncStorage.setItem(KEYS.ROLE_SELECTED, 'true');
 }
 
 export async function getSearchZones() {

@@ -1,4 +1,4 @@
-import { hasOnboarded, getUserRole, saveUserRole } from './storage';
+import { hasOnboarded, getUserRole, saveUserRole, hasSelectedRole } from './storage';
 import { supabase } from './supabase';
 
 /**
@@ -7,13 +7,27 @@ import { supabase } from './supabase';
  *
  * Role source of truth: profiles.role (DB) → knownRole param → AsyncStorage → 'tenant'
  *
- * @param {object} session - Supabase auth session
+ * RENTER REDESIGN: Anonymous renters go straight to swipe feed.
+ * No /about-you, no /onboarding required for renters anymore.
+ * Name is collected at first message send, preferences via Smart Prompt Cards.
+ *
+ * @param {object} session - Supabase auth session (may be anonymous)
  * @param {string} [knownRole] - Pre-resolved role (from AuthProvider context or login params).
  */
 export async function resolvePostLoginDestination(session, knownRole) {
-  if (!session) return '/welcome';
+  // No session at all — check if user has ever selected a role
+  if (!session) {
+    const roleSelected = await hasSelectedRole();
+    if (!roleSelected) return '/welcome';
 
-  // Resolve role: DB → knownRole → AsyncStorage → default
+    // Role was selected but no session — this means renter in anonymous mode
+    // The index.js will handle creating anonymous session
+    const role = await getUserRole();
+    if (role === 'owner') return '/welcome'; // owners need real auth
+    return '/(tenant)/swipe'; // renters go to feed
+  }
+
+  // Has session — resolve role
   let role = knownRole;
   if (!role) {
     const { data: profile } = await supabase
@@ -34,19 +48,20 @@ export async function resolvePostLoginDestination(session, knownRole) {
     await saveUserRole(role);
   }
 
-  // Require full name before entering the app — check profiles table first, fall back to user_metadata
-  const { data: nameProfile } = await supabase
-    .from('profiles')
-    .select('display_name')
-    .eq('id', session.user.id)
-    .single();
-  const displayName = nameProfile?.display_name || session.user?.user_metadata?.display_name;
-  if (!displayName || !displayName.includes(' ')) {
-    return '/about-you';
+  // Owners still need full name before entering the app
+  if (role === 'owner') {
+    const { data: nameProfile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', session.user.id)
+      .single();
+    const displayName = nameProfile?.display_name || session.user?.user_metadata?.display_name;
+    if (!displayName || !displayName.includes(' ')) {
+      return '/about-you';
+    }
+    return '/(owner)/listings';
   }
 
-  if (role === 'owner') return '/(owner)/listings';
-
-  const onboarded = await hasOnboarded();
-  return onboarded ? '/(tenant)/swipe' : '/onboarding';
+  // Renters: straight to swipe feed (no onboarding wizard, no name gate)
+  return '/(tenant)/swipe';
 }

@@ -3,6 +3,8 @@ import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { resolvePostLoginDestination } from '../lib/routing';
+import { getUserRole, hasSelectedRole } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/colors';
 
 export default function Index() {
@@ -13,10 +15,30 @@ export default function Index() {
   useEffect(() => {
     if (loading) return;
 
-    resolvePostLoginDestination(session, role).then((dest) => {
+    async function resolve() {
+      // If no session but user previously selected renter role, create anonymous session
+      if (!session) {
+        const roleSelected = await hasSelectedRole();
+        const savedRole = await getUserRole();
+
+        if (roleSelected && savedRole === 'tenant') {
+          // Create anonymous session for renter
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (!error && data?.session) {
+            // Mark as anonymous in profiles
+            await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+            // AuthProvider will pick up the new session and re-render
+            return; // useAuth will re-trigger this effect
+          }
+        }
+      }
+
+      const dest = await resolvePostLoginDestination(session, role);
       setDestination(dest);
       setChecking(false);
-    });
+    }
+
+    resolve();
   }, [session, role, loading]);
 
   if (loading || checking) {
