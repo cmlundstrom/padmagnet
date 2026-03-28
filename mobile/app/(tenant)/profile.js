@@ -10,6 +10,9 @@ import { useAlert } from '../../providers/AlertProvider';
 import { supabase } from '../../lib/supabase';
 import ProfileCard from '../../components/screens/ProfileCard';
 import { PadScoreDashboard } from '../../components/padpoints';
+import { TierCard, TierUpgradeSheet } from '../../components/tiers';
+import useRenterTier from '../../hooks/useRenterTier';
+import { apiFetch } from '../../lib/api';
 import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
@@ -18,6 +21,8 @@ export default function TenantProfileScreen() {
   const alert = useAlert();
   const [profile, setProfile] = useState({});
   const padPoints = usePadPoints();
+  const renterTier = useRenterTier();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const fetchProfile = useCallback(() => {
     if (!user) return;
@@ -81,6 +86,19 @@ export default function TenantProfileScreen() {
           badges={padPoints.badges}
         />
 
+        {/* Tier status + Ask Pad */}
+        <TierCard
+          tier={renterTier.tier}
+          tierLabel={renterTier.tierLabel}
+          verified={renterTier.verified}
+          queriesToday={renterTier.queriesToday}
+          dailyLimit={renterTier.dailyLimit}
+          remainingQueries={renterTier.remainingQueries}
+          zones={renterTier.zones}
+          maxZones={renterTier.maxZones}
+          onUpgrade={() => setShowUpgrade(true)}
+        />
+
         {/* Profile card (name/email/phone) */}
         <ProfileCard
           role={role}
@@ -111,6 +129,56 @@ export default function TenantProfileScreen() {
           <Text style={[MENU.text, { color: COLORS.danger, fontSize: 13 }]}>Delete Account</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Tier Upgrade Sheet */}
+      <TierUpgradeSheet
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        currentTier={renterTier.tier}
+        padpoints={padPoints.padpoints}
+        onBuyExplorer={async () => {
+          try {
+            const result = await apiFetch('/api/renter-tier/checkout', {
+              method: 'POST',
+              body: JSON.stringify({ tier: 'explorer' }),
+            });
+            if (result.checkout_url) {
+              // Open Stripe checkout in browser
+              const { Linking } = require('react-native');
+              Linking.openURL(result.checkout_url);
+            }
+            setShowUpgrade(false);
+          } catch (err) {
+            alert('Error', err.message);
+          }
+        }}
+        onBuyMaster={async () => {
+          try {
+            const result = await apiFetch('/api/renter-tier/checkout', {
+              method: 'POST',
+              body: JSON.stringify({ tier: 'master' }),
+            });
+            if (result.checkout_url) {
+              const { Linking } = require('react-native');
+              Linking.openURL(result.checkout_url);
+            }
+            setShowUpgrade(false);
+          } catch (err) {
+            alert('Error', err.message);
+          }
+        }}
+        onRedeemExplorer={async () => {
+          try {
+            await apiFetch('/api/renter-tier/redeem', { method: 'POST' });
+            renterTier.refresh();
+            padPoints.checkStreak(); // refresh PadPoints after deduction
+            setShowUpgrade(false);
+            alert('Upgraded!', 'Welcome to Ask Pad Explorer! You now have 30 daily queries and 2 search zones.');
+          } catch (err) {
+            alert('Error', err.message);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -9,6 +9,8 @@ import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
 import { GlossyHeart } from '../../components/ui';
 import { PadPointsBar, SmartPromptCard, SMART_PROMPTS, LevelUpCelebration } from '../../components/padpoints';
+import { AskPadOrb, AskPadChat } from '../../components/askpad';
+import useRenterTier from '../../hooks/useRenterTier';
 import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
@@ -49,6 +51,8 @@ export default function SwipeScreen() {
   const [activePrompt, setActivePrompt] = useState(null);
   const [answeredPrompts, setAnsweredPrompts] = useState(new Set());
   const padPoints = usePadPoints();
+  const renterTier = useRenterTier();
+  const [showAskPad, setShowAskPad] = useState(false);
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
 
   // Check streak on mount
@@ -170,15 +174,26 @@ export default function SwipeScreen() {
           </View>
         </View>
 
-        {/* PadPoints bar */}
+        {/* PadPoints bar + Ask Pad orb */}
         {viewMode === 'cards' && (
-          <PadPointsBar
-            padpoints={padPoints.padpoints}
-            level={padPoints.level}
-            progress={padPoints.progress}
-            streakDays={padPoints.streakDays}
-            lastEarned={padPoints.lastEarned}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <PadPointsBar
+                padpoints={padPoints.padpoints}
+                level={padPoints.level}
+                progress={padPoints.progress}
+                streakDays={padPoints.streakDays}
+                lastEarned={padPoints.lastEarned}
+              />
+            </View>
+            <View style={{ paddingRight: LAYOUT.padding.md }}>
+              <AskPadOrb
+                onPress={() => setShowAskPad(true)}
+                remainingQueries={renterTier.remainingQueries}
+                dailyLimit={renterTier.dailyLimit}
+              />
+            </View>
+          </View>
         )}
 
         {/* Smart Prompt Card (appears between swipes at scheduled intervals) */}
@@ -291,6 +306,12 @@ export default function SwipeScreen() {
           visible={padPoints.lastEarned?.leveledUp === true}
           level={padPoints.lastEarned?.newLevel}
           onDismiss={() => {}}
+        />
+
+        {/* Ask Pad Chat Modal */}
+        <AskPadChat
+          visible={showAskPad}
+          onClose={() => setShowAskPad(false)}
         />
       </SafeAreaView>
   );
