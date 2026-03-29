@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   buttonHintOutline: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   signInLink: {
