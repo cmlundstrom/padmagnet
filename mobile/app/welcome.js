@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,7 +20,11 @@ const WELCOME_IMAGES = [
   require('../assets/images/welcome-3.jpg'),
 ];
 
+// State managed by the component — set via setLoadingRole
+let setLoadingRole = null;
+
 async function handleRenterRole() {
+  if (setLoadingRole) setLoadingRole(true);
   try {
     await saveUserRole('tenant');
     await setRoleSelected();
@@ -31,29 +36,19 @@ async function handleRenterRole() {
       return;
     }
 
-    // Create anonymous session — retry once if it fails
-    let signedIn = false;
-    for (let attempt = 0; attempt < 2 && !signedIn; attempt++) {
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) {
-        console.error('Anonymous sign-in attempt ' + (attempt + 1) + ':', error.message);
-        if (attempt === 0) await new Promise(function(r) { setTimeout(r, 500); });
-      }
-      if (data?.session) {
-        signedIn = true;
-        await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
-      }
-    }
-
-    if (!signedIn) {
-      console.error('Anonymous sign-in failed after retries — falling back to auth flow');
-      // If anonymous doesn't work, send to regular auth (they'll need to sign in)
+    // Create anonymous session
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error('Anonymous sign-in failed:', error.message);
       router.replace('/(auth)/email');
       return;
     }
+    if (data?.session) {
+      // Fire and forget — don't await the profile update
+      supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+    }
 
-    // Wait for AuthProvider to process the SIGNED_IN event
-    await new Promise(function(r) { setTimeout(r, 500); });
+    // Navigate immediately — AuthProvider will catch up
     router.replace('/(tenant)/swipe');
   } catch (err) {
     console.error('handleRenterRole error:', err);
@@ -68,6 +63,8 @@ async function handleOwnerRole() {
 }
 
 export default function WelcomeScreen() {
+  const [loadingRole, _setLoadingRole] = useState(false);
+  setLoadingRole = _setLoadingRole;
   return (
     <View style={styles.container}>
       {/* Image rotator — top portion */}
@@ -98,15 +95,15 @@ export default function WelcomeScreen() {
 
         {/* Role buttons — modern glass style */}
         <View style={styles.buttons}>
-          <TouchableOpacity style={styles.renterButton} onPress={handleRenterRole} activeOpacity={0.85}>
+          <TouchableOpacity style={[styles.renterButton, loadingRole && { opacity: 0.7 }]} onPress={handleRenterRole} activeOpacity={0.85} disabled={loadingRole}>
             <View style={styles.buttonIconCircle}>
-              <Ionicons name="home" size={20} color={COLORS.white} />
+              {loadingRole ? <ActivityIndicator size="small" color={COLORS.white} /> : <Ionicons name="home" size={20} color={COLORS.white} />}
             </View>
             <View style={styles.buttonTextWrap}>
-              <Text style={styles.buttonTitle}>Find a Rental</Text>
+              <Text style={styles.buttonTitle}>{loadingRole ? 'Loading...' : 'Find a Rental'}</Text>
               <Text style={styles.buttonHint}>Swipe, match, and discover instantly</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />
+            {!loadingRole && <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.ownerButton} onPress={handleOwnerRole} activeOpacity={0.85}>
