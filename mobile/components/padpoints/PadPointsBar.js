@@ -130,7 +130,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
               {renterTier !== 'master' && (
                 <Text style={styles.tierHint}>
                   {renterTier === 'free'
-                    ? 'Upgrade for more Ask Pad queries, extra search zones, and +20% PadPoints.'
+                    ? 'Level Up: More AskPad AI Searches + Extra Save Zones +20% PadPoints!'
                     : 'Go Master for unlimited queries, 3 zones, and the Verified Renter badge.'
                   }
                 </Text>
