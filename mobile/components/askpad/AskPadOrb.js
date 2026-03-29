@@ -79,7 +79,7 @@ var styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -4,
+    top: -8,
     right: -8,
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.full,
