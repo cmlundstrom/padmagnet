@@ -156,12 +156,14 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.sheetWrapper}
         >
-          <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
-            {/* Drag handle */}
-            <View style={styles.handle} />
+          <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
+            {/* Manila folder tab */}
+            <View style={styles.folderTab}>
+              <Text style={styles.tabTitle}>{contextCopy.title}</Text>
+            </View>
 
-            {/* Context-specific header */}
-            <Text style={styles.title}>{contextCopy.title}</Text>
+            {/* Sheet body — connects flush beneath the tab */}
+            <View style={styles.sheet}>
             <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
 
             {error && (
@@ -283,6 +285,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 <Text style={styles.skipText}>Skip for now</Text>
               </TouchableOpacity>
             )}
+            </View>
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>
@@ -344,31 +347,41 @@ const styles = StyleSheet.create({
   sheetWrapper: {
     justifyContent: 'flex-end',
   },
+  sheetOuter: {
+    marginHorizontal: 7,
+    alignItems: 'center',
+  },
+  folderTab: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: COLORS.border,
+    // Push tab down 1px so its bottom merges seamlessly with the sheet top border
+    marginBottom: -1,
+    zIndex: 1,
+  },
+  tabTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.white,
+    textAlign: 'center',
+  },
   sheet: {
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
     paddingHorizontal: LAYOUT.padding.lg,
     paddingBottom: LAYOUT.padding['2xl'],
-    paddingTop: LAYOUT.padding.md,
+    paddingTop: LAYOUT.padding.lg,
     borderTopWidth: 1,
     borderColor: COLORS.border,
-    marginHorizontal: 7,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: COLORS.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: LAYOUT.padding.md,
-  },
-  title: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: 4,
+    width: '100%',
   },
   subtitle: {
     fontFamily: FONTS.body.regular,
