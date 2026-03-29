@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'reac
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle, useAnimatedReaction,
-  withSequence, withTiming,
+  withSequence, withTiming, withRepeat, withDelay, Easing,
 } from 'react-native-reanimated';
 import PadScoreRing from './PadScoreRing';
 import { COLORS } from '../../constants/colors';
@@ -36,6 +36,48 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
     return {
       transform: [{ translateY: floatY.value }],
       opacity: floatOpacity.value,
+    };
+  });
+
+  // Flame flicker — gentle scale + slight rotation wobble
+  const flameScale = useSharedValue(1);
+  const flameRotate = useSharedValue(0);
+
+  useAnimatedReaction(
+    function() { return streakDays; },
+    function(curr) {
+      if (curr > 0) {
+        flameScale.value = withRepeat(
+          withSequence(
+            withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0.95, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1.08, { duration: 550, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1, { duration: 450, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          false,
+        );
+        flameRotate.value = withRepeat(
+          withSequence(
+            withTiming(4, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+            withTiming(-3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+            withTiming(2, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          false,
+        );
+      }
+    },
+    [streakDays]
+  );
+
+  const flameStyle = useAnimatedStyle(function() {
+    return {
+      transform: [
+        { scale: flameScale.value },
+        { rotate: flameRotate.value + 'deg' },
+      ],
     };
   });
 
@@ -83,7 +125,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
           onPress={() => setShowTooltip(true)}
           activeOpacity={0.7}
         >
-          <Text style={styles.streakIcon}>🔥</Text>
+          <Animated.Text style={[styles.streakIcon, flameStyle]}>🔥</Animated.Text>
           <Text style={styles.streakCount}>{streakDays}</Text>
         </TouchableOpacity>
       )}
