@@ -160,10 +160,15 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
             {/* Manila folder tab — narrower, centered, protruding */}
             <View style={styles.folderTabOuter}>
-              <View style={styles.folderTab}>
+              <LinearGradient
+                colors={['#9B8045', '#BEA060', '#C9A96A']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.folderTab}
+              >
                 <Text style={styles.tabTitle}>{contextCopy.title}</Text>
                 <View style={styles.tabHandle} />
-              </View>
+              </LinearGradient>
             </View>
 
             {/* Folder body — full width, same manila color family */}
@@ -379,7 +384,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   folderTab: {
-    backgroundColor: '#C9A96A',
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
     paddingHorizontal: 30,
