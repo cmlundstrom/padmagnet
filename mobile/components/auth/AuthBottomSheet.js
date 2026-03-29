@@ -309,7 +309,7 @@ function getContextCopy(context, padpoints) {
     case 'messages_tab':
       return {
         title: '💬 Your Messages',
-        subtitle: 'Sign in to view and send messages to property owners.',
+        subtitle: 'Sign in to View & Send SMS/Email to Property Owners.',
         dismissible: false,
       };
     case 'save_limit':
