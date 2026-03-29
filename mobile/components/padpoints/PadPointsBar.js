@@ -49,20 +49,20 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
       if (curr > 0) {
         flameScale.value = withRepeat(
           withSequence(
-            withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-            withTiming(0.95, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-            withTiming(1.08, { duration: 550, easing: Easing.inOut(Easing.ease) }),
-            withTiming(1, { duration: 450, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1.15, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0.95, { duration: 750, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1.08, { duration: 825, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1, { duration: 675, easing: Easing.inOut(Easing.ease) }),
           ),
           -1,
           false,
         );
         flameRotate.value = withRepeat(
           withSequence(
-            withTiming(4, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-            withTiming(-3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-            withTiming(2, { duration: 400, easing: Easing.inOut(Easing.ease) }),
-            withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+            withTiming(4, { duration: 750, easing: Easing.inOut(Easing.ease) }),
+            withTiming(-3, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+            withTiming(2, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0, { duration: 750, easing: Easing.inOut(Easing.ease) }),
           ),
           -1,
           false,
