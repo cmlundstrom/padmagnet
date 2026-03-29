@@ -234,7 +234,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
               <Text style={styles.rulesEmoji}>🎮</Text>
               <Text style={styles.rulesTitle}>How PadPoints Work</Text>
               <Text style={styles.rulesSubtitle}>
-                Earn points just by using PadMagnet.{'\n'}No purchases required — ever.
+                Every rental search earns PadPoints—use them to power your AI tools for free! No purchase required.
               </Text>
 
               {/* Earn table */}
