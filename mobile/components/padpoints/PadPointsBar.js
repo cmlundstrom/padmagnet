@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle, useAnimatedReaction,
   withSequence, withTiming,
@@ -148,12 +149,19 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.upgradeCtaText}>
-                  {renterTier === 'free'
-                    ? 'Add more AskPad Ai Power Searches, from $1.50 mo.'
-                    : 'Add more AskPad Ai Power Searches, from $3.50 mo.'
-                  }
-                </Text>
+                <LinearGradient
+                  colors={['#FF8C42', COLORS.logoOrange, '#C94A1E']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.upgradeCtaGradient}
+                >
+                  <Text style={styles.upgradeCtaText}>
+                    {renterTier === 'free'
+                      ? 'Add more AskPad Ai Power Searches, from $1.50 mo.'
+                      : 'Add more AskPad Ai Power Searches, from $3.50 mo.'
+                    }
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
 
@@ -328,18 +336,27 @@ const styles = StyleSheet.create({
   },
   // ── Upgrade CTA ──────────────────────────────────
   upgradeCta: {
-    backgroundColor: COLORS.logoOrange,
-    borderRadius: LAYOUT.radius.xl,
-    paddingVertical: 14,
-    paddingHorizontal: LAYOUT.padding.xl,
     width: '100%',
-    alignItems: 'center',
+    borderRadius: LAYOUT.radius.xl,
+    overflow: 'hidden',
     marginBottom: LAYOUT.padding.sm,
+    // 3D bevel border
+    borderWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.30)',
+    borderLeftColor: 'rgba(255,255,255,0.15)',
+    borderRightColor: 'rgba(0,0,0,0.12)',
+    borderBottomColor: 'rgba(0,0,0,0.20)',
+    // Warm glow shadow
     shadowColor: '#F97316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  upgradeCtaGradient: {
+    paddingVertical: 15,
+    paddingHorizontal: LAYOUT.padding.lg,
+    alignItems: 'center',
   },
   upgradeCtaText: {
     fontFamily: FONTS.heading.bold,
@@ -348,6 +365,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.3,
     lineHeight: 20,
+    // Subtle text shadow for depth
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   // ── Dismiss ──────────────────────────────────────
   tooltipDismiss: {
