@@ -375,8 +375,7 @@ const styles = StyleSheet.create({
   },
   folderTabOuter: {
     zIndex: 1,
-    marginBottom: -LAYOUT.radius.xl,
-    // Shadow for lifted tab
+    marginBottom: -1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -388,11 +387,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: LAYOUT.radius.xl,
     paddingHorizontal: 30,
     paddingTop: 10,
-    paddingBottom: 10 + LAYOUT.radius.xl,
+    paddingBottom: 10,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderBottomWidth: 0,
-    borderColor: '#8B7035',
   },
   tabTitle: {
     fontFamily: FONTS.heading.bold,
@@ -416,10 +412,6 @@ const styles = StyleSheet.create({
     width: '100%',
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
-    borderLeftWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderTopWidth: 0,
-    borderColor: '#8B7035',
     overflow: 'hidden',
   },
   sheet: {
