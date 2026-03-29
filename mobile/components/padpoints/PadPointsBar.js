@@ -149,7 +149,10 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                 activeOpacity={0.85}
               >
                 <Text style={styles.upgradeCtaText}>
-Add more AskPad Ai Power Searches
+                  {renterTier === 'free'
+                    ? 'Add more AskPad Ai Power Searches, from $1.50 mo.'
+                    : 'Add more AskPad Ai Power Searches, from $3.50 mo.'
+                  }
                 </Text>
               </TouchableOpacity>
             )}
