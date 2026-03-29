@@ -65,16 +65,16 @@ var styles = StyleSheet.create({
   },
   askText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.white,
-    lineHeight: 13,
+    lineHeight: 12,
     letterSpacing: 0.5,
   },
   padText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.brandOrange,
-    lineHeight: 13,
+    lineHeight: 12,
     letterSpacing: 0.5,
   },
   badge: {
