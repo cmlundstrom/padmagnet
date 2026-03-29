@@ -8,9 +8,11 @@ import CardStack from '../../components/cards/CardStack';
 import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
 import { GlossyHeart } from '../../components/ui';
+import LocationSoftAsk from '../../components/LocationSoftAsk';
 import { PadPointsBar, SmartPromptCard, SMART_PROMPTS, LevelUpCelebration } from '../../components/padpoints';
 import { AskPadOrb, AskPadChat } from '../../components/askpad';
 import useRenterTier from '../../hooks/useRenterTier';
+import useLocation from '../../hooks/useLocation';
 import useListings from '../../hooks/useListings';
 import useSwipe from '../../hooks/useSwipe';
 import usePreferences from '../../hooks/usePreferences';
@@ -19,6 +21,7 @@ import { useAlert } from '../../providers/AlertProvider';
 import { AuthContext } from '../../providers/AuthProvider';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
+import { hasAskedLocation, setLocationAsked } from '../../lib/storage';
 import { calculatePadScore } from '../../lib/padscore';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -54,6 +57,36 @@ export default function SwipeScreen() {
   const renterTier = useRenterTier();
   const [showAskPad, setShowAskPad] = useState(false);
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
+
+  // ── Location soft-ask ──────────────────────────────────────
+  const [showLocationAsk, setShowLocationAsk] = useState(false);
+  const { requestPermission, checkExistingPermission } = useLocation();
+
+  useEffect(() => {
+    (async () => {
+      // If permission already granted from a prior session, just fetch location silently
+      const alreadyGranted = await checkExistingPermission();
+      if (alreadyGranted) return;
+
+      // If we've already shown the soft-ask before, don't show again
+      const asked = await hasAskedLocation();
+      if (asked) return;
+
+      // First time on swipe screen with no location permission — show soft-ask
+      setShowLocationAsk(true);
+    })();
+  }, []);
+
+  const handleLocationEnable = useCallback(async () => {
+    setShowLocationAsk(false);
+    await setLocationAsked();
+    await requestPermission();
+  }, [requestPermission]);
+
+  const handleLocationSkip = useCallback(async () => {
+    setShowLocationAsk(false);
+    await setLocationAsked();
+  }, []);
 
   // Check streak on mount
   useEffect(() => { padPoints.checkStreak(); }, []);
@@ -314,6 +347,14 @@ export default function SwipeScreen() {
           visible={showAskPad}
           onClose={() => setShowAskPad(false)}
         />
+
+        {/* Location soft-ask overlay — shown once on first visit */}
+        {showLocationAsk && (
+          <LocationSoftAsk
+            onEnable={handleLocationEnable}
+            onSkip={handleLocationSkip}
+          />
+        )}
       </SafeAreaView>
   );
 }

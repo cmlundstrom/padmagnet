@@ -7,6 +7,7 @@ const KEYS = {
   USER_ROLE: 'padmagnet_user_role',
   ROLE_SELECTED: 'padmagnet_role_selected', // true after first role selection (skip welcome on re-open)
   SEARCH_ZONES: '@padmagnet_search_zones',
+  LOCATION_ASKED: 'padmagnet_location_asked', // true after location soft-ask shown
 };
 
 export async function getPreferences() {
@@ -78,4 +79,13 @@ export async function saveDraftStep(draftId, step) {
 
 export async function clearDraftStep(draftId) {
   await AsyncStorage.removeItem(`padmagnet_draft_step_${draftId}`);
+}
+
+// Location soft-ask: has the user already been shown the branded pre-permission screen?
+export async function hasAskedLocation() {
+  return (await AsyncStorage.getItem(KEYS.LOCATION_ASKED)) === 'true';
+}
+
+export async function setLocationAsked() {
+  await AsyncStorage.setItem(KEYS.LOCATION_ASKED, 'true');
 }
