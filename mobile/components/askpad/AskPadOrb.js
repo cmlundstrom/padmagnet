@@ -51,9 +51,9 @@ export default function AskPadOrb({ onPress, remainingQueries, dailyLimit }) {
 
 var styles = StyleSheet.create({
   orb: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
