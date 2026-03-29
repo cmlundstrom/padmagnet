@@ -51,9 +51,9 @@ export default function AskPadOrb({ onPress, remainingQueries, dailyLimit }) {
 
 var styles = StyleSheet.create({
   orb: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -67,17 +67,17 @@ var styles = StyleSheet.create({
   },
   askText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.white,
-    lineHeight: 12,
-    letterSpacing: 0.5,
+    lineHeight: 13,
+    letterSpacing: 0,
   },
   padText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.brandOrange,
-    lineHeight: 12,
-    letterSpacing: 0.5,
+    lineHeight: 13,
+    letterSpacing: 0,
   },
   badge: {
     position: 'absolute',
