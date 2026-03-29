@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { apiFetch } from '../lib/api';
 import { AuthContext } from '../providers/AuthProvider';
 
-export default function useListings({ deviceLat, deviceLng } = {}) {
+export default function useListings({ deviceLat, deviceLng, locationReady = true } = {}) {
   const { session } = useContext(AuthContext);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,20 +81,20 @@ export default function useListings({ deviceLat, deviceLng } = {}) {
     }
   }, [fetchPage, prefetchNext]);
 
-  // Fetch listings once auth session is ready (or when it changes, e.g. hot reload)
+  // Fetch listings once auth session AND location are ready
   // Reset fetchingRef in case hot reload interrupted a previous in-flight request
   useEffect(() => {
-    if (!session) return;
+    if (!session || !locationReady) return;
     fetchingRef.current = false;
     if (retryRef.current) clearTimeout(retryRef.current);
     fetchListings(1);
     return () => { if (retryRef.current) clearTimeout(retryRef.current); };
-  }, [session, fetchListings]);
+  }, [session, locationReady, fetchListings]);
 
   // Re-fetch listings when app returns to foreground (warm start)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && session) {
+      if (state === 'active' && session && locationReady) {
         setListings([]);
         pageRef.current = 1;
         setHasMore(true);
@@ -103,7 +103,7 @@ export default function useListings({ deviceLat, deviceLng } = {}) {
       }
     });
     return () => sub.remove();
-  }, [session, fetchListings]);
+  }, [session, locationReady, fetchListings]);
 
   const loadMore = useCallback(() => {
     if (fetchingRef.current || !hasMore) return;

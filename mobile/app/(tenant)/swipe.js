@@ -59,21 +59,29 @@ export default function SwipeScreen() {
 
   // ── Location soft-ask ──────────────────────────────────────
   const [showLocationAsk, setShowLocationAsk] = useState(false);
+  const [locationReady, setLocationReady] = useState(false);
   const { location: deviceLocation, requestPermission, checkExistingPermission } = useLocation();
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings({
     deviceLat: deviceLocation?.latitude || null,
     deviceLng: deviceLocation?.longitude || null,
+    locationReady,
   });
 
   useEffect(() => {
     (async () => {
-      // If permission already granted from a prior session, just fetch location silently
+      // If permission already granted from a prior session, fetch location then unlock listings
       const alreadyGranted = await checkExistingPermission();
-      if (alreadyGranted) return;
+      if (alreadyGranted) {
+        setLocationReady(true);
+        return;
+      }
 
-      // If we've already shown the soft-ask before, don't show again
+      // If we've already shown the soft-ask before, don't show again — just proceed without GPS
       const asked = await hasAskedLocation();
-      if (asked) return;
+      if (asked) {
+        setLocationReady(true);
+        return;
+      }
 
       // First time on swipe screen with no location permission — show soft-ask
       setShowLocationAsk(true);
@@ -84,11 +92,13 @@ export default function SwipeScreen() {
     setShowLocationAsk(false);
     await setLocationAsked();
     await requestPermission();
+    setLocationReady(true);
   }, [requestPermission]);
 
   const handleLocationSkip = useCallback(async () => {
     setShowLocationAsk(false);
     await setLocationAsked();
+    setLocationReady(true);
   }, []);
 
   // Check streak on mount
