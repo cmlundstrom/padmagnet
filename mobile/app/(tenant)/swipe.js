@@ -273,7 +273,7 @@ export default function SwipeScreen() {
         )}
 
         {/* Card area */}
-        <View style={[styles.cardArea, { marginTop: activePrompt ? 0 : 35 }]}>
+        <View style={[styles.cardArea, viewMode === 'cards' && { marginTop: activePrompt ? 0 : 35 }]}>
           {viewMode === 'cards' && (
             <CardStack
               listings={scoredListings}
