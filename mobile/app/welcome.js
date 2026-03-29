@@ -31,20 +31,33 @@ async function handleRenterRole() {
       return;
     }
 
-    // Create anonymous session
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.error('Anonymous sign-in failed:', error.message);
-    }
-    if (data?.session) {
-      await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+    // Create anonymous session — retry once if it fails
+    let signedIn = false;
+    for (let attempt = 0; attempt < 2 && !signedIn; attempt++) {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) {
+        console.error('Anonymous sign-in attempt ' + (attempt + 1) + ':', error.message);
+        if (attempt === 0) await new Promise(function(r) { setTimeout(r, 500); });
+      }
+      if (data?.session) {
+        signedIn = true;
+        await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+      }
     }
 
-    // Small delay to let AuthProvider process the SIGNED_IN event
-    setTimeout(function() { router.replace('/(tenant)/swipe'); }, 300);
+    if (!signedIn) {
+      console.error('Anonymous sign-in failed after retries — falling back to auth flow');
+      // If anonymous doesn't work, send to regular auth (they'll need to sign in)
+      router.replace('/(auth)/email');
+      return;
+    }
+
+    // Wait for AuthProvider to process the SIGNED_IN event
+    await new Promise(function(r) { setTimeout(r, 500); });
+    router.replace('/(tenant)/swipe');
   } catch (err) {
     console.error('handleRenterRole error:', err);
-    router.replace('/(tenant)/swipe');
+    router.replace('/(auth)/email');
   }
 }
 

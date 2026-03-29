@@ -15,11 +15,15 @@ export default function AskPadOrb({ onPress, remainingQueries, dailyLimit }) {
   const pulseScale = useSharedValue(1);
 
   useEffect(() => {
-    pulseScale.value = withRepeat(
-      withTiming(1.08, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-      -1, // infinite
-      true // reverse
-    );
+    // Delay to avoid writing shared value during initial render
+    const timer = setTimeout(function() {
+      pulseScale.value = withRepeat(
+        withTiming(1.08, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    }, 100);
+    return function() { clearTimeout(timer); };
   }, []);
 
   const pulseStyle = useAnimatedStyle(() => ({
