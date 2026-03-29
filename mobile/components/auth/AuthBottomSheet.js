@@ -4,6 +4,7 @@ import {
   Modal, Pressable, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
@@ -157,10 +158,24 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
           style={styles.sheetWrapper}
         >
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
-            {/* Manila folder tab */}
-            <View style={styles.folderTab}>
-              <Text style={styles.tabTitle}>{contextCopy.title}</Text>
-              <View style={styles.tabHandle} />
+            {/* Manila folder tab — weathered parchment look */}
+            <View style={styles.folderTabOuter}>
+              <LinearGradient
+                colors={['#8B7035', '#C4A265', '#D4B87A', '#C9A96A', '#8B7035']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.folderTab}
+              >
+                {/* Worn center highlight */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(255,255,255,0.12)', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Text style={styles.tabTitle}>{contextCopy.title}</Text>
+                <View style={styles.tabHandle} />
+              </LinearGradient>
             </View>
 
             {/* Sheet body — connects flush beneath the tab */}
@@ -352,34 +367,47 @@ const styles = StyleSheet.create({
     marginHorizontal: 7,
     alignItems: 'center',
   },
+  folderTabOuter: {
+    // Shadow for the tab to look lifted
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    marginBottom: -1,
+    zIndex: 1,
+  },
   folderTab: {
-    backgroundColor: COLORS.surface,
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
     paddingHorizontal: 28,
-    paddingTop: 12,
+    paddingTop: 14,
     paddingBottom: 14,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: COLORS.border,
-    // Push tab down 1px so its bottom merges seamlessly with the sheet top border
-    marginBottom: -1,
-    zIndex: 1,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderTopColor: '#A08040',
+    borderLeftColor: '#9A7A3A',
+    borderRightColor: '#7A6030',
+    overflow: 'hidden',
   },
   tabTitle: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.white,
+    color: '#3A2810',
     textAlign: 'center',
+    textShadowColor: 'rgba(255,255,255,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 0,
   },
   tabHandle: {
     width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.logoOrange,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#6B5020',
     alignSelf: 'center',
     marginTop: 8,
+    opacity: 0.6,
   },
   sheet: {
     backgroundColor: COLORS.surface,
