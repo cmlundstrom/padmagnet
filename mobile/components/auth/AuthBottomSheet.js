@@ -160,6 +160,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
             {/* Manila folder tab */}
             <View style={styles.folderTab}>
               <Text style={styles.tabTitle}>{contextCopy.title}</Text>
+              <View style={styles.tabHandle} />
             </View>
 
             {/* Sheet body — connects flush beneath the tab */}
@@ -371,6 +372,14 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     color: COLORS.white,
     textAlign: 'center',
+  },
+  tabHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.logoOrange,
+    alignSelf: 'center',
+    marginTop: 8,
   },
   sheet: {
     backgroundColor: COLORS.surface,
