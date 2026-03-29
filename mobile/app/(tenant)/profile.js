@@ -12,7 +12,6 @@ import ProfileCard from '../../components/screens/ProfileCard';
 import { PadScoreDashboard } from '../../components/padpoints';
 import { TierCard, TierUpgradeSheet } from '../../components/tiers';
 import useRenterTier from '../../hooks/useRenterTier';
-import { apiFetch } from '../../lib/api';
 import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
 
