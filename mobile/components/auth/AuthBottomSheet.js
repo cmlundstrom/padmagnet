@@ -50,6 +50,22 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setLoading(false);
   }
 
+  async function handleFacebook() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: 'padmagnet://auth-callback' },
+      });
+      if (authError) setError(authError.message);
+      else onClose?.();
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }
+
   async function handleApple() {
     setLoading(true);
     setError(null);
@@ -156,17 +172,23 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
             {mode === 'main' && !magicSent && (
               <>
-                {/* Google */}
-                <TouchableOpacity style={styles.socialButton} onPress={handleGoogle} disabled={loading} activeOpacity={0.8}>
-                  <Ionicons name="logo-google" size={20} color={COLORS.socialGoogle} />
-                  <Text style={styles.socialText}>Continue with Google</Text>
+                {/* Google — white bg, red G, dark text (matches owner auth screen) */}
+                <TouchableOpacity style={styles.googleButton} onPress={handleGoogle} disabled={loading} activeOpacity={0.8}>
+                  <Ionicons name="logo-google" size={18} color={COLORS.socialGoogle} />
+                  <Text style={styles.googleText}>Continue with Google</Text>
+                </TouchableOpacity>
+
+                {/* Facebook — blue bg, white f icon, white text */}
+                <TouchableOpacity style={styles.facebookButton} onPress={handleFacebook} disabled={loading} activeOpacity={0.8}>
+                  <Ionicons name="logo-facebook" size={18} color={COLORS.white} />
+                  <Text style={styles.facebookText}>Continue with Facebook</Text>
                 </TouchableOpacity>
 
                 {/* Apple (iOS only) */}
                 {Platform.OS === 'ios' && (
-                  <TouchableOpacity style={styles.socialButton} onPress={handleApple} disabled={loading} activeOpacity={0.8}>
-                    <Ionicons name="logo-apple" size={20} color={COLORS.white} />
-                    <Text style={styles.socialText}>Continue with Apple</Text>
+                  <TouchableOpacity style={styles.appleButton} onPress={handleApple} disabled={loading} activeOpacity={0.8}>
+                    <Ionicons name="logo-apple" size={18} color={COLORS.white} />
+                    <Text style={styles.appleText}>Continue with Apple</Text>
                   </TouchableOpacity>
                 )}
 
@@ -179,7 +201,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
                 {/* Magic Link */}
                 <TouchableOpacity style={styles.magicButton} onPress={() => setMode('magic')} activeOpacity={0.8}>
-                  <Ionicons name="mail" size={20} color={COLORS.accent} />
+                  <Ionicons name="mail" size={18} color={COLORS.accent} />
                   <Text style={styles.magicText}>Send Magic Link</Text>
                 </TouchableOpacity>
 
@@ -367,21 +389,49 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     textAlign: 'center',
   },
-  socialButton: {
+  googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: COLORS.frostedGlass,
+    backgroundColor: COLORS.white,
     borderRadius: LAYOUT.radius.md,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    padding: 13,
+    marginBottom: 8,
   },
-  socialText: {
+  googleText: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.socialTextDark,
+  },
+  facebookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: COLORS.socialFacebook,
+    borderRadius: LAYOUT.radius.md,
+    padding: 13,
+    marginBottom: 8,
+  },
+  facebookText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+  },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: COLORS.black,
+    borderRadius: LAYOUT.radius.md,
+    padding: 13,
+    marginBottom: 8,
+  },
+  appleText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.white,
   },
   divider: {
