@@ -135,6 +135,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                   }
                 </Text>
               )}
+
             </View>
 
             {/* Upgrade CTA */}
@@ -148,7 +149,10 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                 activeOpacity={0.85}
               >
                 <Text style={styles.upgradeCtaText}>
-                  {renterTier === 'free' ? 'Unlock More — from $1.50' : 'Go Master — $3.50'}
+                  {renterTier === 'free'
+                    ? "Unlock Even More 'Ask Pad' Ai Searching! $1.50 - Good for 30 days!"
+                    : "Unlock Even More 'Ask Pad' Ai Searching! $3.50 - Good for 30 days!"
+                  }
                 </Text>
               </TouchableOpacity>
             )}
@@ -318,7 +322,7 @@ const styles = StyleSheet.create({
   tierHint: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.white,
     textAlign: 'center',
     lineHeight: 17,
   },
@@ -339,9 +343,11 @@ const styles = StyleSheet.create({
   },
   upgradeCtaText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.white,
+    textAlign: 'center',
     letterSpacing: 0.3,
+    lineHeight: 20,
   },
   // ── Dismiss ──────────────────────────────────────
   tooltipDismiss: {
