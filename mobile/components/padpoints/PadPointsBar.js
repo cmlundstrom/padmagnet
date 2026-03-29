@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useEffect } from 'react';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withSequence, withSpring, withTiming,
+  withSequence, withTiming,
 } from 'react-native-reanimated';
 import PadScoreRing from './PadScoreRing';
 import { COLORS } from '../../constants/colors';
@@ -20,10 +20,8 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
   // Float-up animation for "+N PadPoints" text
   useEffect(() => {
     if (!lastEarned) return;
-    floatY.value = 0;
-    floatOpacity.value = 1;
-    floatY.value = withTiming(-24, { duration: 1000 });
-    floatOpacity.value = withTiming(0, { duration: 1000 });
+    floatY.value = withSequence(withTiming(0, { duration: 0 }), withTiming(-24, { duration: 1000 }));
+    floatOpacity.value = withSequence(withTiming(1, { duration: 0 }), withTiming(0, { duration: 1000 }));
   }, [lastEarned]);
 
   const floatStyle = useAnimatedStyle(() => ({
