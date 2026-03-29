@@ -327,13 +327,43 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                 </View>
               </View>
 
+              {/* Upgrade CTA — reward at end of scroll */}
+              {renterTier !== 'master' && onUpgrade && (
+                <TouchableOpacity
+                  style={styles.rulesCta}
+                  onPress={() => {
+                    setShowGameRules(false);
+                    onUpgrade();
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={['#FF8C42', COLORS.logoOrange, '#C94A1E']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.rulesCtaGradient}
+                  >
+                    <Text style={styles.rulesCtaText}>
+                      {renterTier === 'free'
+                        ? padpoints >= 350
+                          ? 'Redeem 350 PadPoints for Free Upgrade'
+                          : 'Skip the Wait — Upgrade from $1.50/mo'
+                        : 'Go Pad Master — $3.50/mo'
+                      }
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
               {/* Dismiss */}
               <TouchableOpacity
                 style={styles.tooltipDismiss}
                 onPress={() => setShowGameRules(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.tooltipDismissText}>Got it</Text>
+                <Text style={styles.tooltipDismissText}>
+                  {renterTier !== 'master' ? 'No thanks, I\'ll keep earning' : 'Got it'}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </Pressable>
@@ -681,5 +711,39 @@ const styles = StyleSheet.create({
     width: 1,
     height: 28,
     backgroundColor: COLORS.border,
+  },
+  // ── Rules CTA ───────────────────────────────────
+  rulesCta: {
+    width: '100%',
+    borderRadius: LAYOUT.radius.xl,
+    overflow: 'hidden',
+    marginTop: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.xs,
+    borderWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.30)',
+    borderLeftColor: 'rgba(255,255,255,0.15)',
+    borderRightColor: 'rgba(0,0,0,0.12)',
+    borderBottomColor: 'rgba(0,0,0,0.20)',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  rulesCtaGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: LAYOUT.padding.md,
+    alignItems: 'center',
+  },
+  rulesCtaText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+    lineHeight: 19,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
