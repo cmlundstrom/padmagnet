@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle, useAnimatedReaction,
@@ -16,6 +16,7 @@ import { LAYOUT } from '../../constants/layout';
  */
 export default function PadPointsBar({ padpoints, level, progress, streakDays, lastEarned, renterTier, onUpgrade }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showGameRules, setShowGameRules] = useState(false);
 
   const floatY = useSharedValue(0);
   const floatOpacity = useSharedValue(0);
@@ -93,30 +94,34 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
 
   return (
     <View style={styles.container}>
-      {/* Animated PadScore Ring */}
-      <View style={styles.ringSection}>
-        <PadScoreRing
-          progress={progress}
-          level={level}
-          padpoints={padpoints}
-          lastEarned={lastEarned}
-        />
-        {/* Float-up text */}
-        {lastEarned && (
-          <Animated.Text style={[styles.floatText, floatStyle]}>
-            +{lastEarned.amount}
-          </Animated.Text>
-        )}
-      </View>
-
-      {/* Level + progress */}
-      <View style={styles.levelSection}>
-        <Text style={[styles.levelName, { color: levelColor }]}>{level.name}</Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: levelColor }]} />
+      {/* PadPoints ring + level — tappable to show game rules */}
+      <TouchableOpacity
+        style={styles.gameHotspot}
+        onPress={() => setShowGameRules(true)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.ringSection}>
+          <PadScoreRing
+            progress={progress}
+            level={level}
+            padpoints={padpoints}
+            lastEarned={lastEarned}
+          />
+          {lastEarned && (
+            <Animated.Text style={[styles.floatText, floatStyle]}>
+              +{lastEarned.amount}
+            </Animated.Text>
+          )}
         </View>
-        <Text style={styles.pointsLabel}>{padpoints} PadPoints</Text>
-      </View>
+
+        <View style={styles.levelSection}>
+          <Text style={[styles.levelName, { color: levelColor }]}>{level.name}</Text>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: levelColor }]} />
+          </View>
+          <Text style={styles.pointsLabel}>{padpoints} PadPoints</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* Streak — tappable */}
       {streakDays > 0 && (
@@ -218,11 +223,133 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Game Rules modal */}
+      <Modal visible={showGameRules} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowGameRules(false)}>
+        <Pressable style={styles.tooltipBackdrop} onPress={() => setShowGameRules(false)}>
+          <Pressable style={styles.rulesCard} onPress={e => e.stopPropagation()}>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {/* Header */}
+              <Text style={styles.rulesEmoji}>🎮</Text>
+              <Text style={styles.rulesTitle}>How PadPoints Work</Text>
+              <Text style={styles.rulesSubtitle}>
+                Earn points just by using PadMagnet.{'\n'}No purchases required — ever.
+              </Text>
+
+              {/* Earn table */}
+              <View style={styles.rulesSection}>
+                <Text style={styles.rulesSectionTitle}>Ways to Earn</Text>
+                <View style={styles.earnTable}>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>💚 Save a listing</Text>
+                    <Text style={styles.earnPoints}>+5</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>💚 Save a high match (80%+)</Text>
+                    <Text style={styles.earnPoints}>+8</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>👈 Pass on a listing</Text>
+                    <Text style={styles.earnPoints}>+2</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>📱 Open the app daily</Text>
+                    <Text style={styles.earnPoints}>+10</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>🔥 7-day streak bonus</Text>
+                    <Text style={styles.earnPoints}>+50</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>✉️ Send your first message</Text>
+                    <Text style={styles.earnPoints}>+25</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={styles.earnAction}>✨ Answer a Smart Prompt</Text>
+                    <Text style={styles.earnPoints}>+10–15</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Levels */}
+              <View style={styles.rulesSection}>
+                <Text style={styles.rulesSectionTitle}>Levels</Text>
+                <View style={styles.earnTable}>
+                  <View style={styles.earnRow}>
+                    <Text style={[styles.earnAction, { color: COLORS.accent }]}>Starter</Text>
+                    <Text style={styles.earnPoints}>0 pts</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={[styles.earnAction, { color: COLORS.success }]}>Pad Explorer</Text>
+                    <Text style={styles.earnPoints}>80 pts</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={[styles.earnAction, { color: COLORS.brandOrange }]}>Pad Hunter</Text>
+                    <Text style={styles.earnPoints}>200 pts</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={[styles.earnAction, { color: COLORS.gold }]}>Pad Expert</Text>
+                    <Text style={styles.earnPoints}>500 pts</Text>
+                  </View>
+                  <View style={styles.earnRow}>
+                    <Text style={[styles.earnAction, { color: COLORS.gold }]}>Pad Master</Text>
+                    <Text style={styles.earnPoints}>1,000 pts</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Free Ask Pad callout */}
+              <View style={styles.freeCallout}>
+                <Text style={styles.freeCalloutTitle}>🆓 Free Ask Pad Upgrade</Text>
+                <Text style={styles.freeCalloutBody}>
+                  Earn 350 PadPoints and you can unlock Ask Pad Explorer for free — no credit card needed. That's 30 AI searches a day, 2 search zones, and +20% faster point earning.
+                </Text>
+                <Text style={styles.freeCalloutMath}>
+                  Just swipe and open the app daily — most renters hit 350 in under 2 weeks.
+                </Text>
+              </View>
+
+              {/* Current status */}
+              <View style={styles.rulesStatusRow}>
+                <View style={styles.rulesStatusBox}>
+                  <Text style={styles.rulesStatusValue}>{padpoints}</Text>
+                  <Text style={styles.rulesStatusLabel}>Your Points</Text>
+                </View>
+                <View style={styles.rulesStatusDivider} />
+                <View style={styles.rulesStatusBox}>
+                  <Text style={[styles.rulesStatusValue, { color: levelColor }]}>{level.name}</Text>
+                  <Text style={styles.rulesStatusLabel}>Your Level</Text>
+                </View>
+                <View style={styles.rulesStatusDivider} />
+                <View style={styles.rulesStatusBox}>
+                  <Text style={styles.rulesStatusValue}>{padpoints >= 350 ? '✅' : `${padpoints}/350`}</Text>
+                  <Text style={styles.rulesStatusLabel}>Free Upgrade</Text>
+                </View>
+              </View>
+
+              {/* Dismiss */}
+              <TouchableOpacity
+                style={styles.tooltipDismiss}
+                onPress={() => setShowGameRules(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.tooltipDismissText}>Got it</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  gameHotspot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -421,5 +548,139 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
+  },
+  // ── Game Rules modal ────────────────────────────
+  rulesCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    padding: LAYOUT.padding.lg,
+    marginHorizontal: LAYOUT.padding.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
+    width: LAYOUT.card.width,
+    maxHeight: '85%',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  rulesEmoji: {
+    fontSize: 40,
+    textAlign: 'center',
+    marginBottom: LAYOUT.padding.sm,
+  },
+  rulesTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES['2xl'],
+    color: COLORS.white,
+    textAlign: 'center',
+    marginBottom: LAYOUT.padding.xs,
+  },
+  rulesSubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: LAYOUT.padding.lg,
+  },
+  rulesSection: {
+    width: '100%',
+    marginBottom: LAYOUT.padding.md,
+  },
+  rulesSectionTitle: {
+    fontFamily: FONTS.heading.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brandOrange,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: LAYOUT.padding.sm,
+  },
+  earnTable: {
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.sm,
+    gap: 2,
+  },
+  earnRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: LAYOUT.padding.sm,
+  },
+  earnAction: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  earnPoints: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.success,
+    minWidth: 44,
+    textAlign: 'right',
+  },
+  // ── Free callout ────────────────────────────────
+  freeCallout: {
+    width: '100%',
+    backgroundColor: COLORS.success + '15',
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.md,
+    borderWidth: 1,
+    borderColor: COLORS.success + '33',
+    marginBottom: LAYOUT.padding.md,
+  },
+  freeCalloutTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.success,
+    marginBottom: LAYOUT.padding.xs,
+  },
+  freeCalloutBody: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
+    lineHeight: 18,
+    marginBottom: LAYOUT.padding.sm,
+  },
+  freeCalloutMath: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brandOrange,
+    lineHeight: 17,
+  },
+  // ── Rules status row ────────────────────────────
+  rulesStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.radius.md,
+    paddingVertical: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.sm,
+  },
+  rulesStatusBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  rulesStatusValue: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+    marginBottom: 2,
+  },
+  rulesStatusLabel: {
+    fontFamily: FONTS.body.regular,
+    fontSize: 9,
+    color: COLORS.slate,
+  },
+  rulesStatusDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: COLORS.border,
   },
 });
