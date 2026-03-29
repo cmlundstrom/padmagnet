@@ -57,6 +57,8 @@ var styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: COLORS.white,
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
