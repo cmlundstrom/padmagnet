@@ -42,7 +42,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      keyboardOffset.value = withTiming(-e.endCoordinates.height * 0.65, { duration: 250 });
+      keyboardOffset.value = withTiming(-e.endCoordinates.height * 0.78, { duration: 250 });
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       keyboardOffset.value = withTiming(0, { duration: 200 });
