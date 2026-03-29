@@ -248,12 +248,23 @@ const styles = StyleSheet.create({
   enableButton: {
     borderRadius: LAYOUT.radius.xl,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.25)',
+    borderLeftColor: 'rgba(255,255,255,0.10)',
+    borderRightColor: 'rgba(0,0,0,0.08)',
+    borderBottomColor: 'rgba(0,0,0,0.15)',
+    // Warm orange glow
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 8,
   },
   enableGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 17,
     paddingHorizontal: LAYOUT.padding.xl,
   },
   enableText: {
