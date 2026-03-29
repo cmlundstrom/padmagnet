@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { apiFetch } from '../lib/api';
 import { AuthContext } from '../providers/AuthProvider';
 
-export default function useListings() {
+export default function useListings({ deviceLat, deviceLng } = {}) {
   const { session } = useContext(AuthContext);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,9 +14,13 @@ export default function useListings() {
   const bufferRef = useRef(null); // prefetched next page waiting to be appended
 
   const fetchPage = useCallback(async (pageNum) => {
-    const data = await apiFetch(`/api/listings?page=${pageNum}&limit=20`);
+    let url = `/api/listings?page=${pageNum}&limit=20`;
+    if (deviceLat && deviceLng) {
+      url += `&lat=${deviceLat}&lng=${deviceLng}`;
+    }
+    const data = await apiFetch(url);
     return { listings: data.listings || [], hasMore: data.hasMore };
-  }, []);
+  }, [deviceLat, deviceLng]);
 
   // Prefetch next page into buffer (silent, no state changes)
   const prefetchNext = useCallback(async (currentPage, currentHasMore) => {

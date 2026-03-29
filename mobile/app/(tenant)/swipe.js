@@ -56,11 +56,14 @@ export default function SwipeScreen() {
   const padPoints = usePadPoints();
   const renterTier = useRenterTier();
   const [showAskPad, setShowAskPad] = useState(false);
-  const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings();
 
   // ── Location soft-ask ──────────────────────────────────────
   const [showLocationAsk, setShowLocationAsk] = useState(false);
-  const { requestPermission, checkExistingPermission } = useLocation();
+  const { location: deviceLocation, requestPermission, checkExistingPermission } = useLocation();
+  const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings({
+    deviceLat: deviceLocation?.latitude || null,
+    deviceLng: deviceLocation?.longitude || null,
+  });
 
   useEffect(() => {
     (async () => {

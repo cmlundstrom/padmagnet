@@ -55,6 +55,10 @@ export async function GET(request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
     const offset = (page - 1) * limit;
 
+    // Device GPS location (optional — sent when user grants location permission)
+    const deviceLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')) : null;
+    const deviceLng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')) : null;
+
     const supabase = createServiceClient();
 
     // Fetch user preferences for PadScore
@@ -105,8 +109,16 @@ export async function GET(request) {
     if (baths) query = query.gte('bathrooms_total', parseInt(baths, 10));
     if (propertyType) query = query.eq('property_sub_type', propertyType);
 
-    // Geo-fence: only return listings within bounding box of tenant's search zones
-    const bounds = computeGeoBounds(zones);
+    // Geo-fence: bounding box from search zones, or device GPS as fallback
+    let bounds = computeGeoBounds(zones);
+    if (!bounds && deviceLat && deviceLng) {
+      // No search zones — use device location with a 15-mile default radius
+      bounds = computeGeoBounds([{
+        center_lat: deviceLat,
+        center_lng: deviceLng,
+        radius_miles: 15,
+      }]);
+    }
     if (bounds) {
       query = query
         .gte('latitude', bounds.minLat)
@@ -129,17 +141,39 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Calculate PadScore for each listing, flag reseen, sort by score
+    // Calculate PadScore for each listing, flag reseen, compute distance from device
     const scored = (listings || []).map(listing => {
       const padScore = calculatePadScore(prefs, listing, zones || []);
       const _reseen = resetIds.has(listing.id);
-      return { ...listing, padScore, _reseen };
+
+      // Haversine distance in miles from device (if available)
+      let _distanceMi = null;
+      if (deviceLat && deviceLng && listing.latitude && listing.longitude) {
+        const toRad = d => d * Math.PI / 180;
+        const dLat = toRad(listing.latitude - deviceLat);
+        const dLng = toRad(listing.longitude - deviceLng);
+        const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(toRad(deviceLat)) * Math.cos(toRad(listing.latitude)) * Math.sin(dLng / 2) ** 2;
+        _distanceMi = 3959 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      return { ...listing, padScore, _reseen, _distanceMi };
     });
 
     // Fresh listings first (by score), reseen listings last (by score)
+    // When device location is available, blend proximity into sort:
+    // proximity bonus = up to 15 points for listings within 5 miles, tapering to 0 at 30 miles
     scored.sort((a, b) => {
       if (a._reseen !== b._reseen) return a._reseen ? 1 : -1;
-      return b.padScore.score - a.padScore.score;
+      const proximityBonus = (dist) => {
+        if (dist === null) return 0;
+        if (dist <= 5) return 15;
+        if (dist >= 30) return 0;
+        return 15 * (1 - (dist - 5) / 25);
+      };
+      const aEffective = a.padScore.score + proximityBonus(a._distanceMi);
+      const bEffective = b.padScore.score + proximityBonus(b._distanceMi);
+      return bEffective - aEffective;
     });
 
     // Inject boosted listing at deterministic position if it passes core-match

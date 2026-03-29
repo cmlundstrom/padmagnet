@@ -14,7 +14,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MapView({ listings = [], loading }) {
   const router = useRouter();
-  const { location } = useLocation();
+  const { locationOrDefault: location } = useLocation();
   const mapRef = useRef(null);
   const [selectedListing, setSelectedListing] = useState(null);
 

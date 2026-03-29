@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 
-// Default: Stuart, FL (Treasure Coast center)
-const DEFAULT_LOCATION = {
+// Default: Stuart, FL (Treasure Coast center) — used as map fallback only
+export const DEFAULT_LOCATION = {
   latitude: 27.1975,
   longitude: -80.2528,
 };
 
 export default function useLocation() {
-  const [location, setLocation] = useState(DEFAULT_LOCATION);
+  const [location, setLocation] = useState(null);
   const [permission, setPermission] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -69,5 +69,8 @@ export default function useLocation() {
     }
   }, []);
 
-  return { location, permission, loading, requestPermission, checkExistingPermission };
+  // For consumers that need a fallback (e.g. MapView), expose resolved or default
+  const locationOrDefault = location || DEFAULT_LOCATION;
+
+  return { location, locationOrDefault, permission, loading, requestPermission, checkExistingPermission };
 }
