@@ -150,8 +150,8 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
               >
                 <Text style={styles.upgradeCtaText}>
                   {renterTier === 'free'
-                    ? "Unlock Even More 'Ask Pad' Ai Searching! $1.50 - Good for 30 days!"
-                    : "Unlock Even More 'Ask Pad' Ai Searching! $3.50 - Good for 30 days!"
+                    ? 'More "Ask Pad" Power\nFrom $1.50/mo'
+                    : 'More "Ask Pad" Power\nFrom $3.50/mo'
                   }
                 </Text>
               </TouchableOpacity>
