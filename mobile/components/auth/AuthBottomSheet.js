@@ -161,7 +161,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
             {/* Manila folder tab — narrower, centered, protruding */}
             <View style={styles.folderTabOuter}>
               <LinearGradient
-                colors={['#8B7035', '#A89050', '#C9A96A', '#D4B87A']}
+                colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0.74, y: 1 }}
                 style={styles.folderTab}
@@ -173,7 +173,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
             {/* Folder body — full width, same manila color family */}
             <LinearGradient
-              colors={['#A89050', '#C9A96A', '#D4B87A', '#C4A265', '#A08040', '#8B7035']}
+              colors={['#C4AD78', '#DECA92', '#E8D8A4', '#D8C88E', '#BEA66A', '#A08040']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0.74, y: 1 }}
               style={styles.folderBody}
