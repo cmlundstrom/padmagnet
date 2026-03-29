@@ -353,6 +353,7 @@ const styles = StyleSheet.create({
     paddingTop: LAYOUT.padding.md,
     borderTopWidth: 1,
     borderColor: COLORS.border,
+    marginHorizontal: 7,
   },
   handle: {
     width: 40,
