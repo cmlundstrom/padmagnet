@@ -1,31 +1,31 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import ImageRotator from '../components/auth/ImageRotator';
 import { saveUserRole, setRoleSelected } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 import { LAYOUT } from '../constants/layout';
 
-/**
- * Welcome / Role Selector — shown ONCE on first app open.
- * After role selection, saved to device storage and never shown again.
- * Renters: creates anonymous Supabase session → instant swipe feed.
- * Owners: routes to auth flow (owners need real identity to list).
- */
+const { height } = Dimensions.get('window');
+
+const WELCOME_IMAGES = [
+  require('../assets/images/welcome-1.jpg'),
+  require('../assets/images/welcome-2.jpg'),
+  require('../assets/images/welcome-3.jpg'),
+];
 
 async function handleRenterRole() {
   await saveUserRole('tenant');
   await setRoleSelected();
-
-  // Create anonymous session — renter can swipe immediately
   const { data, error } = await supabase.auth.signInAnonymously();
   if (!error && data?.session) {
     await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
   }
-
   router.replace('/(tenant)/swipe');
 }
 
@@ -38,7 +38,16 @@ async function handleOwnerRole() {
 export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.inner}>
+      {/* Image rotator — top portion */}
+      <View style={styles.imageSection}>
+        <ImageRotator images={WELCOME_IMAGES} interval={4000} />
+        <LinearGradient
+          colors={['transparent', COLORS.background]}
+          style={styles.gradient}
+        />
+      </View>
+
+      <SafeAreaView style={styles.bottomSection} edges={['bottom']}>
         {/* Branding */}
         <View style={styles.branding}>
           <Image
@@ -55,22 +64,28 @@ export default function WelcomeScreen() {
           </Text>
         </View>
 
-        {/* Role buttons */}
+        {/* Role buttons — modern glass style */}
         <View style={styles.buttons}>
           <TouchableOpacity style={styles.renterButton} onPress={handleRenterRole} activeOpacity={0.85}>
-            <Ionicons name="home" size={22} color={COLORS.white} style={styles.buttonIcon} />
-            <View>
-              <Text style={styles.buttonTitle}>I'm Looking for a Rental Home</Text>
-              <Text style={styles.buttonHint}>Swipe, match, and discover rentals instantly</Text>
+            <View style={styles.buttonIconCircle}>
+              <Ionicons name="home" size={20} color={COLORS.white} />
             </View>
+            <View style={styles.buttonTextWrap}>
+              <Text style={styles.buttonTitle}>Find a Rental</Text>
+              <Text style={styles.buttonHint}>Swipe, match, and discover instantly</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.ownerButton} onPress={handleOwnerRole} activeOpacity={0.85}>
-            <Ionicons name="key" size={22} color={COLORS.white} style={styles.buttonIcon} />
-            <View>
-              <Text style={styles.buttonTitle}>I Own Rental Property</Text>
-              <Text style={styles.buttonHint}>List your property and find qualified renters</Text>
+            <View style={styles.buttonIconCircleOutline}>
+              <Ionicons name="key" size={20} color={COLORS.accent} />
             </View>
+            <View style={styles.buttonTextWrap}>
+              <Text style={styles.buttonTitleOutline}>List My Property</Text>
+              <Text style={styles.buttonHintOutline}>Find qualified renters fast</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.accent} style={{ opacity: 0.5 }} />
           </TouchableOpacity>
         </View>
 
@@ -99,33 +114,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  inner: {
+  imageSection: {
+    height: height * 0.30,
+    position: 'relative',
+  },
+  gradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  bottomSection: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: LAYOUT.padding.lg,
   },
   branding: {
     alignItems: 'center',
-    marginBottom: 48,
+    paddingTop: 8,
   },
   icon: {
-    width: 80,
-    height: 80,
-    marginBottom: 12,
+    width: 64,
+    height: 64,
+    marginBottom: 8,
   },
   wordmarkRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   wordmarkPad: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['4xl'],
+    fontSize: FONT_SIZES['3xl'],
     color: COLORS.white,
   },
   wordmarkMagnet: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['4xl'],
+    fontSize: FONT_SIZES['3xl'],
     color: COLORS.deepOrange,
   },
   tagline: {
@@ -138,31 +164,59 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxs,
   },
   buttons: {
-    gap: 14,
-    marginBottom: 24,
+    gap: 12,
+    marginBottom: 16,
   },
   renterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.logoOrange,
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
+    borderRadius: LAYOUT.radius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     gap: 14,
+    shadowColor: COLORS.logoOrange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ownerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
+    backgroundColor: COLORS.frostedGlass,
+    borderRadius: LAYOUT.radius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.accent + '44',
     gap: 14,
   },
-  buttonIcon: {
-    width: 28,
+  buttonIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonIconCircleOutline: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.accent + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonTextWrap: {
+    flex: 1,
   },
   buttonTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+  },
+  buttonTitleOutline: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
@@ -170,12 +224,18 @@ const styles = StyleSheet.create({
   buttonHint: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.overlayWhiteStrong,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 2,
+  },
+  buttonHintOutline: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
     marginTop: 2,
   },
   signInLink: {
     alignItems: 'center',
-    paddingVertical: LAYOUT.padding.md,
+    paddingVertical: LAYOUT.padding.sm,
   },
   signInText: {
     fontFamily: FONTS.body.regular,
@@ -191,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingTop: LAYOUT.padding.sm,
+    paddingBottom: LAYOUT.padding.sm,
   },
   trustText: {
     fontFamily: FONTS.body.medium,
