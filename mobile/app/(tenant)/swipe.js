@@ -221,7 +221,7 @@ export default function SwipeScreen() {
         </View>
 
         {/* PadPoints bar + Ask Pad orb */}
-        {viewMode === 'cards' && (
+        {(viewMode === 'cards' || viewMode === 'list') && (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
               <PadPointsBar
