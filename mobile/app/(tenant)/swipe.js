@@ -11,6 +11,7 @@ import { GlossyHeart } from '../../components/ui';
 import LocationSoftAsk from '../../components/LocationSoftAsk';
 import { PadPointsBar, SmartPromptCard, SMART_PROMPTS, LevelUpCelebration } from '../../components/padpoints';
 import { AskPadOrb, AskPadChat } from '../../components/askpad';
+import { TierUpgradeSheet } from '../../components/tiers';
 import useRenterTier from '../../hooks/useRenterTier';
 import useLocation from '../../hooks/useLocation';
 import useListings from '../../hooks/useListings';
@@ -56,6 +57,7 @@ export default function SwipeScreen() {
   const padPoints = usePadPoints();
   const renterTier = useRenterTier();
   const [showAskPad, setShowAskPad] = useState(false);
+  const [showTierUpgrade, setShowTierUpgrade] = useState(false);
 
   // ── Location soft-ask ──────────────────────────────────────
   const [showLocationAsk, setShowLocationAsk] = useState(false);
@@ -230,6 +232,8 @@ export default function SwipeScreen() {
                 progress={padPoints.progress}
                 streakDays={padPoints.streakDays}
                 lastEarned={padPoints.lastEarned}
+                renterTier={renterTier.tier}
+                onUpgrade={() => setShowTierUpgrade(true)}
               />
             </View>
             <View style={{ paddingRight: LAYOUT.padding.md }}>
@@ -359,6 +363,54 @@ export default function SwipeScreen() {
         <AskPadChat
           visible={showAskPad}
           onClose={() => setShowAskPad(false)}
+        />
+
+        {/* Tier Upgrade Sheet (opened from streak tooltip) */}
+        <TierUpgradeSheet
+          visible={showTierUpgrade}
+          onClose={() => setShowTierUpgrade(false)}
+          currentTier={renterTier.tier}
+          padpoints={padPoints.padpoints}
+          onBuyExplorer={async () => {
+            try {
+              const result = await apiFetch('/api/renter-tier/checkout', {
+                method: 'POST',
+                body: JSON.stringify({ tier: 'explorer' }),
+              });
+              if (result.checkout_url) {
+                const { Linking } = require('react-native');
+                Linking.openURL(result.checkout_url);
+              }
+              setShowTierUpgrade(false);
+            } catch (err) {
+              alert('Upgrade Error', err.message);
+            }
+          }}
+          onBuyMaster={async () => {
+            try {
+              const result = await apiFetch('/api/renter-tier/checkout', {
+                method: 'POST',
+                body: JSON.stringify({ tier: 'master' }),
+              });
+              if (result.checkout_url) {
+                const { Linking } = require('react-native');
+                Linking.openURL(result.checkout_url);
+              }
+              setShowTierUpgrade(false);
+            } catch (err) {
+              alert('Upgrade Error', err.message);
+            }
+          }}
+          onRedeemExplorer={async () => {
+            try {
+              await apiFetch('/api/renter-tier/redeem', { method: 'POST' });
+              renterTier.refresh();
+              padPoints.checkStreak();
+              setShowTierUpgrade(false);
+            } catch (err) {
+              alert('Redeem Error', err.message);
+            }
+          }}
         />
 
         {/* Location soft-ask overlay — shown once on first visit */}
