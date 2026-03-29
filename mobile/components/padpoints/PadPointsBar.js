@@ -226,7 +226,8 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
 
       {/* Game Rules modal */}
       <Modal visible={showGameRules} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowGameRules(false)}>
-        <Pressable style={styles.tooltipBackdrop} onPress={() => setShowGameRules(false)}>
+        <View style={styles.tooltipBackdrop}>
+          <Pressable style={{ flex: 1, width: '100%' }} onPress={() => setShowGameRules(false)} />
           <View style={styles.rulesCard}>
             <ScrollView showsVerticalScrollIndicator={true} bounces={false} nestedScrollEnabled>
               {/* Header */}
@@ -367,7 +368,8 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </Pressable>
+          <Pressable style={{ flex: 1, width: '100%' }} onPress={() => setShowGameRules(false)} />
+        </View>
       </Modal>
     </View>
   );
