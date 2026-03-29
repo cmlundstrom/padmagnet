@@ -33,7 +33,7 @@ export const LAYOUT = {
   // ── Component dimensions ─────────────────────────────────
   card: {
     width: width - 32,
-    height: height * 0.48,
+    height: height * 0.52,
   },
   avatar: { sm: 36, md: 52, lg: 72 },
   imageHeight: { card: 150, map: 90, gallery: 300 },
