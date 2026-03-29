@@ -178,8 +178,20 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
               </LinearGradient>
             </View>
 
-            {/* Sheet body — connects flush beneath the tab */}
-            <View style={styles.sheet}>
+            {/* Sheet body — manila parchment continues from tab */}
+            <LinearGradient
+              colors={['#C4A265', '#D4B87A', '#CCAA6E', '#B89858', '#A08040']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.3, y: 1 }}
+              style={styles.sheet}
+            >
+              {/* Worn highlight overlay */}
+              <LinearGradient
+                colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
             <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
 
             {error && (
@@ -301,7 +313,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 <Text style={styles.skipText}>Skip for now</Text>
               </TouchableOpacity>
             )}
-            </View>
+            </LinearGradient>
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>
@@ -410,20 +422,24 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   sheet: {
-    backgroundColor: COLORS.surface,
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
     paddingHorizontal: LAYOUT.padding.lg,
     paddingBottom: LAYOUT.padding['2xl'],
     paddingTop: LAYOUT.padding.lg,
     borderTopWidth: 1,
-    borderColor: COLORS.border,
+    borderLeftWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderTopColor: '#A08040',
+    borderLeftColor: '#9A7A3A',
+    borderRightColor: '#7A6030',
     width: '100%',
+    overflow: 'hidden',
   },
   subtitle: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: '#4A3520',
     textAlign: 'center',
     marginBottom: LAYOUT.padding.lg,
     lineHeight: 20,
@@ -494,29 +510,29 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: '#A08040',
   },
   dividerText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: '#6B5020',
   },
   magicButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: COLORS.accent + '15',
+    backgroundColor: 'rgba(59,130,246,0.12)',
     borderRadius: LAYOUT.radius.md,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.accent + '44',
+    borderColor: '#8B7035',
   },
   magicText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.md,
-    color: COLORS.accent,
+    color: '#2A5DB0',
   },
   moreButton: {
     alignItems: 'center',
@@ -525,18 +541,18 @@ const styles = StyleSheet.create({
   moreText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: '#6B5020',
     textDecorationLine: 'underline',
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: 'rgba(255,255,255,0.35)',
     borderRadius: LAYOUT.radius.sm,
     padding: 14,
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.md,
-    color: COLORS.white,
+    color: '#3A2810',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#A08040',
     marginBottom: 10,
   },
   primaryButton: {
@@ -558,7 +574,7 @@ const styles = StyleSheet.create({
   backText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    color: '#2A5DB0',
   },
   sentBox: {
     alignItems: 'center',
@@ -580,7 +596,7 @@ const styles = StyleSheet.create({
   transferText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.success,
+    color: '#2D6B30',
     textAlign: 'center',
     marginTop: LAYOUT.padding.md,
   },
@@ -591,6 +607,6 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.slate,
+    color: '#6B5020',
   },
 });
