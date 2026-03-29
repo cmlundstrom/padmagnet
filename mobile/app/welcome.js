@@ -20,13 +20,32 @@ const WELCOME_IMAGES = [
 ];
 
 async function handleRenterRole() {
-  await saveUserRole('tenant');
-  await setRoleSelected();
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (!error && data?.session) {
-    await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+  try {
+    await saveUserRole('tenant');
+    await setRoleSelected();
+
+    // Check for existing session first
+    const { data: { session: existing } } = await supabase.auth.getSession();
+    if (existing) {
+      router.replace('/(tenant)/swipe');
+      return;
+    }
+
+    // Create anonymous session
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error('Anonymous sign-in failed:', error.message);
+    }
+    if (data?.session) {
+      await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+    }
+
+    // Small delay to let AuthProvider process the SIGNED_IN event
+    setTimeout(function() { router.replace('/(tenant)/swipe'); }, 300);
+  } catch (err) {
+    console.error('handleRenterRole error:', err);
+    router.replace('/(tenant)/swipe');
   }
-  router.replace('/(tenant)/swipe');
 }
 
 async function handleOwnerRole() {
@@ -172,9 +191,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.logoOrange,
     borderRadius: LAYOUT.radius.lg,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     gap: 14,
+    minHeight: 72,
     shadowColor: COLORS.logoOrange,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -186,11 +206,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.frostedGlass,
     borderRadius: LAYOUT.radius.lg,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.accent + '44',
     gap: 14,
+    minHeight: 72,
   },
   buttonIconCircle: {
     width: 40,
