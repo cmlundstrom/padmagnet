@@ -158,29 +158,27 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
           style={styles.sheetWrapper}
         >
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
-            {/* Single unified manila gradient — tab + body as one piece */}
-            <LinearGradient
-              colors={['#9B8045', '#C4A265', '#D4B87A', '#CCAA6E', '#B89858', '#8B7035']}
-              locations={[0, 0.15, 0.35, 0.55, 0.75, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.folderWrap}
-            >
-              {/* Worn center highlight */}
-              <LinearGradient
-                colors={['transparent', 'rgba(255,255,255,0.10)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-
-              {/* Folder tab area */}
+            {/* Manila folder tab — narrower, centered, protruding */}
+            <View style={styles.folderTabOuter}>
               <View style={styles.folderTab}>
                 <Text style={styles.tabTitle}>{contextCopy.title}</Text>
                 <View style={styles.tabHandle} />
               </View>
+            </View>
 
-              {/* Sheet body content */}
+            {/* Folder body — full width, same manila color family */}
+            <LinearGradient
+              colors={['#C9A96A', '#D4B87A', '#CCAA6E', '#B89858', '#8B7035']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.folderBody}
+            >
+              <LinearGradient
+                colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={styles.sheet}>
               <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
 
@@ -303,7 +301,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 <Text style={styles.skipText}>Skip for now</Text>
               </TouchableOpacity>
             )}
-            </View>
+              </View>
             </LinearGradient>
           </Pressable>
         </KeyboardAvoidingView>
@@ -370,29 +368,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 7,
     alignItems: 'center',
   },
-  folderWrap: {
-    width: '100%',
+  folderTabOuter: {
+    zIndex: 1,
+    marginBottom: -1,
+    // Shadow for lifted tab
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  folderTab: {
+    backgroundColor: '#C9A96A',
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
+    paddingHorizontal: 30,
+    paddingTop: 14,
+    paddingBottom: 14,
+    alignItems: 'center',
     borderWidth: 1.5,
     borderBottomWidth: 0,
     borderColor: '#8B7035',
-    overflow: 'hidden',
-    // Lifted shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  folderTab: {
-    alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: 28,
-    // Subtle crease line between tab and body
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139,112,53,0.35)',
   },
   tabTitle: {
     fontFamily: FONTS.heading.bold,
@@ -411,6 +407,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 8,
     opacity: 0.6,
+  },
+  folderBody: {
+    width: '100%',
+    borderTopLeftRadius: LAYOUT.radius.xl,
+    borderTopRightRadius: LAYOUT.radius.xl,
+    borderWidth: 1.5,
+    borderBottomWidth: 0,
+    borderColor: '#8B7035',
+    overflow: 'hidden',
   },
   sheet: {
     paddingHorizontal: LAYOUT.padding.lg,
