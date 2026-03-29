@@ -354,8 +354,8 @@ const styles = StyleSheet.create({
   },
   folderTab: {
     backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    borderTopLeftRadius: LAYOUT.radius.xl,
+    borderTopRightRadius: LAYOUT.radius.xl,
     paddingHorizontal: 28,
     paddingTop: 12,
     paddingBottom: 14,
