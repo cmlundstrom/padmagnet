@@ -5,7 +5,6 @@ import { Stack, useSegments, useRouter } from 'expo-router';
 // Suppress known expo-router v55 + edge-to-edge dev warnings (not from our code)
 LogBox.ignoreLogs([
   "Can't perform a React state update on a component that hasn't mounted yet",
-  "[Reanimated] Writing to `value` during component render",
 ]);
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';

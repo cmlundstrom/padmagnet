@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -11,9 +11,9 @@ import { COLORS } from '../../constants/colors';
 import { LAYOUT } from '../../constants/layout';
 
 function FadeImage({ source, opacity }) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+  const animatedStyle = useAnimatedStyle(function() {
+    return { opacity: opacity.value };
+  });
 
   return (
     <Animated.View style={[styles.imageWrapper, animatedStyle]}>
@@ -24,48 +24,50 @@ function FadeImage({ source, opacity }) {
 
 export default function ImageRotator({ images, interval = 4000 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const indexRef = useRef(0);
 
-  // Create exactly 3 shared values (matching our 3 welcome images)
   const opacity0 = useSharedValue(1);
   const opacity1 = useSharedValue(0);
   const opacity2 = useSharedValue(0);
   const opacities = useRef([opacity0, opacity1, opacity2]).current;
 
-  const rotate = useCallback(() => {
-    setActiveIndex((prev) => {
-      const next = (prev + 1) % images.length;
-      const timing = { duration: 800, easing: Easing.inOut(Easing.ease) };
+  useEffect(function() {
+    var timer = setInterval(function() {
+      var prev = indexRef.current;
+      var next = (prev + 1) % images.length;
+      var timing = { duration: 800, easing: Easing.inOut(Easing.ease) };
 
+      // Animate outside of setState — avoid render-time shared value writes
       opacities[prev].value = withTiming(0, timing);
       opacities[next].value = withTiming(1, timing);
 
-      return next;
-    });
-  }, [images.length, opacities]);
-
-  useEffect(() => {
-    const timer = setInterval(rotate, interval);
-    return () => clearInterval(timer);
-  }, [rotate, interval]);
+      indexRef.current = next;
+      setActiveIndex(next);
+    }, interval);
+    return function() { clearInterval(timer); };
+  }, [images.length, interval, opacities]);
 
   return (
     <View style={styles.container}>
-      {images.map((source, index) => (
-        <FadeImage
-          key={index}
-          source={source}
-          opacity={opacities[index]}
-        />
-      ))}
-
-      {/* Dot indicators */}
-      <View style={styles.dots}>
-        {images.map((_, index) => (
-          <View
+      {images.map(function(source, index) {
+        return (
+          <FadeImage
             key={index}
-            style={[styles.dot, index === activeIndex && styles.dotActive]}
+            source={source}
+            opacity={opacities[index]}
           />
-        ))}
+        );
+      })}
+
+      <View style={styles.dots}>
+        {images.map(function(_, index) {
+          return (
+            <View
+              key={index}
+              style={[styles.dot, index === activeIndex && styles.dotActive]}
+            />
+          );
+        })}
       </View>
     </View>
   );

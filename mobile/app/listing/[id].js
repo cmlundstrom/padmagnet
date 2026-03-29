@@ -70,12 +70,9 @@ export default function ListingDetailScreen() {
         withSpring(1, { damping: 12 }),
       );
       // Fire 3 mini hearts outward
-      burst0.value = 0;
-      burst1.value = 0;
-      burst2.value = 0;
-      burst0.value = withTiming(1, { duration: 600 });
-      burst1.value = withDelay(50, withTiming(1, { duration: 650 }));
-      burst2.value = withDelay(100, withTiming(1, { duration: 700 }));
+      burst0.value = withSequence(withTiming(0, { duration: 0 }), withTiming(1, { duration: 600 }));
+      burst1.value = withSequence(withTiming(0, { duration: 0 }), withDelay(50, withTiming(1, { duration: 650 })));
+      burst2.value = withSequence(withTiming(0, { duration: 0 }), withDelay(100, withTiming(1, { duration: 700 })));
 
       const score = padScore?.score ?? 50;
       const ok = await recordSwipe(listing.id, 'right', score);
