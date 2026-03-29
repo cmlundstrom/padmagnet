@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Modal, Pressable, ActivityIndicator, Platform, KeyboardAvoidingView,
+  Modal, Pressable, ActivityIndicator, Platform, Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
@@ -32,6 +33,27 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [magicSent, setMagicSent] = useState(false);
+
+  // Keyboard-aware lift — shift the card up when keyboard opens
+  const keyboardOffset = useSharedValue(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      keyboardOffset.value = withTiming(-e.endCoordinates.height * 0.5, { duration: 250 });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      keyboardOffset.value = withTiming(0, { duration: 200 });
+    });
+
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+  const keyboardLiftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardOffset.value }],
+  }));
 
   const contextCopy = getContextCopy(context, padpoints);
 
@@ -153,10 +175,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       onRequestClose={() => { resetState(); onClose?.(); }}
     >
       <Pressable style={styles.backdrop} onPress={() => { resetState(); onClose?.(); }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.sheetWrapper}
-        >
+        <Animated.View style={[styles.sheetWrapper, keyboardLiftStyle]}>
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
             {/* Manila folder tab — narrower, centered, protruding */}
             <View style={styles.folderTabOuter}>
@@ -309,7 +328,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
               </View>
             </LinearGradient>
           </Pressable>
-        </KeyboardAvoidingView>
+        </Animated.View>
       </Pressable>
     </Modal>
   );
