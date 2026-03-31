@@ -212,7 +212,7 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               value={pushEnabled}
               onValueChange={handleTogglePush}
               trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={COLORS.white}
+              thumbColor={pushEnabled ? COLORS.white : '#888888'}
               style={LAYOUT.switch}
             />
           </View>
@@ -232,7 +232,7 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               value={smsConsent}
               onValueChange={handleToggleSms}
               trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={COLORS.white}
+              thumbColor={smsConsent ? COLORS.white : '#888888'}
               style={LAYOUT.switch}
             />
           </View>
@@ -291,7 +291,7 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               value={pushEnabled}
               onValueChange={handleTogglePush}
               trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={COLORS.white}
+              thumbColor={pushEnabled ? COLORS.white : '#888888'}
               style={LAYOUT.switch}
             />
           </View>
@@ -351,7 +351,7 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               value={smsConsent}
               onValueChange={handleToggleSms}
               trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={COLORS.white}
+              thumbColor={smsConsent ? COLORS.white : '#888888'}
               style={LAYOUT.switch}
             />
           </View>
