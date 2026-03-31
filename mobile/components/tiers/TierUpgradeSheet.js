@@ -64,11 +64,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
                 <Text style={styles.feature}>✓ Unlimited Ask Pad queries</Text>
                 <Text style={styles.feature}>✓ 3 search zones (maximum)</Text>
                 <Text style={styles.feature}>✓ +20% PadPoints earn rate</Text>
-                <View style={styles.verifiedRow}>
-                  <Text style={styles.feature}>✓ </Text>
-                  <VerifiedBadge size="sm" />
-                  <Text style={[styles.feature, { flex: 1 }]}> — owners see you're real</Text>
-                </View>
+                <Text style={styles.feature}>✓ Verified Renter badge{'\n'}   — owners see you're real</Text>
               </View>
               <TouchableOpacity style={styles.masterButton} onPress={function() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); onBuyMaster(); }} activeOpacity={0.8}>
                 <Text style={styles.masterText}>Pay $3.50 + Get Verified</Text>
