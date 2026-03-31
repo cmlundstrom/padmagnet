@@ -109,19 +109,19 @@ export default function SmsConsentPage() {
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center' }}>
                 <img
-                  src="/sms-consent/sms-toggle-off.png"
-                  alt="PadMagnet Notification Settings — SMS toggle in OFF position"
-                  style={{ maxWidth: 260, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                  src="/sms-consent/sms-toggle-off.jpg"
+                  alt="PadMagnet Notification Settings — SMS toggle in OFF position, default state"
+                  style={{ maxWidth: 280, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
                 />
-                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>SMS toggle OFF (default state)</p>
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Default state — SMS toggle OFF, Push OFF, In-App Only selected</p>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <img
-                  src="/sms-consent/sms-toggle-on.png"
-                  alt="PadMagnet Notification Settings — SMS toggle ON with TCPA disclosure visible"
-                  style={{ maxWidth: 260, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                  src="/sms-consent/sms-toggle-on.jpg"
+                  alt="PadMagnet Notification Settings — SMS toggle ON with phone number field and full TCPA disclosure visible"
+                  style={{ maxWidth: 280, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
                 />
-                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>SMS toggle ON — TCPA disclosure visible</p>
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>User enables SMS — phone field, TCPA disclosure, and policy links visible</p>
               </div>
             </div>
           </div>
