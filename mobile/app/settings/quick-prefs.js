@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, Switch, StyleSheet, Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { Header, Input } from '../../components/ui';
+import { Header, Input, Toggle } from '../../components/ui';
 import usePreferences from '../../hooks/usePreferences';
 import useSearchZones from '../../hooks/useSearchZones';
 import ZonePicker from '../../components/ZonePicker';
@@ -266,13 +266,10 @@ export default function PreferencesScreen() {
         {/* Pets */}
         <Text style={styles.sectionTitle}>Pets</Text>
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>I have pets</Text>
-          <Switch
+          <Toggle
+            label="I have pets"
             value={form.pets_required}
             onValueChange={v => updateDiscrete('pets_required', v)}
-            trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
-            thumbColor={form.pets_required ? COLORS.accent : COLORS.slate}
-            style={LAYOUT.switch}
           />
         </View>
         {form.pets_required && (
@@ -292,13 +289,10 @@ export default function PreferencesScreen() {
               ))}
             </View>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Fenced yard required</Text>
-              <Switch
+              <Toggle
+                label="Fenced yard required"
                 value={form.fenced_yard_required}
                 onValueChange={v => updateDiscrete('fenced_yard_required', v)}
-                trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
-                thumbColor={form.fenced_yard_required ? COLORS.accent : COLORS.slate}
-                style={LAYOUT.switch}
               />
             </View>
           </>

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
-  View, Text, Switch, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { NativeModules } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { Toggle } from '../ui';
 import { useAlert } from '../../providers/AlertProvider';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
@@ -199,44 +200,20 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
         )}
 
         {/* Push toggle */}
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>Push Notifications</Text>
-            <Text style={styles.rowHint}>
-              Instant alerts when tenants message you
-            </Text>
-          </View>
-          <View style={styles.switchWrap}>
-            {pushEnabled && <Text style={styles.switchOnLabel}>ON</Text>}
-            <Switch
-              value={pushEnabled}
-              onValueChange={handleTogglePush}
-              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={pushEnabled ? COLORS.white : '#AAAAAA'}
-              style={LAYOUT.switch}
-            />
-          </View>
-        </View>
+        <Toggle
+          label="Push Notifications"
+          hint="Instant alerts when tenants message you"
+          value={pushEnabled}
+          onValueChange={handleTogglePush}
+        />
 
         {/* SMS toggle */}
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>SMS Alerts</Text>
-            <Text style={styles.rowHint}>
-              Text alerts for urgent messages
-            </Text>
-          </View>
-          <View style={styles.switchWrap}>
-            {smsConsent && <Text style={styles.switchOnLabel}>ON</Text>}
-            <Switch
-              value={smsConsent}
-              onValueChange={handleToggleSms}
-              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={smsConsent ? COLORS.white : '#AAAAAA'}
-              style={LAYOUT.switch}
-            />
-          </View>
-        </View>
+        <Toggle
+          label="SMS Alerts"
+          hint="Text alerts for urgent messages"
+          value={smsConsent}
+          onValueChange={handleToggleSms}
+        />
 
         {smsConsent && (
           <TextInput
@@ -278,24 +255,12 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
       {/* Push Notifications */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Push Notifications</Text>
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>Push Alerts</Text>
-            <Text style={styles.rowHint}>
-              Show alerts on your device when you receive a message
-            </Text>
-          </View>
-          <View style={styles.switchWrap}>
-            {pushEnabled && <Text style={styles.switchOnLabel}>ON</Text>}
-            <Switch
-              value={pushEnabled}
-              onValueChange={handleTogglePush}
-              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={pushEnabled ? COLORS.white : '#AAAAAA'}
-              style={LAYOUT.switch}
-            />
-          </View>
-        </View>
+        <Toggle
+          label="Push Alerts"
+          hint="Show alerts on your device when you receive a message"
+          value={pushEnabled}
+          onValueChange={handleTogglePush}
+        />
       </View>
 
       {/* Preferred Channel */}
@@ -338,24 +303,12 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
       {/* SMS Consent */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>SMS Notifications</Text>
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>Enable SMS</Text>
-            <Text style={styles.rowHint}>
-              Receive text message notifications
-            </Text>
-          </View>
-          <View style={styles.switchWrap}>
-            {smsConsent && <Text style={styles.switchOnLabel}>ON</Text>}
-            <Switch
-              value={smsConsent}
-              onValueChange={handleToggleSms}
-              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-              thumbColor={smsConsent ? COLORS.white : '#AAAAAA'}
-              style={LAYOUT.switch}
-            />
-          </View>
-        </View>
+        <Toggle
+          label="Enable SMS"
+          hint="Receive text message notifications"
+          value={smsConsent}
+          onValueChange={handleToggleSms}
+        />
 
         {smsConsent && (
           <>
@@ -428,16 +381,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
-  },
-  switchWrap: {
-    alignItems: 'center',
-  },
-  switchOnLabel: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: 9,
-    color: COLORS.success,
-    letterSpacing: 0.5,
-    marginBottom: -2,
   },
   legalText: {
     fontFamily: FONTS.body.regular,

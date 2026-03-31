@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, Switch, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Input, Button } from '../components/ui';
+import { Input, Button, Toggle } from '../components/ui';
 import StepProgress from '../components/ui/StepProgress';
 import { setOnboarded, savePreferences, getOnboardingStep, saveOnboardingStep } from '../lib/storage';
 import { useAuth } from '../hooks/useAuth';
@@ -243,13 +243,10 @@ export default function OnboardingScreen() {
               <Text style={styles.stepTitle}>Do you have pets?</Text>
               <Text style={styles.stepHint}>We'll filter out pet-unfriendly listings.</Text>
               <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>I have pets</Text>
-                <Switch
+                <Toggle
+                  label="I have pets"
                   value={form.pets_required}
                   onValueChange={v => update('pets_required', v)}
-                  trackColor={{ false: COLORS.border, true: COLORS.accent + '66' }}
-                  thumbColor={form.pets_required ? COLORS.accent : COLORS.slate}
-                  style={LAYOUT.switch}
                 />
               </View>
               <Button
