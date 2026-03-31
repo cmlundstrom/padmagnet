@@ -249,9 +249,14 @@ export default function NotificationsScreen() {
           )}
 
           <Text style={styles.legalText}>
-            By enabling SMS, you consent to receive text message notifications from PadMagnet
-            about your conversations. Message and data rates may apply. Reply STOP to unsubscribe
-            at any time. Reply HELP for help.
+            By enabling SMS, you consent to receive transactional text message notifications from
+            PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
+            not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
+            varies based on account activity, typically 1–5 per week. Reply STOP to unsubscribe at
+            any time. Reply HELP for help.
+          </Text>
+          <Text style={styles.legalLinks}>
+            Privacy Policy (padmagnet.com/privacy) · Terms of Service (padmagnet.com/terms)
           </Text>
         </View>
       </ScrollView>
@@ -400,5 +405,12 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     marginTop: 12,
     lineHeight: 16,
+  },
+  legalLinks: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.accent,
+    marginTop: 6,
+    lineHeight: 14,
   },
 });
