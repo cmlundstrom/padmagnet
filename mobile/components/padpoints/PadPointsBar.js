@@ -348,7 +348,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                       {renterTier === 'free'
                         ? padpoints >= 350
                           ? 'Redeem 350 PadPoints for Free Upgrade'
-                          : 'Skip the Wait — Upgrade from $1.50/mo'
+                          : 'Skip the Game Grind? -- Upgrade Ai Search from $1.50 mo.!'
                         : 'Go Pad Master — $3.50/mo'
                       }
                     </Text>
