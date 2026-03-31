@@ -53,11 +53,21 @@ export default function SmsConsentPage() {
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start' }}>
               <div style={{ textAlign: 'center', flex: '1 1 280px', maxWidth: 320 }}>
                 <div className="phone-label">Step 1 — SMS is OFF by default</div>
-                <img
-                  src="/sms-consent/sms-toggle-off.jpg"
-                  alt="PadMagnet Notification Settings — default state with Push OFF, SMS OFF, In-App Only selected"
-                  style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
-                />
+                <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                  <img
+                    src="/sms-consent/sms-toggle-off.jpg"
+                    alt="PadMagnet Notification Settings — default state with Push OFF, SMS OFF, In-App Only selected"
+                    style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                  />
+                  <div style={{
+                    position: 'absolute', bottom: '9%', left: '-4%',
+                    color: '#EF4444', fontSize: 36, fontWeight: 900,
+                    textShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                    transform: 'rotate(25deg)',
+                  }}>
+                    ➜
+                  </div>
+                </div>
                 <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
                   Default state: Push OFF, SMS OFF, &ldquo;In-App Only&rdquo; selected.
                   Toggle uses muted gray track and thumb when inactive.
@@ -68,11 +78,21 @@ export default function SmsConsentPage() {
 
               <div style={{ textAlign: 'center', flex: '1 1 280px', maxWidth: 320 }}>
                 <div className="phone-label">Step 2 — User toggles ON, sees disclosure</div>
-                <img
-                  src="/sms-consent/sms-toggle-on.jpg"
-                  alt="PadMagnet Notification Settings — SMS enabled with green ON toggle, phone number entered, full TCPA disclosure and policy links visible"
-                  style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
-                />
+                <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                  <img
+                    src="/sms-consent/sms-toggle-on.jpg"
+                    alt="PadMagnet Notification Settings — SMS enabled with green ON toggle, phone number entered, full TCPA disclosure and policy links visible"
+                    style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                  />
+                  <div style={{
+                    position: 'absolute', top: '33%', left: '-4%',
+                    color: '#EF4444', fontSize: 36, fontWeight: 900,
+                    textShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                    transform: 'rotate(25deg)',
+                  }}>
+                    ➜
+                  </div>
+                </div>
                 <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
                   User enables SMS: green &ldquo;ON&rdquo; toggle, phone number entered,
                   full TCPA disclosure with policy links visible below.
