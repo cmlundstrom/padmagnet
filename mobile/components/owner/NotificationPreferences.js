@@ -206,13 +206,17 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Instant alerts when tenants message you
             </Text>
           </View>
-          <Switch
-            value={pushEnabled}
-            onValueChange={handleTogglePush}
-            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-            thumbColor={COLORS.white}
-            style={LAYOUT.switch}
-          />
+          <View style={styles.switchGroup}>
+            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.slate : COLORS.white }]}>OFF</Text>
+            <Switch
+              value={pushEnabled}
+              onValueChange={handleTogglePush}
+              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              thumbColor={COLORS.white}
+              style={LAYOUT.switch}
+            />
+            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.success : COLORS.slate }]}>ON</Text>
+          </View>
         </View>
 
         {/* SMS toggle */}
@@ -223,13 +227,17 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Text alerts for urgent messages
             </Text>
           </View>
-          <Switch
-            value={smsConsent}
-            onValueChange={handleToggleSms}
-            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-            thumbColor={COLORS.white}
-            style={LAYOUT.switch}
-          />
+          <View style={styles.switchGroup}>
+            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.slate : COLORS.white }]}>OFF</Text>
+            <Switch
+              value={smsConsent}
+              onValueChange={handleToggleSms}
+              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              thumbColor={COLORS.white}
+              style={LAYOUT.switch}
+            />
+            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.success : COLORS.slate }]}>ON</Text>
+          </View>
         </View>
 
         {smsConsent && (
@@ -244,7 +252,8 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
         )}
 
         <Text style={styles.legalText}>
-          Standard messaging rates apply. Reply STOP anytime.
+          Consent is not a condition of purchase or use. Msg &amp; data rates may apply.
+          Frequency: 1–5/week. Reply STOP anytime.
         </Text>
 
         {context === 'wizard' && (
@@ -278,13 +287,17 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Show alerts on your device when you receive a message
             </Text>
           </View>
-          <Switch
-            value={pushEnabled}
-            onValueChange={handleTogglePush}
-            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-            thumbColor={COLORS.white}
-            style={LAYOUT.switch}
-          />
+          <View style={styles.switchGroup}>
+            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.slate : COLORS.white }]}>OFF</Text>
+            <Switch
+              value={pushEnabled}
+              onValueChange={handleTogglePush}
+              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              thumbColor={COLORS.white}
+              style={LAYOUT.switch}
+            />
+            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.success : COLORS.slate }]}>ON</Text>
+          </View>
         </View>
       </View>
 
@@ -335,13 +348,17 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Receive text message notifications
             </Text>
           </View>
-          <Switch
-            value={smsConsent}
-            onValueChange={handleToggleSms}
-            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-            thumbColor={COLORS.white}
-            style={LAYOUT.switch}
-          />
+          <View style={styles.switchGroup}>
+            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.slate : COLORS.white }]}>OFF</Text>
+            <Switch
+              value={smsConsent}
+              onValueChange={handleToggleSms}
+              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              thumbColor={COLORS.white}
+              style={LAYOUT.switch}
+            />
+            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.success : COLORS.slate }]}>ON</Text>
+          </View>
         </View>
 
         {smsConsent && (
@@ -360,9 +377,14 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
         )}
 
         <Text style={styles.legalText}>
-          By enabling SMS, you consent to receive text message notifications
-          from PadMagnet about your conversations. Message and data rates may
-          apply. Reply STOP to unsubscribe at any time. Reply HELP for help.
+          By enabling SMS, you consent to receive transactional text message notifications from
+          PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
+          not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
+          varies based on account activity, typically 1–5 per week. Reply STOP to unsubscribe at
+          any time. Reply HELP for help.
+        </Text>
+        <Text style={styles.legalLinks}>
+          Privacy Policy (padmagnet.com/privacy) · Terms of Service (padmagnet.com/terms)
         </Text>
       </View>
     </View>
@@ -411,12 +433,29 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
   },
+  switchGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  switchLabel: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
   legalText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.slate,
     marginTop: 12,
     lineHeight: 16,
+  },
+  legalLinks: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.accent,
+    marginTop: 6,
+    lineHeight: 14,
   },
 
   // Compact mode

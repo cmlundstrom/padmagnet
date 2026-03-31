@@ -177,13 +177,17 @@ export default function NotificationsScreen() {
               <Text style={styles.rowLabel}>Push Alerts</Text>
               <Text style={styles.rowHint}>Show alerts on your device when you receive a message</Text>
             </View>
-            <Switch
-              value={pushEnabled}
-              onValueChange={handleTogglePush}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
-              thumbColor={COLORS.white}
-              style={LAYOUT.switch}
-            />
+            <View style={styles.switchGroup}>
+              <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.slate : COLORS.white }]}>OFF</Text>
+              <Switch
+                value={pushEnabled}
+                onValueChange={handleTogglePush}
+                trackColor={{ false: COLORS.border, true: COLORS.accent }}
+                thumbColor={COLORS.white}
+                style={LAYOUT.switch}
+              />
+              <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.success : COLORS.slate }]}>ON</Text>
+            </View>
           </View>
         </View>
 
@@ -224,13 +228,17 @@ export default function NotificationsScreen() {
               <Text style={styles.rowLabel}>Enable SMS</Text>
               <Text style={styles.rowHint}>Receive text message notifications</Text>
             </View>
-            <Switch
-              value={smsConsent}
-              onValueChange={handleToggleSms}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
-              thumbColor={COLORS.white}
-              style={LAYOUT.switch}
-            />
+            <View style={styles.switchGroup}>
+              <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.slate : COLORS.white }]}>OFF</Text>
+              <Switch
+                value={smsConsent}
+                onValueChange={handleToggleSms}
+                trackColor={{ false: COLORS.border, true: COLORS.accent }}
+                thumbColor={COLORS.white}
+                style={LAYOUT.switch}
+              />
+              <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.success : COLORS.slate }]}>ON</Text>
+            </View>
           </View>
 
           {smsConsent && (
@@ -398,6 +406,16 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
+  },
+  switchGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  switchLabel: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.5,
   },
   legalText: {
     fontFamily: FONTS.body.regular,
