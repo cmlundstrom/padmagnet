@@ -115,8 +115,19 @@ export default function TenantsPanel() {
     {
       accessorKey: "display_name",
       header: "Name",
-      cell: ({ getValue }) => (
-        <span style={{ fontWeight: 600 }}>{getValue() || "\u2014"}</span>
+      cell: ({ getValue, row }) => (
+        <span style={{ fontWeight: 600 }}>
+          {getValue() || "\u2014"}
+          {row.original.is_anonymous && (
+            <span style={{
+              display: "inline-block", marginLeft: 6, padding: "1px 5px", borderRadius: 4,
+              fontSize: "9px", fontWeight: 700, letterSpacing: "0.03em",
+              background: COLORS.amber + "22", color: COLORS.amber, border: `1px solid ${COLORS.amber}44`,
+            }}>
+              ANON
+            </span>
+          )}
+        </span>
       ),
       meta: { editable: true },
     },
