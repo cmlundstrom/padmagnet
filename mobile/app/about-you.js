@@ -49,6 +49,12 @@ export default function AboutYouScreen() {
       });
       if (error) throw error;
 
+      // Sync display_name to profiles table (dashboard reads from profiles, not auth metadata)
+      await supabase
+        .from('profiles')
+        .update({ display_name: displayName })
+        .eq('id', user.id);
+
       // Fire-and-forget save of notification preferences for owners
       await prefsRef.current?.save();
 
