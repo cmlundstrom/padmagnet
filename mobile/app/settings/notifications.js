@@ -183,7 +183,7 @@ export default function NotificationsScreen() {
                 value={pushEnabled}
                 onValueChange={handleTogglePush}
                 trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-                thumbColor={pushEnabled ? COLORS.white : '#888888'}
+                thumbColor={pushEnabled ? COLORS.white : '#AAAAAA'}
                 style={LAYOUT.switch}
               />
             </View>
@@ -233,7 +233,7 @@ export default function NotificationsScreen() {
                 value={smsConsent}
                 onValueChange={handleToggleSms}
                 trackColor={{ false: '#3A3A3C', true: COLORS.success }}
-                thumbColor={smsConsent ? COLORS.white : '#888888'}
+                thumbColor={smsConsent ? COLORS.white : '#AAAAAA'}
                 style={LAYOUT.switch}
               />
             </View>
