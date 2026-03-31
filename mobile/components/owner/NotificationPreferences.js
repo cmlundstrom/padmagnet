@@ -206,16 +206,15 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Instant alerts when tenants message you
             </Text>
           </View>
-          <View style={styles.switchGroup}>
-            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.slate : COLORS.white }]}>OFF</Text>
+          <View style={styles.switchWrap}>
+            {pushEnabled && <Text style={styles.switchOnLabel}>ON</Text>}
             <Switch
               value={pushEnabled}
               onValueChange={handleTogglePush}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
               thumbColor={COLORS.white}
               style={LAYOUT.switch}
             />
-            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.success : COLORS.slate }]}>ON</Text>
           </View>
         </View>
 
@@ -227,16 +226,15 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Text alerts for urgent messages
             </Text>
           </View>
-          <View style={styles.switchGroup}>
-            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.slate : COLORS.white }]}>OFF</Text>
+          <View style={styles.switchWrap}>
+            {smsConsent && <Text style={styles.switchOnLabel}>ON</Text>}
             <Switch
               value={smsConsent}
               onValueChange={handleToggleSms}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
               thumbColor={COLORS.white}
               style={LAYOUT.switch}
             />
-            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.success : COLORS.slate }]}>ON</Text>
           </View>
         </View>
 
@@ -287,16 +285,15 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Show alerts on your device when you receive a message
             </Text>
           </View>
-          <View style={styles.switchGroup}>
-            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.slate : COLORS.white }]}>OFF</Text>
+          <View style={styles.switchWrap}>
+            {pushEnabled && <Text style={styles.switchOnLabel}>ON</Text>}
             <Switch
               value={pushEnabled}
               onValueChange={handleTogglePush}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
               thumbColor={COLORS.white}
               style={LAYOUT.switch}
             />
-            <Text style={[styles.switchLabel, { color: pushEnabled ? COLORS.success : COLORS.slate }]}>ON</Text>
           </View>
         </View>
       </View>
@@ -348,16 +345,15 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
               Receive text message notifications
             </Text>
           </View>
-          <View style={styles.switchGroup}>
-            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.slate : COLORS.white }]}>OFF</Text>
+          <View style={styles.switchWrap}>
+            {smsConsent && <Text style={styles.switchOnLabel}>ON</Text>}
             <Switch
               value={smsConsent}
               onValueChange={handleToggleSms}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              trackColor={{ false: '#3A3A3C', true: COLORS.success }}
               thumbColor={COLORS.white}
               style={LAYOUT.switch}
             />
-            <Text style={[styles.switchLabel, { color: smsConsent ? COLORS.success : COLORS.slate }]}>ON</Text>
           </View>
         </View>
 
@@ -433,15 +429,15 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
   },
-  switchGroup: {
-    flexDirection: 'row',
+  switchWrap: {
     alignItems: 'center',
-    gap: 4,
   },
-  switchLabel: {
+  switchOnLabel: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: 10,
+    fontSize: 9,
+    color: COLORS.success,
     letterSpacing: 0.5,
+    marginBottom: -2,
   },
   legalText: {
     fontFamily: FONTS.body.regular,
