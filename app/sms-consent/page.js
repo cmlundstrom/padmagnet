@@ -60,7 +60,7 @@ export default function SmsConsentPage() {
                     style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
                   />
                   <div style={{
-                    position: 'absolute', bottom: '22%', left: '-8%',
+                    position: 'absolute', bottom: '18%', left: '-8%',
                     color: '#EF4444', fontSize: 36, fontWeight: 900,
                     textShadow: '0 2px 6px rgba(0,0,0,0.5)',
                     transform: 'rotate(25deg)',
@@ -83,7 +83,7 @@ export default function SmsConsentPage() {
                     style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
                   />
                   <div style={{
-                    position: 'absolute', top: '33%', left: '-8%',
+                    position: 'absolute', top: '35%', left: '-8%',
                     color: '#EF4444', fontSize: 36, fontWeight: 900,
                     textShadow: '0 2px 6px rgba(0,0,0,0.5)',
                     transform: 'rotate(25deg)',
