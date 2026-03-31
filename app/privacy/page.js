@@ -49,6 +49,9 @@ export default function PrivacyPolicyPage() {
             <li><strong>Other users:</strong> Tenant contact information is shared with listing owners only when a tenant initiates a conversation</li>
             <li><strong>Legal requirements:</strong> When required by law or to protect our rights</li>
           </ul>
+          <p style={{ marginTop: '16px', padding: '12px 16px', background: 'rgba(59,130,246,0.08)', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.2)' }}>
+            <strong style={{ color: '#FFFFFF' }}>Mobile Information:</strong> We will not share, sell, or distribute your mobile phone number or any information collected through SMS opt-in to third parties for marketing or promotional purposes. Mobile information collected as part of our SMS notification service is used solely to deliver the transactional messages you have consented to receive. See our <a href="/sms-consent" style={{ color: '#E8603C' }}>SMS Consent &amp; Opt-In</a> page for full details on our SMS practices.
+          </p>
 
           <h2 style={{ color: '#FFFFFF', fontFamily: "'Outfit', sans-serif", fontSize: '20px', marginTop: '32px', marginBottom: '12px' }}>4. MLS Data</h2>
           <p>Rental listing data sourced from the MLS (Multiple Listing Service) is displayed under an IDX data exchange agreement with the Southeast Florida MLS. This data is provided for consumers&apos; personal, non-commercial use and may not be used for any purpose other than identifying prospective properties consumers may be interested in leasing.</p>

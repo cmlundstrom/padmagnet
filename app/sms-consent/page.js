@@ -99,6 +99,33 @@ export default function SmsConsentPage() {
             </div>
           </div>
 
+          {/* Real app screenshots */}
+          <div className="legal-card">
+            <h2>2b. Actual App Screenshots</h2>
+            <p style={{ marginBottom: 16 }}>
+              The following are screenshots taken directly from the PadMagnet mobile application on an Android device,
+              showing the exact consent flow a user experiences:
+            </p>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center' }}>
+                <img
+                  src="/sms-consent/sms-toggle-off.png"
+                  alt="PadMagnet Notification Settings — SMS toggle in OFF position"
+                  style={{ maxWidth: 260, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                />
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>SMS toggle OFF (default state)</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <img
+                  src="/sms-consent/sms-toggle-on.png"
+                  alt="PadMagnet Notification Settings — SMS toggle ON with TCPA disclosure visible"
+                  style={{ maxWidth: 260, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                />
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>SMS toggle ON — TCPA disclosure visible</p>
+              </div>
+            </div>
+          </div>
+
           {/* 3. TCPA Disclosure */}
           <div className="legal-card">
             <h2>3. TCPA Disclosure (Exact Text)</h2>
@@ -207,6 +234,21 @@ export default function SmsConsentPage() {
               </tbody>
             </table>
           </div>
+          {/* 7. Terms of Service — SMS Section (inline for reviewer convenience) */}
+          <div className="legal-card">
+            <h2>7. Terms of Service — SMS Terms (Section 7)</h2>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
+              The following is reproduced from our <a href="/terms">Terms of Service</a> Section 7 for convenience:
+            </p>
+            <div style={{ padding: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p><strong style={{ color: '#FFFFFF' }}>Opt-In:</strong> You must explicitly opt in to receive SMS messages by enabling &ldquo;SMS Notifications&rdquo; in the PadMagnet app&apos;s Notification Settings. Your consent to receive SMS is not a condition of purchase or use of the PadMagnet platform.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Message Frequency:</strong> Message frequency varies based on your account activity, typically 1–5 messages per week.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Fees:</strong> Message and data rates may apply. PadMagnet does not charge for SMS, but your mobile carrier may apply standard messaging fees.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Opt-Out:</strong> You may opt out of SMS at any time by replying STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, or QUIT to any PadMagnet message. You will receive one final confirmation message and no further texts will be sent.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Help:</strong> Reply HELP to any PadMagnet message for support, or contact us at support@padmagnet.com.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Phone Number Linking:</strong> Your phone number is linked to your PadMagnet user account to route notifications. We do not share, sell, or transfer your phone number or messaging consent to third parties.</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -220,6 +262,8 @@ export default function SmsConsentPage() {
           <a href="/privacy" className="footer-link">Privacy Policy</a>
           <span className="footer-dot">&middot;</span>
           <a href="/terms" className="footer-link">Terms of Service</a>
+          <span className="footer-dot">&middot;</span>
+          <a href="/sms-consent" className="footer-link">SMS Consent</a>
         </p>
       </footer>
     </>

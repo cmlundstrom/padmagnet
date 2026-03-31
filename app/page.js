@@ -472,6 +472,8 @@ export default function LandingPage() {
           <a href="/privacy" className="footer-link">Privacy Policy</a>
           <span className="footer-dot">&middot;</span>
           <a href="/terms" className="footer-link">Terms of Service</a>
+          <span className="footer-dot">&middot;</span>
+          <a href="/sms-consent" className="footer-link">SMS Consent</a>
         </p>
       </footer>
     </>
