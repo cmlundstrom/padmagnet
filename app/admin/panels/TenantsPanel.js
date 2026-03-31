@@ -140,6 +140,17 @@ export default function TenantsPanel() {
       meta: { editable: true },
     },
     {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: "13px", color: getValue() ? COLORS.text : COLORS.textDim }}>
+          {getValue() || "Not set"}
+        </span>
+      ),
+      meta: { editable: true },
+      size: 130,
+    },
+    {
       accessorKey: "renter_tier",
       header: "Tier",
       cell: ({ getValue }) => {
@@ -253,6 +264,8 @@ export default function TenantsPanel() {
         {/* Detail Grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 8, marginBottom: 16 }}>
           {[
+            ["Phone", row.phone || "Not set"],
+            ["SMS Consent", row.sms_consent ? "✅ Yes" : "No"],
             ["Renter Tier", tier.toUpperCase()],
             ["PadPoints", row.padpoints || 0],
             ["PadLevel", LEVEL_NAMES[row.padlevel] || `Level ${row.padlevel || 1}`],
