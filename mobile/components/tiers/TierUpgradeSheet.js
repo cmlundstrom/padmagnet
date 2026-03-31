@@ -67,7 +67,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
                 <View style={styles.verifiedRow}>
                   <Text style={styles.feature}>✓ </Text>
                   <VerifiedBadge size="sm" />
-                  <Text style={styles.feature}> Verified Renter badge</Text>
+                  <Text style={[styles.feature, { flex: 1 }]}> — owners see you're real</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.masterButton} onPress={function() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); onBuyMaster(); }} activeOpacity={0.8}>
