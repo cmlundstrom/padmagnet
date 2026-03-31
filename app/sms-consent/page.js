@@ -196,12 +196,12 @@ export default function SmsConsentPage() {
               The following is reproduced from our <a href="/terms">Terms of Service</a> Section 7 for convenience:
             </p>
             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
-              <p><strong style={{ color: '#FFFFFF' }}>Opt-In:</strong> You must explicitly opt in to receive SMS messages by enabling &ldquo;SMS Notifications&rdquo; in the PadMagnet app&apos;s Notification Settings. Your consent to receive SMS is not a condition of purchase or use of the PadMagnet platform.</p>
-              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Message Frequency:</strong> Message frequency varies based on your account activity, typically 1–5 messages per week.</p>
-              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Fees:</strong> Message and data rates may apply. PadMagnet does not charge for SMS, but your mobile carrier may apply standard messaging fees.</p>
-              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Opt-Out:</strong> You may opt out of SMS at any time by replying STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, or QUIT to any PadMagnet message. You will receive one final confirmation message and no further texts will be sent.</p>
-              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Help:</strong> Reply HELP to any PadMagnet message for support, or contact us at support@padmagnet.com.</p>
-              <p style={{ marginTop: 10 }}><strong style={{ color: '#FFFFFF' }}>Phone Number Linking:</strong> Your phone number is linked to your PadMagnet user account to route notifications. We do not share, sell, or transfer your phone number or messaging consent to third parties.</p>
+              <p><strong style={{ color: '#0B1D3A' }}>Opt-In:</strong> You must explicitly opt in to receive SMS messages by enabling &ldquo;SMS Notifications&rdquo; in the PadMagnet app&apos;s Notification Settings. Your consent to receive SMS is not a condition of purchase or use of the PadMagnet platform.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#0B1D3A' }}>Message Frequency:</strong> Message frequency varies based on your account activity, typically 1–5 messages per week.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#0B1D3A' }}>Fees:</strong> Message and data rates may apply. PadMagnet does not charge for SMS, but your mobile carrier may apply standard messaging fees.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#0B1D3A' }}>Opt-Out:</strong> You may opt out of SMS at any time by replying STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, or QUIT to any PadMagnet message. You will receive one final confirmation message and no further texts will be sent.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#0B1D3A' }}>Help:</strong> Reply HELP to any PadMagnet message for support, or contact us at support@padmagnet.com.</p>
+              <p style={{ marginTop: 10 }}><strong style={{ color: '#0B1D3A' }}>Phone Number Linking:</strong> Your phone number is linked to your PadMagnet user account to route notifications. We do not share, sell, or transfer your phone number or messaging consent to third parties.</p>
             </div>
           </div>
         </div>
