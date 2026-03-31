@@ -1,14 +1,24 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { COLORS, Badge, StatCard, timeAgo, formatDate } from '../shared';
+import { COLORS, Badge, StatCard, baseButton, timeAgo, formatDate } from '../shared';
 import AdminTable from '../components/AdminTable';
+import AuditHistory from '../components/AuditHistory';
+
+const TIER_COLORS = { free: 'gray', explorer: 'blue', master: 'purple' };
+const TIER_LIMITS = { free: 5, explorer: 30, master: '∞' };
+const LEVEL_NAMES = ['', 'Starter', 'Pad Explorer', 'Pad Hunter', 'Pad Expert', 'Pad Master'];
 
 export default function TenantsPanel() {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [actionModal, setActionModal] = useState(null); // { type, user }
+  const [actionValue, setActionValue] = useState('');
+  const [actionReason, setActionReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [renterPayments, setRenterPayments] = useState([]); // for refund modal
 
   const fetchTenants = useCallback(async () => {
     setLoading(true);
@@ -58,7 +68,41 @@ export default function TenantsPanel() {
     fetchTenants();
   }, [confirmDelete, fetchTenants]);
 
-  // Auth status helper
+  // ── Renter Actions ────────────────────────────────────
+  const executeAction = useCallback(async (actionBody) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/renter-actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(actionBody),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionModal(null);
+      setActionValue('');
+      setActionReason('');
+      setRenterPayments([]);
+      fetchTenants();
+    } catch (err) {
+      alert(`Action failed: ${err.message}`);
+    }
+    setActionLoading(false);
+  }, [fetchTenants]);
+
+  const openRefundModal = useCallback(async (user) => {
+    setActionModal({ type: 'refund_renter', user });
+    // Fetch this renter's payments
+    try {
+      const res = await fetch(`/api/admin/renter-payments?user_id=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRenterPayments(data);
+      }
+    } catch { setRenterPayments([]); }
+  }, []);
+
+  // ── Auth status helper ────────────────────────────────
   const getAuthStatus = (authStatus) => {
     if (!authStatus) return { label: "Active", color: COLORS.green, bg: "#052e16" };
     if (authStatus.last_sign_in_at) return { label: "Active", color: "#4ade80", bg: "#052e16" };
@@ -66,6 +110,7 @@ export default function TenantsPanel() {
     return { label: "Unconfirmed", color: COLORS.textDim, bg: "#1e293b" };
   };
 
+  // ── Table Columns ─────────────────────────────────────
   const columns = useMemo(() => [
     {
       accessorKey: "display_name",
@@ -79,20 +124,81 @@ export default function TenantsPanel() {
       accessorKey: "email",
       header: "Email",
       cell: ({ getValue }) => (
-        <span style={{ fontWeight: 500 }}>{getValue()}</span>
+        <span style={{ fontWeight: 500, fontSize: "13px" }}>{getValue()}</span>
       ),
       meta: { editable: true },
     },
     {
-      accessorKey: "phone",
-      header: "Phone",
+      accessorKey: "renter_tier",
+      header: "Tier",
+      cell: ({ getValue }) => {
+        const tier = getValue() || "free";
+        return <Badge color={TIER_COLORS[tier] || "gray"}>{tier.toUpperCase()}</Badge>;
+      },
+      size: 90,
+    },
+    {
+      accessorKey: "padpoints",
+      header: "Points",
+      cell: ({ getValue }) => {
+        const pts = getValue() || 0;
+        const nearRedeem = pts >= 300;
+        return (
+          <span style={{ fontSize: "13px", fontWeight: 600, color: nearRedeem ? COLORS.amber : COLORS.text }}>
+            {pts}
+          </span>
+        );
+      },
+      size: 70,
+    },
+    {
+      accessorKey: "padlevel",
+      header: "Lvl",
       cell: ({ getValue }) => (
-        <span style={{ fontSize: "13px", color: getValue() ? COLORS.text : COLORS.textDim }}>
-          {getValue() || "Not set"}
-        </span>
+        <span style={{ fontSize: "12px", color: COLORS.textMuted }}>{getValue() || 1}</span>
       ),
-      meta: { editable: true },
-      size: 140,
+      size: 50,
+    },
+    {
+      accessorKey: "streak_days",
+      header: "Streak",
+      cell: ({ getValue }) => {
+        const days = getValue() || 0;
+        if (days === 0) return <span style={{ fontSize: "12px", color: COLORS.textDim }}>—</span>;
+        return (
+          <span style={{ fontSize: "12px" }}>
+            {days > 7 ? '🔥 ' : ''}{days}d
+          </span>
+        );
+      },
+      size: 70,
+    },
+    {
+      id: "queries",
+      header: "Queries",
+      accessorFn: (row) => row.agent_queries_today || 0,
+      cell: ({ row }) => {
+        const used = row.original.agent_queries_today || 0;
+        const tier = row.original.renter_tier || 'free';
+        const limit = TIER_LIMITS[tier];
+        return (
+          <span style={{ fontSize: "12px", color: COLORS.textMuted }}>
+            {used}/{limit}
+          </span>
+        );
+      },
+      size: 70,
+    },
+    {
+      accessorKey: "agent_abuse_score",
+      header: "Abuse",
+      cell: ({ getValue }) => {
+        const score = getValue() || 0;
+        if (score === 0) return <span style={{ fontSize: "12px", color: COLORS.textDim }}>—</span>;
+        const color = score > 50 ? COLORS.red : score > 25 ? COLORS.amber : COLORS.green;
+        return <span style={{ fontSize: "12px", fontWeight: 700, color }}>{score}</span>;
+      },
+      size: 60,
     },
     {
       id: "auth_status",
@@ -110,7 +216,7 @@ export default function TenantsPanel() {
           </span>
         );
       },
-      size: 120,
+      size: 90,
       enableSorting: false,
     },
     {
@@ -119,39 +225,123 @@ export default function TenantsPanel() {
       cell: ({ getValue }) => (
         <span style={{ fontSize: "12px", color: COLORS.textDim }}>{formatDate(getValue())}</span>
       ),
-      size: 160,
-    },
-    {
-      accessorKey: "updated_at",
-      header: "Updated",
-      cell: ({ getValue }) => (
-        <span style={{ fontSize: "12px", color: COLORS.textDim }}>{timeAgo(getValue())}</span>
-      ),
-      size: 100,
+      size: 140,
     },
   ], []);
 
-  const recentCount = tenants.filter(t => {
-    const diff = Date.now() - new Date(t.created_at).getTime();
-    return diff < 7 * 24 * 60 * 60 * 1000; // last 7 days
-  }).length;
+  // ── Expanded Row ──────────────────────────────────────
+  const renderExpandedRow = useCallback((row) => {
+    const tier = row.renter_tier || 'free';
+    const cooldownActive = row.agent_cooldown_until && new Date(row.agent_cooldown_until) > new Date();
+    const stripeUrl = row.stripe_customer_id
+      ? `https://dashboard.stripe.com/customers/${row.stripe_customer_id}`
+      : null;
+
+    return (
+      <div>
+        {/* Detail Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 8, marginBottom: 16 }}>
+          {[
+            ["Renter Tier", tier.toUpperCase()],
+            ["PadPoints", row.padpoints || 0],
+            ["PadLevel", LEVEL_NAMES[row.padlevel] || `Level ${row.padlevel || 1}`],
+            ["Streak", `${row.streak_days || 0} days`],
+            ["Streak Last", row.streak_last_date || "—"],
+            ["Queries Today", `${row.agent_queries_today || 0} / ${TIER_LIMITS[tier]}`],
+            ["Rollover", row.agent_queries_rollover || 0],
+            ["Query Reset", row.agent_queries_reset_date || "—"],
+            ["Abuse Score", row.agent_abuse_score || 0],
+            ["Cooldown", cooldownActive ? formatDate(row.agent_cooldown_until) : "None"],
+            ["Zones", `${row.search_zones_count || 1} / ${tier === 'master' ? 3 : tier === 'explorer' ? 2 : 1}`],
+            ["Verified", row.verified_renter ? "✅ Yes" : "No"],
+            ["Anonymous", row.is_anonymous ? "Yes" : "No"],
+          ].map(([label, val]) => (
+            <div key={label} style={{ background: COLORS.bg, borderRadius: 6, padding: "6px 10px" }}>
+              <div style={{ fontSize: "9px", color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>{label}</div>
+              <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: 600, marginTop: 1 }}>{String(val)}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          <button
+            style={{ ...baseButton, background: COLORS.amber + "22", color: COLORS.amber, border: `1px solid ${COLORS.amber}44`, fontSize: "12px" }}
+            onClick={() => { setActionModal({ type: 'gift_points', user: row }); setActionValue('50'); }}
+          >
+            🎁 Gift Points
+          </button>
+          <button
+            style={{ ...baseButton, background: COLORS.brand + "22", color: COLORS.brand, border: `1px solid ${COLORS.brand}44`, fontSize: "12px" }}
+            onClick={() => { setActionModal({ type: 'gift_queries', user: row }); setActionValue('5'); }}
+          >
+            🔍 Gift Queries
+          </button>
+          <button
+            style={{ ...baseButton, background: COLORS.purple + "22", color: COLORS.purple, border: `1px solid ${COLORS.purple}44`, fontSize: "12px" }}
+            onClick={() => { setActionModal({ type: 'upgrade_tier', user: row }); setActionValue('explorer'); }}
+          >
+            ⬆️ Upgrade Tier
+          </button>
+          {tier !== 'free' && (
+            <button
+              style={{ ...baseButton, background: COLORS.red + "22", color: COLORS.red, border: `1px solid ${COLORS.red}44`, fontSize: "12px" }}
+              onClick={() => setActionModal({ type: 'downgrade_tier', user: row })}
+            >
+              ⬇️ Downgrade
+            </button>
+          )}
+          {(cooldownActive || (row.agent_abuse_score || 0) > 0) && (
+            <button
+              style={{ ...baseButton, background: COLORS.green + "22", color: COLORS.green, border: `1px solid ${COLORS.green}44`, fontSize: "12px" }}
+              onClick={() => setActionModal({ type: 'clear_cooldown', user: row })}
+            >
+              🔓 Clear Cooldown
+            </button>
+          )}
+          {tier !== 'free' && (
+            <button
+              style={{ ...baseButton, background: COLORS.red + "22", color: COLORS.red, border: `1px solid ${COLORS.red}44`, fontSize: "12px" }}
+              onClick={() => openRefundModal(row)}
+            >
+              💳 Refund
+            </button>
+          )}
+          {stripeUrl && (
+            <a href={stripeUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              <button style={{ ...baseButton, background: "#635bff22", color: "#635bff", border: "1px solid #635bff44", fontSize: "12px" }}>
+                Stripe →
+              </button>
+            </a>
+          )}
+        </div>
+
+        <AuditHistory tableName="profiles" rowId={row.id} />
+      </div>
+    );
+  }, [openRefundModal]);
+
+  // ── Stat calculations ─────────────────────────────────
+  const paidCount = tenants.filter(t => t.renter_tier && t.renter_tier !== 'free').length;
+  const avgPoints = tenants.length > 0 ? Math.round(tenants.reduce((s, t) => s + (t.padpoints || 0), 0) / tenants.length) : 0;
+  const activeStreaks = tenants.filter(t => (t.streak_days || 0) > 0).length;
+  const inCooldown = tenants.filter(t => t.agent_cooldown_until && new Date(t.agent_cooldown_until) > new Date()).length;
+  const verifiedCount = tenants.filter(t => t.verified_renter).length;
 
   return (
     <div>
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
-        <StatCard label="Total Tenants" value={tenants.length} sub="Registered accounts" accent={COLORS.brand} />
-        <StatCard label="New (7d)" value={recentCount} sub="Last 7 days" accent={COLORS.green} />
-        <StatCard
-          label="Last Signup"
-          value={tenants.length > 0 ? timeAgo(tenants[tenants.length - 1]?.created_at) : "\u2014"}
-          sub={tenants[tenants.length - 1]?.display_name || "\u2014"}
-          accent={COLORS.amber}
-        />
+        <StatCard label="Total Renters" value={tenants.length} sub="Registered accounts" accent={COLORS.brand} />
+        <StatCard label="Paid Tiers" value={paidCount} sub="Explorer + Master" accent={COLORS.purple} />
+        <StatCard label="Avg Points" value={avgPoints} sub="Across all renters" accent={COLORS.amber} />
+        <StatCard label="Active Streaks" value={activeStreaks} sub="Currently grinding" accent={COLORS.green} />
+        <StatCard label="In Cooldown" value={inCooldown} sub="Rate-limited" accent={COLORS.red} />
+        <StatCard label="Verified" value={verifiedCount} sub="Master tier" accent={COLORS.green} />
       </div>
 
       <span style={{ fontSize: "13px", color: COLORS.textMuted, display: "block", marginBottom: 16 }}>
-        Double-click any cell to edit. Changes are saved immediately and logged to the audit trail.
+        Click a row to expand game details and quick actions. Double-click name or email to edit inline.
       </span>
 
       {/* Tenants Table */}
@@ -164,15 +354,150 @@ export default function TenantsPanel() {
         storageKey="tenants"
         onSave={handleSave}
         onBulkDelete={handleBulkDelete}
-        emptyMessage="No tenant accounts yet"
+        emptyMessage="No renter accounts yet"
+        renderExpandedRow={renderExpandedRow}
       />
+
+      {/* ── Action Modal ────────────────────────────────── */}
+      {actionModal && (
+        <div className="confirm-overlay" onClick={() => { setActionModal(null); setActionValue(''); setActionReason(''); setRenterPayments([]); }}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <p style={{ fontWeight: 700, fontSize: "15px", marginBottom: 4 }}>
+              {actionModal.type === 'gift_points' && `🎁 Gift PadPoints to ${actionModal.user.display_name || actionModal.user.email}`}
+              {actionModal.type === 'gift_queries' && `🔍 Gift Ask Pad Queries to ${actionModal.user.display_name || actionModal.user.email}`}
+              {actionModal.type === 'upgrade_tier' && `⬆️ Upgrade Tier for ${actionModal.user.display_name || actionModal.user.email}`}
+              {actionModal.type === 'downgrade_tier' && `⬇️ Downgrade ${actionModal.user.display_name || actionModal.user.email} to Free?`}
+              {actionModal.type === 'clear_cooldown' && `🔓 Clear Cooldown for ${actionModal.user.display_name || actionModal.user.email}?`}
+              {actionModal.type === 'refund_renter' && `💳 Refund ${actionModal.user.display_name || actionModal.user.email}`}
+            </p>
+
+            {/* Amount input for gift actions */}
+            {['gift_points', 'gift_queries'].includes(actionModal.type) && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 4 }}>
+                  {actionModal.type === 'gift_points' ? 'Points to award' : 'Queries to award'}
+                </label>
+                <input
+                  type="number"
+                  value={actionValue}
+                  onChange={e => setActionValue(e.target.value)}
+                  style={{
+                    width: "100%", padding: "8px 12px", background: COLORS.bg,
+                    border: `1px solid ${COLORS.border}`, borderRadius: 6,
+                    color: COLORS.text, fontSize: "14px",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Tier selector for upgrade */}
+            {actionModal.type === 'upgrade_tier' && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 4 }}>Tier</label>
+                <select
+                  value={actionValue}
+                  onChange={e => setActionValue(e.target.value)}
+                  style={{
+                    width: "100%", padding: "8px 12px", background: COLORS.bg,
+                    border: `1px solid ${COLORS.border}`, borderRadius: 6,
+                    color: COLORS.text, fontSize: "14px",
+                  }}
+                >
+                  <option value="explorer">Explorer ($1.50/mo value)</option>
+                  <option value="master">Master ($3.50/mo value)</option>
+                </select>
+              </div>
+            )}
+
+            {/* Payment selector for refund */}
+            {actionModal.type === 'refund_renter' && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 4 }}>Payment to refund</label>
+                {renterPayments.length === 0 ? (
+                  <p style={{ fontSize: "12px", color: COLORS.textDim }}>No refundable payments found. The renter may have upgraded via PadPoints redemption (free).</p>
+                ) : (
+                  <select
+                    value={actionValue}
+                    onChange={e => setActionValue(e.target.value)}
+                    style={{
+                      width: "100%", padding: "8px 12px", background: COLORS.bg,
+                      border: `1px solid ${COLORS.border}`, borderRadius: 6,
+                      color: COLORS.text, fontSize: "14px",
+                    }}
+                  >
+                    <option value="">Select a payment...</option>
+                    {renterPayments.map(p => (
+                      <option key={p.id} value={p.id}>
+                        ${(p.amount_cents / 100).toFixed(2)} — {new Date(p.created_at).toLocaleDateString()} — {p.status}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            {/* Reason (always) */}
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 4 }}>Reason (logged to audit trail)</label>
+              <textarea
+                value={actionReason}
+                onChange={e => setActionReason(e.target.value)}
+                placeholder="Brief reason for this action..."
+                rows={2}
+                style={{
+                  width: "100%", padding: "8px 12px", background: COLORS.bg,
+                  border: `1px solid ${COLORS.border}`, borderRadius: 6,
+                  color: COLORS.text, fontSize: "13px", resize: "vertical",
+                }}
+              />
+            </div>
+
+            <div className="confirm-actions" style={{ marginTop: 16 }}>
+              <button
+                className="confirm-btn cancel"
+                onClick={() => { setActionModal(null); setActionValue(''); setActionReason(''); setRenterPayments([]); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-btn confirm"
+                disabled={actionLoading || (actionModal.type === 'refund_renter' && !actionValue)}
+                style={{
+                  background: actionModal.type.includes('refund') || actionModal.type.includes('downgrade')
+                    ? COLORS.red : COLORS.brand,
+                  opacity: actionLoading ? 0.6 : 1,
+                }}
+                onClick={() => {
+                  const base = {
+                    action: actionModal.type,
+                    user_id: actionModal.user.id,
+                    reason: actionReason,
+                  };
+
+                  if (actionModal.type === 'gift_points' || actionModal.type === 'gift_queries') {
+                    base.amount = parseInt(actionValue, 10);
+                  } else if (actionModal.type === 'upgrade_tier') {
+                    base.tier = actionValue;
+                  } else if (actionModal.type === 'refund_renter') {
+                    base.payment_id = actionValue;
+                  }
+
+                  executeAction(base);
+                }}
+              >
+                {actionLoading ? 'Processing...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {confirmDelete && (
         <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
           <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
             <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px" }}>
-              Delete {confirmDelete.ids.length} tenant{confirmDelete.ids.length > 1 ? "s" : ""}?
+              Delete {confirmDelete.ids.length} renter{confirmDelete.ids.length > 1 ? "s" : ""}?
             </p>
             <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
               {confirmDelete.names}
@@ -182,8 +507,8 @@ export default function TenantsPanel() {
               background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)",
               fontSize: "12px", color: "#f87171", lineHeight: 1.5,
             }}>
-              DANGER: This permanently deletes the tenant account AND their Supabase auth account.
-              All swipes, preferences, and conversations will be lost. This action cannot be undone.
+              DANGER: This permanently deletes the renter account AND their Supabase auth account.
+              All swipes, saved listings, PadPoints, and conversations will be lost. This cannot be undone.
             </div>
             <div className="confirm-actions">
               <button className="confirm-btn cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>

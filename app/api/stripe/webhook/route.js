@@ -153,7 +153,36 @@ export async function POST(request) {
 
             await supabase.from('profiles').update(updates).eq('id', user_id);
 
-            // Log for debugging
+            // Record payment for revenue tracking + future refunds
+            const tierAmount = session.amount_total || 0;
+            if (tierAmount > 0) {
+              await supabase.from('payments').insert({
+                owner_user_id: user_id,
+                stripe_payment_intent_id: session.payment_intent,
+                amount_cents: tierAmount,
+                status: 'succeeded',
+                purchase_type: 'renter_tier',
+                method: session.payment_method_types?.[0] || 'card',
+              }).catch(() => {});
+
+              await supabase.from('ledger_entries').insert({
+                owner_user_id: user_id,
+                entry_type: 'revenue',
+                reference_type: 'renter_tier',
+                amount_cents: tierAmount,
+                description: `Renter ${tier} tier purchase`,
+              }).catch(() => {});
+            }
+
+            // Save stripe_customer_id on profile
+            if (session.customer) {
+              await supabase
+                .from('profiles')
+                .update({ stripe_customer_id: session.customer })
+                .eq('id', user_id)
+                .catch(() => {});
+            }
+
             console.log(`Renter tier activated: ${tier} for user ${user_id}${tier === 'master' ? ' (Verified Renter)' : ''}`);
 
             await supabase.from('webhook_logs').insert({
@@ -161,7 +190,7 @@ export async function POST(request) {
               event_type: 'renter_tier_activated',
               external_id: session.id,
               status: 'processed',
-              payload: { tier, user_id, amount: session.amount_total, verified: tier === 'master' },
+              payload: { tier, user_id, amount_cents: tierAmount, verified: tier === 'master' },
             }).catch(function() {});
           }
           break;

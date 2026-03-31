@@ -159,10 +159,10 @@ export async function PATCH(request) {
         );
       }
 
-      // Guard 3: Regular admins can only edit their own profile
-      if (!isSuperAdmin && target.id !== requestor?.id) {
+      // Guard 3: Regular admins can edit tenant/owner profiles, but not other admin profiles
+      if (!isSuperAdmin && target.id !== requestor?.id && ['admin', 'super_admin'].includes(target.role)) {
         return NextResponse.json(
-          { error: 'You can only edit your own profile' },
+          { error: 'You can only edit your own admin profile' },
           { status: 403 }
         );
       }
