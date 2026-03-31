@@ -40,61 +40,37 @@ export default function SmsConsentPage() {
           <div className="legal-card">
             <h2>2. In-App Opt-In Flow</h2>
             <p style={{ marginBottom: 24 }}>
-              Below is the opt-in flow within the PadMagnet mobile app. Users navigate to
-              Settings → Notification Settings to find the SMS toggle.
+              Below are real screenshots from the PadMagnet mobile app (Samsung Galaxy S24).
+              Users navigate to Profile → Settings → Notifications to find the SMS toggle.
             </p>
 
-            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {/* Phone: Before */}
-              <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start' }}>
+              <div style={{ textAlign: 'center', flex: '1 1 280px', maxWidth: 320 }}>
                 <div className="phone-label">Step 1 — SMS is OFF by default</div>
-                <div className="phone-mock">
-                  <div className="phone-notch" />
-                  <div className="phone-title">Notification Settings</div>
-                  <div className="phone-row">
-                    <div>
-                      <div className="phone-row-title">SMS Notifications</div>
-                      <div className="phone-row-sub">Receive text message notifications</div>
-                    </div>
-                    <div className="phone-toggle off"><div className="phone-toggle-thumb" style={{ left: 2 }} /></div>
-                  </div>
-                  <div style={{ padding: '24px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: 12, color: '#94a3b8' }}>Toggle SMS to see the consent disclosure and enter your phone number.</p>
-                  </div>
-                </div>
+                <img
+                  src="/sms-consent/sms-toggle-off.jpg"
+                  alt="PadMagnet Notification Settings — default state with Push OFF, SMS OFF, In-App Only selected"
+                  style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                />
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+                  Default state: Push OFF, SMS OFF, &ldquo;In-App Only&rdquo; selected.
+                  Toggle uses muted gray track and thumb when inactive.
+                </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', fontSize: 28, color: 'var(--coral)', fontWeight: 700 }}>→</div>
+              <div style={{ display: 'flex', alignItems: 'center', fontSize: 28, color: 'var(--coral)', fontWeight: 700, alignSelf: 'center' }}>→</div>
 
-              {/* Phone: After */}
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', flex: '1 1 280px', maxWidth: 320 }}>
                 <div className="phone-label">Step 2 — User toggles ON, sees disclosure</div>
-                <div className="phone-mock active">
-                  <div className="phone-notch" />
-                  <div className="phone-title">Notification Settings</div>
-                  <div className="phone-row">
-                    <div>
-                      <div className="phone-row-title">SMS Notifications</div>
-                      <div className="phone-row-sub">Receive text message notifications</div>
-                    </div>
-                    <div className="phone-toggle on"><div className="phone-toggle-thumb" style={{ left: 22 }} /></div>
-                  </div>
-                  <div className="phone-disclosure">
-                    <p>
-                      By enabling SMS, you consent to receive transactional text message notifications from
-                      PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
-                      not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
-                      varies, typically 1-5 per week. Reply STOP to unsubscribe at any time.
-                    </p>
-                    <p style={{ color: '#3b82f6', marginTop: 6 }}>
-                      Privacy Policy · Terms of Service
-                    </p>
-                  </div>
-                  <div style={{ padding: '8px 20px 16px' }}>
-                    <p style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Phone Number</p>
-                    <div className="phone-input">(772) 555-0123</div>
-                  </div>
-                </div>
+                <img
+                  src="/sms-consent/sms-toggle-on.jpg"
+                  alt="PadMagnet Notification Settings — SMS enabled with green ON toggle, phone number entered, full TCPA disclosure and policy links visible"
+                  style={{ width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
+                />
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+                  User enables SMS: green &ldquo;ON&rdquo; toggle, phone number entered,
+                  full TCPA disclosure with policy links visible below.
+                </p>
               </div>
             </div>
           </div>
