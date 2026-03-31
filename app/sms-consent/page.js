@@ -34,6 +34,12 @@ export default function SmsConsentPage() {
               <strong>SMS is never enabled by default.</strong> Consent is collected separately from account registration.
               Users can fully use PadMagnet without enabling SMS. SMS consent is not a condition of purchase or use of the app.
             </p>
+            <p>
+              <strong>We will not share, sell, or distribute your mobile phone number or any information collected
+              through SMS opt-in to third parties for marketing or promotional purposes.</strong> Mobile information
+              collected as part of our SMS notification service is used solely to deliver the transactional
+              messages you have consented to receive.
+            </p>
           </div>
 
           {/* 2. In-App Opt-In Flow */}
@@ -75,33 +81,6 @@ export default function SmsConsentPage() {
             </div>
           </div>
 
-          {/* Real app screenshots */}
-          <div className="legal-card">
-            <h2>2b. Actual App Screenshots</h2>
-            <p style={{ marginBottom: 16 }}>
-              The following are screenshots taken directly from the PadMagnet mobile application on an Android device,
-              showing the exact consent flow a user experiences:
-            </p>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center' }}>
-                <img
-                  src="/sms-consent/sms-toggle-off.jpg"
-                  alt="PadMagnet Notification Settings — SMS toggle in OFF position, default state"
-                  style={{ maxWidth: 280, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
-                />
-                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Default state — SMS toggle OFF, Push OFF, In-App Only selected</p>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <img
-                  src="/sms-consent/sms-toggle-on.jpg"
-                  alt="PadMagnet Notification Settings — SMS toggle ON with phone number field and full TCPA disclosure visible"
-                  style={{ maxWidth: 280, width: '100%', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)' }}
-                />
-                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>User enables SMS — phone field, TCPA disclosure, and policy links visible</p>
-              </div>
-            </div>
-          </div>
-
           {/* 3. TCPA Disclosure */}
           <div className="legal-card">
             <h2>3. TCPA Disclosure (Exact Text)</h2>
@@ -109,8 +88,8 @@ export default function SmsConsentPage() {
               &ldquo;By enabling SMS, you consent to receive transactional text message notifications from
               PadMagnet (e.g., inquiry alerts, listing reminders, message notifications). Consent is
               not a condition of purchase or use of the app. Msg &amp; data rates may apply. Msg frequency
-              varies based on account activity, typically 1-5 per week. Reply STOP to unsubscribe at
-              any time.&rdquo;
+              varies based on account activity, typically 1–5 per week. Reply STOP to unsubscribe at
+              any time. Reply HELP for help.&rdquo;
             </blockquote>
             <p>
               The disclosure includes links to our{' '}
@@ -204,7 +183,7 @@ export default function SmsConsentPage() {
                 <tr><td><strong>Frequency</strong></td><td>1-5 messages per week based on account activity</td></tr>
                 <tr><td><strong>Opt-In</strong></td><td>In-app toggle with full TCPA disclosure (explicit, affirmative consent)</td></tr>
                 <tr><td><strong>Opt-Out</strong></td><td>Reply STOP, in-app toggle, or any standard keyword</td></tr>
-                <tr><td><strong>HELP Response</strong></td><td>&ldquo;Reply STOP to unsubscribe. Msg &amp; Data Rates May Apply.&rdquo;</td></tr>
+                <tr><td><strong>HELP Response</strong></td><td>&ldquo;PadMagnet SMS Notifications. Reply STOP to opt out. Msg &amp; data rates may apply. For help: support@padmagnet.com&rdquo;</td></tr>
                 <tr><td><strong>Privacy Policy</strong></td><td><a href="/privacy">padmagnet.com/privacy</a></td></tr>
                 <tr><td><strong>Terms of Service</strong></td><td><a href="/terms">padmagnet.com/terms</a> (Section 7: SMS Terms)</td></tr>
               </tbody>
