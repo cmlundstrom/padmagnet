@@ -24,7 +24,7 @@ const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.20);
  * Slide-up panel over the swipe cards with blurred backdrop.
  * Input bar visible immediately. Keyboard lifts the panel.
  */
-export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences, onViewListing, deviceLat, deviceLng }) {
+export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences, onNotifications, onViewListing, deviceLat, deviceLng }) {
   const [input, setInput] = useState('');
   const flatListRef = useRef(null);
   const askPad = useAskPad({ deviceLat, deviceLng });
@@ -97,7 +97,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
           ref={flatListRef}
           data={askPad.messages}
           keyExtractor={(_, i) => String(i)}
-          renderItem={({ item }) => <AskPadMessage message={item} onUpgrade={onUpgrade} onPreferences={onPreferences} onViewListing={onViewListing} />}
+          renderItem={({ item }) => <AskPadMessage message={item} onUpgrade={onUpgrade} onPreferences={onPreferences} onNotifications={onNotifications} onViewListing={onViewListing} />}
           contentContainerStyle={styles.messageList}
           style={styles.messageContainer}
           keyboardShouldPersistTaps="handled"

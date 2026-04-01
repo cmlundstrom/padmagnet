@@ -242,6 +242,7 @@ export default function ListingDetailScreen() {
         onClose={() => setShowAskPadDetail(false)}
         onUpgrade={() => setShowAskPadDetail(false)}
         onPreferences={() => { setShowAskPadDetail(false); router.push('/settings/preferences'); }}
+        onNotifications={() => { setShowAskPadDetail(false); router.push('/settings/notifications'); }}
         onViewListing={(id) => { setShowAskPadDetail(false); router.push(`/listing/${id}`); }}
       />
 

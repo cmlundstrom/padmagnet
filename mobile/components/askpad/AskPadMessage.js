@@ -6,17 +6,47 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
+// In-app link definitions
+const APP_LINKS = {
+  preferences: { label: 'Tune Your PadScore', icon: 'options-outline' },
+  upgrade: { label: 'Upgrade AskPad', icon: 'rocket-outline' },
+  notifications: { label: 'Notification Settings', icon: 'notifications-outline' },
+};
+
+// Parse [[link:X]] tokens from message text
+function parseLinks(text) {
+  if (!text) return { cleanText: '', links: [] };
+  const linkRegex = /\[\[link:(\w+)\]\]/g;
+  const links = [];
+  let match;
+  while ((match = linkRegex.exec(text)) !== null) {
+    if (APP_LINKS[match[1]]) links.push(match[1]);
+  }
+  const cleanText = text.replace(linkRegex, '').replace(/\n{3,}/g, '\n\n').trim();
+  return { cleanText, links };
+}
+
 /**
  * Individual Ask Pad message bubble.
  * Renders: text, listings cards, rebuffs, cooldown, errors, limit_reached (with upgrade CTA).
+ * Parses [[link:X]] tokens into tappable navigation buttons.
  */
-export default function AskPadMessage({ message, onUpgrade, onPreferences, onViewListing }) {
+export default function AskPadMessage({ message, onUpgrade, onPreferences, onViewListing, onNotifications }) {
   const isUser = message.role === 'user';
   const isRebuff = message.type === 'rebuff';
   const isCooldown = message.type === 'cooldown';
   const isError = message.type === 'error';
   const isLimit = message.type === 'limit_reached';
   const hasListings = message.listings && message.listings.length > 0;
+
+  // Parse in-app links from Pad messages
+  const { cleanText, links } = !isUser ? parseLinks(message.text) : { cleanText: message.text, links: [] };
+
+  const linkHandlers = {
+    preferences: onPreferences,
+    upgrade: onUpgrade,
+    notifications: onNotifications,
+  };
 
   return (
     <Animated.View
@@ -44,7 +74,7 @@ export default function AskPadMessage({ message, onUpgrade, onPreferences, onVie
           isRebuff && styles.textRebuff,
           isLimit && styles.textLimit,
         ]}>
-          {message.text}
+          {cleanText}
         </Text>
 
         {/* Listing result cards */}
@@ -100,6 +130,29 @@ export default function AskPadMessage({ message, onUpgrade, onPreferences, onVie
 
         {message.abuseWarning && (
           <Text style={styles.abuseWarning}>{message.abuseWarning}</Text>
+        )}
+
+        {/* In-app navigation links */}
+        {links.length > 0 && (
+          <View style={styles.appLinks}>
+            {links.map((key) => {
+              const link = APP_LINKS[key];
+              const handler = linkHandlers[key];
+              if (!link || !handler) return null;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={styles.appLinkButton}
+                  onPress={handler}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={link.icon} size={15} color={COLORS.accent} />
+                  <Text style={styles.appLinkText}>{link.label}</Text>
+                  <Ionicons name="chevron-forward" size={13} color={COLORS.accent} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
       </View>
     </Animated.View>
@@ -248,5 +301,27 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.danger,
     marginTop: 8,
+  },
+  // ── In-app link buttons ──────────────────
+  appLinks: {
+    marginTop: 10,
+    gap: 6,
+  },
+  appLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accent + '14',
+    borderRadius: LAYOUT.radius.sm,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
+  },
+  appLinkText: {
+    flex: 1,
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.accent,
   },
 });

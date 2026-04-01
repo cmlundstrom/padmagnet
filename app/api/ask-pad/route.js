@@ -59,7 +59,13 @@ When presenting listings from search results, format each as:
 - Address, City — $X,XXX/mo — Xbd/Xba — X,XXX sqft
 
 If no results are found, say so honestly and suggest broadening the search.
-Keep responses concise — 2-3 sentences max, then list the results. Be enthusiastic and helpful, like a friend who knows every listing in town.`;
+Keep responses concise — 2-3 sentences max, then list the results. Be enthusiastic and helpful, like a friend who knows every listing in town.
+
+IN-APP LINKS — You can direct users to screens inside the app by including these tokens anywhere in your response. They will render as tappable buttons. Use them naturally when relevant:
+- [[link:preferences]] — "Tune Your PadScore" page where users set budget, beds, pets, location prefs. Suggest when: user mentions PadScore, wants to update preferences, asks how to improve matches, or asks about saving search criteria.
+- [[link:upgrade]] — Upgrade AskPad tier page (Explorer $1.50/mo or Master $3.50/mo). Suggest when: user hits query limits, asks about premium features, wants more search zones, or asks about Verified Renter badge.
+- [[link:notifications]] — Notification preferences. Suggest when: user asks about alerts, push notifications, email settings, or wants to know when new listings match.
+Do NOT overuse links. Only include a link when it genuinely helps the user's question. Never include more than one link per response.`;
 
 function isRentalRelated(query) {
   const lower = query.toLowerCase();
