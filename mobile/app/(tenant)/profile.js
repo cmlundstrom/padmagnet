@@ -172,7 +172,7 @@ export default function TenantProfileScreen() {
             renterTier.refresh();
             padPoints.checkStreak(); // refresh PadPoints after deduction
             setShowUpgrade(false);
-            alert('Upgraded!', 'Welcome to Ask Pad Explorer! You now have 30 daily queries and 2 search zones.');
+            alert('Upgraded!', 'Welcome to AskPad Explorer! You now have 30 daily queries and 2 search zones.');
           } catch (err) {
             alert('Error', err.message);
           }

@@ -226,7 +226,7 @@ export default function ListingDetailScreen() {
             style={[styles.ctaButton, { backgroundColor: COLORS.accent, marginBottom: 8 }]}
             onPress={() => setShowAskPadDetail(true)}
           >
-            <Text style={styles.ctaButtonText}>✨ Ask Pad About This Property</Text>
+            <Text style={styles.ctaButtonText}>✨ AskPad About This Property</Text>
           </Pressable>
         )}
         <Pressable style={styles.ctaButton} onPress={handleContact}>

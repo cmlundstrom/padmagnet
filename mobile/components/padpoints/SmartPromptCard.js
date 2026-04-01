@@ -53,7 +53,7 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) 
       {/* Ask Pad CTA (on later prompts) */}
       {prompt.afterSwipe >= 25 && onAskPad && (
         <TouchableOpacity style={styles.askPadButton} onPress={onAskPad} activeOpacity={0.7}>
-          <Text style={styles.askPadText}>✨ Too many options? Ask Pad instead</Text>
+          <Text style={styles.askPadText}>✨ Too many options? AskPad instead</Text>
         </TouchableOpacity>
       )}
 

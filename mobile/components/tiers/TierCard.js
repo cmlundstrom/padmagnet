@@ -25,7 +25,7 @@ export default function TierCard({ tier, tierLabel, verified, queriesToday, dail
 
       {/* Query usage */}
       <View style={styles.usageRow}>
-        <Text style={styles.usageLabel}>Ask Pad Queries Today</Text>
+        <Text style={styles.usageLabel}>AskPad Queries Today</Text>
         <Text style={styles.usageCount}>
           {remainingQueries >= 999 ? 'Unlimited' : `${remainingQueries} remaining`}
         </Text>

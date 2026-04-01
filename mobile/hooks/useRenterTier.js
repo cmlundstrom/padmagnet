@@ -14,7 +14,7 @@ import { supabase } from '../lib/supabase';
 
 const TIER_CONFIG = {
   free: { label: 'Free', dailyQueries: 5, maxZones: 1, earnBonus: 1.0 },
-  explorer: { label: 'Ask Pad Explorer', dailyQueries: 30, maxZones: 2, earnBonus: 1.2 },
+  explorer: { label: 'AskPad Explorer', dailyQueries: 30, maxZones: 2, earnBonus: 1.2 },
   master: { label: 'Pad Master', dailyQueries: 999, maxZones: 3, earnBonus: 1.2 },
 };
 

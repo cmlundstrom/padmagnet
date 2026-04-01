@@ -7,7 +7,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 /**
- * Tier Upgrade Bottom Sheet — purchase Ask Pad Explorer or Pad Master.
+ * Tier Upgrade Bottom Sheet — purchase AskPad Explorer or Pad Master.
  * Explorer shows both "Pay $1.50" and "Earn with 350 PadPoints" options.
  * Master shows "Pay $3.50 + Get Verified" only.
  */
@@ -23,16 +23,16 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           <Text style={styles.title}>Upgrade Ask Pad</Text>
           <Text style={styles.subtitle}>More queries, more zones, better matches</Text>
 
-          {/* Ask Pad Explorer tier */}
+          {/* AskPad Explorer tier */}
           {currentTier === 'free' && (
             <View style={styles.tierBox}>
               <View style={styles.tierHeader}>
                 <Ionicons name="sparkles" size={18} color={COLORS.accent} />
-                <Text style={styles.tierName}>Ask Pad Explorer</Text>
+                <Text style={styles.tierName}>AskPad Explorer</Text>
                 <Text style={styles.tierPrice}>$1.50</Text>
               </View>
               <View style={styles.features}>
-                <Text style={styles.feature}>✓ 30 Ask Pad queries per day + rollover</Text>
+                <Text style={styles.feature}>✓ 30 AskPad queries per day + rollover</Text>
                 <Text style={styles.feature}>✓ 2 search zones</Text>
                 <Text style={styles.feature}>✓ +20% PadPoints earn rate</Text>
               </View>
@@ -61,7 +61,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
                 <Text style={styles.tierPrice}>$3.50</Text>
               </View>
               <View style={styles.features}>
-                <Text style={styles.feature}>✓ Unlimited Ask Pad queries</Text>
+                <Text style={styles.feature}>✓ Unlimited AskPad queries</Text>
                 <Text style={styles.feature}>✓ 3 search zones (maximum)</Text>
                 <Text style={styles.feature}>✓ +20% PadPoints earn rate</Text>
                 <View style={styles.verifiedRow}>

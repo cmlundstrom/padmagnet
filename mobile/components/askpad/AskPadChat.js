@@ -1,19 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Modal, KeyboardAvoidingView, Platform, Pressable,
+  StyleSheet, Modal, Platform, Pressable, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import useAskPad from '../../hooks/useAskPad';
 import AskPadMessage from './AskPadMessage';
+import AskPadOrb from './AskPadOrb';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 /**
- * Ask Pad Chat — full-screen modal chat interface.
+ * AskPad Chat — full-screen modal chat interface.
  * Text input with greyed-out mic icon ("Voice coming soon").
  * Renders message bubbles, listing cards, action buttons.
  */
@@ -21,6 +23,27 @@ export default function AskPadChat({ visible, onClose }) {
   const [input, setInput] = useState('');
   const flatListRef = useRef(null);
   const askPad = useAskPad();
+
+  // Keyboard-aware lift for input bar
+  const keyboardOffset = useSharedValue(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      keyboardOffset.value = withTiming(-e.endCoordinates.height, { duration: 250 });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      keyboardOffset.value = withTiming(0, { duration: 200 });
+    });
+
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+  const keyboardLiftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardOffset.value }],
+  }));
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -45,8 +68,11 @@ export default function AskPadChat({ visible, onClose }) {
             <Ionicons name="chevron-down" size={24} color={COLORS.textSecondary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Ionicons name="sparkles" size={16} color={COLORS.accent} />
-            <Text style={styles.headerTitle}>Ask Pad</Text>
+            <View style={styles.headerOrb}>
+              <Text style={styles.headerOrbAsk}>Ask</Text>
+              <Text style={styles.headerOrbPad}>Pad</Text>
+            </View>
+            <Text style={styles.headerTitle}>AskPad</Text>
           </View>
           <View style={styles.queryCount}>
             <Text style={styles.queryText}>
@@ -64,8 +90,11 @@ export default function AskPadChat({ visible, onClose }) {
           contentContainerStyle={styles.messageList}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="sparkles" size={40} color={COLORS.accent + '44'} />
-              <Text style={styles.emptyTitle}>Ask Pad anything about rentals</Text>
+              <View style={styles.emptyOrb}>
+                <Text style={styles.emptyOrbAsk}>Ask</Text>
+                <Text style={styles.emptyOrbPad}>Pad</Text>
+              </View>
+              <Text style={styles.emptyTitle}>AskPad anything about rentals</Text>
               <Text style={styles.emptyHint}>Try: "Find me a 2-bed dog-friendly place under $2,000 near Stuart"</Text>
             </View>
           }
@@ -77,15 +106,12 @@ export default function AskPadChat({ visible, onClose }) {
             <View style={styles.typingDot} />
             <View style={[styles.typingDot, { animationDelay: '0.2s' }]} />
             <View style={[styles.typingDot, { animationDelay: '0.4s' }]} />
-            <Text style={styles.typingText}>Ask Pad is thinking...</Text>
+            <Text style={styles.typingText}>AskPad is thinking...</Text>
           </View>
         )}
 
-        {/* Input */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={0}
-        >
+        {/* Input — lifts above keyboard */}
+        <Animated.View style={keyboardLiftStyle}>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
@@ -116,7 +142,7 @@ export default function AskPadChat({ visible, onClose }) {
             </TouchableOpacity>
           </View>
           <Text style={styles.voiceHint}>🎙️ Voice input coming soon</Text>
-        </KeyboardAvoidingView>
+        </Animated.View>
       </SafeAreaView>
     </Modal>
   );
@@ -142,7 +168,29 @@ const styles = StyleSheet.create({
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  headerOrb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: COLORS.white,
+  },
+  headerOrbAsk: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 7,
+    color: COLORS.white,
+    lineHeight: 9,
+  },
+  headerOrbPad: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 7,
+    color: COLORS.brandOrange,
+    lineHeight: 9,
   },
   headerTitle: {
     fontFamily: FONTS.heading.bold,
@@ -170,7 +218,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 80,
-    gap: 8,
+    gap: 12,
+  },
+  emptyOrb: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.accent + '33',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyOrbAsk: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 13,
+    color: COLORS.white,
+    lineHeight: 15,
+  },
+  emptyOrbPad: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 13,
+    color: COLORS.brandOrange,
+    lineHeight: 15,
   },
   emptyTitle: {
     fontFamily: FONTS.heading.semiBold,
@@ -213,6 +282,7 @@ const styles = StyleSheet.create({
     paddingVertical: LAYOUT.padding.sm,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    backgroundColor: COLORS.background,
   },
   input: {
     flex: 1,
@@ -254,5 +324,6 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     textAlign: 'center',
     paddingBottom: 4,
+    backgroundColor: COLORS.background,
   },
 });

@@ -299,11 +299,11 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                 </View>
               </View>
 
-              {/* Free Ask Pad callout */}
+              {/* Free AskPad callout */}
               <View style={styles.freeCallout}>
-                <Text style={styles.freeCalloutTitle}>🆓 Free Ask Pad Upgrade</Text>
+                <Text style={styles.freeCalloutTitle}>🆓 Free AskPad Upgrade</Text>
                 <Text style={styles.freeCalloutBody}>
-                  Earn 350 PadPoints and you can unlock Ask Pad Explorer for free — no credit card needed. That's 30 AI searches a day, 2 search zones, and +20% faster point earning.
+                  Earn 350 PadPoints and you can unlock AskPad Explorer for free — no credit card needed. That's 30 AI searches a day, 2 search zones, and +20% faster point earning.
                 </Text>
                 <Text style={styles.freeCalloutMath}>
                   Just swipe and open the app daily — most renters hit 350 in under 2 weeks.
