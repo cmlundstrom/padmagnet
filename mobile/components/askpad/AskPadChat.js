@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, Image, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Pressable, Keyboard, Dimensions, Platform,
+  StyleSheet, Pressable, Keyboard, Dimensions,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   FadeIn, FadeOut, SlideInDown, SlideOutDown,
-  useSharedValue, useAnimatedStyle, withTiming,
 } from 'react-native-reanimated';
 import useAskPad from '../../hooks/useAskPad';
 import AskPadMessage from './AskPadMessage';
@@ -17,10 +16,8 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-// Panel top offset — show ~20% of listings behind
-const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.20);
-// How far to lift the panel when keyboard opens (~78% of panel top offset)
-const KEYBOARD_LIFT = Math.round(PANEL_TOP * 0.78);
+// Panel top offset — show ~12% of listings behind (was 20%, tightened for more chat room)
+const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.12);
 
 /**
  * AskPad Chat — "The Lens" frosted glass overlay.
@@ -31,27 +28,6 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
   const [input, setInput] = useState('');
   const flatListRef = useRef(null);
   const askPad = useAskPad({ deviceLat, deviceLng });
-
-  // Keyboard lift — slide panel up when keyboard opens
-  const panelTranslateY = useSharedValue(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSub = Keyboard.addListener(showEvent, () => {
-      panelTranslateY.value = withTiming(-KEYBOARD_LIFT, { duration: 250 });
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      panelTranslateY.value = withTiming(0, { duration: 200 });
-    });
-
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
-
-  const panelLiftStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: panelTranslateY.value }],
-  }));
 
 
   // Auto-scroll on new messages + notify parent of query count change
@@ -92,9 +68,9 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
         <View style={styles.scrim} />
       </Pressable>
 
-      {/* Chat panel — slides up, keyboard listener lifts panel */}
+      {/* Chat panel — slides up, Android adjustResize handles keyboard */}
       <Animated.View
-        style={[styles.panel, panelLiftStyle]}
+        style={styles.panel}
         entering={SlideInDown.springify().damping(18).stiffness(140)}
         exiting={SlideOutDown.duration(200)}
       >
