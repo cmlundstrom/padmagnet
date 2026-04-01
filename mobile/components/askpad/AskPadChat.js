@@ -125,21 +125,23 @@ export default function AskPadChat({ visible, onClose }) {
               returnKeyType="send"
               blurOnSubmit
             />
-            {/* Greyed-out mic icon */}
-            <Pressable
-              style={styles.micButton}
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-            >
-              <Ionicons name="mic" size={20} color={COLORS.border} />
-            </Pressable>
-            {/* Send button */}
-            <TouchableOpacity
-              style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-              onPress={handleSend}
-              disabled={!input.trim() || askPad.loading}
-            >
-              <Ionicons name="arrow-up" size={18} color={COLORS.white} />
-            </TouchableOpacity>
+            <View style={styles.inputActions}>
+              {/* Send button */}
+              <TouchableOpacity
+                style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
+                onPress={handleSend}
+                disabled={!input.trim() || askPad.loading}
+              >
+                <Ionicons name="arrow-up" size={18} color={COLORS.white} />
+              </TouchableOpacity>
+              {/* Greyed-out mic icon */}
+              <Pressable
+                style={styles.micButton}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              >
+                <Ionicons name="mic" size={18} color={COLORS.border} />
+              </Pressable>
+            </View>
           </View>
           <Text style={styles.voiceHint}>🎙️ Voice input coming soon</Text>
         </Animated.View>
@@ -277,12 +279,16 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
-    paddingHorizontal: LAYOUT.padding.md,
+    gap: 6,
+    paddingHorizontal: LAYOUT.padding.sm,
     paddingVertical: LAYOUT.padding.sm,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,
+  },
+  inputActions: {
+    gap: 6,
+    alignItems: 'center',
   },
   input: {
     flex: 1,
