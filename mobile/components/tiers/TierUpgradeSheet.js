@@ -23,6 +23,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           <Text style={styles.title}>Upgrade AskPad</Text>
           <Text style={styles.subtitle}>More queries, more zones, better matches</Text>
 
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
           {/* AskPad Explorer tier */}
           {currentTier === 'free' && (
             <View style={styles.tierBox}>
@@ -79,6 +80,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           <TouchableOpacity onPress={onClose} style={styles.skipLink}>
             <Text style={styles.skipText}>Maybe later</Text>
           </TouchableOpacity>
+          </ScrollView>
         </View>
       </Pressable>
     </Modal>
