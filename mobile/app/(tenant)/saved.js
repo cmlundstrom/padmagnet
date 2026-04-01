@@ -158,7 +158,7 @@ export default function SavedScreen() {
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
       <View style={styles.titleRow}>
-        <Text style={[SCREEN.pageTitleFlush, { textAlign: 'center' }]}>Your Saved Rental Homes</Text>
+        <Text style={[SCREEN.pageTitleFlush, { textAlign: 'center', flex: 1 }]}>Your Saved Rental Homes</Text>
         {!isSaved && (
           <Pressable style={styles.restoreBtn} onPress={handleRestoreAll}>
             <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
