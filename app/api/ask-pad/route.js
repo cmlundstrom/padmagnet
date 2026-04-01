@@ -71,7 +71,7 @@ export async function POST(request) {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) return NextResponse.json({ error: authError }, { status });
 
-    const { query } = await request.json();
+    const { query, lat, lng } = await request.json();
     if (!query || query.trim().length < 2) {
       return NextResponse.json({ error: 'Query too short' }, { status: 400 });
     }
@@ -162,7 +162,7 @@ export async function POST(request) {
       };
     } else {
       // Grok API call with function calling (tool use)
-      grokResponse = await callGrokWithTools(supabase, user.id, query);
+      grokResponse = await callGrokWithTools(supabase, user.id, query, { lat, lng });
     }
 
     // Increment query count (only on successful on-topic queries)
@@ -238,9 +238,14 @@ const TOOLS = [
   },
 ];
 
-async function callGrokWithTools(supabase, userId, query) {
+async function callGrokWithTools(supabase, userId, query, location) {
+  var locationContext = '';
+  if (location && location.lat && location.lng) {
+    locationContext = '\n\nThe user is currently located at GPS coordinates (' + location.lat.toFixed(4) + ', ' + location.lng.toFixed(4) + '). When they ask general questions like "show me rentals with a pool" without specifying a location, search near their current location. Always prioritize nearby results.';
+  }
+
   var messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: SYSTEM_PROMPT + locationContext },
     { role: 'user', content: query },
   ];
 
@@ -288,7 +293,7 @@ async function callGrokWithTools(supabase, userId, query) {
 
       var toolResult;
       if (toolName === 'search_rentals') {
-        toolResult = await executeSearchRentals(supabase, toolArgs);
+        toolResult = await executeSearchRentals(supabase, toolArgs, location);
         listings = toolResult.listings || [];
       } else if (toolName === 'get_market_stats') {
         toolResult = await executeMarketStats(supabase, toolArgs);
@@ -341,15 +346,27 @@ async function callGrokWithTools(supabase, userId, query) {
 // TOOL IMPLEMENTATIONS
 // ============================================================
 
-async function executeSearchRentals(supabase, args) {
+async function executeSearchRentals(supabase, args, location) {
   var query = supabase
     .from('listings')
-    .select('id, listing_id, street_number, street_name, city, state_or_province, postal_code, county, property_sub_type, list_price, bedrooms_total, bathrooms_total, living_area, year_built, pets_allowed, pool, furnished, photos, days_on_market, status')
+    .select('id, listing_id, street_number, street_name, city, state_or_province, postal_code, county, property_sub_type, list_price, bedrooms_total, bathrooms_total, living_area, year_built, pets_allowed, pool, furnished, photos, days_on_market, status, latitude, longitude')
     .eq('is_active', true)
     .eq('status', 'active');
 
   if (args.city) query = query.ilike('city', args.city);
   if (args.county) query = query.ilike('county', args.county);
+
+  // If no city/county specified but we have GPS, geo-fence to ~20 miles
+  if (!args.city && !args.county && location && location.lat && location.lng) {
+    var radiusMi = 20;
+    var latDelta = radiusMi / 69;
+    var lngDelta = radiusMi / (69 * Math.cos(location.lat * Math.PI / 180));
+    query = query
+      .gte('latitude', location.lat - latDelta)
+      .lte('latitude', location.lat + latDelta)
+      .gte('longitude', location.lng - lngDelta)
+      .lte('longitude', location.lng + lngDelta);
+  }
   if (args.min_beds) query = query.gte('bedrooms_total', args.min_beds);
   if (args.max_beds) query = query.lte('bedrooms_total', args.max_beds);
   if (args.max_rent) query = query.lte('list_price', args.max_rent);
