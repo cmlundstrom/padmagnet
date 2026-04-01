@@ -73,7 +73,7 @@ export default function TenantProfileScreen() {
   return (
     <SafeAreaView style={SCREEN.container} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <Text style={SCREEN.pageTitle}>You</Text>
+        <Text style={[SCREEN.pageTitle, { textAlign: 'center' }]}>Your Profile</Text>
 
         {/* PadScore Dashboard — the hero of the profile */}
         <PadScoreDashboard
