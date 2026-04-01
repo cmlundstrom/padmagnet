@@ -60,8 +60,9 @@ export default function AskPadChat({ visible, onClose }) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" statusBarTranslucent>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
+      <View style={styles.overlay}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -146,14 +147,22 @@ export default function AskPadChat({ visible, onClose }) {
           <Text style={styles.voiceHint}>🎙️ Voice input coming soon</Text>
         </Animated.View>
       </SafeAreaView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    paddingTop: 80,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    borderTopLeftRadius: LAYOUT.radius.xl,
+    borderTopRightRadius: LAYOUT.radius.xl,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
