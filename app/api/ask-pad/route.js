@@ -81,7 +81,7 @@ export async function POST(request) {
     // Fetch user tier + query state
     const { data: profile } = await supabase
       .from('profiles')
-      .select('renter_tier, agent_queries_today, agent_queries_rollover, agent_abuse_score, agent_cooldown_until, is_anonymous')
+      .select('renter_tier, agent_queries_today, agent_queries_rollover, agent_queries_reset_date, agent_abuse_score, agent_cooldown_until, is_anonymous')
       .eq('id', user.id)
       .single();
 
@@ -89,6 +89,17 @@ export async function POST(request) {
 
     const tier = profile.renter_tier || 'free';
     const dailyLimit = TIER_LIMITS[tier] || 5;
+
+    // Daily reset — if last reset was before today, zero out the counter
+    const today = new Date().toISOString().split('T')[0];
+    const lastReset = profile.agent_queries_reset_date;
+    if (!lastReset || lastReset < today) {
+      await supabase.from('profiles').update({
+        agent_queries_today: 0,
+        agent_queries_reset_date: today,
+      }).eq('id', user.id);
+      profile.agent_queries_today = 0;
+    }
 
     // Check cooldown
     if (profile.agent_cooldown_until && new Date(profile.agent_cooldown_until) > new Date()) {
