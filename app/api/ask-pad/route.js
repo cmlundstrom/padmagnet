@@ -21,7 +21,7 @@ const XAI_MODEL = process.env.XAI_MODEL || 'grok-4.1-fast';
 const XAI_BASE_URL = 'https://api.x.ai/v1';
 
 // Tier query limits
-const TIER_LIMITS = { free: 5, explorer: 30, master: 999 };
+const TIER_LIMITS = { free: 10, explorer: 30, master: 999 };
 
 // Pre-query classifier keywords
 const RENTAL_KEYWORDS = [
@@ -61,6 +61,8 @@ When presenting listings from search results, format each as:
 If no results are found, say so honestly and suggest broadening the search.
 Keep responses concise — 2-3 sentences max, then list the results. Be enthusiastic and helpful, like a friend who knows every listing in town.
 
+PREFERENCE EXTRACTION — When the user's query reveals rental preferences (budget, beds, baths, pets, property type, furnished, fenced yard, HOA preference, cities), call the save_user_preferences tool to save them. This improves their PadScore™ matches across the entire app. After saving, briefly mention it in your response like: "Saved your preferences — your PadScore matches just got smarter!" Do NOT ask for permission — just save and inform. Only save preferences you can clearly extract from the query. If a query is ambiguous (e.g., "show me cheap places" — what is "cheap"?), do NOT guess. Only call save_user_preferences when you have concrete values. You can call it alongside search_rentals in the same turn.
+
 IN-APP LINKS — You can direct users to screens inside the app by including these tokens anywhere in your response. They will render as tappable buttons. Use them naturally when relevant:
 - [[link:preferences]] — "Tune Your PadScore" page where users set budget, beds, pets, location prefs. Suggest when: user mentions PadScore, wants to update preferences, asks how to improve matches, or asks about saving search criteria.
 - [[link:upgrade]] — Upgrade AskPad tier page (Explorer $1.50/mo or Master $3.50/mo). Suggest when: user hits query limits, asks about premium features, wants more search zones, or asks about Verified Renter badge.
@@ -94,7 +96,7 @@ export async function POST(request) {
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
 
     const tier = profile.renter_tier || 'free';
-    const dailyLimit = TIER_LIMITS[tier] || 5;
+    const dailyLimit = TIER_LIMITS[tier] || 10;
 
     // Daily reset — if last reset was before today, zero out the counter
     const today = new Date().toISOString().split('T')[0];
@@ -242,6 +244,36 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'save_user_preferences',
+      description: 'Save rental preferences extracted from the user\'s query to their profile. This improves their PadScore™ matches across the app. Only include fields you can clearly extract — do not guess. Call alongside search_rentals when preferences are evident.',
+      parameters: {
+        type: 'object',
+        properties: {
+          budget_max: { type: 'number', description: 'Maximum monthly rent in dollars (e.g., 2000)' },
+          beds_min: { type: 'integer', description: 'Minimum bedrooms (e.g., 2)' },
+          baths_min: { type: 'number', description: 'Minimum bathrooms (e.g., 1.5)' },
+          property_types: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Preferred property types. Valid values: "Single Family", "Apartment", "Condo", "Townhouse", "Duplex", "Villa", "Mobile Home"',
+          },
+          pets_required: { type: 'boolean', description: 'true if user needs pet-friendly housing' },
+          pet_type: { type: 'string', enum: ['dog', 'cat', 'both'], description: 'Type of pet (only set if pets_required is true)' },
+          fenced_yard_required: { type: 'boolean', description: 'true if user needs a fenced yard' },
+          furnished_preferred: { type: 'boolean', description: 'true if user wants furnished, false if unfurnished' },
+          association_preferred: { type: 'boolean', description: 'false if user wants no HOA, true if HOA is fine' },
+          preferred_cities: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Cities the user is interested in (e.g., ["Stuart", "Palm City"])',
+          },
+        },
+      },
+    },
+  },
 ];
 
 async function callGrokWithTools(supabase, userId, query, location) {
@@ -250,8 +282,34 @@ async function callGrokWithTools(supabase, userId, query, location) {
     locationContext = '\n\nThe user is currently located at GPS coordinates (' + location.lat.toFixed(4) + ', ' + location.lng.toFixed(4) + '). When they ask general questions like "show me rentals with a pool" without specifying a location, search near their current location. Always prioritize nearby results.';
   }
 
+  // Fetch saved preferences to inject into system prompt
+  var prefsContext = '';
+  var { data: prefs } = await supabase
+    .from('tenant_preferences')
+    .select('budget_max, beds_min, baths_min, property_types, pets_required, pet_type, fenced_yard_required, furnished_preferred, association_preferred, preferred_cities')
+    .eq('user_id', userId)
+    .single();
+
+  if (prefs) {
+    var parts = [];
+    if (prefs.budget_max && prefs.budget_max < 99999) parts.push('budget under $' + Number(prefs.budget_max).toLocaleString() + '/mo');
+    if (prefs.beds_min) parts.push(prefs.beds_min + '+ bedrooms');
+    if (prefs.baths_min) parts.push(prefs.baths_min + '+ bathrooms');
+    if (prefs.property_types && prefs.property_types.length > 0) parts.push('prefers ' + prefs.property_types.join(', '));
+    if (prefs.pets_required) parts.push('pet-friendly' + (prefs.pet_type ? ' (' + prefs.pet_type + ')' : ''));
+    if (prefs.fenced_yard_required) parts.push('fenced yard needed');
+    if (prefs.furnished_preferred === true) parts.push('furnished');
+    if (prefs.furnished_preferred === false) parts.push('unfurnished');
+    if (prefs.association_preferred === false) parts.push('no HOA');
+    if (prefs.preferred_cities && prefs.preferred_cities.length > 0) parts.push('interested in ' + prefs.preferred_cities.join(', '));
+
+    if (parts.length > 0) {
+      prefsContext = '\n\nSAVED USER PREFERENCES: ' + parts.join(', ') + '. Use these to refine searches even when the user doesn\'t repeat them. If the user gives new preferences that conflict, the new ones take priority — save the updated values via save_user_preferences.';
+    }
+  }
+
   var messages = [
-    { role: 'system', content: SYSTEM_PROMPT + locationContext },
+    { role: 'system', content: SYSTEM_PROMPT + locationContext + prefsContext },
     { role: 'user', content: query },
   ];
 
@@ -303,6 +361,8 @@ async function callGrokWithTools(supabase, userId, query, location) {
         listings = toolResult.listings || [];
       } else if (toolName === 'get_market_stats') {
         toolResult = await executeMarketStats(supabase, toolArgs);
+      } else if (toolName === 'save_user_preferences') {
+        toolResult = await executeSavePreferences(supabase, userId, toolArgs);
       } else {
         toolResult = { error: 'Unknown tool' };
       }
@@ -466,4 +526,40 @@ async function executeMarketStats(supabase, args) {
     priceRange: { min: min, max: max },
     byPropertyType: typeStats,
   };
+}
+
+// Save extracted preferences to the user's profile
+const PREF_FIELDS = [
+  'budget_max', 'beds_min', 'baths_min', 'property_types',
+  'pets_required', 'pet_type', 'fenced_yard_required',
+  'furnished_preferred', 'association_preferred', 'preferred_cities',
+];
+
+async function executeSavePreferences(supabase, userId, args) {
+  // Only include fields Grok explicitly extracted — partial update
+  var updates = { user_id: userId };
+  var saved = [];
+
+  for (var i = 0; i < PREF_FIELDS.length; i++) {
+    var field = PREF_FIELDS[i];
+    if (args[field] !== undefined && args[field] !== null) {
+      updates[field] = args[field];
+      saved.push(field);
+    }
+  }
+
+  if (saved.length === 0) {
+    return { success: false, message: 'No preferences to save' };
+  }
+
+  var { error } = await supabase
+    .from('tenant_preferences')
+    .upsert(updates, { onConflict: 'user_id' });
+
+  if (error) {
+    console.error('Preference save error:', error.message);
+    return { success: false, message: 'Failed to save preferences' };
+  }
+
+  return { success: true, saved: saved, message: 'Preferences saved to profile' };
 }

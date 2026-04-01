@@ -90,7 +90,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                     renterTier === 'explorer' ? 'Explorer' : 'Free';
 
   const dailyQueries = renterTier === 'master' ? 'Unlimited' :
-                       renterTier === 'explorer' ? '30/day' : '5/day';
+                       renterTier === 'explorer' ? '30/day' : '10/day';
 
   return (
     <View style={styles.container}>

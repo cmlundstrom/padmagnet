@@ -7,7 +7,7 @@ import AuditHistory from '../components/AuditHistory';
 import AskPadHistory from '../components/AskPadHistory';
 
 const TIER_COLORS = { free: 'gray', explorer: 'blue', master: 'purple' };
-const TIER_LIMITS = { free: 5, explorer: 30, master: '∞' };
+const TIER_LIMITS = { free: 10, explorer: 30, master: '∞' };
 const LEVEL_NAMES = ['', 'Starter', 'Pad Explorer', 'Pad Hunter', 'Pad Expert', 'Pad Master'];
 
 export default function TenantsPanel() {
@@ -298,7 +298,7 @@ export default function TenantsPanel() {
           </button>
           <button
             style={{ ...baseButton, background: COLORS.brand + "22", color: COLORS.brand, border: `1px solid ${COLORS.brand}44`, fontSize: "12px" }}
-            onClick={() => { setActionModal({ type: 'gift_queries', user: row }); setActionValue('5'); }}
+            onClick={() => { setActionModal({ type: 'gift_queries', user: row }); setActionValue('10'); }}
           >
             🔍 Gift Queries
           </button>

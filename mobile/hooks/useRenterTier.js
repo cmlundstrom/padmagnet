@@ -8,13 +8,13 @@ import { supabase } from '../lib/supabase';
  * Separate from owner tiers (profiles.tier column untouched).
  *
  * Tiers:
- *   free       → 1 zone, 5 Ask Pad queries/day
+ *   free       → 1 zone, 10 Ask Pad queries/day
  *   explorer   → 2 zones, 30 queries/day + monthly rollover (cap 900)
  *   master     → 3 zones, unlimited queries, Verified Renter badge
  */
 
 const TIER_CONFIG = {
-  free: { label: 'Free', dailyQueries: 5, maxZones: 1, earnBonus: 1.0 },
+  free: { label: 'Free', dailyQueries: 10, maxZones: 1, earnBonus: 1.0 },
   explorer: { label: 'AskPad Explorer', dailyQueries: 30, maxZones: 2, earnBonus: 1.2 },
   master: { label: 'Pad Master', dailyQueries: 999, maxZones: 3, earnBonus: 1.2 },
 };
