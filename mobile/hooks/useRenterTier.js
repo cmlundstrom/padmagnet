@@ -25,7 +25,7 @@ export default function useRenterTier() {
   const [tier, setTier] = useState('free');
   const [verified, setVerified] = useState(false);
   const [zones, setZones] = useState(1);
-  const [queriesToday, setQueriesToday] = useState(0);
+  const [queriesToday, setQueriesToday] = useState(null);
   const [queriesRollover, setQueriesRollover] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,52 +33,54 @@ export default function useRenterTier() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
 
-    supabase
-      .from('profiles')
-      .select('renter_tier, verified_renter, search_zones_count, agent_queries_today, agent_queries_rollover, agent_queries_reset_date, agent_cooldown_until')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setTier(data.renter_tier || 'free');
-          setVerified(data.verified_renter || false);
-          setZones(data.search_zones_count || 1);
-          setQueriesToday(data.agent_queries_today || 0);
-          setQueriesRollover(data.agent_queries_rollover || 0);
-          setCooldownUntil(data.agent_cooldown_until);
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('renter_tier, verified_renter, search_zones_count, agent_queries_today, agent_queries_rollover, agent_queries_reset_date, agent_cooldown_until')
+        .eq('id', user.id)
+        .single();
 
-          // Check monthly rollover reset
-          const today = new Date().toISOString().split('T')[0];
-          const resetDate = data.agent_queries_reset_date;
-          const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-          if (!resetDate || resetDate < firstOfMonth) {
-            // Reset rollover pool for the new month
-            supabase.from('profiles').update({
-              agent_queries_rollover: 0,
-              agent_queries_reset_date: today,
-              agent_queries_today: 0,
-            }).eq('id', user.id);
-            setQueriesRollover(0);
-            setQueriesToday(0);
-          }
+      if (data) {
+        // Daily reset — if last reset was before today, counter is stale
+        const today = new Date().toISOString().split('T')[0];
+        const lastReset = data.agent_queries_reset_date;
+        let queriesTodayValue = data.agent_queries_today || 0;
+
+        if (!lastReset || lastReset < today) {
+          queriesTodayValue = 0;
+          // Persist the reset
+          await supabase.from('profiles').update({
+            agent_queries_today: 0,
+            agent_queries_reset_date: today,
+          }).eq('id', user.id);
         }
-        setLoading(false);
-      });
+
+        setTier(data.renter_tier || 'free');
+        setVerified(data.verified_renter || false);
+        setZones(data.search_zones_count || 1);
+        setQueriesToday(queriesTodayValue);
+        setQueriesRollover(data.agent_queries_rollover || 0);
+        setCooldownUntil(data.agent_cooldown_until);
+      }
+      setLoading(false);
+    })();
   }, [user]);
 
   const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
 
   const remainingQueries = useCallback(() => {
+    if (queriesToday === null) return null; // still loading
     if (tier === 'master') return 999;
     const daily = config.dailyQueries - queriesToday;
     return Math.max(0, daily) + queriesRollover;
   }, [tier, config, queriesToday, queriesRollover]);
 
   const canQuery = useCallback(() => {
+    if (queriesToday === null) return false; // still loading — block queries
     // Check cooldown
     if (cooldownUntil && new Date(cooldownUntil) > new Date()) return false;
     return remainingQueries() > 0;
-  }, [cooldownUntil, remainingQueries]);
+  }, [queriesToday, cooldownUntil, remainingQueries]);
 
   const isVerified = useCallback(() => verified, [verified]);
 

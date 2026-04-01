@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import VerifiedBadge from '../ui/VerifiedBadge';
@@ -29,10 +29,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           {currentTier === 'free' && (
             <View style={styles.tierBox}>
               <View style={styles.tierHeader}>
-                <View style={styles.tierOrb}>
-                  <Text style={styles.tierOrbAsk}>Ask</Text>
-                  <Text style={styles.tierOrbPad}>Pad</Text>
-                </View>
+                <Image source={require('../../assets/images/askpad-orb.png')} style={styles.tierOrbImage} />
                 <Text style={styles.tierName}>Pad Explorer</Text>
                 <Text style={styles.tierPrice}>$1.50</Text>
               </View>
@@ -52,10 +49,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           {currentTier !== 'master' && (
             <View style={[styles.tierBox, styles.tierBoxMaster]}>
               <View style={styles.tierHeader}>
-                <View style={[styles.tierOrb, styles.tierOrbGold]}>
-                  <Text style={[styles.tierOrbAsk, { color: COLORS.navy }]}>Ask</Text>
-                  <Text style={[styles.tierOrbPad, { color: COLORS.navy }]}>Pad</Text>
-                </View>
+                <Image source={require('../../assets/images/askpad-orb.png')} style={styles.tierOrbImage} />
                 <Text style={[styles.tierName, { color: COLORS.gold }]}>Pad Master</Text>
                 <Text style={styles.tierPrice}>$3.50</Text>
               </View>
@@ -73,6 +67,11 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
               </TouchableOpacity>
             </View>
           )}
+
+          <Text style={styles.disclaimer}>
+            Tier purchases expire after 30 days. This is a one-time purchase, not a recurring subscription. Questions? Email us:{' '}
+            <Text style={styles.disclaimerLink} onPress={() => Linking.openURL('mailto:support@padmagnet.com')}>support@padmagnet.com</Text>
+          </Text>
 
           <TouchableOpacity onPress={onClose} style={styles.skipLink}>
             <Text style={styles.skipText}>Maybe later</Text>
@@ -136,37 +135,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: LAYOUT.padding.sm,
   },
-  tierOrb: {
+  tierOrbImage: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0.5,
-    borderColor: COLORS.white,
-  },
-  tierOrbAsk: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 8,
-    color: COLORS.white,
-    lineHeight: 10,
-  },
-  tierOrbPad: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 8,
-    color: COLORS.brandOrange,
-    lineHeight: 10,
-  },
-  tierOrbGold: {
-    backgroundColor: COLORS.gold,
-    borderWidth: 1.5,
-    borderColor: '#FFF0A0',
-    shadowColor: COLORS.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 8,
-    elevation: 6,
   },
   tierName: {
     fontFamily: FONTS.heading.bold,
@@ -244,6 +216,19 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.black,
   },
+  disclaimerLink: {
+    color: COLORS.accent,
+    textDecorationLine: 'underline',
+  },
+  disclaimer: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+    textAlign: 'center',
+    lineHeight: 16,
+    marginTop: LAYOUT.padding.sm,
+    paddingHorizontal: LAYOUT.padding.sm,
+  },
   skipLink: {
     alignItems: 'center',
     paddingVertical: LAYOUT.padding.md,
@@ -251,6 +236,6 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.slate,
+    color: COLORS.accent,
   },
 });

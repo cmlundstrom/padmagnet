@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, useAnimatedReaction,
   withRepeat, withTiming, Easing,
@@ -35,13 +35,12 @@ export default function AskPadOrb({ onPress, remainingQueries, dailyLimit }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <Animated.View style={[styles.orb, pulseStyle]}>
-        <Text style={styles.askText}>Ask</Text>
-        <Text style={styles.padText}>Pad</Text>
+        <Image source={require('../../assets/images/askpad-orb.png')} style={styles.orbImage} />
 
         {/* Query count badge */}
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {remainingQueries >= 999 ? '∞' : remainingQueries + '/' + dailyLimit}
+            {remainingQueries === null ? '…' : remainingQueries >= 999 ? '∞' : remainingQueries + '/' + dailyLimit}
           </Text>
         </View>
       </Animated.View>
@@ -65,19 +64,10 @@ var styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  askText: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 11,
-    color: COLORS.white,
-    lineHeight: 13,
-    letterSpacing: 0,
-  },
-  padText: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: 11,
-    color: COLORS.brandOrange,
-    lineHeight: 13,
-    letterSpacing: 0,
+  orbImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   badge: {
     position: 'absolute',

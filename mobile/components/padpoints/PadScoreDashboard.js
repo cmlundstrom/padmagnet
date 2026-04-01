@@ -1,4 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue, useAnimatedStyle, useAnimatedReaction,
+  withRepeat, withSequence, withTiming, Easing,
+} from 'react-native-reanimated';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -26,6 +30,48 @@ export default function PadScoreDashboard({ padpoints, level, progress, nextLeve
   const levelColor = level.level >= 4 ? COLORS.gold :
                      level.level >= 3 ? COLORS.brandOrange :
                      level.level >= 2 ? COLORS.success : COLORS.accent;
+
+  // Flame flicker — matches swipe page animation
+  const flameScale = useSharedValue(1);
+  const flameRotate = useSharedValue(0);
+
+  useAnimatedReaction(
+    function() { return streakDays; },
+    function(curr) {
+      if (curr > 0) {
+        flameScale.value = withRepeat(
+          withSequence(
+            withTiming(1.15, { duration: 1350, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0.95, { duration: 1125, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1.08, { duration: 1240, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1, { duration: 1010, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          false,
+        );
+        flameRotate.value = withRepeat(
+          withSequence(
+            withTiming(4, { duration: 1125, easing: Easing.inOut(Easing.ease) }),
+            withTiming(-3, { duration: 1350, easing: Easing.inOut(Easing.ease) }),
+            withTiming(2, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0, { duration: 1125, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          false,
+        );
+      }
+    },
+    [streakDays]
+  );
+
+  const flameStyle = useAnimatedStyle(function() {
+    return {
+      transform: [
+        { scale: flameScale.value },
+        { rotate: flameRotate.value + 'deg' },
+      ],
+    };
+  });
 
   return (
     <View style={styles.container}>
@@ -56,7 +102,7 @@ export default function PadScoreDashboard({ padpoints, level, progress, nextLeve
       {/* Streak */}
       {streakDays > 0 && (
         <View style={styles.streakRow}>
-          <Text style={styles.streakIcon}>🔥</Text>
+          <Animated.Text style={[styles.streakIcon, flameStyle]}>🔥</Animated.Text>
           <Text style={styles.streakText}>{streakDays}-Day Swipe Streak</Text>
           {streakDays >= 3 && (
             <View style={styles.boostBadge}>

@@ -9,7 +9,7 @@ import useRenterTier from './useRenterTier';
  * Enforces tier limits client-side before making API calls.
  * Awards PadPoints on successful on-topic queries.
  */
-export default function useAskPad() {
+export default function useAskPad({ deviceLat, deviceLng } = {}) {
   const { user } = useContext(AuthContext);
   const padPoints = usePadPoints();
   const renterTier = useRenterTier();
@@ -30,6 +30,11 @@ export default function useAskPad() {
         }]);
         return;
       }
+      setMessages(prev => [...prev, {
+        role: 'pad',
+        type: 'limit_reached',
+        text: "You've used all your AskPad FREE Ai-powered queries. Upgrade for more! Or, continue for free using your PadScore.",
+      }]);
       setShowUpgrade(true);
       return;
     }
@@ -41,7 +46,7 @@ export default function useAskPad() {
     try {
       const result = await apiFetch('/api/ask-pad', {
         method: 'POST',
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, lat: deviceLat || null, lng: deviceLng || null }),
       });
 
       // Add Ask Pad response

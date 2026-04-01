@@ -240,6 +240,9 @@ export default function ListingDetailScreen() {
       <AskPadChat
         visible={showAskPadDetail}
         onClose={() => setShowAskPadDetail(false)}
+        onUpgrade={() => setShowAskPadDetail(false)}
+        onPreferences={() => { setShowAskPadDetail(false); router.push('/settings/preferences'); }}
+        onViewListing={(id) => { setShowAskPadDetail(false); router.push(`/listing/${id}`); }}
       />
 
       {/* Auth gate for anonymous users */}

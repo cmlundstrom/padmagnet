@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import VerifiedBadge from '../ui/VerifiedBadge';
 import { COLORS } from '../../constants/colors';
@@ -10,14 +11,14 @@ import { LAYOUT } from '../../constants/layout';
  * Shows current renter tier, query usage, Verified badge, upgrade buttons.
  */
 export default function TierCard({ tier, tierLabel, verified, queriesToday, dailyLimit, remainingQueries, zones, maxZones, onUpgrade }) {
-  const progressPct = dailyLimit > 0 ? Math.min(100, Math.round((queriesToday / dailyLimit) * 100)) : 0;
+  const progressPct = dailyLimit > 0 && queriesToday !== null ? Math.min(100, Math.round((queriesToday / dailyLimit) * 100)) : 0;
 
   return (
     <View style={styles.container}>
       {/* Tier header */}
       <View style={styles.tierRow}>
         <View style={styles.tierLeft}>
-          <Ionicons name="sparkles" size={16} color={COLORS.accent} />
+          <Image source={require('../../assets/images/askpad-orb.png')} style={styles.tierOrbImage} />
           <Text style={styles.tierLabel}>{tierLabel}</Text>
         </View>
         {verified && <VerifiedBadge size="sm" />}
@@ -27,7 +28,7 @@ export default function TierCard({ tier, tierLabel, verified, queriesToday, dail
       <View style={styles.usageRow}>
         <Text style={styles.usageLabel}>AskPad Queries Today</Text>
         <Text style={styles.usageCount}>
-          {remainingQueries >= 999 ? 'Unlimited' : `${remainingQueries} remaining`}
+          {remainingQueries === null ? '…' : remainingQueries >= 999 ? 'Unlimited' : `${remainingQueries} remaining`}
         </Text>
       </View>
       {tier !== 'master' && (
@@ -44,11 +45,18 @@ export default function TierCard({ tier, tierLabel, verified, queriesToday, dail
 
       {/* Upgrade button (if not Master) */}
       {tier !== 'master' && (
-        <TouchableOpacity style={styles.upgradeButton} onPress={onUpgrade} activeOpacity={0.8}>
-          <Text style={styles.upgradeText}>
-            {tier === 'free' ? 'Upgrade AskPad' : 'Upgrade to Pad Master'}
-          </Text>
-          <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
+        <TouchableOpacity onPress={onUpgrade} activeOpacity={0.8}>
+          <LinearGradient
+            colors={['#FF8C42', COLORS.brandOrange, '#C94A1E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.upgradeButton}
+          >
+            <Text style={styles.upgradeText}>
+              {tier === 'free' ? 'Upgrade AskPad' : 'Upgrade to Pad Master'}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={COLORS.white} />
+          </LinearGradient>
         </TouchableOpacity>
       )}
     </View>
@@ -74,6 +82,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  tierOrbImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   tierLabel: {
     fontFamily: FONTS.heading.bold,
@@ -123,15 +136,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: COLORS.accent + '15',
     borderRadius: LAYOUT.radius.sm,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.accent + '44',
+    paddingVertical: 12,
   },
   upgradeText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
   },
 });

@@ -363,6 +363,11 @@ export default function SwipeScreen() {
         <AskPadChat
           visible={showAskPad}
           onClose={() => setShowAskPad(false)}
+          onUpgrade={() => { setShowAskPad(false); setShowTierUpgrade(true); }}
+          onPreferences={() => { setShowAskPad(false); router.push('/settings/preferences'); }}
+          onViewListing={(id) => { setShowAskPad(false); router.push(`/listing/${id}`); }}
+          deviceLat={deviceLocation?.latitude || null}
+          deviceLng={deviceLocation?.longitude || null}
         />
 
         {/* Tier Upgrade Sheet (opened from streak tooltip) */}
