@@ -16,8 +16,8 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-// Panel top offset — show ~12% of listings behind (was 20%, tightened for more chat room)
-const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.12);
+// Panel top offset — show ~10% of listings behind (was 20%, tightened for more chat room)
+const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.10);
 
 /**
  * AskPad Chat — "The Lens" frosted glass overlay.
