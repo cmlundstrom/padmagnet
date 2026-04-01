@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import VerifiedBadge from '../ui/VerifiedBadge';
@@ -17,10 +17,10 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={function(e) { e.stopPropagation(); }}>
+        <View style={styles.sheet}>
           <View style={styles.handle} />
 
-          <Text style={styles.title}>Upgrade Ask Pad</Text>
+          <Text style={styles.title}>Upgrade AskPad</Text>
           <Text style={styles.subtitle}>More queries, more zones, better matches</Text>
 
           {/* AskPad Explorer tier */}
@@ -79,7 +79,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           <TouchableOpacity onPress={onClose} style={styles.skipLink}>
             <Text style={styles.skipText}>Maybe later</Text>
           </TouchableOpacity>
-        </Pressable>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
     paddingTop: LAYOUT.padding.md,
     borderTopWidth: 1,
     borderColor: COLORS.border,
+    maxHeight: '85%',
   },
   handle: {
     width: 40, height: 4, backgroundColor: COLORS.border,
