@@ -171,9 +171,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerOrb: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -182,15 +182,15 @@ const styles = StyleSheet.create({
   },
   headerOrbAsk: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 7,
+    fontSize: 11,
     color: COLORS.white,
-    lineHeight: 9,
+    lineHeight: 13,
   },
   headerOrbPad: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 7,
+    fontSize: 11,
     color: COLORS.brandOrange,
-    lineHeight: 9,
+    lineHeight: 13,
   },
   headerTitle: {
     fontFamily: FONTS.heading.bold,
