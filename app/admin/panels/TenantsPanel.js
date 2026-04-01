@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { COLORS, Badge, StatCard, baseButton, timeAgo, formatDate } from '../shared';
 import AdminTable from '../components/AdminTable';
 import AuditHistory from '../components/AuditHistory';
+import AskPadHistory from '../components/AskPadHistory';
 
 const TIER_COLORS = { free: 'gray', explorer: 'blue', master: 'purple' };
 const TIER_LIMITS = { free: 5, explorer: 30, master: '∞' };
@@ -339,6 +340,8 @@ export default function TenantsPanel() {
             </a>
           )}
         </div>
+
+        <AskPadHistory userId={row.id} userName={row.display_name || row.email} />
 
         <AuditHistory tableName="profiles" rowId={row.id} />
       </div>

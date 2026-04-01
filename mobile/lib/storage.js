@@ -81,6 +81,28 @@ export async function clearDraftStep(draftId) {
   await AsyncStorage.removeItem(`padmagnet_draft_step_${draftId}`);
 }
 
+// ── Ask Pad chat persistence ──────────────────────────
+const ASKPAD_CHAT_KEY = (userId) => `@padmagnet_askpad_chat_${userId}`;
+const ASKPAD_MAX_MESSAGES = 50;
+
+export async function getAskPadChat(userId) {
+  if (!userId) return [];
+  const raw = await AsyncStorage.getItem(ASKPAD_CHAT_KEY(userId));
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function saveAskPadChat(userId, messages) {
+  if (!userId) return;
+  // Keep only the most recent N messages
+  const capped = messages.slice(-ASKPAD_MAX_MESSAGES);
+  await AsyncStorage.setItem(ASKPAD_CHAT_KEY(userId), JSON.stringify(capped));
+}
+
+export async function clearAskPadChat(userId) {
+  if (!userId) return;
+  await AsyncStorage.removeItem(ASKPAD_CHAT_KEY(userId));
+}
+
 // Location soft-ask: has the user already been shown the branded pre-permission screen?
 export async function hasAskedLocation() {
   return (await AsyncStorage.getItem(KEYS.LOCATION_ASKED)) === 'true';

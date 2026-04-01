@@ -1,6 +1,6 @@
 /**
- * Run Supabase migrations via direct PostgreSQL connection.
- * Reads DATABASE_URL from .env.local.
+ * Run Supabase migrations via the Management API.
+ * Uses SUPABASE_ACCESS_TOKEN from .env.local (no direct DB connection needed).
  *
  * Usage: node scripts/run-migrations.mjs [--from 009] [--to 020]
  */
@@ -8,7 +8,6 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import postgres from 'postgres';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -24,9 +23,13 @@ for (const line of envFile.split('\n')) {
   env[trimmed.slice(0, eqIndex)] = trimmed.slice(eqIndex + 1);
 }
 
-const dbUrl = env.DATABASE_URL;
-if (!dbUrl) {
-  console.error('DATABASE_URL not found in .env.local');
+// Extract project ref from Supabase URL
+const supabaseUrl = (env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/^"/, '').replace(/"$/, '');
+const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+const accessToken = env.SUPABASE_ACCESS_TOKEN;
+
+if (!projectRef || !accessToken) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_ACCESS_TOKEN in .env.local');
   process.exit(1);
 }
 
@@ -49,46 +52,57 @@ const migrations = allFiles.filter(f => {
   return true;
 });
 
-async function main() {
-  console.log(`\nConnecting to database...`);
-
-  const sql = postgres(dbUrl, {
-    ssl: { rejectUnauthorized: false },
-    connect_timeout: 10,
-    max: 1,
-  });
-
-  try {
-    // Test connection
-    const [{ now }] = await sql`SELECT now()`;
-    console.log(`Connected! Server time: ${now}\n`);
-
-    console.log(`Running ${migrations.length} migrations:\n`);
-
-    let succeeded = 0;
-    let failed = 0;
-
-    for (const filename of migrations) {
-      const filePath = join(migrationsDir, filename);
-      const content = readFileSync(filePath, 'utf8');
-
-      process.stdout.write(`  ${filename} ... `);
-      try {
-        await sql.unsafe(content);
-        console.log('\x1b[32mOK\x1b[0m');
-        succeeded++;
-      } catch (err) {
-        console.log(`\x1b[31mFAILED\x1b[0m`);
-        console.log(`    Error: ${err.message.split('\n')[0]}`);
-        failed++;
-      }
+async function runQuery(sql) {
+  const res = await fetch(
+    `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: sql }),
     }
+  );
 
-    console.log(`\n  Results: ${succeeded} succeeded, ${failed} failed`);
-    console.log(`  Total: ${migrations.length} migrations\n`);
-  } finally {
-    await sql.end();
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`HTTP ${res.status}: ${body}`);
   }
+
+  return res.json();
+}
+
+async function main() {
+  console.log(`\nConnecting via Management API (project: ${projectRef})...`);
+
+  // Test connection
+  const [{ now }] = await runQuery('SELECT now()');
+  console.log(`Connected! Server time: ${now}\n`);
+
+  console.log(`Running ${migrations.length} migrations:\n`);
+
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const filename of migrations) {
+    const filePath = join(migrationsDir, filename);
+    const content = readFileSync(filePath, 'utf8');
+
+    process.stdout.write(`  ${filename} ... `);
+    try {
+      await runQuery(content);
+      console.log('\x1b[32mOK\x1b[0m');
+      succeeded++;
+    } catch (err) {
+      console.log(`\x1b[31mFAILED\x1b[0m`);
+      console.log(`    Error: ${err.message.split('\n')[0]}`);
+      failed++;
+    }
+  }
+
+  console.log(`\n  Results: ${succeeded} succeeded, ${failed} failed`);
+  console.log(`  Total: ${migrations.length} migrations\n`);
 }
 
 main().catch(err => {
