@@ -36,21 +36,13 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
               <View style={styles.features}>
                 <Text style={styles.feature}>✓ 30 AskPad queries per day + rollover</Text>
                 <Text style={styles.feature}>✓ 2 search zones</Text>
-                <Text style={styles.feature}>✓ +20% PadPoints earn rate</Text>
               </View>
               <TouchableOpacity style={styles.buyButton} onPress={function() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onBuyExplorer(); }} activeOpacity={0.8}>
                 <Text style={styles.buyText}>Pay $1.50</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.redeemButton, !canRedeem && styles.redeemButtonDisabled]}
-                onPress={function() { if (canRedeem) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onRedeemExplorer(); } }}
-                disabled={!canRedeem}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.redeemText, !canRedeem && styles.redeemTextDisabled]}>
-                  {canRedeem ? 'Earn free with 350 PadPoints' : `${padpoints || 0}/350 PadPoints — keep swiping!`}
-                </Text>
-              </TouchableOpacity>
+              <Text style={styles.redeemHint}>
+                Or, Swipe more to continue free use! You have earned {padpoints || 0}/350 PadPoints!
+              </Text>
             </View>
           )}
 
@@ -65,7 +57,6 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
               <View style={styles.features}>
                 <Text style={styles.feature}>✓ Unlimited AskPad queries</Text>
                 <Text style={styles.feature}>✓ 3 search zones (maximum)</Text>
-                <Text style={styles.feature}>✓ +20% PadPoints earn rate</Text>
                 <View style={styles.verifiedRow}>
                   <Text style={styles.feature}>✓ </Text>
                   <VerifiedBadge size="sm" />
@@ -193,6 +184,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.success,
+  },
+  redeemHint: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brandOrange,
+    textAlign: 'center',
+    marginTop: LAYOUT.padding.sm,
+    lineHeight: 17,
   },
   redeemTextDisabled: {
     color: COLORS.slate,
