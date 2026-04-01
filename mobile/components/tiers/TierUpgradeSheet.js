@@ -16,7 +16,8 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
 
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <View style={styles.backdrop}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.handle} />
 
@@ -82,7 +83,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           </TouchableOpacity>
           </ScrollView>
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }

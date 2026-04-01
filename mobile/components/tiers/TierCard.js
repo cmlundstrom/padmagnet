@@ -46,7 +46,7 @@ export default function TierCard({ tier, tierLabel, verified, queriesToday, dail
       {tier !== 'master' && (
         <TouchableOpacity style={styles.upgradeButton} onPress={onUpgrade} activeOpacity={0.8}>
           <Text style={styles.upgradeText}>
-            {tier === 'free' ? 'Upgrade Ask Pad' : 'Upgrade to Pad Master'}
+            {tier === 'free' ? 'Upgrade AskPad' : 'Upgrade to Pad Master'}
           </Text>
           <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
         </TouchableOpacity>
