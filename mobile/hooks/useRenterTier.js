@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { AuthContext } from '../providers/AuthProvider';
 import { supabase } from '../lib/supabase';
 
@@ -65,6 +66,13 @@ export default function useRenterTier() {
       setLoading(false);
     })();
   }, [user]);
+
+  // Auto-refresh when screen gains focus (e.g., returning from chat or other tabs)
+  useFocusEffect(
+    useCallback(() => {
+      if (user && !loading) refresh();
+    }, [user, loading])
+  );
 
   const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
 
