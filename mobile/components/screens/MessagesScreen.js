@@ -167,7 +167,7 @@ export default function MessagesScreen({ emptySubtitle }) {
   if (error && conversations.length === 0) {
     return (
       <SafeAreaView style={SCREEN.containerFlush}>
-        <Text style={SCREEN.pageTitleFlush}>Messages</Text>
+        <Text style={[SCREEN.pageTitleFlush, { textAlign: 'center' }]}>Messages</Text>
         <EmptyState
           icon="!"
           title="Something went wrong"
@@ -187,7 +187,7 @@ export default function MessagesScreen({ emptySubtitle }) {
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
-      <Text style={SCREEN.pageTitleFlush}>Messages</Text>
+      <Text style={[SCREEN.pageTitleFlush, { textAlign: 'center' }]}>Messages</Text>
 
       {/* Segment Tabs */}
       <View style={styles.tabBar}>

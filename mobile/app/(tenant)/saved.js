@@ -143,7 +143,7 @@ export default function SavedScreen() {
   if (error && items.length === 0) {
     return (
       <SafeAreaView style={SCREEN.containerFlush}>
-        <Text style={SCREEN.pageTitleFlush}>Saved</Text>
+        <Text style={[SCREEN.pageTitleFlush, { textAlign: 'center' }]}>Saved</Text>
         <EmptyState
           icon="!"
           title="Something went wrong"
@@ -158,7 +158,7 @@ export default function SavedScreen() {
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
       <View style={styles.titleRow}>
-        <Text style={SCREEN.pageTitleFlush}>Saved</Text>
+        <Text style={[SCREEN.pageTitleFlush, { textAlign: 'center' }]}>Saved</Text>
         {!isSaved && (
           <Pressable style={styles.restoreBtn} onPress={handleRestoreAll}>
             <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
