@@ -24,16 +24,17 @@ const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.20);
  * Slide-up panel over the swipe cards with blurred backdrop.
  * Input bar visible immediately. Keyboard lifts the panel.
  */
-export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences, onNotifications, onViewListing, deviceLat, deviceLng }) {
+export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences, onNotifications, onViewListing, onQuerySent, deviceLat, deviceLng }) {
   const [input, setInput] = useState('');
   const flatListRef = useRef(null);
   const askPad = useAskPad({ deviceLat, deviceLng });
 
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages + notify parent of query count change
   useEffect(() => {
     if (askPad.messages.length > 0) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      onQuerySent && onQuerySent();
     }
   }, [askPad.messages.length]);
 
