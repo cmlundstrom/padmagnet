@@ -214,10 +214,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
+    paddingTop: 40,
     gap: 12,
   },
   emptyOrb: {
