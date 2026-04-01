@@ -148,7 +148,7 @@ export default function AskPadChat({ visible, onClose }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    paddingTop: 140,
+    paddingTop: 155,
   },
   container: {
     flex: 1,
