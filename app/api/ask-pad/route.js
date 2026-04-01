@@ -129,8 +129,8 @@ export async function POST(request) {
       const abuseScore = (profile.agent_abuse_score || 0) + 1;
       const updates = { agent_abuse_score: abuseScore };
 
-      if (abuseScore >= 2) {
-        updates.agent_cooldown_until = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      if (abuseScore >= 5) {
+        updates.agent_cooldown_until = new Date(Date.now() + 10 * 60 * 1000).toISOString();
         updates.agent_abuse_score = 0; // will reset after cooldown
       }
 
@@ -140,7 +140,7 @@ export async function POST(request) {
       return NextResponse.json({
         type: 'rebuff',
         message: rebuff,
-        abuseWarning: abuseScore >= 2 ? 'Whoa there! Taking a quick breather. Try again in about an hour with a rental question!' : null,
+        abuseWarning: abuseScore >= 5 ? 'Whoa there! Taking a quick breather. Try again in about 10 minutes with a rental question!' : null,
       });
     }
 
