@@ -52,7 +52,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           {currentTier !== 'master' && (
             <View style={[styles.tierBox, styles.tierBoxMaster]}>
               <View style={styles.tierHeader}>
-                <View style={[styles.tierOrb, { backgroundColor: COLORS.gold }]}>
+                <View style={[styles.tierOrb, styles.tierOrbGold]}>
                   <Text style={[styles.tierOrbAsk, { color: COLORS.navy }]}>Ask</Text>
                   <Text style={[styles.tierOrbPad, { color: COLORS.navy }]}>Pad</Text>
                 </View>
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
     marginBottom: LAYOUT.padding.sm,
   },
   tierOrb: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -148,15 +148,25 @@ const styles = StyleSheet.create({
   },
   tierOrbAsk: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 7,
+    fontSize: 8,
     color: COLORS.white,
-    lineHeight: 9,
+    lineHeight: 10,
   },
   tierOrbPad: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 7,
+    fontSize: 8,
     color: COLORS.brandOrange,
-    lineHeight: 9,
+    lineHeight: 10,
+  },
+  tierOrbGold: {
+    backgroundColor: COLORS.gold,
+    borderWidth: 1.5,
+    borderColor: '#FFF0A0',
+    shadowColor: COLORS.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 6,
   },
   tierName: {
     fontFamily: FONTS.heading.bold,
