@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
+import { BackButton } from '../../components/ui';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useAlert } from '../../providers/AlertProvider';
 import { apiFetch } from '../../lib/api';
@@ -164,9 +165,7 @@ export default function UpgradeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-        </Pressable>
+        <BackButton />
         <Text style={styles.headerTitle}>Choose Your Plan</Text>
         <View style={styles.backBtn} />
       </View>

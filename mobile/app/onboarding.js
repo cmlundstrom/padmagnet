@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform, Styl
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Input, Button, Toggle } from '../components/ui';
+import { Input, Button, Toggle, BackButton } from '../components/ui';
 import StepProgress from '../components/ui/StepProgress';
 import { setOnboarded, savePreferences, getOnboardingStep, saveOnboardingStep } from '../lib/storage';
 import { useAuth } from '../hooks/useAuth';
@@ -100,11 +100,9 @@ export default function OnboardingScreen() {
   // Steps: 0=welcome, 1=budget, 2=property type, 3=location, 4=association, 5=pets
   return (
     <SafeAreaView style={styles.container}>
-      {/* Back pill — upper left, steps 1+ */}
+      {/* Back chevron — upper left, steps 1+ */}
       {step > 0 && (
-        <Pressable style={styles.backPill} onPress={() => goToStep(step - 1)}>
-          <FontAwesome name="arrow-left" size={16} color={COLORS.white} />
-        </Pressable>
+        <BackButton onPress={() => goToStep(step - 1)} />
       )}
 
       {/* Progress bar — steps 1-5 (skip welcome) */}

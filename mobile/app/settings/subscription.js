@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../components/ui';
 import { useSubscription } from '../../hooks/useSubscription';
 import { TIERS } from '../../constants/tiers';
 import { COLORS } from '../../constants/colors';
@@ -43,10 +44,10 @@ export default function SubscriptionScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+      <View style={styles.backButton}>
+        <BackButton />
         <Text style={styles.backText}>Subscription</Text>
-      </TouchableOpacity>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}

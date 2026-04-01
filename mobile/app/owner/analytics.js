@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
 import { shareListing } from '../../lib/share-listing';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -47,10 +48,10 @@ export default function AnalyticsScreen() {
   if (!canViewAnalytics) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        <View style={styles.backButton}>
+          <BackButton />
           <Text style={styles.backText}>Listing Performance</Text>
-        </TouchableOpacity>
+        </View>
 
         <View style={styles.paywallContainer}>
           <Ionicons name="lock-closed" size={48} color={COLORS.brandOrange} />
@@ -81,10 +82,10 @@ export default function AnalyticsScreen() {
   if (error || !data) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        <View style={styles.backButton}>
+          <BackButton />
           <Text style={styles.backText}>Listing Performance</Text>
-        </TouchableOpacity>
+        </View>
         <Text style={styles.errorText}>{error || 'Unable to load analytics.'}</Text>
       </SafeAreaView>
     );
@@ -92,10 +93,10 @@ export default function AnalyticsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+      <View style={styles.backButton}>
+        <BackButton />
         <Text style={styles.backText}>Listing Performance</Text>
-      </TouchableOpacity>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}

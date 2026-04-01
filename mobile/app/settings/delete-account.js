@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../../components/ui';
 import { signOut } from '../../lib/auth';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -36,10 +37,10 @@ export default function DeleteAccountScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ paddingBottom: 360 }} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+          <View style={styles.backButton}>
+            <BackButton />
             <Text style={styles.backText}>Delete Account</Text>
-          </TouchableOpacity>
+          </View>
 
           {/* Warning icon */}
           <View style={styles.iconWrap}>

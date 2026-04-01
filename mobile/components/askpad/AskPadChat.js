@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from '../ui';
 import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import useAskPad from '../../hooks/useAskPad';
@@ -65,9 +66,7 @@ export default function AskPadChat({ visible, onClose }) {
       <SafeAreaView style={styles.container} edges={['bottom']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="chevron-down" size={24} color={COLORS.textSecondary} />
-          </TouchableOpacity>
+          <BackButton onPress={onClose} />
           <View style={styles.headerCenter}>
             <View style={styles.headerOrb}>
               <Text style={styles.headerOrbAsk}>Ask</Text>
