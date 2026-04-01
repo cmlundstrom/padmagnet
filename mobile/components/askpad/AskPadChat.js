@@ -67,13 +67,7 @@ export default function AskPadChat({ visible, onClose }) {
         {/* Header */}
         <View style={styles.header}>
           <BackButton onPress={onClose} />
-          <View style={styles.headerCenter}>
-            <View style={styles.headerOrb}>
-              <Text style={styles.headerOrbAsk}>Ask</Text>
-              <Text style={styles.headerOrbPad}>Pad</Text>
-            </View>
-            <Text style={styles.headerTitle}>AskPad</Text>
-          </View>
+          <Text style={styles.headerTitle}>Your Ai Rental Search Assistant</Text>
           <View style={styles.queryCount}>
             <Text style={styles.queryText}>
               {askPad.remainingQueries >= 999 ? '∞' : askPad.remainingQueries} left
