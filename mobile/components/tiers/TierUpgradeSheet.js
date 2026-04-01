@@ -29,8 +29,11 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           {currentTier === 'free' && (
             <View style={styles.tierBox}>
               <View style={styles.tierHeader}>
-                <Ionicons name="sparkles" size={18} color={COLORS.accent} />
-                <Text style={styles.tierName}>AskPad Explorer</Text>
+                <View style={styles.tierOrb}>
+                  <Text style={styles.tierOrbAsk}>Ask</Text>
+                  <Text style={styles.tierOrbPad}>Pad</Text>
+                </View>
+                <Text style={styles.tierName}>Pad Explorer</Text>
                 <Text style={styles.tierPrice}>$1.50</Text>
               </View>
               <View style={styles.features}>
@@ -129,6 +132,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: LAYOUT.padding.sm,
+  },
+  tierOrb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: COLORS.white,
+  },
+  tierOrbAsk: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 7,
+    color: COLORS.white,
+    lineHeight: 9,
+  },
+  tierOrbPad: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 7,
+    color: COLORS.brandOrange,
+    lineHeight: 9,
   },
   tierName: {
     fontFamily: FONTS.heading.bold,
