@@ -52,7 +52,10 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
           {currentTier !== 'master' && (
             <View style={[styles.tierBox, styles.tierBoxMaster]}>
               <View style={styles.tierHeader}>
-                <Ionicons name="diamond" size={18} color={COLORS.gold} />
+                <View style={[styles.tierOrb, { backgroundColor: COLORS.gold }]}>
+                  <Text style={[styles.tierOrbAsk, { color: COLORS.navy }]}>Ask</Text>
+                  <Text style={[styles.tierOrbPad, { color: COLORS.navy }]}>Pad</Text>
+                </View>
                 <Text style={[styles.tierName, { color: COLORS.gold }]}>Pad Master</Text>
                 <Text style={styles.tierPrice}>$3.50</Text>
               </View>
