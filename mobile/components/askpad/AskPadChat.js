@@ -38,6 +38,13 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
     }
   }, [askPad.messages.length]);
 
+  // Scroll to bottom when chat becomes visible (e.g., returning from listing detail)
+  useEffect(() => {
+    if (visible && askPad.messages.length > 0) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 200);
+    }
+  }, [visible]);
+
   function handleSend() {
     if (!input.trim()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
