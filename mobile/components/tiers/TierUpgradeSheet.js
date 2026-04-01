@@ -34,8 +34,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
                 <Text style={styles.tierPrice}>$1.50</Text>
               </View>
               <View style={styles.features}>
-                <Text style={styles.feature}>✓ Add 30 AskPad queries per/day!</Text>
-                <Text style={styles.feature}>✓ Add 2 geographic search zones</Text>
+                <Text style={styles.feature}>✓ Add 30 AskPad queries per/day!{'\n'}✓ Add 2 geographic search zones</Text>
               </View>
               <TouchableOpacity style={styles.buyButton} onPress={function() { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onBuyExplorer(); }} activeOpacity={0.8}>
                 <Text style={styles.buyText}>Pay $1.50</Text>
