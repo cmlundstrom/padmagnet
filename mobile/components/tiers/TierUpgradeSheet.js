@@ -143,14 +143,14 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
   features: {
-    marginBottom: LAYOUT.padding.md,
-    gap: 4,
+    marginBottom: LAYOUT.padding.sm,
+    gap: 0,
   },
   feature: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   verifiedRow: {
     flexDirection: 'row',
