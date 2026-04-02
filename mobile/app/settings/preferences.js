@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Header, Input, Toggle } from '../../components/ui';
 import usePreferences from '../../hooks/usePreferences';
 import useSearchZones from '../../hooks/useSearchZones';
@@ -34,6 +34,8 @@ export default function PreferencesScreen() {
     furnished_preferred: null,
     association_preferred: null,
   });
+
+  const [petTip, setPetTip] = useState(false);
 
   // Auto-save state
   const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
@@ -264,7 +266,31 @@ export default function PreferencesScreen() {
         </View>
 
         {/* Pets */}
-        <Text style={styles.sectionTitle}>Pets</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={styles.sectionTitle}>Pets</Text>
+          <Pressable onPress={() => setPetTip(prev => !prev)} hitSlop={10}>
+            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandOrange} />
+          </Pressable>
+        </View>
+        {petTip && (
+          <View style={{
+            backgroundColor: COLORS.brandOrange + '15',
+            borderWidth: 1,
+            borderColor: COLORS.brandOrange + '44',
+            borderRadius: LAYOUT.radius.md,
+            padding: 12,
+            marginBottom: 10,
+          }}>
+            <Text style={{
+              fontFamily: FONTS.body.regular,
+              fontSize: FONT_SIZES.xs,
+              color: COLORS.brandOrange,
+              lineHeight: 18,
+            }}>
+              We love pets too! So we built this filter to help find rentals advertised as Pet Friendly. Note: Turning on this filter WILL LIMIT your available rental results to ONLY rentals advertised as Pet Friendly. Use with caution!
+            </Text>
+          </View>
+        )}
         <View style={styles.switchRow}>
           <Toggle
             label="I have pets"
