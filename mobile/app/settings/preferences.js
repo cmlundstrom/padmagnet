@@ -193,6 +193,10 @@ export default function PreferencesScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
+        <Text style={styles.introText}>
+          Build your perfect search. Set your Preferences and let PadScore™ rank every matching rental just for you!
+        </Text>
+
         {/* Budget */}
         <Text style={styles.sectionTitle}>Budget</Text>
         <Input
@@ -377,7 +381,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 360,
+    paddingBottom: 155,
   },
   statusBar: {
     alignItems: 'center',
@@ -395,6 +399,16 @@ const styles = StyleSheet.create({
   },
   statusError: {
     color: COLORS.danger,
+  },
+  introText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.slate,
+    lineHeight: 20,
+    textAlign: 'center',
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingTop: LAYOUT.padding.md,
+    paddingBottom: LAYOUT.padding.sm,
   },
   sectionTitle: {
     fontFamily: FONTS.heading.semiBold,
@@ -445,17 +459,15 @@ const styles = StyleSheet.create({
   },
   hintBox: {
     marginTop: LAYOUT.padding.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
+    paddingHorizontal: LAYOUT.padding.md,
     alignItems: 'center',
   },
   hintBoxText: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.slate,
     textAlign: 'center',
+    lineHeight: 20,
   },
   floatingWrap: {
     position: 'absolute',

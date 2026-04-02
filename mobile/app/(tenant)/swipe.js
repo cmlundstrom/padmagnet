@@ -69,18 +69,21 @@ export default function SwipeScreen() {
     locationReady,
   });
 
+  const [locationDenied, setLocationDenied] = useState(false);
+
   useEffect(() => {
     (async () => {
       // If permission already granted from a prior session, fetch location then unlock listings
       const alreadyGranted = await checkExistingPermission();
       if (alreadyGranted) {
-        setLocationReady(true);
+        // Don't set locationReady yet — wait for deviceLocation to populate (below)
         return;
       }
 
       // If we've already shown the soft-ask before, don't show again — just proceed without GPS
       const asked = await hasAskedLocation();
       if (asked) {
+        setLocationDenied(true);
         setLocationReady(true);
         return;
       }
@@ -90,11 +93,22 @@ export default function SwipeScreen() {
     })();
   }, []);
 
+  // Once GPS coordinates actually arrive, unlock listings with location
+  useEffect(() => {
+    if (deviceLocation && !locationReady && !locationDenied) {
+      setLocationReady(true);
+    }
+  }, [deviceLocation, locationReady, locationDenied]);
+
   const handleLocationEnable = useCallback(async () => {
     setShowLocationAsk(false);
     await setLocationAsked();
-    await requestPermission();
-    setLocationReady(true);
+    const granted = await requestPermission();
+    if (!granted) {
+      setLocationDenied(true);
+      setLocationReady(true);
+    }
+    // If granted, the deviceLocation useEffect above will set locationReady once coords arrive
   }, [requestPermission]);
 
   const handleLocationSkip = useCallback(async () => {
