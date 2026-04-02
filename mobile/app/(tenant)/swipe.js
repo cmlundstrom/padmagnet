@@ -364,8 +364,8 @@ export default function SwipeScreen() {
           visible={showAskPad}
           onClose={() => setShowAskPad(false)}
           onUpgrade={() => { setShowAskPad(false); setShowTierUpgrade(true); }}
-          onPreferences={() => { setShowAskPad(false); router.push('/settings/preferences'); }}
-          onNotifications={() => { setShowAskPad(false); router.push('/settings/notifications'); }}
+          onPreferences={() => router.push('/settings/preferences')}
+          onNotifications={() => router.push('/settings/notifications')}
           onViewListing={(id) => router.push(`/listing/${id}`)}
           onQuerySent={() => renterTier.refresh()}
           deviceLat={deviceLocation?.latitude || null}
