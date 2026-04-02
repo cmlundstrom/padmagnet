@@ -285,6 +285,7 @@ export default function SwipeScreen() {
               error={error}
               onSwipe={handleSwipe}
               onTapCard={handleTapCard}
+              onPreferences={() => router.push('/settings/preferences')}
               onRefresh={refresh}
               hasMore={hasMore}
               onLoadMore={loadMore}

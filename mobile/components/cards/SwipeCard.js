@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -13,7 +13,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -31,7 +31,7 @@ const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 const SWIPE_VELOCITY = 800;
 const ROTATION_ANGLE = 15;
 
-export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wiggle = false }) {
+export default function SwipeCard({ listing, onSwipe, onTap, onPreferences, isTop = false, wiggle = false }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
@@ -142,9 +142,14 @@ export default function SwipeCard({ listing, onSwipe, onTap, isTop = false, wigg
               <NoPhotoPlaceholder size="full" />
             )}
 
-            {/* PadScore badge */}
+            {/* PadScore badge + preferences shortcut */}
             <View style={styles.scoreBadge}>
               <Badge score={score} />
+              {onPreferences && (
+                <TouchableOpacity onPress={onPreferences} activeOpacity={0.7} style={styles.prefsIcon}>
+                  <Ionicons name="options-outline" size={18} color={COLORS.white} />
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Tier badge (Pro/Premium owner listings only) */}
@@ -216,6 +221,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
+    alignItems: 'center',
+    gap: 6,
+  },
+  prefsIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tierBadgeContainer: {
     position: 'absolute',

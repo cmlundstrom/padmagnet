@@ -16,6 +16,7 @@ export default function CardStack({
   error,
   onSwipe,
   onTapCard,
+  onPreferences,
   onRefresh,
   hasMore,
   onLoadMore,
@@ -99,6 +100,7 @@ export default function CardStack({
           wiggle={shouldWiggle}
           onSwipe={handleSwipe}
           onTap={handleTap}
+          onPreferences={onPreferences}
         />
       </View>
     </View>
