@@ -11,3 +11,4 @@ export { default as Toggle } from './Toggle';
 export { default as BackButton } from './BackButton';
 export { default as NoPhotoPlaceholder } from './NoPhotoPlaceholder';
 export { default as EqualHousingBadge } from './EqualHousingBadge';
+export { default as SwipeableSheet } from './SwipeableSheet';

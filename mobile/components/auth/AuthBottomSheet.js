@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Modal, Pressable, ActivityIndicator, Platform, Keyboard,
+  Modal, Pressable, ActivityIndicator, Platform, Keyboard, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
@@ -54,6 +55,34 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   const keyboardLiftStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardOffset.value }],
   }));
+
+  // Swipe-to-dismiss gesture
+  const SCREEN_HEIGHT = Dimensions.get('window').height;
+  const swipeY = useSharedValue(0);
+  const DISMISS_THRESHOLD = 120;
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      swipeY.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
+        swipeY.value = withTiming(SCREEN_HEIGHT, { duration: 200 }, () => {
+          runOnJS(resetState)();
+          runOnJS(onClose)();
+        });
+      } else {
+        swipeY.value = withSpring(0, { damping: 20, stiffness: 200 });
+      }
+    });
+
+  const swipeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardOffset.value + swipeY.value }],
+  }));
+
+  useEffect(() => {
+    if (visible) swipeY.value = 0;
+  }, [visible]);
 
   const contextCopy = getContextCopy(context, padpoints);
 
@@ -175,20 +204,22 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       onRequestClose={() => { resetState(); onClose?.(); }}
     >
       <Pressable style={styles.backdrop} onPress={() => { resetState(); onClose?.(); }}>
-        <Animated.View style={[styles.sheetWrapper, keyboardLiftStyle]}>
+        <Animated.View style={[styles.sheetWrapper, swipeStyle]}>
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
-            {/* Manila folder tab — narrower, centered, protruding */}
-            <View style={styles.folderTabOuter}>
-              <LinearGradient
-                colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0.74, y: 1 }}
-                style={styles.folderTab}
-              >
-                <Text style={styles.tabTitle}>{contextCopy.title}</Text>
-                <View style={styles.tabHandle} />
-              </LinearGradient>
-            </View>
+            {/* Manila folder tab — swipe down to dismiss */}
+            <GestureDetector gesture={panGesture}>
+              <View style={styles.folderTabOuter}>
+                <LinearGradient
+                  colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0.74, y: 1 }}
+                  style={styles.folderTab}
+                >
+                  <Text style={styles.tabTitle}>{contextCopy.title}</Text>
+                  <View style={styles.tabHandle} />
+                </LinearGradient>
+              </View>
+            </GestureDetector>
 
             {/* Folder body — full width, same manila color family */}
             <LinearGradient

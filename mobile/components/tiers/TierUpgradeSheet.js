@@ -1,10 +1,11 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Linking } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import VerifiedBadge from '../ui/VerifiedBadge';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+import { SwipeableSheet } from '../ui';
 
 /**
  * Tier Upgrade Bottom Sheet — purchase AskPad Explorer or Pad Master.
@@ -15,11 +16,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
   const canRedeem = (padpoints || 0) >= 350;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
+    <SwipeableSheet visible={visible} onClose={onClose} sheetStyle={styles.sheet}>
 
           <Text style={styles.title}>Upgrade AskPad</Text>
           <Text style={styles.subtitle}>More queries, more zones, better matches</Text>
@@ -77,9 +74,7 @@ export default function TierUpgradeSheet({ visible, onClose, currentTier, padpoi
             <Text style={styles.skipText}>Maybe later</Text>
           </TouchableOpacity>
           </ScrollView>
-        </View>
-      </View>
-    </Modal>
+    </SwipeableSheet>
   );
 }
 
