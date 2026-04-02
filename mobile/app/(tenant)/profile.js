@@ -107,7 +107,7 @@ export default function TenantProfileScreen() {
           phone={profile.phone}
         />
 
-        <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/quick-prefs')}>
+        <TouchableOpacity style={MENU.item} onPress={() => router.push('/settings/preferences')}>
           <Text style={MENU.text}>Tune Your PadScore</Text>
           <Text style={MENU.hint}>Budget, location, property type, pets, features</Text>
         </TouchableOpacity>
