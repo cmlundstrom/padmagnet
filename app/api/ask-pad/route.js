@@ -60,6 +60,16 @@ When search_rentals returns listings, DO NOT list individual addresses, prices, 
 If no results are found, say so honestly and suggest broadening the search.
 Keep responses concise — 2-3 sentences max. Be enthusiastic and helpful, like a friend who knows every listing in town.
 
+FAIR HOUSING COMPLIANCE — You MUST comply with the federal Fair Housing Act at all times. Protected classes: race, color, national origin, religion, sex (including sexual orientation and gender identity), familial status (families with children, pregnant women), and disability.
+RULES:
+- NEVER reference, describe, or filter by the demographic makeup of any neighborhood (racial composition, ethnicity, religion, age groups, family composition).
+- NEVER use or respond positively to steering language like "best area for families", "where do [ethnicity] live", "Christian neighborhood", "adults-only community", "no kids area".
+- NEVER suggest excluding Section 8, Housing Choice Vouchers, or any source of income.
+- NEVER reference disability status as a search filter or neighborhood descriptor.
+- If a user asks a question that involves protected classes or steering (e.g., "where do Hispanic families live?", "find me a neighborhood without children", "areas near a mosque"), DO NOT answer the demographic question. Instead, professionally redirect: "I focus on rental criteria like budget, beds, location, and amenities — I can't filter by demographics. What features matter most to you?" Then suggest neutral search criteria.
+- Describe neighborhoods ONLY by amenities, proximity to landmarks, transit, parks, schools, price trends, and walkability — never by who lives there.
+- You may mention that a property is ADA-accessible or wheelchair-friendly ONLY if that data comes from the listing itself.
+
 PREFERENCE EXTRACTION — When the user's query reveals rental preferences (budget, beds, baths, pets, property type, furnished, fenced yard, HOA preference, cities), call the save_user_preferences tool to save them. This improves their PadScore™ matches across the entire app. After saving, briefly mention it in your response like: "Saved your preferences — your PadScore matches just got smarter!" Do NOT ask for permission — just save and inform. Only save preferences you can clearly extract from the query. If a query is ambiguous (e.g., "show me cheap places" — what is "cheap"?), do NOT guess. Only call save_user_preferences when you have concrete values. You can call it alongside search_rentals in the same turn.
 
 IN-APP LINKS — You can direct users to screens inside the app by including these tokens anywhere in your response. They will render as tappable buttons. Use them naturally when relevant:
@@ -67,6 +77,29 @@ IN-APP LINKS — You can direct users to screens inside the app by including the
 - [[link:upgrade]] — Upgrade AskPad tier page (Explorer $1.50/mo or Master $3.50/mo). Suggest when: user hits query limits, asks about premium features, wants more search zones, or asks about Verified Renter badge.
 - [[link:notifications]] — Notification preferences. Suggest when: user asks about alerts, push notifications, email settings, or wants to know when new listings match.
 Do NOT overuse links. Only include a link when it genuinely helps the user's question. Never include more than one link per response.`;
+
+// Fair Housing Act — protected class / steering keywords
+// These trigger a professional redirect, not a humorous rebuff
+const FAIR_HOUSING_KEYWORDS = [
+  'white neighborhood', 'black neighborhood', 'hispanic area', 'latino area',
+  'asian community', 'no kids', 'no children', 'adults only', 'adult only',
+  'no families', 'families only', 'no section 8', 'no voucher',
+  'christian area', 'jewish area', 'muslim area', 'near a church',
+  'near a mosque', 'near a synagogue', 'near a temple',
+  'no disabled', 'no handicap', 'no wheelchair',
+  'where do blacks live', 'where do whites live', 'where do hispanics live',
+  'where do latinos live', 'where do asians live',
+  'segregated', 'racially', 'ethnic neighborhood', 'minority area',
+  'no immigrants', 'english only', 'american only',
+  'single people only', 'no single mothers', 'no pregnant',
+];
+
+const FAIR_HOUSING_REDIRECT = "I'm built to help you find great rentals based on budget, beds, location, and amenities — I can't filter by demographics or protected characteristics. That's in line with the Fair Housing Act, which ensures equal housing opportunity for everyone. What rental features matter most to you?";
+
+function isFairHousingViolation(query) {
+  const lower = query.toLowerCase();
+  return FAIR_HOUSING_KEYWORDS.some(function(kw) { return lower.includes(kw); });
+}
 
 function isRentalRelated(query) {
   const lower = query.toLowerCase();
@@ -129,6 +162,17 @@ export async function POST(request) {
           dailyLimit,
         });
       }
+    }
+
+    // Fair Housing Act check — always runs, even on follow-ups
+    if (isFairHousingViolation(query)) {
+      return NextResponse.json({
+        type: 'text',
+        message: FAIR_HOUSING_REDIRECT,
+        queriesUsed: profile.agent_queries_today || 0,
+        dailyLimit,
+        tier,
+      });
     }
 
     // Pre-query classifier — zero Grok cost for off-topic

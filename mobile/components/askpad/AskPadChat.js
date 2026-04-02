@@ -15,6 +15,7 @@ import AskPadMessage from './AskPadMessage';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+import { EqualHousingBadge } from '../ui';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Panel top offset — show ~10% of listings behind (was 20%, tightened for more chat room)
@@ -50,7 +51,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
       `3BR under $3,000 near ${city}`,
       'What areas have the lowest rent?',
       `Show me places with a pool near ${city}`,
-      'Best neighborhoods for families?',
+      `Show me rentals near downtown ${city}`,
     ];
   }, [nearbyCity]);
 
@@ -151,6 +152,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
                   </TouchableOpacity>
                 ))}
               </View>
+              <EqualHousingBadge style={{ marginTop: 10 }} />
             </View>
           }
         />

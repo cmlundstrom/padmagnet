@@ -8,6 +8,7 @@ import {
   OWNER_COPYRIGHT, OWNER_DISCLAIMER,
 } from '../../constants/mls';
 import { apiFetch } from '../../lib/api';
+import { EqualHousingBadge } from '../ui';
 
 let cachedOwnerFooter = null;
 
@@ -37,6 +38,7 @@ export default function MLSDisclaimer({ listing }) {
           {OWNER_COPYRIGHT.replace('{year}', year)}
         </Text>
         <Text style={styles.disclaimer}>{disclaimerText}</Text>
+        <EqualHousingBadge style={{ marginTop: 8, justifyContent: 'flex-start' }} />
       </View>
     );
   }
@@ -58,6 +60,7 @@ export default function MLSDisclaimer({ listing }) {
         {MLS_COPYRIGHT.replace('{year}', year)}
       </Text>
       <Text style={styles.disclaimer}>{MLS_DISCLAIMER}</Text>
+      <EqualHousingBadge style={{ marginTop: 8, justifyContent: 'flex-start' }} />
     </View>
   );
 }

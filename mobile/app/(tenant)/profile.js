@@ -14,6 +14,7 @@ import { TierCard, TierUpgradeSheet } from '../../components/tiers';
 import useRenterTier from '../../hooks/useRenterTier';
 import { COLORS } from '../../constants/colors';
 import { SCREEN, MENU, SIGN_OUT } from '../../constants/screenStyles';
+import { EqualHousingBadge } from '../../components/ui';
 
 export default function TenantProfileScreen() {
   const { user, role } = useAuth();
@@ -127,6 +128,8 @@ export default function TenantProfileScreen() {
         <TouchableOpacity style={[MENU.item, { marginTop: 24 }]} onPress={() => router.push('/settings/delete-account')}>
           <Text style={[MENU.text, { color: COLORS.danger, fontSize: 13 }]}>Delete Account</Text>
         </TouchableOpacity>
+
+        <EqualHousingBadge style={{ marginTop: 20, marginBottom: 10 }} />
       </ScrollView>
 
       {/* Tier Upgrade Sheet */}
