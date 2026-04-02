@@ -79,7 +79,7 @@ export async function POST(request) {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) return NextResponse.json({ error: authError }, { status });
 
-    const { query, lat, lng } = await request.json();
+    const { query, lat, lng, history } = await request.json();
     if (!query || query.trim().length < 2) {
       return NextResponse.json({ error: 'Query too short' }, { status: 400 });
     }
@@ -133,7 +133,11 @@ export async function POST(request) {
     }
 
     // Pre-query classifier — zero Grok cost for off-topic
-    if (!isRentalRelated(query)) {
+    // Skip classifier for short follow-up messages when there's conversation context
+    // (e.g., "sure", "yes", "try that", "show me more")
+    const isFollowUp = Array.isArray(history) && history.length > 0 && query.trim().length < 40;
+
+    if (!isFollowUp && !isRentalRelated(query)) {
       const abuseScore = (profile.agent_abuse_score || 0) + 1;
       const updates = { agent_abuse_score: abuseScore };
 
@@ -170,7 +174,7 @@ export async function POST(request) {
       };
     } else {
       // Grok API call with function calling (tool use)
-      grokResponse = await callGrokWithTools(supabase, user.id, query, { lat, lng });
+      grokResponse = await callGrokWithTools(supabase, user.id, query, { lat, lng }, history);
     }
 
     // Increment query count (only on successful on-topic queries)
@@ -276,7 +280,7 @@ const TOOLS = [
   },
 ];
 
-async function callGrokWithTools(supabase, userId, query, location) {
+async function callGrokWithTools(supabase, userId, query, location, history) {
   var locationContext = '';
   if (location && location.lat && location.lng) {
     locationContext = '\n\nThe user is currently located at GPS coordinates (' + location.lat.toFixed(4) + ', ' + location.lng.toFixed(4) + '). When they ask general questions like "show me rentals with a pool" without specifying a location, search near their current location. Always prioritize nearby results.';
@@ -310,8 +314,19 @@ async function callGrokWithTools(supabase, userId, query, location) {
 
   var messages = [
     { role: 'system', content: SYSTEM_PROMPT + locationContext + prefsContext },
-    { role: 'user', content: query },
   ];
+
+  // Include conversation history for context (last 6 messages from client)
+  if (Array.isArray(history) && history.length > 0) {
+    for (var h = 0; h < history.length; h++) {
+      var msg = history[h];
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        messages.push({ role: msg.role, content: String(msg.content || '').slice(0, 500) });
+      }
+    }
+  }
+
+  messages.push({ role: 'user', content: query });
 
   try {
     // First call — Grok may respond directly or request tool calls

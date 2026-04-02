@@ -134,9 +134,15 @@ export default function useAskPad({ deviceLat, deviceLng } = {}) {
     setLoading(true);
 
     try {
+      // Send last 6 messages for conversation context (3 exchanges)
+      const recentHistory = messagesRef.current
+        .filter(m => m.role === 'user' || (m.role === 'pad' && (m.type === 'text' || m.type === 'listings')))
+        .slice(-6)
+        .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
+
       const result = await apiFetch('/api/ask-pad', {
         method: 'POST',
-        body: JSON.stringify({ query, lat: deviceLat || null, lng: deviceLng || null }),
+        body: JSON.stringify({ query, lat: deviceLat || null, lng: deviceLng || null, history: recentHistory }),
       });
 
       // Add Ask Pad response
