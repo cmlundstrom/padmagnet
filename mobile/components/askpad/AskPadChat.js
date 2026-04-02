@@ -9,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  FadeIn, FadeOut, SlideInDown, SlideOutDown,
   useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
 } from 'react-native-reanimated';
 import useAskPad from '../../hooks/useAskPad';
@@ -34,23 +33,20 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
   const askPad = useAskPad({ deviceLat, deviceLng });
   const [nearbyCity, setNearbyCity] = useState(null);
 
-  // Swipe-to-dismiss gesture
-  const panelTranslateY = useSharedValue(0);
+  // Swipe-to-dismiss gesture — also handles open/close animation
+  const panelTranslateY = useSharedValue(SCREEN_HEIGHT);
   const DISMISS_THRESHOLD = 120;
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      // Only allow dragging down (positive Y)
       panelTranslateY.value = Math.max(0, e.translationY);
     })
     .onEnd((e) => {
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
-        // Dismiss — animate off screen then call close
         panelTranslateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 }, () => {
           runOnJS(handleClose)();
         });
       } else {
-        // Snap back
         panelTranslateY.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
     });
@@ -59,9 +55,12 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
     transform: [{ translateY: panelTranslateY.value }],
   }));
 
-  // Reset translate when panel becomes visible
+  // Animate in when visible, reset when hidden
   useEffect(() => {
-    if (visible) panelTranslateY.value = 0;
+    if (visible) {
+      panelTranslateY.value = SCREEN_HEIGHT;
+      panelTranslateY.value = withSpring(0, { damping: 18, stiffness: 140 });
+    }
   }, [visible]);
 
   // Reverse geocode to get city name for dynamic chips
@@ -118,11 +117,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
   if (!visible) return null;
 
   return (
-    <Animated.View
-      style={styles.overlay}
-      entering={FadeIn.duration(200)}
-      exiting={FadeOut.duration(150)}
-    >
+    <View style={styles.overlay}>
       {/* Frosted glass backdrop — tap to close */}
       <Pressable style={styles.backdrop} onPress={handleClose}>
         <BlurView
@@ -133,11 +128,9 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
         <View style={styles.scrim} />
       </Pressable>
 
-      {/* Chat panel — slides up, swipe down to dismiss */}
+      {/* Chat panel — swipe down to dismiss */}
       <Animated.View
         style={[styles.panel, panelDragStyle]}
-        entering={SlideInDown.springify().damping(18).stiffness(140)}
-        exiting={SlideOutDown.duration(200)}
       >
         {/* Drag handle — swipe down to dismiss */}
         <GestureDetector gesture={panGesture}>
@@ -232,7 +225,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
           </View>
         </View>
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 }
 
