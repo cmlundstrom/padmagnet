@@ -305,8 +305,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: LAYOUT.radius.full,
     backgroundColor: COLORS.accent + '18',
     borderWidth: 1,
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
   reward: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
     paddingHorizontal: LAYOUT.padding.lg,
   },

@@ -272,14 +272,43 @@ export default function SwipeScreen() {
               // Award PadPoints for answering
               padPoints.earnPoints(activePrompt.padpoints, `Answered: ${activePrompt.title}`);
 
-              // Save preference to server
+              // Save preference to server — map each prompt to correct DB fields
               try {
                 const prefUpdate = {};
-                prefUpdate[activePrompt.prefKey] = value;
-                await supabase
-                  .from('tenant_preferences')
-                  .upsert({ user_id: user?.id, ...prefUpdate }, { onConflict: 'user_id' });
-              } catch { /* silent — preference saved locally via hook */ }
+
+                if (key === 'budget') {
+                  prefUpdate.budget_max = value;
+                } else if (key === 'pets') {
+                  if (value === 'none') {
+                    prefUpdate.pets_required = false;
+                    prefUpdate.pet_type = null;
+                  } else {
+                    prefUpdate.pets_required = true;
+                    prefUpdate.pet_type = value; // 'dog', 'cat', 'both'
+                  }
+                } else if (key === 'beds') {
+                  prefUpdate.beds_min = value;
+                } else if (key === 'location') {
+                  if (value !== 'other') {
+                    prefUpdate.preferred_cities = [value];
+                  }
+                } else if (key === 'type') {
+                  if (value !== 'any') {
+                    prefUpdate.property_types = [value];
+                  }
+                } else if (key === 'features') {
+                  if (value === 'furnished') prefUpdate.furnished_preferred = true;
+                  else if (value === 'no_hoa') prefUpdate.association_preferred = false;
+                  else if (value === 'fenced') prefUpdate.fenced_yard_required = true;
+                  // 'pool' and 'none' don't map to a preference field
+                }
+
+                if (Object.keys(prefUpdate).length > 0) {
+                  await supabase
+                    .from('tenant_preferences')
+                    .upsert({ user_id: user?.id, ...prefUpdate }, { onConflict: 'user_id' });
+                }
+              } catch { /* silent */ }
             }}
             onSkip={() => {
               setAnsweredPrompts(prev => new Set([...prev, activePrompt.key]));
