@@ -20,14 +20,25 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
 
   const floatY = useSharedValue(0);
   const floatOpacity = useSharedValue(0);
+  const barGlow = useSharedValue(0);
+  const barScale = useSharedValue(1);
 
-  // Float-up animation — use useAnimatedReaction to avoid render-time writes
+  // Float-up animation + gold flourish — use useAnimatedReaction to avoid render-time writes
   useAnimatedReaction(
     function() { return lastEarned ? 1 : 0; },
     function(curr, prev) {
       if (curr > 0 && curr !== prev) {
         floatY.value = withSequence(withTiming(0, { duration: 0 }), withTiming(-24, { duration: 1000 }));
         floatOpacity.value = withSequence(withTiming(1, { duration: 0 }), withTiming(0, { duration: 1000 }));
+        // Gold flourish
+        barGlow.value = withSequence(
+          withTiming(1, { duration: 200 }),
+          withTiming(0, { duration: 600 })
+        );
+        barScale.value = withSequence(
+          withTiming(1.06, { duration: 200 }),
+          withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) })
+        );
       }
     },
     [lastEarned]
@@ -37,6 +48,17 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
     return {
       transform: [{ translateY: floatY.value }],
       opacity: floatOpacity.value,
+    };
+  });
+
+  const flourishStyle = useAnimatedStyle(function() {
+    return {
+      transform: [{ scale: barScale.value }],
+      shadowColor: '#FFD700',
+      shadowOpacity: barGlow.value * 0.6,
+      shadowRadius: barGlow.value * 12,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: barGlow.value > 0 ? 8 : 0,
     };
   });
 
@@ -93,7 +115,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
                        renterTier === 'explorer' ? '30/day' : '10/day';
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, flourishStyle]}>
       {/* PadPoints ring + level — tappable to show game rules */}
       <TouchableOpacity
         style={styles.gameHotspot}
@@ -371,7 +393,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
           <Pressable style={{ flex: 1, width: '100%' }} onPress={() => setShowGameRules(false)} />
         </View>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 

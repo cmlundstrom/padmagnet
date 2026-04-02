@@ -1,67 +1,129 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withSpring, withTiming,
+  withSequence, FadeIn, FadeOut,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 /**
- * Smart Prompt Card — appears inline in the swipe deck to collect
- * preferences one question at a time. Each answer awards PadPoints.
+ * Smart Prompt Card — modal overlay that appears between swipes
+ * to collect preferences one question at a time. Each answer awards PadPoints.
  *
- * Designed to look like a special listing card with a branded gradient.
+ * Option A design: centered modal with scrim, spring-in animation,
+ * art-direction touches (steampunk/parchment gradient border).
  */
 export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) {
   if (!prompt) return null;
 
+  const cardScale = useSharedValue(0.85);
+  const cardOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    cardScale.value = withSpring(1, { damping: 14, stiffness: 120 });
+    cardOpacity.value = withTiming(1, { duration: 250 });
+  }, []);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+    opacity: cardOpacity.value,
+  }));
+
   const handleAnswer = (value) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onAnswer(prompt.key, value);
+    // Animate out then callback
+    cardScale.value = withTiming(0.9, { duration: 150 });
+    cardOpacity.value = withTiming(0, { duration: 150 });
+    setTimeout(() => onAnswer(prompt.key, value), 180);
+  };
+
+  const handleSkip = () => {
+    cardScale.value = withTiming(0.9, { duration: 120 });
+    cardOpacity.value = withTiming(0, { duration: 120 });
+    setTimeout(() => onSkip(), 150);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.emoji}>{prompt.emoji}</Text>
-        <Text style={styles.title}>{prompt.title}</Text>
-      </View>
+    <Modal visible transparent animationType="none" statusBarTranslucent>
+      <View style={styles.overlay}>
+        {/* Scrim backdrop — tap to skip */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleSkip} />
 
-      {/* Question */}
-      <Text style={styles.question}>{prompt.question}</Text>
-
-      {/* Options */}
-      <View style={styles.options}>
-        {prompt.options.map((option, i) => (
-          <TouchableOpacity
-            key={i}
-            style={styles.option}
-            onPress={() => handleAnswer(option.value)}
-            activeOpacity={0.7}
+        {/* Prompt card */}
+        <Animated.View style={[styles.cardOuter, cardStyle]}>
+          <LinearGradient
+            colors={['#1E3A5F', '#234170', '#2C5288']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.card}
           >
-            {option.emoji && <Text style={styles.optionEmoji}>{option.emoji}</Text>}
-            <Text style={styles.optionText}>{option.label}</Text>
-          </TouchableOpacity>
-        ))}
+            {/* Decorative top accent line */}
+            <LinearGradient
+              colors={['#A89050', '#C4AD78', '#DECA92', '#C4AD78', '#A89050']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.accentLine}
+            />
+
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.emoji}>{prompt.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{prompt.title}</Text>
+                <Text style={styles.question}>{prompt.question}</Text>
+              </View>
+            </View>
+
+            {/* Options */}
+            <View style={styles.options}>
+              {prompt.options.map((option, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={styles.option}
+                  onPress={() => handleAnswer(option.value)}
+                  activeOpacity={0.7}
+                >
+                  {option.emoji && <Text style={styles.optionEmoji}>{option.emoji}</Text>}
+                  <Text style={styles.optionText}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Reward hint */}
+            <View style={styles.reward}>
+              <Text style={styles.rewardPoints}>+{prompt.padpoints}</Text>
+              <Text style={styles.rewardLabel}>PadPoints</Text>
+              <View style={styles.rewardDot} />
+              <Text style={styles.rewardHint}>{prompt.hint}</Text>
+            </View>
+
+            {/* Decorative bottom accent line */}
+            <LinearGradient
+              colors={['#A89050', '#C4AD78', '#DECA92', '#C4AD78', '#A89050']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.accentLineBottom}
+            />
+
+            {/* Ask Pad CTA (on later prompts) */}
+            {prompt.afterSwipe >= 25 && onAskPad && (
+              <TouchableOpacity style={styles.askPadButton} onPress={() => { handleSkip(); setTimeout(() => onAskPad(), 200); }} activeOpacity={0.7}>
+                <Text style={styles.askPadText}>✨ Ask Pad instead</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Skip */}
+            <TouchableOpacity style={styles.skipButton} onPress={handleSkip} activeOpacity={0.7}>
+              <Text style={styles.skipText}>Skip for now</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
       </View>
-
-      {/* PadPoints reward */}
-      <View style={styles.reward}>
-        <Text style={styles.rewardText}>+{prompt.padpoints} PadPoints</Text>
-        <Text style={styles.rewardHint}>{prompt.hint}</Text>
-      </View>
-
-      {/* Ask Pad CTA (on later prompts) */}
-      {prompt.afterSwipe >= 25 && onAskPad && (
-        <TouchableOpacity style={styles.askPadButton} onPress={onAskPad} activeOpacity={0.7}>
-          <Text style={styles.askPadText}>✨ Too many options? AskPad instead</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Skip */}
-      <TouchableOpacity style={styles.skipButton} onPress={onSkip} activeOpacity={0.7}>
-        <Text style={styles.skipText}>Skip for now</Text>
-      </TouchableOpacity>
-    </View>
+    </Modal>
   );
 }
 
@@ -173,23 +235,53 @@ export const SMART_PROMPTS = [
 ];
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.lg,
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: LAYOUT.padding.lg,
-    borderWidth: 2,
-    borderColor: COLORS.accent + '44',
-    width: LAYOUT.card.width,
+  },
+  cardOuter: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: LAYOUT.radius.xl,
+    // Outer glow
+    shadowColor: '#A89050',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  card: {
+    borderRadius: LAYOUT.radius.xl,
+    padding: 0,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#A8905066',
+  },
+  accentLine: {
+    height: 3,
+    width: '100%',
+  },
+  accentLineBottom: {
+    height: 2,
+    width: '60%',
     alignSelf: 'center',
+    borderRadius: 1,
+    marginTop: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.sm,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: LAYOUT.padding.md,
+    gap: 12,
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingTop: LAYOUT.padding.lg,
+    paddingBottom: LAYOUT.padding.sm,
   },
   emoji: {
-    fontSize: 24,
+    fontSize: 32,
   },
   title: {
     fontFamily: FONTS.heading.bold,
@@ -198,26 +290,27 @@ const styles = StyleSheet.create({
   },
   question: {
     fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
-    marginBottom: LAYOUT.padding.md,
+    marginTop: 2,
   },
   options: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: LAYOUT.padding.md,
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingBottom: LAYOUT.padding.md,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.accent + '22',
+    backgroundColor: COLORS.accent + '18',
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.accent + '66',
   },
   optionEmoji: {
     fontSize: 16,
@@ -230,13 +323,24 @@ const styles = StyleSheet.create({
   reward: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: LAYOUT.padding.sm,
+    gap: 6,
+    paddingHorizontal: LAYOUT.padding.lg,
   },
-  rewardText: {
+  rewardPoints: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.success,
+    color: '#FFD700',
+  },
+  rewardLabel: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: '#FFD700',
+  },
+  rewardDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.slate,
   },
   rewardHint: {
     fontFamily: FONTS.body.regular,
@@ -248,7 +352,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent + '15',
     borderRadius: LAYOUT.radius.sm,
     paddingVertical: 10,
-    marginBottom: LAYOUT.padding.sm,
+    marginHorizontal: LAYOUT.padding.lg,
+    marginBottom: LAYOUT.padding.xs,
     borderWidth: 1,
     borderColor: COLORS.accent + '33',
   },
@@ -260,6 +365,7 @@ const styles = StyleSheet.create({
   skipButton: {
     alignItems: 'center',
     paddingVertical: LAYOUT.padding.sm,
+    paddingBottom: LAYOUT.padding.md,
   },
   skipText: {
     fontFamily: FONTS.body.medium,

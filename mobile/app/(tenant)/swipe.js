@@ -260,38 +260,36 @@ export default function SwipeScreen() {
           </View>
         )}
 
-        {/* Smart Prompt Card (appears between swipes at scheduled intervals) */}
+        {/* Smart Prompt Card — modal overlay, doesn't affect card layout */}
         {activePrompt && viewMode === 'cards' && (
-          <View style={styles.promptOverlay}>
-            <SmartPromptCard
-              prompt={activePrompt}
-              onAskPad={() => { setActivePrompt(null); setShowAskPad(true); }}
-              onAnswer={async (key, value) => {
-                setAnsweredPrompts(prev => new Set([...prev, key]));
-                setActivePrompt(null);
+          <SmartPromptCard
+            prompt={activePrompt}
+            onAskPad={() => { setActivePrompt(null); setShowAskPad(true); }}
+            onAnswer={async (key, value) => {
+              setAnsweredPrompts(prev => new Set([...prev, key]));
+              setActivePrompt(null);
 
-                // Award PadPoints for answering
-                padPoints.earnPoints(activePrompt.padpoints, `Answered: ${activePrompt.title}`);
+              // Award PadPoints for answering
+              padPoints.earnPoints(activePrompt.padpoints, `Answered: ${activePrompt.title}`);
 
-                // Save preference to server
-                try {
-                  const prefUpdate = {};
-                  prefUpdate[activePrompt.prefKey] = value;
-                  await supabase
-                    .from('tenant_preferences')
-                    .upsert({ user_id: user?.id, ...prefUpdate }, { onConflict: 'user_id' });
-                } catch { /* silent — preference saved locally via hook */ }
-              }}
-              onSkip={() => {
-                setAnsweredPrompts(prev => new Set([...prev, activePrompt.key]));
-                setActivePrompt(null);
-              }}
-            />
-          </View>
+              // Save preference to server
+              try {
+                const prefUpdate = {};
+                prefUpdate[activePrompt.prefKey] = value;
+                await supabase
+                  .from('tenant_preferences')
+                  .upsert({ user_id: user?.id, ...prefUpdate }, { onConflict: 'user_id' });
+              } catch { /* silent — preference saved locally via hook */ }
+            }}
+            onSkip={() => {
+              setAnsweredPrompts(prev => new Set([...prev, activePrompt.key]));
+              setActivePrompt(null);
+            }}
+          />
         )}
 
         {/* Card area */}
-        <View style={[styles.cardArea, viewMode === 'cards' && { marginTop: activePrompt ? 0 : 35 }]}>
+        <View style={[styles.cardArea, viewMode === 'cards' && { marginTop: 35 }]}>
           {viewMode === 'cards' && (
             <CardStack
               listings={scoredListings}
@@ -562,9 +560,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingBottom: LAYOUT.padding.sm,
     paddingHorizontal: LAYOUT.padding.md,
-  },
-  promptOverlay: {
-    paddingVertical: LAYOUT.padding.md,
-    alignItems: 'center',
   },
 });
