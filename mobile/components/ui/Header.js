@@ -4,11 +4,11 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import BackButton from './BackButton';
 
-export default function Header({ title, showBack = false, rightAction, style }) {
+export default function Header({ title, showBack = false, onBack, rightAction, style }) {
   return (
     <View style={[styles.container, style]}>
       <View style={styles.left}>
-        {showBack && <BackButton />}
+        {showBack && <BackButton onPress={onBack} />}
       </View>
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
       <View style={styles.right}>

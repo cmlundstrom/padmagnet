@@ -110,7 +110,7 @@ export default function AskPadMessage({ message, onUpgrade, onPreferences, onVie
               activeOpacity={0.7}
             >
               <Text style={styles.prefsFooterText}>Need to adjust your property preferences?</Text>
-              <Ionicons name="options-outline" size={16} color={COLORS.accent} />
+              <Ionicons name="options-outline" size={22} color={COLORS.white} />
             </TouchableOpacity>
           </View>
         )}
