@@ -102,6 +102,16 @@ export default function AskPadMessage({ message, onUpgrade, onPreferences, onVie
                 <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
               </TouchableOpacity>
             ))}
+
+            {/* Preferences mini-footer */}
+            <TouchableOpacity
+              style={styles.prefsFooter}
+              onPress={onPreferences}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.prefsFooterText}>Need to adjust your property preferences?</Text>
+              <Ionicons name="options-outline" size={16} color={COLORS.accent} />
+            </TouchableOpacity>
           </View>
         )}
 
@@ -301,6 +311,22 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.danger,
     marginTop: 8,
+  },
+  // ── Preferences mini-footer (below listing cards) ──
+  prefsFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+    marginTop: 4,
+  },
+  prefsFooterText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
   },
   // ── In-app link buttons ──────────────────
   appLinks: {
