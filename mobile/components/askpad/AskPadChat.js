@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, Image, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Pressable, Keyboard, Dimensions,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -28,6 +29,30 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
   const [input, setInput] = useState('');
   const flatListRef = useRef(null);
   const askPad = useAskPad({ deviceLat, deviceLng });
+  const [nearbyCity, setNearbyCity] = useState(null);
+
+  // Reverse geocode to get city name for dynamic chips
+  useEffect(() => {
+    if (!deviceLat || !deviceLng) return;
+    (async () => {
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude: deviceLat, longitude: deviceLng });
+        if (results && results[0] && results[0].city) {
+          setNearbyCity(results[0].city);
+        }
+      } catch {}
+    })();
+  }, [deviceLat, deviceLng]);
+
+  const starterChips = useMemo(() => {
+    const city = nearbyCity || 'your area';
+    return [
+      `3BR under $3,000 near ${city}`,
+      'What areas have the lowest rent?',
+      `Show me places with a pool near ${city}`,
+      'Best neighborhoods for families?',
+    ];
+  }, [nearbyCity]);
 
 
   // Auto-scroll on new messages + notify parent of query count change
@@ -115,12 +140,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
               <Text style={styles.emptyTitle}>AskPad anything about rentals</Text>
               <Text style={styles.emptyHint}>Tap a suggestion or type your own:</Text>
               <View style={styles.chipGroup}>
-                {[
-                  '2BR dog-friendly under $2,000 near Stuart',
-                  'What areas have the lowest rent?',
-                  'Show me places with a pool',
-                  'Best neighborhoods for families?',
-                ].map((prompt, i) => (
+                {starterChips.map((prompt, i) => (
                   <TouchableOpacity
                     key={i}
                     style={styles.chip}
