@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { View, Pressable, StyleSheet, Dimensions, Modal } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
 } from 'react-native-reanimated';
@@ -60,6 +60,7 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle 
 
   return (
     <Modal visible transparent statusBarTranslucent onRequestClose={animateAndClose}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         <Pressable style={styles.backdrop} onPress={animateAndClose} />
         <Animated.View style={[styles.sheet, sheetStyle, panelStyle]}>
@@ -71,6 +72,7 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle 
           {children}
         </Animated.View>
       </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

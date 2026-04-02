@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
@@ -203,6 +203,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       statusBarTranslucent
       onRequestClose={() => { resetState(); onClose?.(); }}
     >
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <Pressable style={styles.backdrop} onPress={() => { resetState(); onClose?.(); }}>
         <Animated.View style={[styles.sheetWrapper, swipeStyle]}>
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
@@ -361,6 +362,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
           </Pressable>
         </Animated.View>
       </Pressable>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
