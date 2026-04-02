@@ -7,8 +7,10 @@ import * as Location from 'expo-location';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn, FadeOut, SlideInDown, SlideOutDown,
+  useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
 } from 'react-native-reanimated';
 import useAskPad from '../../hooks/useAskPad';
 import AskPadMessage from './AskPadMessage';
@@ -31,6 +33,36 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
   const flatListRef = useRef(null);
   const askPad = useAskPad({ deviceLat, deviceLng });
   const [nearbyCity, setNearbyCity] = useState(null);
+
+  // Swipe-to-dismiss gesture
+  const panelTranslateY = useSharedValue(0);
+  const DISMISS_THRESHOLD = 120;
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      // Only allow dragging down (positive Y)
+      panelTranslateY.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
+        // Dismiss — animate off screen then call close
+        panelTranslateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 }, () => {
+          runOnJS(handleClose)();
+        });
+      } else {
+        // Snap back
+        panelTranslateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+      }
+    });
+
+  const panelDragStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: panelTranslateY.value }],
+  }));
+
+  // Reset translate when panel becomes visible
+  useEffect(() => {
+    if (visible) panelTranslateY.value = 0;
+  }, [visible]);
 
   // Reverse geocode to get city name for dynamic chips
   useEffect(() => {
@@ -101,16 +133,18 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
         <View style={styles.scrim} />
       </Pressable>
 
-      {/* Chat panel — slides up, Android adjustResize handles keyboard */}
+      {/* Chat panel — slides up, swipe down to dismiss */}
       <Animated.View
-        style={styles.panel}
+        style={[styles.panel, panelDragStyle]}
         entering={SlideInDown.springify().damping(18).stiffness(140)}
         exiting={SlideOutDown.duration(200)}
       >
-        {/* Drag handle visual */}
-        <View style={styles.handleRow}>
-          <View style={styles.handle} />
-        </View>
+        {/* Drag handle — swipe down to dismiss */}
+        <GestureDetector gesture={panGesture}>
+          <View style={styles.handleRow}>
+            <View style={styles.handle} />
+          </View>
+        </GestureDetector>
 
         {/* Header */}
         <View style={styles.header}>
