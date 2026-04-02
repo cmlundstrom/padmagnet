@@ -142,22 +142,22 @@ export default function SwipeCard({ listing, onSwipe, onTap, onPreferences, isTo
               <NoPhotoPlaceholder size="full" />
             )}
 
-            {/* PadScore badge + preferences shortcut */}
-            <View style={styles.scoreBadge}>
-              <Badge score={score} />
-              {onPreferences && (
-                <TouchableOpacity onPress={onPreferences} activeOpacity={0.7} style={styles.prefsIcon}>
-                  <Ionicons name="options-outline" size={18} color={COLORS.white} />
-                </TouchableOpacity>
+            {/* PadScore row — score + prefs icon inline, tier badge below */}
+            <View style={styles.scoreColumn}>
+              <View style={styles.scoreRow}>
+                <Badge score={score} />
+                {onPreferences && (
+                  <TouchableOpacity onPress={onPreferences} activeOpacity={0.7} style={styles.prefsIcon}>
+                    <Ionicons name="options-outline" size={16} color={COLORS.white} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {listing.owner_tier && listing.owner_tier !== 'free' && (
+                <View style={styles.tierBadgeInline}>
+                  <TierBadge tier={listing.owner_tier} size="sm" />
+                </View>
               )}
             </View>
-
-            {/* Tier badge (Pro/Premium owner listings only) */}
-            {listing.owner_tier && listing.owner_tier !== 'free' && (
-              <View style={styles.tierBadgeContainer}>
-                <TierBadge tier={listing.owner_tier} size="sm" />
-              </View>
-            )}
 
             {/* Price Drop badge */}
             {hasPriceDrop && (
@@ -217,25 +217,27 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
   },
-  scoreBadge: {
+  scoreColumn: {
     position: 'absolute',
     top: 12,
     right: 12,
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  scoreRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   prefsIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tierBadgeContainer: {
-    position: 'absolute',
-    top: 48,
-    right: 12,
+  tierBadgeInline: {
     zIndex: 5,
   },
   priceDropBadge: {
