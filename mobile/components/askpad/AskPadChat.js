@@ -22,6 +22,47 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Panel top offset — show ~10% of listings behind (was 20%, tightened for more chat room)
 const PANEL_TOP = Math.round(SCREEN_HEIGHT * 0.10);
 
+/** Animated typing indicator — three dots pulse sequentially */
+function TypingIndicator() {
+  const dot1 = useSharedValue(0.3);
+  const dot2 = useSharedValue(0.3);
+  const dot3 = useSharedValue(0.3);
+
+  useEffect(() => {
+    function loop() {
+      dot1.value = withTiming(1, { duration: 400 }, () => {
+        dot1.value = withTiming(0.3, { duration: 400 });
+      });
+      setTimeout(() => {
+        dot2.value = withTiming(1, { duration: 400 }, () => {
+          dot2.value = withTiming(0.3, { duration: 400 });
+        });
+      }, 200);
+      setTimeout(() => {
+        dot3.value = withTiming(1, { duration: 400 }, () => {
+          dot3.value = withTiming(0.3, { duration: 400 });
+        });
+      }, 400);
+    }
+    loop();
+    const interval = setInterval(loop, 1200);
+    return () => clearInterval(interval);
+  }, []);
+
+  const s1 = useAnimatedStyle(() => ({ opacity: dot1.value, transform: [{ scale: 0.8 + dot1.value * 0.3 }] }));
+  const s2 = useAnimatedStyle(() => ({ opacity: dot2.value, transform: [{ scale: 0.8 + dot2.value * 0.3 }] }));
+  const s3 = useAnimatedStyle(() => ({ opacity: dot3.value, transform: [{ scale: 0.8 + dot3.value * 0.3 }] }));
+
+  return (
+    <View style={styles.typingRow}>
+      <Animated.View style={[styles.typingDot, s1]} />
+      <Animated.View style={[styles.typingDot, s2]} />
+      <Animated.View style={[styles.typingDot, s3]} />
+      <Text style={styles.typingText}>AskPad is thinking...</Text>
+    </View>
+  );
+}
+
 /**
  * AskPad Chat — "The Lens" frosted glass overlay.
  * Slide-up panel over the swipe cards with blurred backdrop.
@@ -184,15 +225,8 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
           }
         />
 
-        {/* Typing indicator */}
-        {askPad.loading && (
-          <View style={styles.typingRow}>
-            <View style={styles.typingDot} />
-            <View style={[styles.typingDot, { opacity: 0.4 }]} />
-            <View style={[styles.typingDot, { opacity: 0.3 }]} />
-            <Text style={styles.typingText}>AskPad is thinking...</Text>
-          </View>
-        )}
+        {/* Typing indicator — animated pulsing dots */}
+        {askPad.loading && <TypingIndicator />}
 
         {/* Input bar — always visible */}
         <View style={styles.inputRow}>
@@ -364,11 +398,10 @@ const styles = StyleSheet.create({
     paddingVertical: LAYOUT.padding.sm,
   },
   typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.accent,
-    opacity: 0.5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#93c5fd',
   },
   typingText: {
     fontFamily: FONTS.body.regular,
