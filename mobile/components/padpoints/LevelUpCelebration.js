@@ -36,14 +36,14 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
         Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
 
-      // Auto-dismiss: 4s display + 3s fade
+      // Auto-dismiss: 3s display + 3s fade
       const t = setTimeout(() => {
         Animated.timing(opacityAnim, { toValue: 0, duration: 3000, useNativeDriver: true }).start(() => {
           setShowing(false);
           setFrozenLevel(null);
           onDismiss?.();
         });
-      }, 4000);
+      }, 3000);
       timerRef.current = t;
     }
   }, [visible, level]);
