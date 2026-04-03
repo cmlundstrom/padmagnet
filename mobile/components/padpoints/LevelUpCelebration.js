@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Modal } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -56,36 +56,36 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
-      <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-        <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
-          <Text style={styles.celebration}>🎉</Text>
-          <Text style={styles.title}>PADLEVEL UP!</Text>
-          <Text style={[styles.levelName, { color: levelColor }]}>
-            ⭐ {level.name} ⭐
-          </Text>
-          <Text style={styles.levelNumber}>Level {level.level}</Text>
+    <Animated.View style={[styles.overlay, { opacity: opacityAnim }]} pointerEvents={showModal ? 'auto' : 'none'}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        <Text style={styles.celebration}>🎉</Text>
+        <Text style={styles.title}>PADLEVEL UP!</Text>
+        <Text style={[styles.levelName, { color: levelColor }]}>
+          ⭐ {level.name} ⭐
+        </Text>
+        <Text style={styles.levelNumber}>Level {level.level}</Text>
 
-          {PERKS[level.level] && (
-            <View style={styles.perkRow}>
-              <Text style={styles.perkIcon}>🔓</Text>
-              <Text style={styles.perkText}>Unlocked: {PERKS[level.level]}</Text>
-            </View>
-          )}
+        {PERKS[level.level] && (
+          <View style={styles.perkRow}>
+            <Text style={styles.perkIcon}>🔓</Text>
+            <Text style={styles.perkText}>Unlocked: {PERKS[level.level]}</Text>
+          </View>
+        )}
 
-          <Text style={styles.hint}>Keep swiping to level up!</Text>
-        </Animated.View>
+        <Text style={styles.hint}>Keep swiping to level up!</Text>
       </Animated.View>
-    </Modal>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.scrimDarker,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 999,
+    elevation: 999,
   },
   card: {
     backgroundColor: COLORS.surface,
