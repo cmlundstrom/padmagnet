@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
@@ -13,9 +13,11 @@ import { LAYOUT } from '../../constants/layout';
 export default function LevelUpCelebration({ visible, level, onDismiss }) {
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
+    setShowModal(true);
 
     // Celebration haptic pattern: success + delayed impact + delayed impact
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -28,18 +30,19 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
       Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
 
-    // Auto-dismiss after 3 seconds
+    // Auto-dismiss after 4 seconds with 3-second fade out
     const timer = setTimeout(() => {
-      Animated.timing(opacityAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+      Animated.timing(opacityAnim, { toValue: 0, duration: 3000, useNativeDriver: true }).start(() => {
         scaleAnim.setValue(0.3);
+        setShowModal(false);
         onDismiss?.();
       });
-    }, 3000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [visible]);
 
-  if (!visible || !level) return null;
+  if (!showModal || !level) return null;
 
   const levelColor = level.level >= 4 ? COLORS.gold :
                      level.level >= 3 ? COLORS.brandOrange :
