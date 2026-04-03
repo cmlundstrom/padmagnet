@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -37,17 +37,26 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
       ]).start();
 
       // Auto-dismiss: 4s display + 3s fade
-      timerRef.current = setTimeout(() => {
+      const t = setTimeout(() => {
         Animated.timing(opacityAnim, { toValue: 0, duration: 3000, useNativeDriver: true }).start(() => {
           setShowing(false);
           setFrozenLevel(null);
           onDismiss?.();
         });
       }, 4000);
+      timerRef.current = t;
     }
-
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [visible, level]);
+
+  // Safety: if showing but visible flips false and timer somehow failed, force dismiss after 10s
+  useEffect(() => {
+    if (!showing) return;
+    const safety = setTimeout(() => {
+      setShowing(false);
+      setFrozenLevel(null);
+    }, 10000);
+    return () => clearTimeout(safety);
+  }, [showing]);
 
   if (!showing || !frozenLevel) return null;
 
@@ -62,8 +71,18 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
     5: 'All Perks + Pad Master Crown',
   };
 
+  const handleTapDismiss = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    Animated.timing(opacityAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => {
+      setShowing(false);
+      setFrozenLevel(null);
+      onDismiss?.();
+    });
+  };
+
   return (
     <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
+      <Pressable onPress={handleTapDismiss} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <Text style={styles.celebration}>🎉</Text>
         <Text style={styles.title}>PADLEVEL UP!</Text>
