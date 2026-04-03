@@ -195,7 +195,14 @@ export default function SwipeScreen() {
         nextPrompt = buildLocationPrompt(nextPrompt, deviceLocation?.latitude, deviceLocation?.longitude);
       }
       if (nextPrompt && nextPrompt.options.length > 0) {
-        setActivePrompt(nextPrompt);
+        // If a level-up just triggered, delay the prompt so they don't stack
+        const leveledUp = padPoints.lastEarned?.leveledUp;
+        if (leveledUp) {
+          const delayed = nextPrompt;
+          setTimeout(() => setActivePrompt(delayed), 7000); // 3s display + 3s fade + 1s buffer
+        } else {
+          setActivePrompt(nextPrompt);
+        }
       }
     }
   }, [removeFromDeck, recordSwipe, prependToList, swipeCount, padPoints, answeredPrompts]);
