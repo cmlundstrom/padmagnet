@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeModules } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Toggle } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -154,25 +155,30 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ padding: LAYOUT.padding.md, paddingBottom: 360 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: LAYOUT.padding.md, paddingBottom: 160 }} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.cancelText}>Cancel</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+            <Ionicons name="close" size={22} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.title}>Notifications</Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving}>
+          <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.headerBtn}>
             <Text style={[styles.saveText, saving && { color: COLORS.slate }]}>
               {saving ? 'Saving...' : 'Save'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.subtitle}>Control how you receive message alerts</Text>
+        <Text style={styles.subtitle}>Control how you receive message alerts from property owners.</Text>
 
         {/* Push Notifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Push Notifications</Text>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: COLORS.accent + '18' }]}>
+              <Ionicons name="notifications-outline" size={16} color={COLORS.accent} />
+            </View>
+            <Text style={styles.sectionTitle}>Push Notifications</Text>
+          </View>
           <Toggle
             label="Push Alerts"
             hint="Show alerts on your device when you receive a message"
@@ -183,7 +189,12 @@ export default function NotificationsScreen() {
 
         {/* Preferred Channel */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notification Channel</Text>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: COLORS.brandOrange + '18' }]}>
+              <Ionicons name="chatbubbles-outline" size={16} color={COLORS.brandOrange} />
+            </View>
+            <Text style={styles.sectionTitle}>Notification Channel</Text>
+          </View>
           <Text style={styles.sectionHint}>
             Choose how you'd like to be notified when someone messages you
           </Text>
@@ -212,7 +223,12 @@ export default function NotificationsScreen() {
 
         {/* SMS Consent */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SMS Notifications</Text>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: COLORS.success + '18' }]}>
+              <Ionicons name="chatbox-ellipses-outline" size={16} color={COLORS.success} />
+            </View>
+            <Text style={styles.sectionTitle}>SMS Notifications</Text>
+          </View>
           <Toggle
             label="Enable SMS"
             hint="Receive text message notifications"
@@ -268,10 +284,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: LAYOUT.padding.sm,
   },
-  cancelText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.accent,
+  headerBtn: {
+    minWidth: 60,
   },
   title: {
     flex: 1,
@@ -288,17 +302,41 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.body.regular,
-    color: COLORS.textSecondary,
+    color: COLORS.slate,
+    textAlign: 'center',
     marginBottom: LAYOUT.padding.lg,
+    lineHeight: 20,
   },
   section: {
-    marginBottom: LAYOUT.padding.lg,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    padding: LAYOUT.padding.md,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
     fontFamily: FONTS.heading.semiBold,
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.md,
     color: COLORS.text,
-    marginBottom: 4,
   },
   sectionHint: {
     fontFamily: FONTS.body.regular,

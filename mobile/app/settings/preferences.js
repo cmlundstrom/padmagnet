@@ -18,6 +18,17 @@ const PROPERTY_TYPES = [
 const PET_TYPES = ['dog', 'cat', 'both'];
 const TEXT_DEBOUNCE_MS = 1500;
 
+function SectionHeader({ icon, color, title }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: LAYOUT.padding.lg, marginBottom: LAYOUT.padding.sm }}>
+      <View style={[styles.sectionIcon, { backgroundColor: (color || COLORS.accent) + '18' }]}>
+        <Ionicons name={icon} size={16} color={color || COLORS.accent} />
+      </View>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+}
+
 export default function PreferencesScreen() {
   const router = useRouter();
   const { preferences, loading, updatePreferences } = usePreferences();
@@ -198,7 +209,7 @@ export default function PreferencesScreen() {
         </Text>
 
         {/* Budget */}
-        <Text style={styles.sectionTitle}>Budget</Text>
+        <SectionHeader icon="cash-outline" color={COLORS.success} title="Budget" />
         <Input
           label="Max $/mo"
           value={form.budget_max}
@@ -208,7 +219,7 @@ export default function PreferencesScreen() {
         />
 
         {/* Property */}
-        <Text style={styles.sectionTitle}>Property</Text>
+        <SectionHeader icon="home-outline" color={COLORS.accent} title="Property" />
         <View style={styles.row}>
           <Input
             label="Min Beds"
@@ -244,12 +255,12 @@ export default function PreferencesScreen() {
         </View>
 
         {/* Location */}
-        <Text style={styles.sectionTitle}>Location</Text>
+        <SectionHeader icon="location-outline" color={COLORS.brandOrange} title="Location" />
         <Text style={styles.label}>Where do you want to live? (three areas max)</Text>
         <ZonePicker zones={zones} onAddZone={addZone} onRemoveZone={removeZone} onUpdateZone={updateZone} />
 
         {/* Features */}
-        <Text style={styles.sectionTitle}>Features</Text>
+        <SectionHeader icon="sparkles-outline" color={COLORS.accent} title="Features" />
         <Text style={styles.label}>Furnished</Text>
         <View style={styles.chipRow}>
           {[
@@ -271,6 +282,9 @@ export default function PreferencesScreen() {
 
         {/* Pets */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={[styles.sectionIcon, { backgroundColor: COLORS.brandOrange + '18' }]}>
+            <Ionicons name="paw-outline" size={16} color={COLORS.brandOrange} />
+          </View>
           <Text style={styles.sectionTitle}>Pets</Text>
           <Pressable onPress={() => setPetTip(prev => !prev)} hitSlop={10}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandOrange} />
@@ -329,7 +343,7 @@ export default function PreferencesScreen() {
         )}
 
         {/* Association */}
-        <Text style={styles.sectionTitle}>Owner Association Preference</Text>
+        <SectionHeader icon="business-outline" color={COLORS.slate} title="Owner Association Preference" />
         <Text style={styles.hintInline}>
           Associations (HOA/COA) have community rules tenants must follow.
         </Text>
@@ -410,12 +424,17 @@ const styles = StyleSheet.create({
     paddingTop: LAYOUT.padding.md,
     paddingBottom: LAYOUT.padding.sm,
   },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionTitle: {
     fontFamily: FONTS.heading.semiBold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.text,
-    marginTop: LAYOUT.padding.lg,
-    marginBottom: LAYOUT.padding.sm,
   },
   label: {
     fontFamily: FONTS.body.medium,
