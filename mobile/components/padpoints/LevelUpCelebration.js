@@ -6,47 +6,54 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 /**
- * Level Up Celebration — fullscreen overlay with confetti-like animation.
+ * Level Up Celebration — fullscreen overlay.
  * Shows when user reaches a new PadLevel.
- * Auto-dismisses after ~3 seconds.
+ * 4 seconds visible + 3 second fade out.
  */
 export default function LevelUpCelebration({ visible, level, onDismiss }) {
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [showModal, setShowModal] = useState(false);
+  const [showing, setShowing] = useState(false);
+  const [frozenLevel, setFrozenLevel] = useState(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
-    if (!visible) return;
-    setShowModal(true);
+    if (visible && level && !showing) {
+      // Latch — freeze the level data and show
+      setFrozenLevel(level);
+      setShowing(true);
+      opacityAnim.setValue(0);
+      scaleAnim.setValue(0.3);
 
-    // Celebration haptic pattern: success + delayed impact + delayed impact
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 200);
-    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 400);
+      // Haptics
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 200);
+      setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 400);
 
-    // Entrance animation
-    Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-    ]).start();
+      // Entrance
+      Animated.parallel([
+        Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
 
-    // Auto-dismiss after 4 seconds with 3-second fade out
-    const timer = setTimeout(() => {
-      Animated.timing(opacityAnim, { toValue: 0, duration: 3000, useNativeDriver: true }).start(() => {
-        scaleAnim.setValue(0.3);
-        setShowModal(false);
-        onDismiss?.();
-      });
-    }, 4000);
+      // Auto-dismiss: 4s display + 3s fade
+      timerRef.current = setTimeout(() => {
+        Animated.timing(opacityAnim, { toValue: 0, duration: 3000, useNativeDriver: true }).start(() => {
+          setShowing(false);
+          setFrozenLevel(null);
+          onDismiss?.();
+        });
+      }, 4000);
+    }
 
-    return () => clearTimeout(timer);
-  }, [visible]);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [visible, level]);
 
-  if (!showModal || !level) return null;
+  if (!showing || !frozenLevel) return null;
 
-  const levelColor = level.level >= 4 ? COLORS.gold :
-                     level.level >= 3 ? COLORS.brandOrange :
-                     level.level >= 2 ? COLORS.success : COLORS.accent;
+  const levelColor = frozenLevel.level >= 4 ? COLORS.gold :
+                     frozenLevel.level >= 3 ? COLORS.brandOrange :
+                     frozenLevel.level >= 2 ? COLORS.success : COLORS.accent;
 
   const PERKS = {
     2: '2nd Search Zone',
@@ -56,19 +63,19 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
   };
 
   return (
-    <Animated.View style={[styles.overlay, { opacity: opacityAnim }]} pointerEvents={showModal ? 'auto' : 'none'}>
+    <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <Text style={styles.celebration}>🎉</Text>
         <Text style={styles.title}>PADLEVEL UP!</Text>
         <Text style={[styles.levelName, { color: levelColor }]}>
-          ⭐ {level.name} ⭐
+          ⭐ {frozenLevel.name} ⭐
         </Text>
-        <Text style={styles.levelNumber}>Level {level.level}</Text>
+        <Text style={styles.levelNumber}>Level {frozenLevel.level}</Text>
 
-        {PERKS[level.level] && (
+        {PERKS[frozenLevel.level] && (
           <View style={styles.perkRow}>
             <Text style={styles.perkIcon}>🔓</Text>
-            <Text style={styles.perkText}>Unlocked: {PERKS[level.level]}</Text>
+            <Text style={styles.perkText}>Unlocked: {PERKS[frozenLevel.level]}</Text>
           </View>
         )}
 
