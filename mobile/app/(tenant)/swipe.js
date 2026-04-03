@@ -127,7 +127,7 @@ export default function SwipeScreen() {
     }
   }, [refreshParam, refresh]);
   const { recordSwipe } = useSwipe();
-  const { preferences } = usePreferences();
+  const { preferences, refresh: refreshPreferences } = usePreferences();
   const alert = useAlert();
 
   const handleRefresh = useCallback(() => {
@@ -308,7 +308,10 @@ export default function SwipeScreen() {
                       }),
                     });
                   } catch { /* silent — zone may already exist or limit reached */ }
-                  // Skip the prefUpdate upsert below for location
+                  // Reshuffle deck with new zone
+                  await refreshPreferences();
+                  refresh();
+                  alert('Deck reshuffled', 'Your listings now match your location preference!');
                   return;
                 } else if (key === 'type') {
                   if (value !== 'any') {
@@ -325,6 +328,11 @@ export default function SwipeScreen() {
                   await supabase
                     .from('tenant_preferences')
                     .upsert({ user_id: user?.id, ...prefUpdate }, { onConflict: 'user_id' });
+
+                  // Reshuffle deck — re-fetch with new prefs, exclude already-swiped
+                  await refreshPreferences();
+                  refresh();
+                  alert('Deck reshuffled', 'Your listings now match your updated preferences!');
                 }
               } catch { /* silent */ }
             }}
