@@ -133,4 +133,27 @@ export function searchServiceAreas(text) {
   }));
 }
 
+/**
+ * Find the nearest cities to a GPS coordinate.
+ * @param {number} lat - Device latitude
+ * @param {number} lng - Device longitude
+ * @param {number} count - Number of cities to return (default 4)
+ * @returns {Array<{name: string, county: string, lat: number, lng: number}>}
+ */
+export function getNearestCities(lat, lng, count = 4) {
+  if (!lat || !lng) return [];
+
+  const withDist = SERVICE_AREA_CITIES.map(city => {
+    const dLat = city.lat - lat;
+    const dLng = city.lng - lng;
+    return { ...city, dist: dLat * dLat + dLng * dLng };
+  });
+
+  withDist.sort((a, b) => a.dist - b.dist);
+
+  return withDist.slice(0, count).map(({ name, county, lat, lng }) => ({
+    name, county, lat, lng,
+  }));
+}
+
 export default SERVICE_AREA_CITIES;

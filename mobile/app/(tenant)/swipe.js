@@ -9,7 +9,7 @@ import MapView from '../../components/map/MapView';
 import { ListView } from '../../components/listing';
 import { GlossyHeart } from '../../components/ui';
 import LocationSoftAsk from '../../components/LocationSoftAsk';
-import { PadPointsBar, SmartPromptCard, SMART_PROMPTS, LevelUpCelebration } from '../../components/padpoints';
+import { PadPointsBar, SmartPromptCard, SMART_PROMPTS, buildLocationPrompt, LevelUpCelebration } from '../../components/padpoints';
 import { AskPadOrb, AskPadChat } from '../../components/askpad';
 import { TierUpgradeSheet } from '../../components/tiers';
 import useRenterTier from '../../hooks/useRenterTier';
@@ -188,9 +188,15 @@ export default function SwipeScreen() {
     }
 
     // Check if it's time for a Smart Prompt Card
-    const nextPrompt = SMART_PROMPTS.find(p => p.afterSwipe === newCount && !answeredPrompts.has(p.key));
+    let nextPrompt = SMART_PROMPTS.find(p => p.afterSwipe === newCount && !answeredPrompts.has(p.key));
     if (nextPrompt) {
-      setActivePrompt(nextPrompt);
+      // Build dynamic options for location prompt
+      if (nextPrompt.dynamic) {
+        nextPrompt = buildLocationPrompt(nextPrompt, deviceLocation?.latitude, deviceLocation?.longitude);
+      }
+      if (nextPrompt && nextPrompt.options.length > 0) {
+        setActivePrompt(nextPrompt);
+      }
     }
   }, [removeFromDeck, recordSwipe, prependToList, swipeCount, padPoints, answeredPrompts]);
 
@@ -289,9 +295,21 @@ export default function SwipeScreen() {
                 } else if (key === 'beds') {
                   prefUpdate.beds_min = value;
                 } else if (key === 'location') {
-                  if (value !== 'other') {
-                    prefUpdate.preferred_cities = [value];
-                  }
+                  // Create a search zone from the selected city
+                  try {
+                    const zone = JSON.parse(value);
+                    await apiFetch('/api/search-zones', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        label: zone.label,
+                        center_lat: zone.lat,
+                        center_lng: zone.lng,
+                        radius_miles: 10,
+                      }),
+                    });
+                  } catch { /* silent — zone may already exist or limit reached */ }
+                  // Skip the prefUpdate upsert below for location
+                  return;
                 } else if (key === 'type') {
                   if (value !== 'any') {
                     prefUpdate.property_types = [value];

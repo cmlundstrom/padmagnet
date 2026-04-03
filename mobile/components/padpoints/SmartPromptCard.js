@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+import { getNearestCities } from '../../constants/service-areas';
 
 /**
  * Smart Prompt Card — modal overlay that appears between swipes
@@ -187,16 +188,11 @@ export const SMART_PROMPTS = [
     emoji: '📍',
     title: 'Your neighborhood',
     question: 'Where are you looking?',
-    options: [
-      { label: 'Stuart', value: 'Stuart' },
-      { label: 'Palm City', value: 'Palm City' },
-      { label: 'Jensen Beach', value: 'Jensen Beach' },
-      { label: 'Hobe Sound', value: 'Hobe Sound' },
-      { label: 'Other', value: 'other' },
-    ],
+    dynamic: true, // options generated at runtime from GPS
+    options: [],
     padpoints: 20,
     hint: 'Hyperlocal matches',
-    prefKey: 'preferred_city',
+    prefKey: 'search_zone',
   },
   {
     key: 'type',
@@ -233,6 +229,24 @@ export const SMART_PROMPTS = [
     prefKey: 'features',
   },
 ];
+
+/**
+ * Build dynamic options for location prompt based on GPS.
+ * Returns the prompt with nearby cities as options.
+ */
+export function buildLocationPrompt(prompt, deviceLat, deviceLng) {
+  if (!prompt.dynamic) return prompt;
+
+  const nearby = getNearestCities(deviceLat, deviceLng, 4);
+  if (nearby.length === 0) return null; // no GPS, skip this prompt
+
+  const options = nearby.map(city => ({
+    label: city.name,
+    value: JSON.stringify({ label: `${city.name}, FL`, lat: city.lat, lng: city.lng }),
+  }));
+
+  return { ...prompt, options };
+}
 
 const styles = StyleSheet.create({
   overlay: {
