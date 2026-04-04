@@ -17,6 +17,7 @@ import { SCREEN } from '../../constants/screenStyles';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import TierBadge from '../../components/owner/TierBadge';
+import OwnerHeader from '../../components/owner/OwnerHeader';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 
 export default function OwnerListingsTab() {
@@ -99,6 +100,7 @@ export default function OwnerListingsTab() {
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
+      <OwnerHeader />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Listings</Text>
         {listings.some(l => l.status === 'active') && (

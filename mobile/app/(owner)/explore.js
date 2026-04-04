@@ -6,6 +6,7 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EqualHousingBadge } from '../../components/ui';
+import OwnerHeader from '../../components/owner/OwnerHeader';
 import MarketStats from '../../components/owner/MarketStats';
 import UpgradeCTA from '../../components/owner/UpgradeCTA';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -34,6 +35,7 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
+      <OwnerHeader />
       <Text style={styles.header}>Explore Your Market</Text>
 
       <ScrollView

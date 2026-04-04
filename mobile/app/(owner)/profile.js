@@ -10,6 +10,7 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
 import ProfileCard from '../../components/screens/ProfileCard';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
+import OwnerHeader from '../../components/owner/OwnerHeader';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -61,6 +62,7 @@ export default function OwnerProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <OwnerHeader />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Hero header — avatar + name */}

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import MessagesScreen from '../../components/screens/MessagesScreen';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
+import OwnerHeader from '../../components/owner/OwnerHeader';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -17,6 +18,7 @@ export default function OwnerMessages() {
   if (isAnon) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <OwnerHeader />
         <Text style={styles.header}>Messages</Text>
 
         <View style={styles.teaserCard}>
@@ -56,7 +58,12 @@ export default function OwnerMessages() {
     );
   }
 
-  return <MessagesScreen emptySubtitle="Tenants will reach out when interested in your listing." />;
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <OwnerHeader />
+      <MessagesScreen emptySubtitle="Tenants will reach out when interested in your listing." />
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({

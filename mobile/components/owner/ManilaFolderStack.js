@@ -94,7 +94,7 @@ function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExpl
       ListHeaderComponent={
         <View>
           <Text style={styles.gridHeader}>
-            There are <Text style={styles.gridCount}>{listings.length}</Text> rentals within a <Text style={styles.gridCount}>10 mi</Text> ring being advertised right now:
+            There are <Text style={styles.gridCount}>{listings.length}</Text> competitive rentals within a <Text style={styles.gridCount}>10 mi</Text> ring being advertised right now:
           </Text>
           <View style={styles.gridActions}>
             <Pressable style={styles.gridActionBtn} onPress={onNavigateExplore}>
@@ -130,6 +130,7 @@ function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExpl
               <Text style={styles.gridAddress} numberOfLines={1}>
                 {[item.street_number, item.street_name].filter(Boolean).join(' ')}
               </Text>
+              {item.city && <Text style={styles.gridCity} numberOfLines={1}>{item.city}</Text>}
               <Text style={styles.gridMeta}>
                 {item.bedrooms_total || '\u2014'}bd {'\u00b7'} {item.bathrooms_total || '\u2014'}ba
               </Text>
@@ -268,7 +269,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
 const STORAGE_KEY_L1 = 'owner_folder_l1_seen';
 const STORAGE_KEY_L2 = 'owner_folder_l2_seen';
 
-export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate, onNavigateExplore }) {
+export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate, onNavigateExplore, refreshKey }) {
   const l1Ref = useRef();
   const l2Ref = useRef();
   const [showL1, setShowL1] = useState(false);
@@ -337,7 +338,7 @@ export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate
   }, []);
 
   // Grid key forces remount when coords change (Miami -> GPS)
-  const gridKey = `${coords.latitude.toFixed(4)},${coords.longitude.toFixed(4)}`;
+  const gridKey = `${coords.latitude.toFixed(4)},${coords.longitude.toFixed(4)},${refreshKey || 0}`;
 
   return (
     <View style={styles.container}>
@@ -358,7 +359,7 @@ export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate
           tabLabel="Your GPS"
           tabAlign="left"
           zIndex={10}
-          angle={0.05}
+          angle={-2}
           dismissCorner="right"
           onTabPress={showL1 ? handleBrowseNearby : undefined}
           onDismissComplete={() => { setShowL2(false); AsyncStorage.setItem(STORAGE_KEY_L2, '1'); }}
@@ -424,7 +425,7 @@ export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate
           tabLabel="List For Free"
           tabAlign="right"
           zIndex={20}
-          angle={2}
+          angle={1}
           enterOffset={0.3}
           dropShadow
           dismissCorner="left"
@@ -501,10 +502,10 @@ const styles = StyleSheet.create({
   // ── Folder outer ──────────────────────────────────
   folderOuter: {
     position: 'absolute',
-    left: 7,
-    right: 7,
+    left: 12,
+    right: 2,
     bottom: -20,
-    top: 50,
+    top: 88,
     elevation: 10,
   },
 
@@ -856,6 +857,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxs,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  gridCity: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
+    marginTop: 1,
   },
   gridMeta: {
     fontFamily: FONTS.body.regular,

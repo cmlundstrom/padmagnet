@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import ManilaFolderStack from '../../components/owner/ManilaFolderStack';
+import OwnerHeader from '../../components/owner/OwnerHeader';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -12,17 +13,21 @@ import { SCREEN } from '../../constants/screenStyles';
 
 export default function OwnerHomeTab() {
   const router = useRouter();
-  const { preview } = useLocalSearchParams();
+  const { preview, view } = useLocalSearchParams();
   const { session, role } = useAuth();
   const isAnon = session?.user?.is_anonymous === true;
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const [showAuth, setShowAuth] = useState(false);
+  const [viewMode, setViewMode] = useState(view || 'grid');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Home</Text>
-      </View>
+      <OwnerHeader
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onRefresh={() => setRefreshKey(k => k + 1)}
+      />
 
       <View style={{ flex: 1 }}>
         {isAdminPreview && (
@@ -31,6 +36,7 @@ export default function OwnerHomeTab() {
           </View>
         )}
         <ManilaFolderStack
+          refreshKey={refreshKey}
           isAnon={isAnon}
           onShowAuth={() => setShowAuth(true)}
           onNavigateCreate={() => router.push('/owner/create')}
