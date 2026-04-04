@@ -88,4 +88,48 @@ export async function signInWithGoogle() {
   throw new Error('Google sign-in was cancelled');
 }
 
-// updateUserRole removed — profiles.role is the single source of truth (Step 2 role fix)
+export async function signInWithFacebook() {
+  const redirectUrl = makeRedirectUri({ scheme: 'padmagnet', path: 'auth-callback' });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+  });
+  if (error) throw error;
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+  if (result.type === 'success') {
+    const url = new URL(result.url);
+    const params = url.hash ? new URLSearchParams(url.hash.substring(1)) : url.searchParams;
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (accessToken && refreshToken) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (sessionError) throw sessionError;
+      return sessionData;
+    }
+  }
+  throw new Error('Facebook sign-in was cancelled');
+}
+
+export async function signInWithApple() {
+  const redirectUrl = makeRedirectUri({ scheme: 'padmagnet', path: 'auth-callback' });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'apple',
+    options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+  });
+  if (error) throw error;
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+  if (result.type === 'success') {
+    const url = new URL(result.url);
+    const params = url.hash ? new URLSearchParams(url.hash.substring(1)) : url.searchParams;
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (accessToken && refreshToken) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (sessionError) throw sessionError;
+      return sessionData;
+    }
+  }
+  throw new Error('Apple sign-in was cancelled');
+}

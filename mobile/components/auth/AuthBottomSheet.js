@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Modal, Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView,
@@ -10,6 +11,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
+import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -87,14 +89,12 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setLoading('google');
     setError(null);
     try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: 'https://padmagnet.com/auth/mobile-callback' },
-      });
-      if (authError) setError(authError.message);
-      else onClose?.();
+      await signInWithGoogle();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetState();
+      onClose?.();
     } catch (err) {
-      setError(err.message);
+      if (!err.message?.includes('cancelled')) setError(err.message);
     }
     setLoading(null);
   }
@@ -103,14 +103,12 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setLoading('facebook');
     setError(null);
     try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: { redirectTo: 'https://padmagnet.com/auth/mobile-callback' },
-      });
-      if (authError) setError(authError.message);
-      else onClose?.();
+      await signInWithFacebook();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetState();
+      onClose?.();
     } catch (err) {
-      setError(err.message);
+      if (!err.message?.includes('cancelled')) setError(err.message);
     }
     setLoading(null);
   }
@@ -119,14 +117,12 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setLoading('apple');
     setError(null);
     try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: { redirectTo: 'https://padmagnet.com/auth/mobile-callback' },
-      });
-      if (authError) setError(authError.message);
-      else onClose?.();
+      await signInWithApple();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetState();
+      onClose?.();
     } catch (err) {
-      setError(err.message);
+      if (!err.message?.includes('cancelled')) setError(err.message);
     }
     setLoading(null);
   }
@@ -136,21 +132,32 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setShowMagicPrompt(true);
   }
 
+  function getReturnPath() {
+    switch (context) {
+      case 'create_listing': return '/(owner)/listings';
+      case 'owner_messages': return '/(owner)/messages';
+      case 'owner_profile': return '/(owner)/profile';
+      case 'owner_upgrade': return '/(owner)/profile';
+      case 'messages_tab': return '/(tenant)/messages';
+      case 'message': return '/(tenant)/swipe';
+      default: return null;
+    }
+  }
+
   async function sendMagicLink() {
     if (!magicEmail) return;
     setLoading('magic');
     try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
-        email: magicEmail,
-        options: { emailRedirectTo: 'https://padmagnet.com/auth/mobile-callback' },
-      });
-      if (authError) setError(authError.message);
-      else {
-        setEmail(magicEmail);
-        setShowMagicPrompt(false);
-        setMagicSent(true);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+      await signInWithMagicLink(magicEmail);
+
+      // Save return path so auth-callback knows where to navigate
+      const returnTo = getReturnPath();
+      if (returnTo) await AsyncStorage.setItem('auth_return_to', returnTo);
+
+      setEmail(magicEmail);
+      setShowMagicPrompt(false);
+      setMagicSent(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       setError(err.message);
     }
@@ -162,25 +169,18 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setLoading('password');
     setError(null);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        if (signInError.message.includes('Invalid login')) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email, password,
-            options: { emailRedirectTo: 'https://padmagnet.com/auth/mobile-callback' },
-          });
-          if (signUpError) setError(signUpError.message);
-          else {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            onClose?.();
-          }
+      try {
+        await signIn(email, password);
+      } catch (signInErr) {
+        if (signInErr.message?.includes('Invalid login')) {
+          await signUp(email, password);
         } else {
-          setError(signInError.message);
+          throw signInErr;
         }
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        onClose?.();
       }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetState();
+      onClose?.();
     } catch (err) {
       setError(err.message);
     }
@@ -344,9 +344,14 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                   </>
                 ) : (
                   <View style={styles.sentBox}>
-                    <Ionicons name="checkmark-circle" size={40} color={COLORS.success} />
+                    <Ionicons name="checkmark-circle" size={44} color={COLORS.success} />
                     <Text style={styles.sentTitle}>Check your email</Text>
-                    <Text style={styles.sentText}>We sent a sign-in link to {email}. Tap it to continue.</Text>
+                    <Text style={styles.sentText}>
+                      We sent a sign-in link to {email}. Tap it to continue.
+                    </Text>
+                    <TouchableOpacity onPress={() => { setMagicSent(false); setError(null); }} style={styles.resendLink}>
+                      <Text style={styles.resendText}>Resend link</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -730,6 +735,16 @@ const styles = StyleSheet.create({
     color: '#4A3520',
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: LAYOUT.padding.md,
+  },
+  resendLink: {
+    paddingVertical: LAYOUT.padding.sm,
+  },
+  resendText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: '#2A5DB0',
+    textDecorationLine: 'underline',
   },
 
   // ── Transfer / Skip ───────────────────────────────

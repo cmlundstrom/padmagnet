@@ -34,28 +34,41 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // 2. Offline fallback: AsyncStorage cache
+    // 2. Offline fallback: AsyncStorage cache — also sync to profile
     const localRole = await getUserRole();
-    setRole(localRole || 'tenant');
+    const fallbackRole = localRole || 'tenant';
+    setRole(fallbackRole);
+
+    // New user or missing role — persist the stored role to the profile
+    if (localRole) {
+      supabase.from('profiles')
+        .update({ role: localRole })
+        .eq('id', authSession.user.id)
+        .then(() => console.log('[Auth] Synced role to profile:', localRole));
+    }
   }
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Get initial session — timeout after 3s to prevent startup hangs
+    Promise.race([
+      supabase.auth.getSession(),
+      new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000)),
+    ]).then(async ({ data: { session } }) => {
       setSession(session);
       await resolveRole(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Listen for auth changes — use setTimeout to avoid blocking
+    // setSession's internal lock (which causes deadlock with DB queries)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
       if (event === 'SIGNED_IN') {
-        await resolveRole(session);
+        setTimeout(() => resolveRole(session), 0);
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
-        await clearUserRole();
+        clearUserRole();
       }
     });
 

@@ -1,6 +1,7 @@
 import { useEffect, useContext } from 'react';
 import { AppState, Platform, LogBox } from 'react-native';
 import { Stack, useSegments, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 
 // Suppress known expo-router v55 + edge-to-edge dev warnings (not from our code)
 LogBox.ignoreLogs([
@@ -47,8 +48,23 @@ function RouteGuard({ children }) {
   // Register push token when user is logged in
   usePushNotifications(user);
 
+  // Global deep link logger
+  useEffect(() => {
+    Linking.getInitialURL().then(url => {
+      if (url) console.log('[DeepLink] Initial URL:', url);
+    });
+    const linkSub = Linking.addEventListener('url', (e) => {
+      console.log('[DeepLink] URL event:', e.url);
+    });
+    return () => linkSub.remove();
+  }, []);
+
   useEffect(() => {
     if (loading) return;
+
+    // Skip route guard while on auth-callback — let it process tokens
+    const onAuthCallback = segments[0] === 'auth-callback';
+    if (onAuthCallback) return;
 
     const inTenant = segments[0] === '(tenant)';
     const inOwner = segments[0] === '(owner)';
@@ -60,8 +76,8 @@ function RouteGuard({ children }) {
     } else if (session && role === 'owner' && inTenant) {
       // Owner stuck in tenant tab group → redirect
       router.replace('/(owner)/home');
-    } else if (session && role !== 'owner' && inOwner) {
-      // Tenant stuck in owner tab group → redirect
+    } else if (session && role && role !== 'owner' && inOwner) {
+      // Tenant stuck in owner tab group → redirect (only if role is resolved)
       router.replace('/(tenant)/swipe');
     }
   }, [session, role, loading, segments]);
@@ -71,12 +87,15 @@ function RouteGuard({ children }) {
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active' || loading || !session) return;
 
+      // Skip while on auth-callback
+      if (segments[0] === 'auth-callback') return;
+
       const inTenant = segments[0] === '(tenant)';
       const inOwner = segments[0] === '(owner)';
 
       if (role === 'owner' && inTenant) {
         router.replace('/(owner)/home');
-      } else if (role !== 'owner' && inOwner) {
+      } else if (role && role !== 'owner' && inOwner) {
         router.replace('/(tenant)/swipe');
       }
     });

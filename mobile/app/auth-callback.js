@@ -1,134 +1,142 @@
 import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { resolvePostLoginDestination } from '../lib/routing';
+import { getUserRole, saveUserRole } from '../lib/storage';
 import { COLORS } from '../constants/colors';
 import { FONTS, FONT_SIZES } from '../constants/fonts';
 
-/**
- * Extract tokens from any URL format — handles custom schemes,
- * Intent URIs, query params, and hash fragments.
- */
-function extractTokens(url) {
-  if (!url) return null;
-
-  // Try standard URL parsing first
-  try {
-    const parsed = new URL(url);
-    let at = parsed.searchParams.get('access_token');
-    let rt = parsed.searchParams.get('refresh_token');
-    if (at && rt) return { access_token: at, refresh_token: rt };
-
-    // Try hash fragment
-    if (parsed.hash) {
-      const hp = new URLSearchParams(parsed.hash.substring(1));
-      at = hp.get('access_token');
-      rt = hp.get('refresh_token');
-      if (at && rt) return { access_token: at, refresh_token: rt };
-    }
-  } catch {}
-
-  // Fallback: manual string parsing (handles custom schemes that fail URL())
-  try {
-    const qIdx = url.indexOf('?');
-    const hIdx = url.indexOf('#');
-
-    // Try query string
-    if (qIdx !== -1) {
-      const end = hIdx > qIdx ? hIdx : url.length;
-      const qs = url.substring(qIdx + 1, end);
-      const params = new URLSearchParams(qs);
-      const at = params.get('access_token');
-      const rt = params.get('refresh_token');
-      if (at && rt) return { access_token: at, refresh_token: rt };
-    }
-
-    // Try hash
-    if (hIdx !== -1) {
-      const hs = url.substring(hIdx + 1);
-      const params = new URLSearchParams(hs);
-      const at = params.get('access_token');
-      const rt = params.get('refresh_token');
-      if (at && rt) return { access_token: at, refresh_token: rt };
-    }
-  } catch {}
-
-  return null;
-}
-
 export default function AuthCallbackScreen() {
+  const params = useLocalSearchParams();
   const handled = useRef(false);
 
   useEffect(() => {
-    async function handleCallback(url) {
-      if (!url || handled.current) return;
-      console.log('[AuthCallback] Processing URL:', url.substring(0, 80) + '...');
-
-      const tokens = extractTokens(url);
-      if (!tokens) {
-        console.log('[AuthCallback] No tokens found in URL');
-        // Don't mark as handled yet — let the timeout check for session
-        return;
-      }
-
+    async function processTokens(accessToken, refreshToken, source) {
+      if (handled.current || !accessToken || !refreshToken) return;
       handled.current = true;
-      console.log('[AuthCallback] Tokens found, setting session...');
 
+      console.log(`[AuthCallback] Tokens found via ${source}, setting session...`);
+
+      // Determine destination before anything else
+      let dest;
       try {
-        const { error } = await supabase.auth.setSession(tokens);
-        if (error) {
-          console.error('[AuthCallback] setSession error:', error.message);
-          throw error;
-        }
-        console.log('[AuthCallback] Session set successfully');
+        dest = await AsyncStorage.getItem('auth_return_to');
+        if (dest) await AsyncStorage.removeItem('auth_return_to');
+      } catch {}
 
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('[AuthCallback] Session user:', session?.user?.email || session?.user?.id);
-
-        const dest = await resolvePostLoginDestination(session);
-        console.log('[AuthCallback] Navigating to:', dest);
-        router.replace(dest);
-      } catch (err) {
-        console.error('[AuthCallback] Error:', err);
-        router.replace('/welcome');
+      if (!dest) {
+        const role = await getUserRole();
+        dest = role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe';
       }
+
+      // If returning to an owner path, update the new user's profile role
+      // BEFORE setSession so the profile has the right role when resolveRole queries it
+      if (dest.startsWith('/(owner)')) {
+        await saveUserRole('owner');
+        // Update profile via direct REST — bypasses the hung Supabase client
+        try {
+          const userId = JSON.parse(atob(accessToken.split('.')[1])).sub;
+          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+          const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          console.log('[AuthCallback] Setting profile role=owner for', userId);
+          await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': supabaseKey,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({ role: 'owner' }),
+          });
+        } catch (e) {
+          console.error('[AuthCallback] Profile role update failed:', e.message);
+        }
+      }
+
+      // Set session (may hang — don't block on it)
+      try {
+        const setSessionResult = await Promise.race([
+          supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }),
+          new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 4000)),
+        ]);
+        if (setSessionResult.timedOut) {
+          console.log('[AuthCallback] setSession timed out — navigating anyway');
+        } else {
+          console.log('[AuthCallback] Session set successfully');
+        }
+      } catch (err) {
+        console.error('[AuthCallback] setSession error:', err);
+      }
+
+      console.log('[AuthCallback] Navigating to:', dest);
+      router.replace(dest);
     }
 
-    // Check initial URL (app opened via deep link)
-    Linking.getInitialURL().then((initialUrl) => {
-      console.log('[AuthCallback] Initial URL:', initialUrl ? initialUrl.substring(0, 80) + '...' : 'null');
-      if (initialUrl) handleCallback(initialUrl);
-    });
+    // Method 1: Expo Router search params (most reliable for deep links)
+    if (params.access_token && params.refresh_token) {
+      processTokens(params.access_token, params.refresh_token, 'searchParams');
+      return;
+    }
 
-    // Listen for URL events (app was already running)
-    const sub = Linking.addEventListener('url', (event) => {
-      console.log('[AuthCallback] URL event:', event.url?.substring(0, 80) + '...');
-      handleCallback(event.url);
-    });
-
-    // Safety timeout — check if session was established by another means
-    const timeout = setTimeout(() => {
-      if (!handled.current) {
-        handled.current = true;
-        console.log('[AuthCallback] Timeout — checking existing session');
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session && !session.user?.is_anonymous) {
-            console.log('[AuthCallback] Found authenticated session, routing...');
-            resolvePostLoginDestination(session).then(dest => router.replace(dest));
-          } else {
-            console.log('[AuthCallback] No authenticated session, going to welcome');
-            router.replace('/welcome');
-          }
-        });
+    // Method 2: Linking.getInitialURL (backup — cold start)
+    Linking.getInitialURL().then((url) => {
+      if (!url || handled.current) return;
+      console.log('[AuthCallback] Trying initialURL:', url.substring(0, 80));
+      const tokens = extractTokensFromUrl(url);
+      if (tokens) {
+        processTokens(tokens.at, tokens.rt, 'initialURL');
       }
-    }, 8000);
+    });
 
-    return () => {
-      sub.remove();
-      clearTimeout(timeout);
-    };
+    // Method 3: URL event listener (backup — app already running)
+    const sub = Linking.addEventListener('url', (event) => {
+      if (!event.url || handled.current) return;
+      console.log('[AuthCallback] URL event:', event.url.substring(0, 80));
+      const tokens = extractTokensFromUrl(event.url);
+      if (tokens) {
+        processTokens(tokens.at, tokens.rt, 'urlEvent');
+      }
+    });
+
+    return () => sub.remove();
+  }, [params.access_token, params.refresh_token]);
+
+  // Timeout: if tokens weren't processed after 5s, check session and route back
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (handled.current) return;
+      handled.current = true;
+      console.log('[AuthCallback] Timeout — checking session and returnTo');
+
+      try {
+        // Check for saved return path first
+        const returnTo = await AsyncStorage.getItem('auth_return_to');
+        await AsyncStorage.removeItem('auth_return_to');
+        console.log('[AuthCallback] Timeout returnTo:', returnTo);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[AuthCallback] Timeout session:', session?.user?.email || 'anonymous');
+
+        if (returnTo) {
+          router.replace(returnTo);
+        } else if (session && !session.user?.is_anonymous) {
+          const dest = await resolvePostLoginDestination(session);
+          router.replace(dest);
+        } else {
+          const role = await getUserRole();
+          router.replace(role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe');
+        }
+      } catch (err) {
+        console.error('[AuthCallback] Timeout error:', err);
+        router.replace('/(owner)/home');
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
@@ -137,6 +145,32 @@ export default function AuthCallbackScreen() {
       <Text style={styles.text}>Signing you in...</Text>
     </View>
   );
+}
+
+/** Manual URL token extraction — handles custom schemes that break new URL() */
+function extractTokensFromUrl(url) {
+  if (!url) return null;
+  try {
+    // Try query string
+    const qIdx = url.indexOf('?');
+    if (qIdx !== -1) {
+      const hIdx = url.indexOf('#', qIdx);
+      const qs = url.substring(qIdx + 1, hIdx > qIdx ? hIdx : undefined);
+      const p = new URLSearchParams(qs);
+      const at = p.get('access_token');
+      const rt = p.get('refresh_token');
+      if (at && rt) return { at, rt };
+    }
+    // Try hash fragment
+    const hIdx = url.indexOf('#');
+    if (hIdx !== -1) {
+      const p = new URLSearchParams(url.substring(hIdx + 1));
+      const at = p.get('access_token');
+      const rt = p.get('refresh_token');
+      if (at && rt) return { at, rt };
+    }
+  } catch {}
+  return null;
 }
 
 const styles = StyleSheet.create({

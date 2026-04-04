@@ -6,9 +6,15 @@ import { supabase } from './supabase';
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 
 export async function apiFetch(path, options = {}) {
-  // Get current session token
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  // Get current session token — timeout after 3s to prevent UI hangs
+  let token = null;
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000)),
+    ]);
+    token = result.data?.session?.access_token;
+  } catch {}
 
   const { headers: optHeaders, ...rest } = options;
   const url = `${API_BASE}${path}`;
