@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import MarketStats from '../../components/owner/MarketStats';
 import UpgradeCTA from '../../components/owner/UpgradeCTA';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useAuth } from '../../hooks/useAuth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -17,6 +19,8 @@ const TIER_ICONS = { free: 'leaf-outline', pro: 'shield-checkmark', premium: 'di
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const isAnon = session?.user?.is_anonymous === true;
   const { tier, tierLabel, daysRemaining, isExpired, refresh: refreshTier } = useSubscription();
   const isFree = tier === 'free';
   const isPro = tier === 'pro';
@@ -35,6 +39,31 @@ export default function ExploreScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Hero hook card for anonymous owners */}
+        {isAnon && (
+          <Pressable
+            style={({ pressed }) => [pressed && { opacity: 0.9 }]}
+            onPress={() => router.push('/owner/nearby-rentals')}
+          >
+            <LinearGradient
+              colors={['#1E3A5F', '#234170', '#2C5288']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
+            >
+              <Ionicons name="search" size={28} color={COLORS.brandOrange} />
+              <Text style={styles.heroTitle}>Wondering what your property could rent for?</Text>
+              <Text style={styles.heroSubtitle}>
+                See what similar homes in your area are actually renting for right now.
+              </Text>
+              <View style={styles.heroCtaRow}>
+                <Text style={styles.heroCtaText}>Explore Nearby Rentals</Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+              </View>
+            </LinearGradient>
+          </Pressable>
+        )}
+
         {/* Nearby Rentals card */}
         <Pressable
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
@@ -60,13 +89,15 @@ export default function ExploreScreen() {
         </View>
         <MarketStats />
 
-        {/* Your Plan */}
+        {/* Your Plan — hidden for anonymous users */}
+        {!isAnon && (
         <View style={styles.sectionLabel}>
           <Text style={styles.sectionTitle}>Your Plan</Text>
         </View>
+        )}
 
-        {/* Plan status card — shown for all tiers */}
-        <Pressable
+        {/* Plan status card — hidden for anon */}
+        {!isAnon && <Pressable
           style={({ pressed }) => [
             styles.planCard,
             { borderColor: tierColor + '44' },
@@ -97,13 +128,13 @@ export default function ExploreScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </View>
-        </Pressable>
+        </Pressable>}
 
         {/* Upgrade CTA for free users */}
-        {isFree && <UpgradeCTA />}
+        {!isAnon && isFree && <UpgradeCTA />}
 
         {/* Premium upsell for Pro users */}
-        {isPro && !isExpired && (
+        {!isAnon && isPro && !isExpired && (
           <Pressable
             style={({ pressed }) => [styles.upsellCard, pressed && styles.cardPressed]}
             onPress={() => router.push('/owner/upgrade')}
@@ -122,7 +153,7 @@ export default function ExploreScreen() {
         )}
 
         {/* Premium — top tier confirmation */}
-        {isPremium && !isExpired && (
+        {!isAnon && isPremium && !isExpired && (
           <View style={styles.topTierRow}>
             <Ionicons name="trophy" size={16} color={COLORS.gold} />
             <Text style={styles.topTierText}>Every feature unlocked</Text>
@@ -141,6 +172,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.padding.md,
     paddingTop: LAYOUT.padding.sm,
     paddingBottom: LAYOUT.padding.sm,
+  },
+  heroCard: {
+    borderRadius: LAYOUT.radius.xl,
+    padding: LAYOUT.padding.lg,
+    marginBottom: LAYOUT.padding.md,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: COLORS.brandOrange + '44',
+    shadowColor: COLORS.brandOrange,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  heroTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  heroCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  heroCtaText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
   },
   scrollContent: {
     padding: LAYOUT.padding.md,

@@ -16,13 +16,16 @@ import { SCREEN } from '../../constants/screenStyles';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import TierBadge from '../../components/owner/TierBadge';
+import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
   const { preview } = useLocalSearchParams();
-  const { role } = useAuth();
+  const { session, role } = useAuth();
   const { tier: ownerTier } = useSubscription();
+  const isAnon = session?.user?.is_anonymous === true;
+  const [showAuth, setShowAuth] = useState(false);
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -174,9 +177,18 @@ export default function OwnerListingsTab() {
 
           <Pressable
             style={styles.emptyCta}
-            onPress={() => router.push('/owner/create')}
+            onPress={() => isAnon ? setShowAuth(true) : router.push('/owner/create')}
           >
             <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+          </Pressable>
+
+          {/* Secondary CTA — loop to Explore for anon browsing */}
+          <Pressable
+            style={styles.browseRatesCta}
+            onPress={() => router.push('/(owner)/explore')}
+          >
+            <Ionicons name="trending-up" size={16} color={COLORS.accent} />
+            <Text style={styles.browseRatesText}>Browse current rental rates in your neighborhood →</Text>
           </Pressable>
 
           <View style={styles.nearbyPromo}>
@@ -222,6 +234,12 @@ export default function OwnerListingsTab() {
           )}
         />
       )}
+
+      <AuthBottomSheet
+        visible={showAuth}
+        onClose={() => setShowAuth(false)}
+        context="create_listing"
+      />
 
       <PriceEditModal
         visible={!!priceEditListing}
@@ -924,6 +942,19 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
+  },
+  browseRatesCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  browseRatesText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
   },
   nearbyPromo: {
     alignItems: 'center',
