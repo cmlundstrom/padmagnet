@@ -57,9 +57,36 @@ async function handleRenterRole() {
 }
 
 async function handleOwnerRole() {
-  await saveUserRole('owner');
-  await setRoleSelected();
-  router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
+  if (setLoadingRole) setLoadingRole(true);
+  try {
+    await saveUserRole('owner');
+    await setRoleSelected();
+
+    // Check for existing session first
+    const { data: { session: existing } } = await supabase.auth.getSession();
+    if (existing) {
+      router.replace('/(owner)/listings');
+      return;
+    }
+
+    // Create anonymous session (same pattern as renter)
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error('Anonymous sign-in failed:', error.message);
+      router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
+      return;
+    }
+    if (data?.session) {
+      // Fire and forget — set role to owner
+      supabase.from('profiles').update({ is_anonymous: true, role: 'owner' }).eq('id', data.session.user.id);
+    }
+
+    // Navigate immediately — AuthProvider will catch up
+    router.replace('/(owner)/listings');
+  } catch (err) {
+    console.error('handleOwnerRole error:', err);
+    router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
+  }
 }
 
 export default function WelcomeScreen() {

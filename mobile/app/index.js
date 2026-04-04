@@ -21,12 +21,12 @@ export default function Index() {
         const roleSelected = await hasSelectedRole();
         const savedRole = await getUserRole();
 
-        if (roleSelected && savedRole === 'tenant') {
-          // Create anonymous session for renter
+        if (roleSelected && (savedRole === 'tenant' || savedRole === 'owner')) {
+          // Create anonymous session for returning user (renter or owner)
           const { data, error } = await supabase.auth.signInAnonymously();
           if (!error && data?.session) {
-            // Mark as anonymous in profiles
-            await supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
+            // Mark as anonymous with correct role
+            await supabase.from('profiles').update({ is_anonymous: true, role: savedRole }).eq('id', data.session.user.id);
             // AuthProvider will pick up the new session and re-render
             return; // useAuth will re-trigger this effect
           }

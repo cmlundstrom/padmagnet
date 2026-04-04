@@ -23,7 +23,7 @@ export async function resolvePostLoginDestination(session, knownRole) {
     // Role was selected but no session — this means renter in anonymous mode
     // The index.js will handle creating anonymous session
     const role = await getUserRole();
-    if (role === 'owner') return '/welcome'; // owners need real auth
+    if (role === 'owner') return '/(owner)/listings'; // anonymous owners browse listings
     return '/(tenant)/swipe'; // renters go to feed
   }
 
@@ -48,14 +48,21 @@ export async function resolvePostLoginDestination(session, knownRole) {
     await saveUserRole(role);
   }
 
-  // Owners still need full name before entering the app
+  // Owners — anonymous owners go straight to listings, authenticated need name
   if (role === 'owner') {
-    const { data: nameProfile } = await supabase
+    const { data: ownerProfile } = await supabase
       .from('profiles')
-      .select('display_name')
+      .select('display_name, is_anonymous')
       .eq('id', session.user.id)
       .single();
-    const displayName = nameProfile?.display_name || session.user?.user_metadata?.display_name;
+
+    // Anonymous owners skip the name gate — browse freely
+    if (ownerProfile?.is_anonymous) {
+      return '/(owner)/listings';
+    }
+
+    // Authenticated owners need full name before entering
+    const displayName = ownerProfile?.display_name || session.user?.user_metadata?.display_name;
     if (!displayName || !displayName.includes(' ')) {
       return '/about-you';
     }
