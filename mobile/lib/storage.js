@@ -47,6 +47,7 @@ export async function getUserRole() {
 
 export async function clearUserRole() {
   await AsyncStorage.removeItem(KEYS.USER_ROLE);
+  await AsyncStorage.removeItem(KEYS.ROLE_SELECTED);
 }
 
 // Role selector: has the user ever picked a role? (first-open only)
