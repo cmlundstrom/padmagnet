@@ -86,14 +86,13 @@ export default function MobileCallbackPage() {
       fontFamily: 'system-ui, -apple-system, sans-serif', background: '#0B1D3A', color: '#fff',
     }}>
       <div style={{ marginBottom: 24 }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: 16,
-          background: 'linear-gradient(135deg, #F97316, #E8603C)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto', fontSize: 32,
-        }}>
-          🏠
-        </div>
+        <img
+          src="/logo/PM_LOGO_180px180p.png"
+          alt="PadMagnet"
+          width={64}
+          height={64}
+          style={{ borderRadius: 16, display: 'block', margin: '0 auto' }}
+        />
       </div>
 
       {status === 'redirecting' && (
