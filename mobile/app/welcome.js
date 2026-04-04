@@ -77,11 +77,11 @@ async function handleOwnerRole() {
       return;
     }
     if (data?.session) {
-      // Fire and forget — set role to owner
-      supabase.from('profiles').update({ is_anonymous: true, role: 'owner' }).eq('id', data.session.user.id);
+      // Must await — RouteGuard checks profiles.role before allowing into owner tab group
+      await supabase.from('profiles').update({ is_anonymous: true, role: 'owner' }).eq('id', data.session.user.id);
     }
 
-    // Navigate immediately — AuthProvider will catch up
+    // Navigate after role is set
     router.replace('/(owner)/listings');
   } catch (err) {
     console.error('handleOwnerRole error:', err);

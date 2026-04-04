@@ -25,7 +25,7 @@ export default function Index() {
           // Create anonymous session for returning user (renter or owner)
           const { data, error } = await supabase.auth.signInAnonymously();
           if (!error && data?.session) {
-            // Mark as anonymous with correct role
+            // Must await — role must be set before AuthProvider resolves
             await supabase.from('profiles').update({ is_anonymous: true, role: savedRole }).eq('id', data.session.user.id);
             // AuthProvider will pick up the new session and re-render
             return; // useAuth will re-trigger this effect
