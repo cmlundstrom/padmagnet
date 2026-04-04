@@ -6,7 +6,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { Header, Button, Input, Toggle } from '../../components/ui';
+import { Header, Button, Input, Toggle, EqualHousingBadge } from '../../components/ui';
 import StepProgress from '../../components/ui/StepProgress';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import NotificationPreferences from '../../components/owner/NotificationPreferences';
@@ -836,6 +836,7 @@ export default function CreateListingScreen() {
               <ReviewRow label="Contact" value={form.listing_agent_name || '—'} />
               <ReviewRow label="Method" value={contactPref === 'both' ? 'Email & Phone' : contactPref === 'phone' ? 'Phone' : 'Email'} />
             </View>
+            <EqualHousingBadge style={{ marginTop: 16 }} />
           </>
         )}
       </ScrollView>

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { EmptyState } from '../../components/ui';
+import { EmptyState, EqualHousingBadge } from '../../components/ui';
 import PriceEditModal from '../../components/owner/PriceEditModal';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
@@ -206,6 +206,8 @@ export default function OwnerListingsTab() {
               </Pressable>
             </Animated.View>
           </View>
+
+          <EqualHousingBadge style={{ marginTop: 16 }} />
         </ScrollView>
       ) : (
         <FlatList
@@ -900,6 +902,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: LAYOUT.padding.md,
     marginBottom: LAYOUT.padding.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   compCardTitle: {
     fontFamily: FONTS.heading.semiBold,

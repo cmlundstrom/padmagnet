@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { EqualHousingBadge } from '../../components/ui';
 import MarketStats from '../../components/owner/MarketStats';
 import UpgradeCTA from '../../components/owner/UpgradeCTA';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -159,6 +160,8 @@ export default function ExploreScreen() {
             <Text style={styles.topTierText}>Every feature unlocked</Text>
           </View>
         )}
+
+        <EqualHousingBadge style={{ marginTop: 16, marginBottom: 10 }} />
       </ScrollView>
     </SafeAreaView>
   );
