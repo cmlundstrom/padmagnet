@@ -5,7 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Header, Button, Input, Toggle } from '../../components/ui';
 import StepProgress from '../../components/ui/StepProgress';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
@@ -80,6 +80,9 @@ export default function CreateListingScreen() {
   const [photoUploadConfig, setPhotoUploadConfig] = useState(null);
   const [contactPref, setContactPref] = useState('email'); // 'email' | 'phone' | 'both'
   const notifPrefsRef = useRef(null);
+  const [nearbyComps, setNearbyComps] = useState(null); // nearby listings for comparative display
+  const [compsLoading, setCompsLoading] = useState(false);
+  const [aiWriting, setAiWriting] = useState(false);
 
   // Fetch photo upload feature config
   useEffect(() => {
@@ -219,6 +222,38 @@ export default function CreateListingScreen() {
       saveDraftStep(data.id, 1); // Moving from step 0 to 1
     } catch { /* non-blocking — draft creation is optional */ }
   };
+
+  // Fetch nearby comparable rentals for pricing context (comparative display only)
+  const fetchNearbyComps = useCallback(async () => {
+    if (!form.city || !form.postal_code) return;
+    setCompsLoading(true);
+    try {
+      const data = await apiFetch(`/api/listings?city=${encodeURIComponent(form.city)}&limit=3&page=1`);
+      if (data?.listings?.length > 0) {
+        setNearbyComps(data.listings.slice(0, 3));
+      }
+    } catch { /* silent */ }
+    setCompsLoading(false);
+  }, [form.city, form.postal_code]);
+
+  // Generate AI listing description via Ask Pad
+  const generateDescription = useCallback(async () => {
+    if (!form.city || !form.bedrooms_total) return;
+    setAiWriting(true);
+    try {
+      const prompt = `Write a compelling rental listing description for a ${form.bedrooms_total}-bed/${form.bathrooms_total}-bath ${form.property_sub_type || 'home'} in ${form.city}, FL. ${form.living_area ? form.living_area + ' sqft.' : ''} ${form.pool ? 'Has a pool.' : ''} ${form.furnished ? 'Furnished.' : ''} ${form.pets_allowed ? 'Pet-friendly.' : ''} ${form.fenced_yard ? 'Fenced yard.' : ''} Keep it under 400 characters, enthusiastic but professional. Do not mention price or make any value claims.`;
+      const result = await apiFetch('/api/ask-pad', {
+        method: 'POST',
+        body: JSON.stringify({ query: prompt }),
+      });
+      if (result?.message) {
+        // Strip any [[link:...]] tokens from the AI response
+        const cleaned = result.message.replace(/\[\[link:\w+\]\]/g, '').trim();
+        update('public_remarks', cleaned.slice(0, 500));
+      }
+    } catch { alert('Error', 'Could not generate description. Try again.'); }
+    setAiWriting(false);
+  }, [form]);
 
   const nextStep = async () => {
     if (step === 0) {
@@ -526,6 +561,27 @@ export default function CreateListingScreen() {
           <>
             <Text style={styles.sectionTitle}>Property Details</Text>
             <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
+
+            {/* Comparative pricing — nearby rentals */}
+            {!nearbyComps && !compsLoading && form.city && (
+              <Pressable style={styles.compsLink} onPress={fetchNearbyComps}>
+                <Ionicons name="trending-up" size={16} color={COLORS.accent} />
+                <Text style={styles.compsLinkText}>See what similar properties are renting for</Text>
+              </Pressable>
+            )}
+            {compsLoading && <ActivityIndicator size="small" color={COLORS.accent} style={{ marginVertical: 8 }} />}
+            {nearbyComps && (
+              <View style={styles.compsContainer}>
+                <Text style={styles.compsTitle}>Nearby rentals in {form.city}</Text>
+                {nearbyComps.map((comp, i) => (
+                  <View key={i} style={styles.compItem}>
+                    <Text style={styles.compPrice}>${Number(comp.list_price).toLocaleString()}/mo</Text>
+                    <Text style={styles.compDetails}>{comp.bedrooms_total}bd · {comp.bathrooms_total}ba{comp.living_area ? ` · ${Number(comp.living_area).toLocaleString()} sqft` : ''}</Text>
+                  </View>
+                ))}
+                <Text style={styles.compsDisclaimer}>For comparison only — not a property valuation.</Text>
+              </View>
+            )}
             <Text style={styles.label}>Property Type *</Text>
             <View style={styles.chipRow}>
               {PROPERTY_TYPES.map(type => (
@@ -552,6 +608,16 @@ export default function CreateListingScreen() {
           <>
             <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.hint}>Pitch the pad. What cool features in your rental or nearby hot spots really make it shine?</Text>
+
+            {/* AI description generator */}
+            <Pressable
+              style={[styles.aiButton, aiWriting && { opacity: 0.6 }]}
+              onPress={generateDescription}
+              disabled={aiWriting}
+            >
+              <Ionicons name="sparkles" size={16} color={COLORS.brandOrange} />
+              <Text style={styles.aiButtonText}>{aiWriting ? 'Writing...' : 'Let Ask Pad write this for you'}</Text>
+            </Pressable>
             <Input
               label="Describe Your Rental Property"
               labelStyle={{ color: COLORS.white }}
@@ -1008,6 +1074,75 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  // ── Comparative pricing ─────────────────
+  compsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  compsLinkText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+  },
+  compsContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 8,
+  },
+  compsTitle: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  compItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  compPrice: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brandOrange,
+  },
+  compDetails: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.slate,
+  },
+  compsDisclaimer: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  // ── AI description button ─────────────────
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.brandOrange + '15',
+    borderRadius: LAYOUT.radius.md,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.brandOrange + '33',
+  },
+  aiButtonText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brandOrange,
   },
   charCounter: {
     fontFamily: FONTS.body.regular,
