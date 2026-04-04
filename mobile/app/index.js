@@ -22,11 +22,11 @@ export default function Index() {
         const savedRole = await getUserRole();
 
         if (roleSelected && (savedRole === 'tenant' || savedRole === 'owner')) {
-          // Create anonymous session for returning user (renter or owner)
-          const { data, error } = await supabase.auth.signInAnonymously();
+          // Create anonymous session with role in metadata so handle_new_user trigger sets it
+          const { data, error } = await supabase.auth.signInAnonymously({
+            options: { data: { role: savedRole } },
+          });
           if (!error && data?.session) {
-            // Must await — role must be set before AuthProvider resolves
-            await supabase.from('profiles').update({ is_anonymous: true, role: savedRole }).eq('id', data.session.user.id);
             // AuthProvider will pick up the new session and re-render
             return; // useAuth will re-trigger this effect
           }

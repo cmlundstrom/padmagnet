@@ -69,16 +69,15 @@ async function handleOwnerRole() {
       return;
     }
 
-    // Create anonymous session (same pattern as renter)
-    const { data, error } = await supabase.auth.signInAnonymously();
+    // Create anonymous session with owner role in metadata
+    // The handle_new_user trigger reads raw_user_meta_data->>'role' to set profiles.role
+    const { data, error } = await supabase.auth.signInAnonymously({
+      options: { data: { role: 'owner' } },
+    });
     if (error) {
       console.error('Anonymous sign-in failed:', error.message);
       router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
       return;
-    }
-    if (data?.session) {
-      // Must await — RouteGuard checks profiles.role before allowing into owner tab group
-      await supabase.from('profiles').update({ is_anonymous: true, role: 'owner' }).eq('id', data.session.user.id);
     }
 
     // Navigate after role is set
