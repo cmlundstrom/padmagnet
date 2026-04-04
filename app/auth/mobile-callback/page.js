@@ -152,9 +152,20 @@ export default function MobileCallbackPage() {
 
       {status === 'error' && (
         <>
-          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Something went wrong</h2>
-          <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center' }}>
-            No authentication tokens found. Please try signing in again from the app.
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Link Expired</h2>
+          <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center', maxWidth: 340, lineHeight: '22px', marginBottom: 24 }}>
+            This magic link has already been used or has expired. Each link can only be used once.
+          </p>
+          <div style={{
+            background: '#1A3358', border: '1px solid #3464A0', borderRadius: 12,
+            padding: '20px 28px', textAlign: 'center', maxWidth: 340,
+          }}>
+            <p style={{ color: '#B0BEC5', fontSize: 13, margin: 0 }}>
+              Open the PadMagnet app and request a new magic link to sign in.
+            </p>
+          </div>
+          <p style={{ color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
+            © {new Date().getFullYear()} PadMagnet LLC
           </p>
         </>
       )}
