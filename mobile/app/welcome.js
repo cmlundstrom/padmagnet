@@ -20,11 +20,12 @@ const WELCOME_IMAGES = [
   require('../assets/images/welcome-3.jpg'),
 ];
 
-// State managed by the component — set via setLoadingRole
-let setLoadingRole = null;
+// State managed by the component — set via setters
+let setLoadingRenter = null;
+let setLoadingOwner = null;
 
 async function handleRenterRole() {
-  if (setLoadingRole) setLoadingRole(true);
+  if (setLoadingRenter) setLoadingRenter(true);
   try {
     await saveUserRole('tenant');
     await setRoleSelected();
@@ -57,7 +58,7 @@ async function handleRenterRole() {
 }
 
 async function handleOwnerRole() {
-  if (setLoadingRole) setLoadingRole(true);
+  if (setLoadingOwner) setLoadingOwner(true);
   try {
     await saveUserRole('owner');
     await setRoleSelected();
@@ -89,8 +90,10 @@ async function handleOwnerRole() {
 }
 
 export default function WelcomeScreen() {
-  const [loadingRole, _setLoadingRole] = useState(false);
-  setLoadingRole = _setLoadingRole;
+  const [loadingRenter, _setLoadingRenter] = useState(false);
+  const [loadingOwner, _setLoadingOwner] = useState(false);
+  setLoadingRenter = _setLoadingRenter;
+  setLoadingOwner = _setLoadingOwner;
   return (
     <View style={styles.container}>
       {/* Image rotator — top portion */}
@@ -121,26 +124,26 @@ export default function WelcomeScreen() {
 
         {/* Role buttons — modern glass style */}
         <View style={styles.buttons}>
-          <TouchableOpacity style={[styles.renterButton, loadingRole && { opacity: 0.7 }]} onPress={handleRenterRole} activeOpacity={0.85} disabled={loadingRole}>
+          <TouchableOpacity style={[styles.renterButton, loadingRenter && { opacity: 0.7 }]} onPress={handleRenterRole} activeOpacity={0.85} disabled={loadingRenter || loadingOwner}>
             <View style={styles.buttonIconCircle}>
-              {loadingRole ? <ActivityIndicator size="small" color={COLORS.white} /> : <Ionicons name="home" size={20} color={COLORS.white} />}
+              {loadingRenter ? <ActivityIndicator size="small" color={COLORS.white} /> : <Ionicons name="home" size={20} color={COLORS.white} />}
             </View>
             <View style={styles.buttonTextWrap}>
-              <Text style={styles.buttonTitle}>{loadingRole ? 'Loading...' : 'Find a Rental'}</Text>
+              <Text style={styles.buttonTitle}>{loadingRenter ? 'Loading...' : 'Find a Rental'}</Text>
               <Text style={styles.buttonHint}>Swipe, match, and discover instantly</Text>
             </View>
-            {!loadingRole && <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />}
+            {!loadingRenter && <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.ownerButton} onPress={handleOwnerRole} activeOpacity={0.85}>
+          <TouchableOpacity style={[styles.ownerButton, loadingOwner && { opacity: 0.7 }]} onPress={handleOwnerRole} activeOpacity={0.85} disabled={loadingRenter || loadingOwner}>
             <View style={styles.buttonIconCircleOutline}>
-              <Ionicons name="key" size={20} color={COLORS.accent} />
+              {loadingOwner ? <ActivityIndicator size="small" color={COLORS.accent} /> : <Ionicons name="key" size={20} color={COLORS.accent} />}
             </View>
             <View style={styles.buttonTextWrap}>
-              <Text style={styles.buttonTitleOutline}>List My Property</Text>
+              <Text style={styles.buttonTitleOutline}>{loadingOwner ? 'Loading...' : 'List My Property'}</Text>
               <Text style={styles.buttonHintOutline}>Find qualified renters fast</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.accent} style={{ opacity: 0.5 }} />
+            {!loadingOwner && <Ionicons name="chevron-forward" size={18} color={COLORS.accent} style={{ opacity: 0.5 }} />}
           </TouchableOpacity>
         </View>
 
