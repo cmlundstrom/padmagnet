@@ -36,6 +36,18 @@ export async function POST(request) {
 
     const supabase = createServiceClient();
 
+    // Check for duplicate label
+    const { data: existing } = await supabase
+      .from('tenant_search_zones')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('label', label)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ error: 'Zone already exists' }, { status: 409 });
+    }
+
     // Check current zone count
     const { count } = await supabase
       .from('tenant_search_zones')
