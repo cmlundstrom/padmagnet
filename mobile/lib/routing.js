@@ -23,7 +23,7 @@ export async function resolvePostLoginDestination(session, knownRole) {
     // Role was selected but no session — this means renter in anonymous mode
     // The index.js will handle creating anonymous session
     const role = await getUserRole();
-    if (role === 'owner') return '/(owner)/listings'; // anonymous owners browse listings
+    if (role === 'owner') return '/(owner)/home'; // anonymous owners browse listings
     return '/(tenant)/swipe'; // renters go to feed
   }
 
@@ -58,7 +58,7 @@ export async function resolvePostLoginDestination(session, knownRole) {
 
     // Anonymous owners skip the name gate — browse freely
     if (ownerProfile?.is_anonymous) {
-      return '/(owner)/listings';
+      return '/(owner)/home';
     }
 
     // Authenticated owners need full name before entering
@@ -66,7 +66,7 @@ export async function resolvePostLoginDestination(session, knownRole) {
     if (!displayName || !displayName.includes(' ')) {
       return '/about-you';
     }
-    return '/(owner)/listings';
+    return '/(owner)/home';
   }
 
   // Renters: straight to swipe feed (no onboarding wizard, no name gate)

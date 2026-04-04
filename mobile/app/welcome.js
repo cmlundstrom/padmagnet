@@ -66,7 +66,7 @@ async function handleOwnerRole() {
     // Check for existing session first
     const { data: { session: existing } } = await supabase.auth.getSession();
     if (existing) {
-      router.replace('/(owner)/listings');
+      router.replace('/(owner)/home');
       return;
     }
 
@@ -82,7 +82,7 @@ async function handleOwnerRole() {
     }
 
     // Navigate after role is set
-    router.replace('/(owner)/listings');
+    router.replace('/(owner)/home');
   } catch (err) {
     console.error('handleOwnerRole error:', err);
     router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });

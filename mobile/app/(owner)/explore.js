@@ -34,7 +34,7 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
-      <Text style={styles.header}>Explore</Text>
+      <Text style={styles.header}>Explore Your Market</Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: LAYOUT.padding.md,
     paddingTop: 0,
-    paddingBottom: 80,
+    paddingBottom: 12,
     gap: 12,
   },
   card: {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Modal, Pressable, ActivityIndicator, Platform, Keyboard, Dimensions,
+  Modal, Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,29 +14,19 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-/**
- * Auth Bottom Sheet — single modal for ALL authentication.
- * Replaces 4 separate auth screens (email, password, register, forgot-password).
- *
- * Priority order (per reference_auth_ux_language.md):
- * 1. Continue with Google
- * 2. Continue with Apple (iOS only)
- * 3. Use Face ID / Fingerprint (future — requires expo-local-authentication)
- * 4. Send Magic Link
- * 5. Email + Password (hidden behind "More options")
- *
- * Context-specific copy passed via props.
- */
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const DISMISS_THRESHOLD = 120;
 
 export default function AuthBottomSheet({ visible, onClose, context, padpoints }) {
-  const [mode, setMode] = useState('main'); // 'main' | 'magic' | 'password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [magicEmail, setMagicEmail] = useState('');
+  const [showMagicPrompt, setShowMagicPrompt] = useState(false);
+  const [loading, setLoading] = useState(null);
   const [error, setError] = useState(null);
   const [magicSent, setMagicSent] = useState(false);
 
-  // Keyboard-aware lift — shift the card up when keyboard opens
+  // Keyboard-aware lift
   const keyboardOffset = useSharedValue(0);
 
   useEffect(() => {
@@ -52,14 +43,20 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     return () => { showSub.remove(); hideSub.remove(); };
   }, []);
 
-  const keyboardLiftStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: keyboardOffset.value }],
-  }));
-
-  // Swipe-to-dismiss gesture
-  const SCREEN_HEIGHT = Dimensions.get('window').height;
+  // Entrance + swipe-to-dismiss
+  const enterY = useSharedValue(SCREEN_HEIGHT);
   const swipeY = useSharedValue(0);
-  const DISMISS_THRESHOLD = 120;
+  const backdropOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (visible) {
+      // Start off-screen, ease in with a gentle spring
+      enterY.value = SCREEN_HEIGHT;
+      swipeY.value = 0;
+      backdropOpacity.value = withTiming(1, { duration: 350 });
+      enterY.value = withSpring(0, { damping: 22, stiffness: 85, mass: 1 });
+    }
+  }, [visible]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
@@ -67,106 +64,110 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     })
     .onEnd((e) => {
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
-        swipeY.value = withTiming(SCREEN_HEIGHT, { duration: 200 }, () => {
-          runOnJS(resetState)();
-          runOnJS(onClose)();
+        swipeY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, () => {
+          runOnJS(resetAndClose)();
         });
+        backdropOpacity.value = withTiming(0, { duration: 250 });
       } else {
         swipeY.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
     });
 
-  const swipeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: keyboardOffset.value + swipeY.value }],
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardOffset.value + enterY.value + swipeY.value }],
   }));
 
-  useEffect(() => {
-    if (visible) swipeY.value = 0;
-  }, [visible]);
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
 
   const contextCopy = getContextCopy(context, padpoints);
 
   async function handleGoogle() {
-    setLoading(true);
+    setLoading('google');
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'padmagnet://auth-callback' },
+        options: { redirectTo: 'https://padmagnet.com/auth/mobile-callback' },
       });
       if (authError) setError(authError.message);
       else onClose?.();
     } catch (err) {
       setError(err.message);
     }
-    setLoading(false);
+    setLoading(null);
   }
 
   async function handleFacebook() {
-    setLoading(true);
+    setLoading('facebook');
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
-        options: { redirectTo: 'padmagnet://auth-callback' },
+        options: { redirectTo: 'https://padmagnet.com/auth/mobile-callback' },
       });
       if (authError) setError(authError.message);
       else onClose?.();
     } catch (err) {
       setError(err.message);
     }
-    setLoading(false);
+    setLoading(null);
   }
 
   async function handleApple() {
-    setLoading(true);
+    setLoading('apple');
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
-        options: { redirectTo: 'padmagnet://auth-callback' },
+        options: { redirectTo: 'https://padmagnet.com/auth/mobile-callback' },
       });
       if (authError) setError(authError.message);
       else onClose?.();
     } catch (err) {
       setError(err.message);
     }
-    setLoading(false);
+    setLoading(null);
   }
 
-  async function handleMagicLink() {
-    if (!email) { setError('Enter your email'); return; }
-    setLoading(true);
-    setError(null);
+  function openMagicPrompt() {
+    setMagicEmail(email || '');
+    setShowMagicPrompt(true);
+  }
+
+  async function sendMagicLink() {
+    if (!magicEmail) return;
+    setLoading('magic');
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: 'padmagnet://auth-callback' },
+        email: magicEmail,
+        options: { emailRedirectTo: 'https://padmagnet.com/auth/mobile-callback' },
       });
       if (authError) setError(authError.message);
       else {
+        setEmail(magicEmail);
+        setShowMagicPrompt(false);
         setMagicSent(true);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err) {
       setError(err.message);
     }
-    setLoading(false);
+    setLoading(null);
   }
 
   async function handlePassword() {
     if (!email || !password) { setError('Enter email and password'); return; }
-    setLoading(true);
+    setLoading('password');
     setError(null);
     try {
-      // Try sign in first, fall back to sign up
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) {
         if (signInError.message.includes('Invalid login')) {
-          // Try sign up
           const { error: signUpError } = await supabase.auth.signUp({
             email, password,
-            options: { emailRedirectTo: 'padmagnet://auth-callback' },
+            options: { emailRedirectTo: 'https://padmagnet.com/auth/mobile-callback' },
           });
           if (signUpError) setError(signUpError.message);
           else {
@@ -183,46 +184,55 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     } catch (err) {
       setError(err.message);
     }
-    setLoading(false);
+    setLoading(null);
   }
 
   function resetState() {
-    setMode('main');
     setEmail('');
     setPassword('');
+    setMagicEmail('');
+    setShowMagicPrompt(false);
     setError(null);
     setMagicSent(false);
-    setLoading(false);
+    setLoading(null);
+  }
+
+  function resetAndClose() {
+    resetState();
+    onClose?.();
   }
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="none"
       statusBarTranslucent
-      onRequestClose={() => { resetState(); onClose?.(); }}
+      onRequestClose={resetAndClose}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-      <Pressable style={styles.backdrop} onPress={() => { resetState(); onClose?.(); }}>
-        <Animated.View style={[styles.sheetWrapper, swipeStyle]}>
+      <Animated.View style={[styles.backdrop, backdropStyle]}>
+      <Pressable style={{ flex: 1, justifyContent: 'flex-end' }} onPress={resetAndClose}>
+        <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
-            {/* Manila folder tab — swipe down to dismiss */}
+            {/* Right-side tab with label sticker — matches folder stack */}
             <GestureDetector gesture={panGesture}>
-              <View style={styles.folderTabOuter}>
+              <View style={styles.tabWrapper}>
                 <LinearGradient
                   colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0.74, y: 1 }}
-                  style={styles.folderTab}
+                  style={styles.tab}
                 >
-                  <Text style={styles.tabTitle}>{contextCopy.title}</Text>
-                  <View style={styles.tabHandle} />
+                  <View style={styles.labelSticker}>
+                    <Text style={styles.labelText}>{contextCopy.tabLabel || 'Sign In'}</Text>
+                  </View>
+                  <View style={styles.dragHandle} />
                 </LinearGradient>
               </View>
             </GestureDetector>
 
-            {/* Folder body — full width, same manila color family */}
+            {/* Folder body */}
             <LinearGradient
               colors={['#C4AD78', '#DECA92', '#E8D8A4', '#D8C88E', '#BEA66A', '#A08040']}
               start={{ x: 0, y: 0 }}
@@ -235,133 +245,169 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 end={{ x: 1, y: 0 }}
                 style={StyleSheet.absoluteFill}
               />
-              <View style={styles.sheet}>
-              <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
+              <ScrollView
+                contentContainerStyle={styles.bodyContent}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
 
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            {mode === 'main' && !magicSent && (
-              <>
-                {/* Google — white bg, red G, dark text (matches owner auth screen) */}
-                <TouchableOpacity style={styles.googleButton} onPress={handleGoogle} disabled={loading} activeOpacity={0.8}>
-                  <Ionicons name="logo-google" size={18} color={COLORS.socialGoogle} />
-                  <Text style={styles.googleText}>Continue with Google</Text>
-                </TouchableOpacity>
-
-                {/* Facebook — blue bg, white f icon, white text */}
-                <TouchableOpacity style={styles.facebookButton} onPress={handleFacebook} disabled={loading} activeOpacity={0.8}>
-                  <Ionicons name="logo-facebook" size={18} color={COLORS.white} />
-                  <Text style={styles.facebookText}>Continue with Facebook</Text>
-                </TouchableOpacity>
-
-                {/* Apple (iOS only) */}
-                {Platform.OS === 'ios' && (
-                  <TouchableOpacity style={styles.appleButton} onPress={handleApple} disabled={loading} activeOpacity={0.8}>
-                    <Ionicons name="logo-apple" size={18} color={COLORS.white} />
-                    <Text style={styles.appleText}>Continue with Apple</Text>
-                  </TouchableOpacity>
+                {error && (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
                 )}
 
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
+                {!magicSent ? (
+                  <>
+                    {/* ── Social buttons ──────────────── */}
+                    <TouchableOpacity style={styles.googleButton} onPress={handleGoogle} disabled={!!loading} activeOpacity={0.8}>
+                      {loading === 'google' ? <ActivityIndicator color={COLORS.socialGoogle} size="small" /> : <Ionicons name="logo-google" size={18} color={COLORS.socialGoogle} />}
+                      <Text style={styles.googleText}>Continue with Google</Text>
+                    </TouchableOpacity>
 
-                {/* Magic Link */}
-                <TouchableOpacity style={styles.magicButton} onPress={() => setMode('magic')} activeOpacity={0.8}>
-                  <Ionicons name="mail" size={18} color={COLORS.accent} />
-                  <Text style={styles.magicText}>Send Magic Link</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.facebookButton} onPress={handleFacebook} disabled={!!loading} activeOpacity={0.8}>
+                      {loading === 'facebook' ? <ActivityIndicator color={COLORS.white} size="small" /> : <Ionicons name="logo-facebook" size={18} color={COLORS.white} />}
+                      <Text style={styles.facebookText}>Continue with Facebook</Text>
+                    </TouchableOpacity>
 
-                {/* More options */}
-                <TouchableOpacity style={styles.moreButton} onPress={() => setMode('password')} activeOpacity={0.8}>
-                  <Text style={styles.moreText}>More options</Text>
-                </TouchableOpacity>
-              </>
-            )}
+                    {Platform.OS === 'ios' && (
+                      <TouchableOpacity style={styles.appleButton} onPress={handleApple} disabled={!!loading} activeOpacity={0.8}>
+                        {loading === 'apple' ? <ActivityIndicator color={COLORS.white} size="small" /> : <Ionicons name="logo-apple" size={18} color={COLORS.white} />}
+                        <Text style={styles.appleText}>Continue with Apple</Text>
+                      </TouchableOpacity>
+                    )}
 
-            {mode === 'magic' && !magicSent && (
-              <>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Your email address"
-                  placeholderTextColor={COLORS.slate}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoFocus
-                />
-                <TouchableOpacity style={styles.primaryButton} onPress={handleMagicLink} disabled={loading} activeOpacity={0.8}>
-                  {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.primaryText}>Send Magic Link</Text>}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setMode('main')} style={styles.backLink}>
-                  <Text style={styles.backText}>← Back</Text>
-                </TouchableOpacity>
-              </>
-            )}
+                    {/* ── Divider ─────────────────────── */}
+                    <View style={styles.divider}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerText}>or sign in with email</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
 
-            {magicSent && (
-              <View style={styles.sentBox}>
-                <Ionicons name="checkmark-circle" size={40} color={COLORS.success} />
-                <Text style={styles.sentTitle}>Check your email</Text>
-                <Text style={styles.sentText}>We sent a sign-in link to {email}. Tap it to continue.</Text>
-              </View>
-            )}
+                    {/* ── Email + Password fields ─────── */}
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Email address"
+                      placeholderTextColor={COLORS.slate}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Password (or use Magic Link)"
+                      placeholderTextColor={COLORS.slate}
+                      secureTextEntry
+                    />
 
-            {mode === 'password' && (
-              <>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
-                  placeholderTextColor={COLORS.slate}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoFocus
-                />
-                <TextInput
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Password"
-                  placeholderTextColor={COLORS.slate}
-                  secureTextEntry
-                />
-                <TouchableOpacity style={styles.primaryButton} onPress={handlePassword} disabled={loading} activeOpacity={0.8}>
-                  {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.primaryText}>Sign In / Sign Up</Text>}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setMode('main')} style={styles.backLink}>
-                  <Text style={styles.backText}>← Back</Text>
-                </TouchableOpacity>
-              </>
-            )}
+                    {/* ── Dual action buttons ────────── */}
+                    <View style={styles.dualButtons}>
+                      <TouchableOpacity
+                        style={styles.passwordButton}
+                        onPress={handlePassword}
+                        disabled={!!loading}
+                        activeOpacity={0.8}
+                      >
+                        {loading === 'password' ? (
+                          <ActivityIndicator color={COLORS.white} size="small" />
+                        ) : (
+                          <>
+                            <Ionicons name="key" size={14} color={COLORS.white} />
+                            <Text style={styles.passwordText}>Sign In</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
 
-            {/* Transfer message */}
-            {padpoints > 0 && (
-              <Text style={styles.transferText}>
-                Your {padpoints} PadPoints & saved homes transfer automatically.
-              </Text>
-            )}
+                      <Text style={styles.dualOr}>Or</Text>
 
-            {/* Skip (non-blocking contexts only) */}
-            {contextCopy.dismissible && (
-              <TouchableOpacity onPress={() => { resetState(); onClose?.(); }} style={styles.skipButton}>
-                <Text style={styles.skipText}>Skip for now</Text>
-              </TouchableOpacity>
-            )}
-              </View>
+                      <TouchableOpacity
+                        style={styles.magicButton}
+                        onPress={openMagicPrompt}
+                        disabled={!!loading}
+                        activeOpacity={0.8}
+                      >
+                        {loading === 'magic' ? (
+                          <ActivityIndicator color={COLORS.accent} size="small" />
+                        ) : (
+                          <>
+                            <Ionicons name="mail" size={14} color={COLORS.accent} />
+                            <Text style={styles.magicText}>Magic Link</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.sentBox}>
+                    <Ionicons name="checkmark-circle" size={40} color={COLORS.success} />
+                    <Text style={styles.sentTitle}>Check your email</Text>
+                    <Text style={styles.sentText}>We sent a sign-in link to {email}. Tap it to continue.</Text>
+                  </View>
+                )}
+
+                {/* Transfer message */}
+                {padpoints > 0 && (
+                  <Text style={styles.transferText}>
+                    Your {padpoints} PadPoints & saved homes transfer automatically.
+                  </Text>
+                )}
+
+                {/* Skip */}
+                {contextCopy.dismissible && (
+                  <TouchableOpacity onPress={resetAndClose} style={styles.skipButton}>
+                    <Text style={styles.skipText}>Skip for now</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
             </LinearGradient>
           </Pressable>
         </Animated.View>
       </Pressable>
+      </Animated.View>
+
+      {/* ── Magic Link email prompt ──────────────── */}
+      {showMagicPrompt && (
+        <KeyboardAvoidingView
+          style={styles.promptOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+        <Pressable style={styles.promptOverlayInner} onPress={() => setShowMagicPrompt(false)}>
+          <Pressable style={styles.promptCard} onPress={e => e.stopPropagation()}>
+            <Ionicons name="mail" size={28} color={COLORS.accent} style={{ marginBottom: 8 }} />
+            <Text style={styles.promptTitle}>Send Magic Link</Text>
+            <Text style={styles.promptSubtitle}>We'll email you a sign-in link — no password needed.</Text>
+            <TextInput
+              style={styles.promptInput}
+              value={magicEmail}
+              onChangeText={setMagicEmail}
+              placeholder="Your email address"
+              placeholderTextColor={COLORS.slate}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoFocus
+            />
+            <View style={styles.promptButtons}>
+              <TouchableOpacity style={styles.promptCancel} onPress={() => setShowMagicPrompt(false)} activeOpacity={0.7}>
+                <Text style={styles.promptCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.promptSend} onPress={sendMagicLink} disabled={loading === 'magic'} activeOpacity={0.8}>
+                {loading === 'magic' ? (
+                  <ActivityIndicator color={COLORS.white} size="small" />
+                ) : (
+                  <Text style={styles.promptSendText}>Send Link</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+        </KeyboardAvoidingView>
+      )}
+
       </GestureHandlerRootView>
     </Modal>
   );
@@ -369,68 +415,76 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
 /**
  * Context-specific copy — changes wording based on what triggered the auth sheet.
- * See reference_auth_ux_language.md for the full spec.
  */
 function getContextCopy(context, padpoints) {
   switch (context) {
     case 'message':
       return {
-        title: '📩 Message this owner',
+        tabLabel: 'Message',
+        title: '\u{1F4E9} Message this owner',
         subtitle: `Sign in to send messages${padpoints > 0 ? ` and keep your ${padpoints} PadPoints` : ''}.`,
         dismissible: false,
       };
     case 'messages_tab':
       return {
-        title: '💬 Your Messages',
+        tabLabel: 'Messages',
+        title: '\u{1F4AC} Your Messages',
         subtitle: 'Sign in to View & Send SMS/Email to Property Owners.',
         dismissible: false,
       };
     case 'save_limit':
       return {
-        title: '🔒 Save your PadPoints',
+        tabLabel: 'Save Points',
+        title: '\u{1F512} Save your PadPoints',
         subtitle: `You've earned ${padpoints} PadPoints and saved homes! Sign in to keep them forever.`,
         dismissible: true,
       };
     case 'notifications':
       return {
-        title: '🔔 Enable Notifications',
+        tabLabel: 'Notifications',
+        title: '\u{1F514} Enable Notifications',
         subtitle: 'Sign in to set up push and SMS notifications.',
         dismissible: false,
       };
     case 'returning':
       return {
-        title: '👋 Welcome back!',
+        tabLabel: 'Welcome Back',
+        title: '\u{1F44B} Welcome back!',
         subtitle: `Sign in to access your ${padpoints} PadPoints and saved homes.`,
         dismissible: true,
       };
-    // ── Owner contexts ──────────────────────
     case 'create_listing':
       return {
-        title: '🏠 List Your Property',
+        tabLabel: 'List Property',
+        title: '\u{1F3E0} List Your Property',
         subtitle: 'Sign in to create your free rental listing and reach qualified renters.',
         dismissible: false,
       };
     case 'owner_messages':
       return {
-        title: '💬 Your Messages',
+        tabLabel: 'Messages',
+        title: '\u{1F4AC} Your Messages',
         subtitle: 'Sign in to view and respond to renter inquiries.',
         dismissible: false,
       };
     case 'owner_profile':
       return {
-        title: '👤 Your Account',
+        tabLabel: 'Account',
+        title: '\u{1F464} Your Account',
         subtitle: 'Sign in to manage listings, connect with renters, and track your rental performance.',
         dismissible: true,
       };
     case 'owner_upgrade':
       return {
-        title: '⬆️ Upgrade Your Plan',
+        tabLabel: 'Upgrade',
+        title: '\u{2B06}\u{FE0F} Upgrade Your Plan',
         subtitle: 'Sign in to access premium features, analytics, and more listing slots.',
         dismissible: false,
       };
     default:
       return {
-        title: '🔓 Sign in to PadMagnet',
+        tabLabel: 'Sign In',
+        title: '\u{1F513} Sign in to PadMagnet',
         subtitle: padpoints > 0 ? `Keep your ${padpoints} PadPoints and unlock full features.` : 'Unlock messaging, notifications, and more.',
         dismissible: true,
       };
@@ -448,68 +502,86 @@ const styles = StyleSheet.create({
   },
   sheetOuter: {
     marginHorizontal: 7,
-    alignItems: 'center',
   },
-  folderTabOuter: {
-    zIndex: 1,
+
+  // ── Right-side tab with label sticker ─────────────
+  tabWrapper: {
+    alignSelf: 'flex-end',
+    marginRight: 16,
     marginBottom: -1,
+    zIndex: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 8,
   },
-  folderTab: {
-    borderTopLeftRadius: LAYOUT.radius.xl,
-    borderTopRightRadius: LAYOUT.radius.xl,
-    paddingHorizontal: 30,
-    paddingTop: 10,
-    paddingBottom: 10,
+  tab: {
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 6,
     alignItems: 'center',
   },
-  tabTitle: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.lg,
-    color: '#3A2810',
-    textAlign: 'center',
-    textShadowColor: 'rgba(255,255,255,0.25)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
+  labelSticker: {
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    marginBottom: 4,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.08)',
   },
-  tabHandle: {
-    width: 40,
+  labelText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: '#3A2810',
+    letterSpacing: 0.5,
+  },
+  dragHandle: {
+    width: 32,
     height: 3,
     borderRadius: 1.5,
     backgroundColor: '#6B5020',
-    alignSelf: 'center',
-    marginTop: 5,
-    opacity: 0.6,
+    opacity: 0.5,
   },
+
+  // ── Folder body ───────────────────────────────────
   folderBody: {
     width: '100%',
     borderTopLeftRadius: LAYOUT.radius.xl,
     borderTopRightRadius: LAYOUT.radius.xl,
     overflow: 'hidden',
+    borderWidth: 1.5,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(0,0,0,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 14,
   },
-  sheet: {
+  bodyContent: {
     paddingHorizontal: LAYOUT.padding.lg,
-    paddingBottom: LAYOUT.padding['2xl'],
     paddingTop: LAYOUT.padding.lg,
-    width: '100%',
+    paddingBottom: LAYOUT.padding['2xl'] + 20,
   },
   subtitle: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: '#4A3520',
     textAlign: 'center',
     marginBottom: LAYOUT.padding.lg,
-    lineHeight: 20,
+    lineHeight: 22,
   },
+
+  // ── Error ─────────────────────────────────────────
   errorBox: {
     backgroundColor: COLORS.danger + '22',
     borderRadius: LAYOUT.radius.sm,
     padding: LAYOUT.padding.sm,
-    marginBottom: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.sm,
   },
   errorText: {
     fontFamily: FONTS.body.medium,
@@ -517,6 +589,8 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     textAlign: 'center',
   },
+
+  // ── Social buttons ────────────────────────────────
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -524,7 +598,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: COLORS.white,
     borderRadius: LAYOUT.radius.md,
-    padding: 13,
+    padding: 14,
     marginBottom: 8,
   },
   googleText: {
@@ -539,7 +613,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: COLORS.socialFacebook,
     borderRadius: LAYOUT.radius.md,
-    padding: 13,
+    padding: 14,
     marginBottom: 8,
   },
   facebookText: {
@@ -554,7 +628,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: COLORS.black,
     borderRadius: LAYOUT.radius.md,
-    padding: 13,
+    padding: 14,
     marginBottom: 8,
   },
   appleText: {
@@ -562,11 +636,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.white,
   },
+
+  // ── Divider ───────────────────────────────────────
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginVertical: LAYOUT.padding.sm,
+    gap: 10,
+    marginVertical: LAYOUT.padding.md,
   },
   dividerLine: {
     flex: 1,
@@ -575,68 +651,69 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
+    fontSize: FONT_SIZES.xxs,
     color: '#6B5020',
   },
-  magicButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(59,130,246,0.12)',
-    borderRadius: LAYOUT.radius.md,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#8B7035',
-  },
-  magicText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
-    color: '#2A5DB0',
-  },
-  moreButton: {
-    alignItems: 'center',
-    paddingVertical: LAYOUT.padding.sm,
-  },
-  moreText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.xs,
-    color: '#6B5020',
-    textDecorationLine: 'underline',
-  },
+
+  // ── Inputs ────────────────────────────────────────
   input: {
     backgroundColor: 'rgba(255,255,255,0.35)',
     borderRadius: LAYOUT.radius.sm,
     padding: 14,
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: '#3A2810',
     borderWidth: 1,
     borderColor: '#A08040',
     marginBottom: 10,
   },
-  primaryButton: {
-    backgroundColor: COLORS.accent,
+
+  // ── Dual action buttons ───────────────────────────
+  dualButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  dualOr: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: '#6B5020',
+  },
+  magicButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(59,130,246,0.12)',
     borderRadius: LAYOUT.radius.md,
-    padding: 14,
-    alignItems: 'center',
-    marginBottom: 10,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: '#8B7035',
   },
-  primaryText: {
+  magicText: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.white,
-  },
-  backLink: {
-    alignItems: 'center',
-    paddingVertical: LAYOUT.padding.sm,
-  },
-  backText: {
-    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: '#2A5DB0',
   },
+  passwordButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accent,
+    borderRadius: LAYOUT.radius.md,
+    paddingVertical: 11,
+  },
+  passwordText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+  },
+
+  // ── Magic link sent ───────────────────────────────
   sentBox: {
     alignItems: 'center',
     paddingVertical: LAYOUT.padding.lg,
@@ -645,15 +722,17 @@ const styles = StyleSheet.create({
   sentTitle: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.white,
+    color: '#3A2810',
   },
   sentText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: '#4A3520',
     textAlign: 'center',
     lineHeight: 20,
   },
+
+  // ── Transfer / Skip ───────────────────────────────
   transferText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
@@ -669,5 +748,87 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: '#6B5020',
+  },
+
+  // ── Magic link prompt ─────────────────────────────
+  promptOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+  promptOverlayInner: {
+    flex: 1,
+    backgroundColor: COLORS.scrimDarker,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: LAYOUT.padding.lg,
+  },
+  promptCard: {
+    width: '100%',
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    padding: LAYOUT.padding.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  promptTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  promptSubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: LAYOUT.padding.md,
+  },
+  promptInput: {
+    width: '100%',
+    backgroundColor: COLORS.background,
+    borderRadius: LAYOUT.radius.sm,
+    padding: 14,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: LAYOUT.padding.md,
+  },
+  promptButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  promptCancel: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: LAYOUT.radius.md,
+    backgroundColor: COLORS.frostedGlass,
+  },
+  promptCancelText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  promptSend: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: LAYOUT.radius.md,
+    backgroundColor: COLORS.accent,
+  },
+  promptSendText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
   },
 });

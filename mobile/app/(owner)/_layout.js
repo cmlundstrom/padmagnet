@@ -20,12 +20,16 @@ export default function OwnerTabLayout() {
       barTintColor="#0B1D3A"
       inactiveTintColor="#B0BEC5"
     >
-      <NativeTabs.Trigger name="listings">
+      <NativeTabs.Trigger name="home">
         <NativeTabs.Trigger.Icon md="home" />
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="listings">
+        <NativeTabs.Trigger.Icon md="list" />
         <NativeTabs.Trigger.Label>Listings</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Icon md="explore" />
+        <NativeTabs.Trigger.Icon md="assessment" />
         <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="messages">

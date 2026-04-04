@@ -9,26 +9,21 @@ import { useEffect, useState } from 'react';
  * 1. Supabase verifies the magic link token
  * 2. Supabase redirects here with tokens in the URL hash fragment
  * 3. This page opens the mobile app via Android Intent URI or iOS scheme
- * 4. If the app doesn't open, shows a manual link
- *
- * Android Chrome blocks custom schemes from JS — must use Intent URIs.
- * Expo Go package: host.exp.exponent (Android)
- * Standalone package: com.padmagnet.app (Android)
+ * 4. Desktop users see a branded confirmation page
+ * 5. If the app doesn't open on mobile, shows manual buttons
  */
 export default function MobileCallbackPage() {
   const [status, setStatus] = useState('redirecting');
   const [tokens, setTokens] = useState(null);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    // Supabase appends tokens as hash fragment:
-    // #access_token=...&refresh_token=...&type=magiclink
     const hash = window.location.hash;
     if (!hash) {
       setStatus('error');
       return;
     }
 
-    // Parse tokens from hash
     const params = new URLSearchParams(hash.substring(1));
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
@@ -40,20 +35,25 @@ export default function MobileCallbackPage() {
 
     setTokens({ accessToken, refreshToken });
 
-    // Build query string with tokens (Intent URIs can't use hash fragments)
     const tokenQuery = `access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
 
     const isAndroid = /android/i.test(navigator.userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isMobile = isAndroid || isIOS;
+
+    if (!isMobile) {
+      // Desktop — show branded confirmation
+      setIsDesktop(true);
+      setStatus('desktop');
+      return;
+    }
 
     if (isAndroid) {
-      // Android: Use Intent URI — the ONLY reliable way to open apps from Chrome
-      // Try Expo Go first (dev testing)
-      const intentUrl = `intent://auth-callback?${tokenQuery}#Intent;scheme=exp+padmagnet;package=host.exp.exponent;end`;
-      window.location.href = intentUrl;
+      // Try standalone app first, then Expo Go
+      const standaloneIntent = `intent://auth-callback?${tokenQuery}#Intent;scheme=padmagnet;package=com.padmagnet.app;end`;
+      window.location.href = standaloneIntent;
     } else if (isIOS) {
-      // iOS: Safari handles custom schemes from JS
-      window.location.href = `exp+padmagnet://auth-callback?${tokenQuery}`;
+      window.location.href = `padmagnet://auth-callback?${tokenQuery}`;
     }
 
     // If still here after 3 seconds, show manual options
@@ -64,7 +64,6 @@ export default function MobileCallbackPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Build the Intent/scheme URLs for manual buttons
   function getOpenUrl(target) {
     if (!tokens) return '#';
     const tokenQuery = `access_token=${encodeURIComponent(tokens.accessToken)}&refresh_token=${encodeURIComponent(tokens.refreshToken)}`;
@@ -75,7 +74,6 @@ export default function MobileCallbackPage() {
         ? `intent://auth-callback?${tokenQuery}#Intent;scheme=exp+padmagnet;package=host.exp.exponent;end`
         : `exp+padmagnet://auth-callback?${tokenQuery}`;
     }
-    // standalone
     return isAndroid
       ? `intent://auth-callback?${tokenQuery}#Intent;scheme=padmagnet;package=com.padmagnet.app;end`
       : `padmagnet://auth-callback?${tokenQuery}`;
@@ -85,46 +83,80 @@ export default function MobileCallbackPage() {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', minHeight: '100vh', padding: 24,
-      fontFamily: 'system-ui, sans-serif', background: '#0f1a2e', color: '#fff',
+      fontFamily: 'system-ui, -apple-system, sans-serif', background: '#0B1D3A', color: '#fff',
     }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 16,
+          background: 'linear-gradient(135deg, #F97316, #E8603C)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto', fontSize: 32,
+        }}>
+          🏠
+        </div>
+      </div>
+
       {status === 'redirecting' && (
         <>
-          <h2 style={{ marginBottom: 8 }}>Opening PadMagnet...</h2>
-          <p style={{ color: '#8899aa' }}>Redirecting to the app</p>
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Opening PadMagnet...</h2>
+          <p style={{ color: '#8899aa', fontSize: 14 }}>Redirecting to the app</p>
         </>
       )}
+
+      {status === 'desktop' && (
+        <>
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>You're signed in!</h2>
+          <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center', maxWidth: 360, lineHeight: '22px', marginBottom: 24 }}>
+            Your email has been verified. Open the PadMagnet app on your phone to continue.
+          </p>
+          <div style={{
+            background: '#1A3358', border: '1px solid #3464A0', borderRadius: 12,
+            padding: '20px 28px', textAlign: 'center', maxWidth: 340,
+          }}>
+            <p style={{ color: '#B0BEC5', fontSize: 13, margin: 0 }}>
+              Already have the app? Open it and you'll be automatically signed in.
+            </p>
+          </div>
+          <p style={{ color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
+            © {new Date().getFullYear()} PadMagnet LLC
+          </p>
+        </>
+      )}
+
       {status === 'manual' && (
         <>
-          <h2 style={{ marginBottom: 8 }}>Signed in!</h2>
-          <p style={{ color: '#8899aa', marginBottom: 24, textAlign: 'center' }}>
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Signed in!</h2>
+          <p style={{ color: '#8899aa', marginBottom: 24, textAlign: 'center', fontSize: 14 }}>
             Tap below to open the app.
           </p>
-          {/* Use <a> tags — Chrome trusts href navigation more than JS onclick */}
-          <a href={getOpenUrl('expo')} style={{
+          <a href={getOpenUrl('standalone')} style={{
             display: 'block', textAlign: 'center', textDecoration: 'none',
-            background: '#6c5ce7', color: '#fff', borderRadius: 8,
+            background: '#E8603C', color: '#fff', borderRadius: 12,
             padding: '14px 32px', fontSize: 16, fontWeight: 600,
             marginBottom: 12, width: 260,
           }}>
-            Open in Expo Go
+            Open PadMagnet
           </a>
-          <a href={getOpenUrl('standalone')} style={{
+          <a href={getOpenUrl('expo')} style={{
             display: 'block', textAlign: 'center', textDecoration: 'none',
-            background: 'transparent', color: '#8899aa', border: '1px solid #334',
-            borderRadius: 8, padding: '12px 32px', fontSize: 14,
+            background: 'transparent', color: '#8899aa', border: '1px solid #3464A0',
+            borderRadius: 12, padding: '12px 32px', fontSize: 14,
             width: 260,
           }}>
-            Open PadMagnet App
+            Open in Expo Go (dev)
           </a>
-          <p style={{ color: '#556', fontSize: 12, marginTop: 16, textAlign: 'center' }}>
-            Use &quot;Expo Go&quot; during testing.
+          <p style={{ color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
+            © {new Date().getFullYear()} PadMagnet LLC
           </p>
         </>
       )}
+
       {status === 'error' && (
         <>
-          <h2 style={{ marginBottom: 8 }}>Something went wrong</h2>
-          <p style={{ color: '#8899aa' }}>No authentication tokens found. Please try signing in again.</p>
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Something went wrong</h2>
+          <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center' }}>
+            No authentication tokens found. Please try signing in again from the app.
+          </p>
         </>
       )}
     </div>

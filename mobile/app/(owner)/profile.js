@@ -88,6 +88,14 @@ export default function OwnerProfileScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Sign out — always visible for testing */}
+        {isAnon && (
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
+            <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Profile card — only for authenticated */}
         {!isAnon && (
           <ProfileCard

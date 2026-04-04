@@ -60,7 +60,7 @@ export default function AboutYouScreen() {
 
       // Route to role-based destination (role from AuthProvider context)
       if (role === 'owner') {
-        router.replace('/(owner)/listings');
+        router.replace('/(owner)/home');
       } else {
         const onboarded = await hasOnboarded();
         router.replace(onboarded ? '/(tenant)/swipe' : '/onboarding');

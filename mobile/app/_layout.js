@@ -59,7 +59,7 @@ function RouteGuard({ children }) {
       router.replace('/welcome');
     } else if (session && role === 'owner' && inTenant) {
       // Owner stuck in tenant tab group → redirect
-      router.replace('/(owner)/listings');
+      router.replace('/(owner)/home');
     } else if (session && role !== 'owner' && inOwner) {
       // Tenant stuck in owner tab group → redirect
       router.replace('/(tenant)/swipe');
@@ -75,7 +75,7 @@ function RouteGuard({ children }) {
       const inOwner = segments[0] === '(owner)';
 
       if (role === 'owner' && inTenant) {
-        router.replace('/(owner)/listings');
+        router.replace('/(owner)/home');
       } else if (role !== 'owner' && inOwner) {
         router.replace('/(tenant)/swipe');
       }

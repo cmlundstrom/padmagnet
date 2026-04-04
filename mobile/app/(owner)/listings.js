@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated, ScrollView } from 'react-native';
+import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { EmptyState, EqualHousingBadge } from '../../components/ui';
+import { LinearGradient } from 'expo-linear-gradient';
+import { EqualHousingBadge } from '../../components/ui';
 import PriceEditModal from '../../components/owner/PriceEditModal';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
@@ -21,25 +22,10 @@ import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
-  const { preview } = useLocalSearchParams();
-  const { session, role } = useAuth();
+  const { session } = useAuth();
   const { tier: ownerTier } = useSubscription();
   const isAnon = session?.user?.is_anonymous === true;
   const [showAuth, setShowAuth] = useState(false);
-  const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Subtle pulse animation for the nearby rentals button
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, []);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -126,89 +112,71 @@ export default function OwnerListingsTab() {
         )}
       </View>
 
-      {listings.length === 0 || isAdminPreview ? (
-        <ScrollView contentContainerStyle={styles.emptyScrollContent}>
-          {isAdminPreview && (
-            <View style={styles.previewBanner}>
-              <Text style={styles.previewBannerText}>Admin Preview Mode</Text>
+      {listings.length === 0 ? (
+        <View style={styles.emptyState}>
+          {/* Hero card */}
+          <LinearGradient
+            colors={[COLORS.surface, COLORS.card, COLORS.surface]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.emptyCard}
+          >
+            {/* Glowing icon */}
+            <View style={styles.emptyIconWrap}>
+              <LinearGradient
+                colors={[COLORS.logoOrange, '#F97316', '#DC5A2C']}
+                style={styles.emptyIconCircle}
+              >
+                <Ionicons name="home-outline" size={28} color={COLORS.white} />
+              </LinearGradient>
             </View>
-          )}
-          <Image
-            source={require('../../assets/images/padmagnet-icon-512-dark.png')}
-            style={styles.emptyIcon}
-            contentFit="contain"
-          />
-          <Text style={styles.emptyHeading}>List Your Rental for Free</Text>
-          <Text style={styles.emptySubtitle}>
-            PadMagnet matches your listing with qualified South Florida tenants using smart scoring.
-          </Text>
 
-          <View style={styles.featureBullets}>
-            {[
-              'Free to list — no broker fees, no catch',
-              'Average 11K+/- active listings across 5 counties on Florida\'s Treasure and Gold Coasts',
-              'Smart matching sends your listing to the right tenants',
-              'One-click competitive pricing research',
-            ].map((text, i) => (
-              <View key={i} style={styles.bulletRow}>
-                <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-                <Text style={styles.bulletText}>{text}</Text>
-              </View>
-            ))}
-          </View>
+            <Text style={styles.emptyHeading}>No Listings Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              List your rental for free and reach thousands of qualified South Florida renters.
+            </Text>
 
-          <View style={styles.compCard}>
-            <Text style={styles.compCardTitle}>What others charge</Text>
-            {[
-              { name: 'Zillow Premium', price: '$39.99' },
-              { name: 'Apartments.com', price: '$349' },
-              { name: 'Avail Plus', price: '$9/unit' },
-            ].map((row, i) => (
-              <View key={i} style={styles.compRow}>
-                <Text style={styles.compName}>{row.name}</Text>
-                <Text style={styles.compPrice}>{row.price}</Text>
-              </View>
-            ))}
-            <View style={[styles.compRow, styles.compHighlight]}>
-              <Text style={[styles.compName, { color: COLORS.success, fontFamily: FONTS.body.bold }]}>PadMagnet</Text>
-              <Text style={[styles.compPrice, { color: COLORS.success, fontFamily: FONTS.heading.bold }]}>FREE</Text>
+            {/* Value props */}
+            <View style={styles.emptyProps}>
+              {[
+                { icon: 'checkmark-circle', color: COLORS.success, text: 'Free to list \u2014 no broker fees' },
+                { icon: 'people', color: COLORS.accent, text: 'Smart matching with qualified renters' },
+                { icon: 'trending-up', color: COLORS.brandOrange, text: 'Competitive pricing insights' },
+              ].map((item, i) => (
+                <View key={i} style={styles.emptyPropRow}>
+                  <Ionicons name={item.icon} size={18} color={item.color} />
+                  <Text style={styles.emptyPropText}>{item.text}</Text>
+                </View>
+              ))}
             </View>
-          </View>
 
+            {/* Competitor comparison mini */}
+            <View style={styles.emptyCompare}>
+              <Text style={styles.emptyCompareLabel}>Others charge up to $349</Text>
+              <View style={styles.emptyCompareBadge}>
+                <Text style={styles.emptyCompareFree}>PadMagnet is FREE</Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          {/* Primary CTA */}
           <Pressable
             style={styles.emptyCta}
             onPress={() => isAnon ? setShowAuth(true) : router.push('/owner/create')}
           >
-            <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+            <LinearGradient
+              colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.emptyCtaGradient}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
+              <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+            </LinearGradient>
           </Pressable>
-
-          {/* Secondary CTA — loop to Explore for anon browsing */}
-          <Pressable
-            style={styles.browseRatesCta}
-            onPress={() => router.push('/(owner)/explore')}
-          >
-            <Ionicons name="trending-up" size={16} color={COLORS.accent} />
-            <Text style={styles.browseRatesText}>Browse current rental rates in your neighborhood →</Text>
-          </Pressable>
-
-          <View style={styles.nearbyPromo}>
-            <Text style={styles.nearbyPromoText}>
-              Wondering what other rentals are priced at around you right now?
-            </Text>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Pressable
-                style={styles.nearbyPromoBtn}
-                onPress={() => router.push('/owner/nearby-rentals')}
-              >
-                <FontAwesome name="map-marker" size={24} color={COLORS.white} />
-                <Text style={styles.nearbyPromoBtnText}>Take a Look</Text>
-                <FontAwesome name="chevron-right" size={12} color={COLORS.white} style={{ opacity: 0.7 }} />
-              </Pressable>
-            </Animated.View>
-          </View>
 
           <EqualHousingBadge style={{ marginTop: 16 }} />
-        </ScrollView>
+        </View>
       ) : (
         <FlatList
           data={listings}
@@ -851,103 +819,118 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // ── Empty state (mini sales page) ────────────────────────
-  emptyScrollContent: {
-    alignItems: 'center',
-    paddingHorizontal: LAYOUT.padding.lg,
-    paddingTop: LAYOUT.padding.xl,
-    paddingBottom: 80,
+  // ── Empty state ────────────────────────────────────────
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: LAYOUT.padding.md,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    marginBottom: LAYOUT.padding.md,
+  emptyCard: {
+    borderRadius: LAYOUT.radius.lg,
+    padding: LAYOUT.padding.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  emptyIconWrap: {
+    marginBottom: LAYOUT.padding.sm,
+    shadowColor: COLORS.logoOrange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  emptyIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyHeading: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES['2xl'],
     color: COLORS.text,
     textAlign: 'center',
-    marginBottom: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.xs,
   },
   emptySubtitle: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: LAYOUT.padding.lg,
     lineHeight: 20,
+    marginBottom: LAYOUT.padding.md,
   },
-  featureBullets: {
+  emptyProps: {
     alignSelf: 'stretch',
-    marginBottom: LAYOUT.padding.lg,
+    gap: 10,
+    marginBottom: LAYOUT.padding.md,
   },
-  bulletRow: {
+  emptyPropRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 10,
   },
-  bulletText: {
+  emptyPropText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
     flex: 1,
   },
-  compCard: {
+  emptyCompare: {
+    alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background + 'CC',
     borderRadius: LAYOUT.radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: LAYOUT.padding.md,
-    marginBottom: LAYOUT.padding.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: COLORS.success + '33',
+    gap: 6,
   },
-  compCardTitle: {
-    fontFamily: FONTS.heading.semiBold,
-    fontSize: FONT_SIZES.sm,
+  emptyCompareLabel: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginBottom: LAYOUT.padding.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
-  compRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  emptyCompareBadge: {
+    backgroundColor: COLORS.success + '22',
+    borderRadius: LAYOUT.radius.full,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
-  compHighlight: {
-    borderBottomWidth: 0,
-    paddingTop: 10,
-  },
-  compName: {
-    fontFamily: FONTS.body.medium,
+  emptyCompareFree: {
+    fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.text,
-  },
-  compPrice: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text,
+    color: COLORS.success,
   },
   emptyCta: {
     alignSelf: 'stretch',
-    backgroundColor: COLORS.logoOrange,
-    borderRadius: LAYOUT.radius.md,
-    paddingVertical: 14,
+    borderRadius: LAYOUT.radius.xl,
+    overflow: 'hidden',
+    marginTop: LAYOUT.padding.md,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  emptyCtaGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: LAYOUT.padding.md,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
   },
   emptyCtaText: {
-    fontFamily: FONTS.body.bold,
-    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.white,
   },
   browseRatesCta: {
