@@ -403,6 +403,31 @@ function getContextCopy(context, padpoints) {
         subtitle: `Sign in to access your ${padpoints} PadPoints and saved homes.`,
         dismissible: true,
       };
+    // ── Owner contexts ──────────────────────
+    case 'create_listing':
+      return {
+        title: '🏠 List Your Property',
+        subtitle: 'Sign in to create your free rental listing and reach qualified renters.',
+        dismissible: false,
+      };
+    case 'owner_messages':
+      return {
+        title: '💬 Your Messages',
+        subtitle: 'Sign in to view and respond to renter inquiries.',
+        dismissible: false,
+      };
+    case 'owner_profile':
+      return {
+        title: '👤 Your Account',
+        subtitle: 'Sign in to manage listings, connect with renters, and track your rental performance.',
+        dismissible: true,
+      };
+    case 'owner_upgrade':
+      return {
+        title: '⬆️ Upgrade Your Plan',
+        subtitle: 'Sign in to access premium features, analytics, and more listing slots.',
+        dismissible: false,
+      };
     default:
       return {
         title: '🔓 Sign in to PadMagnet',
