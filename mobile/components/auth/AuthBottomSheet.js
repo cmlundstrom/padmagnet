@@ -377,12 +377,13 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
       {/* ── Magic Link email prompt ──────────────── */}
       {showMagicPrompt && (
+        <View style={styles.promptOverlay}>
         <KeyboardAvoidingView
-          style={styles.promptOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.promptOverlayInner}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-        <Pressable style={styles.promptOverlayInner} onPress={() => setShowMagicPrompt(false)}>
-          <Pressable style={styles.promptCard} onPress={e => e.stopPropagation()}>
+        <Pressable style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: LAYOUT.padding.lg }} onPress={() => setShowMagicPrompt(false)}>
+          <View style={styles.promptCard} onStartShouldSetResponder={() => true}>
             <Ionicons name="mail" size={28} color={COLORS.accent} style={{ marginBottom: 8 }} />
             <Text style={styles.promptTitle}>Send Magic Link</Text>
             <Text style={styles.promptSubtitle}>We'll email you a sign-in link — no password needed.</Text>
@@ -408,9 +409,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 )}
               </TouchableOpacity>
             </View>
-          </Pressable>
+          </View>
         </Pressable>
         </KeyboardAvoidingView>
+        </View>
       )}
 
       </GestureHandlerRootView>
@@ -769,13 +771,10 @@ const styles = StyleSheet.create({
   promptOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 100,
+    backgroundColor: COLORS.scrimDarker,
   },
   promptOverlayInner: {
     flex: 1,
-    backgroundColor: COLORS.scrimDarker,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: LAYOUT.padding.lg,
   },
   promptCard: {
     width: '100%',
