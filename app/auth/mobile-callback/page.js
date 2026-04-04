@@ -49,17 +49,23 @@ export default function MobileCallbackPage() {
     }
 
     if (isAndroid) {
-      // Try standalone app first, then Expo Go
+      // Try standalone/dev client first
       const standaloneIntent = `intent://auth-callback?${tokenQuery}#Intent;scheme=padmagnet;package=com.padmagnet.app;end`;
       window.location.href = standaloneIntent;
+
+      // If standalone didn't open after 1.5s, try Expo Go
+      setTimeout(() => {
+        const expoIntent = `intent://auth-callback?${tokenQuery}#Intent;scheme=exp+padmagnet;package=host.exp.exponent;end`;
+        window.location.href = expoIntent;
+      }, 1500);
     } else if (isIOS) {
       window.location.href = `padmagnet://auth-callback?${tokenQuery}`;
     }
 
-    // If still here after 3 seconds, show manual options
+    // If still here after 4 seconds, show manual options
     const timer = setTimeout(() => {
       setStatus('manual');
-    }, 3000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, []);
