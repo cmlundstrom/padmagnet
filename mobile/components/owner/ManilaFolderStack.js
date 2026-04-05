@@ -94,7 +94,7 @@ function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExpl
       ListHeaderComponent={
         <View>
           <Text style={styles.gridHeader}>
-            There are <Text style={styles.gridCount}>{listings.length}</Text> competitive rentals within a <Text style={styles.gridCount}>10 mi</Text> ring being advertised right now:
+            There are <Text style={styles.gridCount}>{listings.length}</Text> rentals within a <Text style={styles.gridCount}>10 mi</Text> ring being advertised right now:
           </Text>
           <View style={styles.gridActions}>
             <Pressable style={styles.gridActionBtn} onPress={onNavigateExplore}>
@@ -144,7 +144,7 @@ function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExpl
 
 // ─── Manila folder with slide-to-corner dismiss ─────────
 const ManilaFolder = forwardRef(function ManilaFolder(
-  { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, onTabPress, onDismissComplete, children },
+  { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, offsetTop, onTabPress, onDismissComplete, children },
   ref
 ) {
   // Animated properties
@@ -221,6 +221,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
     <Animated.View pointerEvents="box-none" style={[
       styles.folderOuter,
       { zIndex },
+      offsetTop != null && { top: 113 + offsetTop },
       animStyle,
     ]}>
       {/* Tab — tap to switch, swipe to dismiss */}
@@ -427,6 +428,7 @@ export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate
           zIndex={20}
           angle={1}
           enterOffset={0.3}
+          offsetTop={-10}
           dropShadow
           dismissCorner="left"
           onTabPress={handleBrowseNearby}
@@ -502,10 +504,10 @@ const styles = StyleSheet.create({
   // ── Folder outer ──────────────────────────────────
   folderOuter: {
     position: 'absolute',
-    left: 12,
-    right: 2,
+    left: 22,
+    right: 12,
     bottom: -20,
-    top: 88,
+    top: 113,
     elevation: 10,
   },
 

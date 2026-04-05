@@ -32,6 +32,17 @@ export default function OwnerListingsTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [priceEditListing, setPriceEditListing] = useState(null);
 
+  // Pulsing glow for the CTA button
+  const ctaGlow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(ctaGlow, { toValue: 1, duration: 1800, useNativeDriver: false }),
+        Animated.timing(ctaGlow, { toValue: 0, duration: 1800, useNativeDriver: false }),
+      ])
+    ).start();
+  }, []);
+
   const fetchListings = useCallback(async () => {
     try {
       const data = await apiFetch('/api/owner/listings');
@@ -100,7 +111,7 @@ export default function OwnerListingsTab() {
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
-      <OwnerHeader />
+      <OwnerHeader minimal />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Listings</Text>
         {listings.some(l => l.status === 'active') && (
@@ -118,7 +129,7 @@ export default function OwnerListingsTab() {
         <View style={styles.emptyState}>
           {/* Hero card */}
           <LinearGradient
-            colors={[COLORS.surface, COLORS.card, COLORS.surface]}
+            colors={['rgba(35,65,112,0.65)', 'rgba(44,82,136,0.60)', 'rgba(35,65,112,0.65)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.emptyCard}
@@ -135,7 +146,7 @@ export default function OwnerListingsTab() {
 
             <Text style={styles.emptyHeading}>No Listings Yet</Text>
             <Text style={styles.emptySubtitle}>
-              List your rental for free and reach thousands of qualified South Florida renters.
+              Advertise your rental for FREE and reach thousands of Florida renters.
             </Text>
 
             {/* Value props */}
@@ -161,21 +172,31 @@ export default function OwnerListingsTab() {
             </View>
           </LinearGradient>
 
-          {/* Primary CTA */}
-          <Pressable
-            style={styles.emptyCta}
-            onPress={() => isAnon ? setShowAuth(true) : router.push('/owner/create')}
-          >
-            <LinearGradient
-              colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.emptyCtaGradient}
+          {/* Primary CTA — pulsing glow */}
+          <Animated.View style={{
+            alignSelf: 'stretch',
+            borderRadius: LAYOUT.radius.xl,
+            shadowColor: '#F97316',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: ctaGlow.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] }),
+            shadowRadius: ctaGlow.interpolate({ inputRange: [0, 1], outputRange: [8, 22] }),
+            elevation: 10,
+          }}>
+            <Pressable
+              style={styles.emptyCta}
+              onPress={() => isAnon ? setShowAuth(true) : router.push('/owner/create')}
             >
-              <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
-              <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient
+                colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.emptyCtaGradient}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
+                <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
 
           <EqualHousingBadge style={{ marginTop: 16 }} />
         </View>
@@ -917,11 +938,8 @@ const styles = StyleSheet.create({
     borderRadius: LAYOUT.radius.xl,
     overflow: 'hidden',
     marginTop: LAYOUT.padding.md,
-    shadowColor: '#F97316',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   emptyCtaGradient: {
     flexDirection: 'row',
@@ -934,6 +952,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.white,
+    letterSpacing: 0.2,
   },
   browseRatesCta: {
     flexDirection: 'row',

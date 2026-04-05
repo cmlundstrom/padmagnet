@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Modal, Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,8 +36,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     return () => relayCleanup.current?.();
   }, []);
 
-  // Keyboard-aware lift
+  // Keyboard-aware lift for the main sheet
   const keyboardOffset = useSharedValue(0);
+  // Keyboard-aware lift for the magic link prompt card
+  const promptLiftY = useSharedValue(0);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -46,13 +47,19 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
       keyboardOffset.value = withTiming(-e.endCoordinates.height * 0.78, { duration: 250 });
+      promptLiftY.value = withTiming(-e.endCoordinates.height * 0.78, { duration: 250 });
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       keyboardOffset.value = withTiming(0, { duration: 200 });
+      promptLiftY.value = withTiming(0, { duration: 200 });
     });
 
     return () => { showSub.remove(); hideSub.remove(); };
   }, []);
+
+  const promptLiftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: promptLiftY.value }],
+  }));
 
   // Entrance + swipe-to-dismiss
   const enterY = useSharedValue(SCREEN_HEIGHT);
@@ -405,12 +412,8 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       {/* ── Magic Link email prompt ──────────────── */}
       {showMagicPrompt && (
         <View style={styles.promptOverlay}>
-        <KeyboardAvoidingView
-          style={styles.promptOverlayInner}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
         <Pressable style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: LAYOUT.padding.lg }} onPress={() => setShowMagicPrompt(false)}>
-          <View style={styles.promptCard} onStartShouldSetResponder={() => true}>
+          <Animated.View style={[styles.promptCard, promptLiftStyle]} onStartShouldSetResponder={() => true}>
             <Ionicons name="mail" size={28} color={COLORS.accent} style={{ marginBottom: 8 }} />
             <Text style={styles.promptTitle}>Send Magic Link</Text>
             <Text style={styles.promptSubtitle}>We'll email you a sign-in link — no password needed.</Text>
@@ -436,9 +439,8 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 )}
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </Pressable>
-        </KeyboardAvoidingView>
         </View>
       )}
 
@@ -799,9 +801,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 100,
     backgroundColor: COLORS.scrimDarker,
-  },
-  promptOverlayInner: {
-    flex: 1,
   },
   promptCard: {
     width: '100%',

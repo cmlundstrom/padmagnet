@@ -5,7 +5,7 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-const VIEW_MODES = ['grid', 'map', 'list'];
+const DEFAULT_VIEW_MODES = ['grid', 'map', 'list'];
 const VIEW_ICONS = { grid: '\u25a3', map: '\u25ce', list: '\u2630' };
 
 /**
@@ -19,7 +19,8 @@ const VIEW_ICONS = { grid: '\u25a3', map: '\u25ce', list: '\u2630' };
  * @param {function} onViewModeChange - called when a view toggle is tapped (Home screen)
  * @param {function} onRefresh - called when refresh is tapped
  */
-export default function OwnerHeader({ viewMode, onViewModeChange, onRefresh }) {
+export default function OwnerHeader({ viewMode, onViewModeChange, onRefresh, minimal, viewModes }) {
+  const VIEW_MODES = viewModes || DEFAULT_VIEW_MODES;
   const router = useRouter();
   const segments = useSegments();
   const isHome = segments[1] === 'home';
@@ -45,37 +46,43 @@ export default function OwnerHeader({ viewMode, onViewModeChange, onRefresh }) {
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
-        <Pressable style={styles.resetBtn} onPress={handleRefresh}>
-          <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
-        </Pressable>
+        {minimal ? (
+          <View style={[styles.resetBtn, { backgroundColor: 'transparent' }]} />
+        ) : (
+          <Pressable style={styles.resetBtn} onPress={handleRefresh}>
+            <FontAwesome name="refresh" size={16} color={COLORS.textSecondary} />
+          </Pressable>
+        )}
         <Text style={styles.logo}>
           <Text style={{ color: COLORS.white }}>Pad</Text>
           <Text style={{ color: COLORS.deepOrange }}>Magnet</Text>
         </Text>
       </View>
-      <View style={styles.headerRight}>
-        <View style={styles.viewToggle}>
-          {VIEW_MODES.map(mode => (
-            <Pressable
-              key={mode}
-              style={[
-                styles.toggleButton,
-                viewMode === mode && styles.toggleButtonActive,
-              ]}
-              onPress={() => handleViewMode(mode)}
-            >
-              <Text
+      {!minimal && (
+        <View style={styles.headerRight}>
+          <View style={styles.viewToggle}>
+            {VIEW_MODES.map(mode => (
+              <Pressable
+                key={mode}
                 style={[
-                  styles.toggleIcon,
-                  viewMode === mode && styles.toggleIconActive,
+                  styles.toggleButton,
+                  viewMode === mode && styles.toggleButtonActive,
                 ]}
+                onPress={() => handleViewMode(mode)}
               >
-                {VIEW_ICONS[mode]}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={[
+                    styles.toggleIcon,
+                    viewMode === mode && styles.toggleIconActive,
+                  ]}
+                >
+                  {VIEW_ICONS[mode]}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
