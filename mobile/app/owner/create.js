@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -6,349 +6,52 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { Header, Button, Input, Toggle, EqualHousingBadge } from '../../components/ui';
-import StepProgress from '../../components/ui/StepProgress';
+import * as Haptics from 'expo-haptics';
+import { Button, Input, Toggle, EqualHousingBadge } from '../../components/ui';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import NotificationPreferences from '../../components/owner/NotificationPreferences';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import SmartCard from '../../components/owner/studio/SmartCard';
+import StudioHeader from '../../components/owner/studio/StudioHeader';
+import PreviewPill from '../../components/owner/studio/PreviewPill';
+import ListingPreviewSheet from '../../components/owner/studio/ListingPreviewSheet';
+import AskPadOrbOwner from '../../components/owner/studio/AskPadOrbOwner';
+import ConfettiOverlay from '../../components/owner/studio/ConfettiOverlay';
+import StudioOnboardingTooltip from '../../components/owner/studio/StudioOnboardingTooltip';
+import useListingStudio from '../../hooks/useListingStudio';
 import { apiFetch } from '../../lib/api';
-import { toTitleCase, toSentenceCase } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import { useAlert } from '../../providers/AlertProvider';
-import { getDraftStep, saveDraftStep, clearDraftStep } from '../../lib/storage';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
-
-const STEPS = ['Address', 'Details', 'Description', 'Lease', 'Features', 'Photos', 'Contact', 'Review'];
-
-const STEP_MICROCOPY = [
-  "Let's find your property",
-  "Tell us about it",
-  "Make it shine",
-  "Set your terms",
-  "Highlight what makes it special",
-  "First impressions matter",
-  "How tenants will reach you",
-  "Looking great \u2014 let's review",
-];
-
 const PROPERTY_TYPES = ['Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home'];
 
-const INITIAL_FORM = {
-  street_number: '',
-  street_name: '',
-  city: '',
-  state_or_province: 'FL',
-  postal_code: '',
-  property_sub_type: '',
-  list_price: '',
-  bedrooms_total: '',
-  bathrooms_total: '',
-  living_area: '',
-  year_built: '',
-  public_remarks: '',
-  lease_term: '',
-  available_date: '',
-  pets_allowed: null,
-  fenced_yard: false,
-  furnished: false,
-  hoa_fee: '',
-  parking_spaces: '',
-  pool: false,
-  photos: [],
-  tenant_contact_instructions: '',
-  listing_agent_name: '',
-  listing_agent_phone: '',
-  listing_agent_email: '',
-};
-
-export default function CreateListingScreen() {
+export default function MagicListingStudio() {
   const router = useRouter();
   const { draft_id } = useLocalSearchParams();
   const alert = useAlert();
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [submitting, setSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [draftId, setDraftId] = useState(draft_id || null);
-
-  const [loadingDraft, setLoadingDraft] = useState(!!draft_id);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [photoUploadConfig, setPhotoUploadConfig] = useState(null);
-  const [contactPref, setContactPref] = useState('email'); // 'email' | 'phone' | 'both'
   const notifPrefsRef = useRef(null);
-  const [nearbyComps, setNearbyComps] = useState(null); // nearby listings for comparative display
-  const [compsLoading, setCompsLoading] = useState(false);
-  const [aiWriting, setAiWriting] = useState(false);
+  const scrollRef = useRef(null);
 
-  // Fetch photo upload feature config
-  useEffect(() => {
-    apiFetch('/api/products?audience=owner')
-      .then(products => {
-        const cfg = products?.find(p => p.feature_key === 'photo_upload_link' && p.is_active);
-        if (cfg) setPhotoUploadConfig(cfg);
-      })
-      .catch(() => {});
-  }, []);
+  // Card refs for scroll-to on validation error
+  const cardRefs = useRef({});
 
-  const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const studio = useListingStudio(draft_id);
+  const { form, update, updatePhone, updateMany, completionMap, completionPercent,
+    contactPref, setContactPref, aiLoading, loading, submitting,
+    createDraft, prefillContact, generateDescription, generateFromPhotos,
+    suggestAmenities, publish, buildPayload, draftId } = studio;
 
-  // Format phone as (XXX) XXX-XXXX
-  const formatPhone = (raw) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 10);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  };
+  // ── Local UI state ──
+  const [uploading, setUploading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  // Load existing draft data on mount
-  useEffect(() => {
-    if (!draft_id) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiFetch(`/api/listings/${draft_id}`);
-        if (cancelled) return;
-        setForm({
-          street_number: data.street_number || '',
-          street_name: data.street_name || '',
-          city: data.city || '',
-          state_or_province: data.state_or_province || 'FL',
-          postal_code: data.postal_code || '',
-          property_sub_type: data.property_sub_type || '',
-          list_price: data.list_price ? String(data.list_price) : '',
-          bedrooms_total: data.bedrooms_total ? String(data.bedrooms_total) : '',
-          bathrooms_total: data.bathrooms_total ? String(data.bathrooms_total) : '',
-          living_area: data.living_area ? String(data.living_area) : '',
-          year_built: data.year_built ? String(data.year_built) : '',
-          public_remarks: data.public_remarks || '',
-          lease_term: data.lease_term || '',
-          available_date: data.available_date || '',
-          pets_allowed: data.pets_allowed,
-          fenced_yard: data.fenced_yard || false,
-          furnished: data.furnished || false,
-          hoa_fee: data.hoa_fee > 0 ? 'yes' : data.hoa_fee === 0 ? 'no' : '',
-          parking_spaces: data.parking_spaces ? String(data.parking_spaces) : '',
-          pool: data.pool || false,
-          photos: data.photos || [],
-          tenant_contact_instructions: data.tenant_contact_instructions || '',
-          listing_agent_name: data.listing_agent_name || '',
-          listing_agent_phone: data.listing_agent_phone || '',
-          listing_agent_email: data.listing_agent_email || '',
-        });
-        // Restore saved step
-        const savedStep = await getDraftStep(draft_id);
-        if (!cancelled) setStep(savedStep);
-      } catch {
-        alert('Error', 'Could not load draft. Starting fresh.');
-      } finally {
-        if (!cancelled) setLoadingDraft(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [draft_id]);
-
-  // Prefill address from cached nearby-rentals address (only for new listings, not drafts)
-  useEffect(() => {
-    if (draft_id) return;
-    AsyncStorage.getItem('owner_property_address').then(cached => {
-      if (cached) {
-        try {
-          const addr = JSON.parse(cached);
-          if (addr.street_name) {
-            setForm(prev => {
-              // Only prefill if user hasn't already typed an address
-              if (prev.street_name) return prev;
-              return {
-                ...prev,
-                street_number: addr.street_number || '',
-                street_name: addr.street_name || '',
-                city: addr.city || '',
-                state_or_province: addr.state_or_province || 'FL',
-                postal_code: addr.postal_code || '',
-              };
-            });
-          }
-        } catch {
-          // Invalid cached data — ignore
-        }
-      }
-    });
-  }, [draft_id]);
-
-  // Build payload from form state — normalizes text casing before save
-  const buildPayload = useCallback((statusOverride) => ({
-    street_number: form.street_number?.trim() || null,
-    street_name: toTitleCase(form.street_name) || null,
-    city: toTitleCase(form.city) || null,
-    postal_code: form.postal_code?.trim() || null,
-    state_or_province: form.state_or_province?.trim()?.toUpperCase() || 'FL',
-    property_sub_type: form.property_sub_type || null,
-    list_price: form.list_price ? parseFloat(form.list_price) : null,
-    bedrooms_total: form.bedrooms_total ? parseInt(form.bedrooms_total, 10) : null,
-    bathrooms_total: form.bathrooms_total ? parseFloat(form.bathrooms_total) : null,
-    living_area: form.living_area ? parseFloat(form.living_area) : null,
-    year_built: form.year_built ? parseInt(form.year_built, 10) : null,
-    public_remarks: toSentenceCase(form.public_remarks) || null,
-    lease_term: form.lease_term || null,
-    available_date: form.available_date || null,
-    pets_allowed: form.pets_allowed,
-    fenced_yard: form.fenced_yard,
-    furnished: form.furnished,
-    hoa_fee: form.hoa_fee === 'yes' ? 1 : form.hoa_fee === 'no' ? 0 : null,
-    parking_spaces: form.parking_spaces ? parseInt(form.parking_spaces, 10) : null,
-    pool: form.pool,
-    photos: form.photos.filter(p => p.url.startsWith('http')),
-    tenant_contact_instructions: toSentenceCase(form.tenant_contact_instructions) || null,
-    listing_agent_name: toTitleCase(form.listing_agent_name) || null,
-    listing_agent_phone: form.listing_agent_phone || null,
-    listing_agent_email: form.listing_agent_email?.trim()?.toLowerCase() || null,
-    ...(statusOverride ? { status: statusOverride } : {}),
-  }), [form]);
-
-
-  // Create draft on first next from step 0
-  const createDraft = async () => {
-    if (draftId) return;
-    try {
-      const data = await apiFetch('/api/owner/listings', {
-        method: 'POST',
-        body: JSON.stringify({ ...buildPayload('draft'), status: 'draft' }),
-      });
-      setDraftId(data.id);
-      saveDraftStep(data.id, 1); // Moving from step 0 to 1
-    } catch { /* non-blocking — draft creation is optional */ }
-  };
-
-  // Fetch nearby comparable rentals for pricing context (comparative display only)
-  const fetchNearbyComps = useCallback(async () => {
-    if (!form.city || !form.postal_code) return;
-    setCompsLoading(true);
-    try {
-      const data = await apiFetch(`/api/listings?city=${encodeURIComponent(form.city)}&limit=3&page=1`);
-      if (data?.listings?.length > 0) {
-        setNearbyComps(data.listings.slice(0, 3));
-      }
-    } catch { /* silent */ }
-    setCompsLoading(false);
-  }, [form.city, form.postal_code]);
-
-  // Generate AI listing description via Ask Pad
-  const generateDescription = useCallback(async () => {
-    if (!form.city || !form.bedrooms_total) return;
-    setAiWriting(true);
-    try {
-      const prompt = `Write a compelling rental listing description for a ${form.bedrooms_total}-bed/${form.bathrooms_total}-bath ${form.property_sub_type || 'home'} in ${form.city}, FL. ${form.living_area ? form.living_area + ' sqft.' : ''} ${form.pool ? 'Has a pool.' : ''} ${form.furnished ? 'Furnished.' : ''} ${form.pets_allowed ? 'Pet-friendly.' : ''} ${form.fenced_yard ? 'Fenced yard.' : ''} Keep it under 400 characters, enthusiastic but professional. Do not mention price or make any value claims.`;
-      const result = await apiFetch('/api/ask-pad', {
-        method: 'POST',
-        body: JSON.stringify({ query: prompt }),
-      });
-      if (result?.message) {
-        // Strip any [[link:...]] tokens from the AI response
-        const cleaned = result.message.replace(/\[\[link:\w+\]\]/g, '').trim();
-        update('public_remarks', cleaned.slice(0, 500));
-      }
-    } catch { alert('Error', 'Could not generate description. Try again.'); }
-    setAiWriting(false);
-  }, [form]);
-
-  const nextStep = async () => {
-    if (step === 0) {
-      const missing = [];
-      if (!form.street_name) missing.push('Street Name');
-      if (!form.city) missing.push('City');
-      if (!form.state_or_province) missing.push('State');
-      if (!form.postal_code) missing.push('Zip');
-      if (missing.length) {
-        alert('Required', `Please fill in: ${missing.join(', ')}`);
-        return;
-      }
-    }
-    if (step === 1) {
-      const missing = [];
-      if (!form.list_price) missing.push('Monthly Rent');
-      if (!form.property_sub_type) missing.push('Property Type');
-      if (!form.bedrooms_total) missing.push('Beds');
-      if (!form.bathrooms_total) missing.push('Baths');
-      if (!form.year_built) missing.push('Year Built');
-      if (!form.living_area) missing.push('Sq/Ft');
-      if (missing.length) {
-        alert('Required', `Please fill in: ${missing.join(', ')}`);
-        return;
-      }
-    }
-    if (step === 6) {
-      const missing = [];
-      if ((contactPref === 'phone' || contactPref === 'both') && !form.listing_agent_phone) missing.push('Phone Number');
-      if (missing.length) {
-        alert('Required', `Please fill in: ${missing.join(', ')}`);
-        return;
-      }
-      if (form.listing_agent_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.listing_agent_email)) {
-        alert('Invalid Email', 'Please enter a valid email address.');
-        return;
-      }
-      if ((contactPref === 'phone' || contactPref === 'both') && form.listing_agent_phone.replace(/\D/g, '').length < 10) {
-        alert('Invalid Phone', 'Please enter a complete 10-digit phone number.');
-        return;
-      }
-    }
-    // Create draft on leaving step 0
-    if (step === 0) await createDraft();
-    // Auto-populate owner contact info when entering step 6
-    if (step === 5) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Fetch profile data (display_name, email) from profiles table
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, email, phone')
-            .eq('id', user.id)
-            .single();
-          if (!form.listing_agent_email) update('listing_agent_email', profile?.email || user.email || '');
-          if (!form.listing_agent_name) update('listing_agent_name', profile?.display_name || '');
-          if (!form.listing_agent_phone && profile?.phone) {
-            update('listing_agent_phone', formatPhone(profile.phone));
-            setContactPref('both');
-          }
-          // Infer contact pref from draft data
-          if (form.listing_agent_phone) setContactPref(form.listing_agent_email ? 'both' : 'phone');
-        }
-      } catch { /* non-blocking */ }
-    }
-    if (step < STEPS.length - 1) {
-      const newStep = step + 1;
-      setStep(newStep);
-      // Save draft immediately on every step change
-      if (draftId) {
-        saveDraftStep(draftId, newStep);
-        apiFetch(`/api/owner/listings/${draftId}`, {
-          method: 'PUT',
-          body: JSON.stringify(buildPayload()),
-        }).catch(() => {});
-      }
-    }
-  };
-
-  const prevStep = () => {
-    if (step > 0) {
-      const newStep = step - 1;
-      setStep(newStep);
-      if (draftId) {
-        saveDraftStep(draftId, newStep);
-        apiFetch(`/api/owner/listings/${draftId}`, {
-          method: 'PUT',
-          body: JSON.stringify(buildPayload()),
-        }).catch(() => {});
-      }
-    }
-  };
-
-  // Upload photos to Supabase Storage via API
+  // ── Photo upload ──
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -356,14 +59,12 @@ export default function CreateListingScreen() {
       quality: 0.8,
       selectionLimit: 15 - form.photos.length,
     });
-
     if (result.canceled || !result.assets?.length) return;
 
     setUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-
       const formData = new FormData();
       result.assets.forEach((asset) => {
         const ext = asset.uri.split('.').pop() || 'jpg';
@@ -373,26 +74,18 @@ export default function CreateListingScreen() {
           name: `photo.${ext}`,
         });
       });
-
       const res = await fetch(`${API_BASE}/api/owner/photos`, {
         method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: formData,
       });
-
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Upload failed (${res.status})`);
       }
-
       const uploaded = await res.json();
       const newPhotos = uploaded.map((p, i) => ({
-        url: p.url,
-        thumb_url: p.thumb_url,
-        caption: '',
-        order: form.photos.length + i,
+        url: p.url, thumb_url: p.thumb_url, caption: '', order: form.photos.length + i,
       }));
       update('photos', [...form.photos, ...newPhotos]);
     } catch (err) {
@@ -404,115 +97,88 @@ export default function CreateListingScreen() {
 
   const removePhoto = async (index) => {
     const photo = form.photos[index];
-    // Delete from storage if it's a remote URL
     if (photo.url.startsWith('http')) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         await fetch(`${API_BASE}/api/owner/photos`, {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ urls: [photo.url] }),
         });
-      } catch { /* best-effort delete */ }
+      } catch {}
     }
     update('photos', form.photos.filter((_, i) => i !== index));
   };
 
-  // Send desktop photo upload link via email
-  const [linkSent, setLinkSent] = useState(false);
+  // ── Desktop upload link ──
   const handleSendUploadLink = async () => {
-    // Save current form state first
-    if (draftId) {
-      await apiFetch(`/api/owner/listings/${draftId}`, {
-        method: 'PUT',
-        body: JSON.stringify(buildPayload()),
-      }).catch(() => {});
-    }
+    let id = draftId;
+    if (!id) id = await createDraft();
+    if (!id) { alert('Error', 'Please fill in an address first.'); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
-    alert(
-      'Upload from Desktop',
-      `Send a secure photo upload link to ${user.email}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send Link',
-          onPress: async () => {
-            try {
-              await apiFetch(`/api/owner/listings/${draftId}/upload-link`, {
-                method: 'POST',
-              });
-              setLinkSent(true);
-              alert('Link Sent!', 'Check your email. The link expires in 45 minutes.');
-            } catch (err) {
-              alert('Error', err.message);
-            }
-          },
+    alert('Upload from Desktop', `Send a secure photo upload link to ${user.email}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Send Link',
+        onPress: async () => {
+          try {
+            await apiFetch(`/api/owner/listings/${id}/upload-link`, { method: 'POST' });
+            setLinkSent(true);
+            alert('Link Sent!', 'Check your email. The link expires in 45 minutes.');
+          } catch (err) { alert('Error', err.message); }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  // Realtime subscription for photos synced from desktop upload
+  // ── Realtime photo sync from desktop ──
   useEffect(() => {
-    if (!draftId || step !== 5) return;
+    if (!draftId) return;
     const channel = supabase
       .channel(`listing-photos-${draftId}`)
       .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'listings',
-        filter: `id=eq.${draftId}`,
+        event: 'UPDATE', schema: 'public', table: 'listings', filter: `id=eq.${draftId}`,
       }, (payload) => {
-        if (payload.new?.photos) {
-          setForm(f => ({ ...f, photos: payload.new.photos }));
-        }
+        if (payload.new?.photos) update('photos', payload.new.photos);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [draftId, step]);
+  }, [draftId]);
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      await notifPrefsRef.current?.save().catch(() => {});
-      const payload = buildPayload('active');
+  // ── Publish ──
+  const handlePublish = async () => {
+    // Ensure draft exists
+    if (!draftId) await createDraft();
 
-      if (draftId) {
-        // Update existing draft → pending_payment
-        await apiFetch(`/api/owner/listings/${draftId}`, {
-          method: 'PUT',
-          body: JSON.stringify(payload),
-        });
-      } else {
-        // Create new listing directly
-        await apiFetch('/api/owner/listings', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-      }
-
-      if (draftId) clearDraftStep(draftId);
-      alert('Success', 'Your listing has been created!', [
-        { text: 'OK', onPress: () => router.replace('/(owner)/listings') },
-      ]);
-    } catch (err) {
-      alert('Error', err.message);
-    } finally {
-      setSubmitting(false);
+    const result = await publish(notifPrefsRef, alert, router.replace);
+    if (result.success) {
+      setShowConfetti(true);
+    } else if (result.firstErrorCard) {
+      // Scroll to first error card - the validation alert is already shown by publish()
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
-  const address = [form.street_number, form.street_name].filter(Boolean).join(' ');
+  // ── Comps state ──
+  const [nearbyComps, setNearbyComps] = useState(null);
+  const [compsLoading, setCompsLoading] = useState(false);
 
-  if (loadingDraft) {
+  const fetchNearbyComps = async () => {
+    if (!form.city || !form.postal_code) return;
+    setCompsLoading(true);
+    try {
+      const data = await apiFetch(`/api/listings?city=${encodeURIComponent(form.city)}&limit=3&page=1`);
+      if (data?.listings?.length > 0) setNearbyComps(data.listings.slice(0, 3));
+    } catch {}
+    setCompsLoading(false);
+  };
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <Header title="Create Listing" showBack />
+        <StudioHeader title="Listing Studio" completionPercent={0} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={COLORS.accent} />
         </View>
@@ -522,26 +188,38 @@ export default function CreateListingScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Header title={draft_id ? 'Edit Draft' : 'Create Listing'} showBack />
-
-      {/* Step indicator */}
-      <StepProgress current={step} steps={STEPS} subtitle={STEP_MICROCOPY[step]} />
-
-
+      {/* ── Header with progress ring ── */}
+      <StudioHeader
+        title={draft_id ? 'Edit Draft' : 'Listing Studio'}
+        completionPercent={completionPercent}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {/* Step 0: Address */}
-        {step === 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Property Address</Text>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── 1. Address Card ── */}
+          <SmartCard
+            title="Property Address"
+            icon="location"
+            completion={completionMap.address}
+            defaultOpen
+            cardRef={r => { cardRefs.current.address = r; }}
+          >
             <AddressAutocomplete
               onSelect={(addr) => {
-                update('street_number', addr.street_number || '');
-                update('street_name', addr.street_name || '');
-                update('city', addr.city || '');
-                update('state_or_province', addr.state_or_province || 'FL');
-                update('postal_code', addr.postal_code || '');
+                updateMany({
+                  street_number: addr.street_number || '',
+                  street_name: addr.street_name || '',
+                  city: addr.city || '',
+                  state_or_province: addr.state_or_province || 'FL',
+                  postal_code: addr.postal_code || '',
+                });
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }}
             />
             <View style={styles.row}>
@@ -553,16 +231,16 @@ export default function CreateListingScreen() {
               <Input label="State *" value={form.state_or_province} onChangeText={v => update('state_or_province', v)} placeholder="FL" autoCapitalize="characters" style={styles.shortInput} />
             </View>
             <Input label="Zip *" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" />
-          </>
-        )}
+          </SmartCard>
 
-        {/* Step 1: Details */}
-        {step === 1 && (
-          <>
-            <Text style={styles.sectionTitle}>Property Details</Text>
+          {/* ── 2. Details Card ── */}
+          <SmartCard
+            title="Property Details"
+            icon="home"
+            completion={completionMap.details}
+            cardRef={r => { cardRefs.current.details = r; }}
+          >
             <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
-
-            {/* Comparative pricing — nearby rentals */}
             {!nearbyComps && !compsLoading && form.city && (
               <Pressable style={styles.compsLink} onPress={fetchNearbyComps}>
                 <Ionicons name="trending-up" size={16} color={COLORS.accent} />
@@ -600,46 +278,60 @@ export default function CreateListingScreen() {
               <Input label="Sq/Ft *" value={form.living_area} onChangeText={v => update('living_area', v)} keyboardType="numeric" placeholder="1200" style={styles.thirdInput} />
             </View>
             <Input label="Year Built *" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
-          </>
-        )}
+          </SmartCard>
 
-        {/* Step 2: Description */}
-        {step === 2 && (
-          <>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.hint}>Pitch the pad. What cool features in your rental or nearby hot spots really make it shine?</Text>
-
-            {/* AI description generator */}
-            <Pressable
-              style={[styles.aiButton, aiWriting && { opacity: 0.6 }]}
-              onPress={generateDescription}
-              disabled={aiWriting}
-            >
-              <Ionicons name="sparkles" size={16} color={COLORS.brandOrange} />
-              <Text style={styles.aiButtonText}>{aiWriting ? 'Writing...' : 'Let Ask Pad write this for you'}</Text>
-            </Pressable>
+          {/* ── 3. Description Card ── */}
+          <SmartCard
+            title="Description"
+            icon="create"
+            completion={completionMap.description}
+            cardRef={r => { cardRefs.current.description = r; }}
+          >
+            <Text style={styles.hint}>Pitch the pad. What makes it shine?</Text>
+            <View style={styles.aiButtonRow}>
+              <Pressable
+                style={[styles.aiButton, aiLoading && { opacity: 0.6 }]}
+                onPress={generateDescription}
+                disabled={aiLoading}
+              >
+                <Ionicons name="sparkles" size={16} color={COLORS.brandOrange} />
+                <Text style={styles.aiButtonText}>{aiLoading ? 'Writing...' : 'Let Ask Pad Write This'}</Text>
+              </Pressable>
+              {form.photos.length > 0 && (
+                <Pressable
+                  style={[styles.aiButton, styles.aiButtonVision, aiLoading && { opacity: 0.6 }]}
+                  onPress={generateFromPhotos}
+                  disabled={aiLoading}
+                >
+                  <Ionicons name="camera" size={16} color={COLORS.accent} />
+                  <Text style={[styles.aiButtonText, { color: COLORS.accent }]}>AI Write from Photos</Text>
+                </Pressable>
+              )}
+            </View>
             <Input
               label="Describe Your Rental Property"
-              labelStyle={{ color: COLORS.white }}
               value={form.public_remarks}
               onChangeText={v => update('public_remarks', v.slice(0, 500))}
               autoCapitalize="sentences"
-              placeholder="Spacious 3-bed home with updated kitchen, close to downtown..."
-              placeholderTextColor={COLORS.slate}
+              placeholder="Spacious 3-bed home with updated kitchen..."
               multiline
-              numberOfLines={6}
+              numberOfLines={5}
               maxLength={500}
               style={styles.textArea}
             />
-            <Text style={styles.charCounter}><Text style={{ color: form.public_remarks.length > 500 ? COLORS.danger : COLORS.success, fontFamily: FONTS.body.regular, fontSize: FONT_SIZES.xs }}>{form.public_remarks.length}</Text>/500</Text>
-          </>
-        )}
+            <Text style={styles.charCounter}>
+              <Text style={{ color: form.public_remarks.length > 450 ? COLORS.warning : COLORS.success }}>{form.public_remarks.length}</Text>/500
+            </Text>
+          </SmartCard>
 
-        {/* Step 3: Lease */}
-        {step === 3 && (
-          <>
-            <Text style={styles.sectionTitle}>Lease Details</Text>
-            <Text style={styles.fieldLabel}>Minimum Lease Term you will offer a Tenant?</Text>
+          {/* ── 4. Lease Card ── */}
+          <SmartCard
+            title="Lease Terms"
+            icon="document-text"
+            completion={completionMap.lease}
+            cardRef={r => { cardRefs.current.lease = r; }}
+          >
+            <Text style={styles.fieldLabel}>Minimum Lease Term</Text>
             <View style={styles.chipRow}>
               {[{ label: '3 Months', value: '3' }, { label: '6 Months + 1 Day', value: '6' }, { label: '12 Months', value: '12' }].map(opt => (
                 <Pressable
@@ -677,7 +369,7 @@ export default function CreateListingScreen() {
                 }}
               />
             )}
-            <Text style={styles.fieldLabel}>Is your Rental located in an Owner Association which will subject your Tenant to Association Application or Association Rules?</Text>
+            <Text style={styles.fieldLabel}>HOA / Owner Association?</Text>
             <View style={styles.chipRow}>
               {[{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }].map(opt => (
                 <Pressable
@@ -689,13 +381,25 @@ export default function CreateListingScreen() {
                 </Pressable>
               ))}
             </View>
-          </>
-        )}
+          </SmartCard>
 
-        {/* Step 4: Features */}
-        {step === 4 && (
-          <>
-            <Text style={styles.sectionTitle}>Features</Text>
+          {/* ── 5. Features Card ── */}
+          <SmartCard
+            title="Features & Amenities"
+            icon="sparkles"
+            completion={completionMap.features}
+            cardRef={r => { cardRefs.current.features = r; }}
+          >
+            {form.photos.length > 0 && (
+              <Pressable
+                style={[styles.aiButton, styles.aiButtonVision, aiLoading && { opacity: 0.6 }]}
+                onPress={suggestAmenities}
+                disabled={aiLoading}
+              >
+                <Ionicons name="camera" size={16} color={COLORS.accent} />
+                <Text style={[styles.aiButtonText, { color: COLORS.accent }]}>{aiLoading ? 'Analyzing...' : 'Suggest from Photos'}</Text>
+              </Pressable>
+            )}
             <Text style={styles.label}>Pets Allowed</Text>
             <View style={styles.chipRow}>
               {[{ label: 'Yes', value: true }, { label: 'No', value: false }].map(opt => (
@@ -712,28 +416,24 @@ export default function CreateListingScreen() {
             <Toggle label="Furnished" value={form.furnished} onValueChange={v => update('furnished', v)} />
             <Toggle label="Pool" value={form.pool} onValueChange={v => update('pool', v)} />
             <Input label="Parking Spaces" value={form.parking_spaces} onChangeText={v => update('parking_spaces', v)} keyboardType="numeric" placeholder="2" />
-          </>
-        )}
+          </SmartCard>
 
-        {/* Step 5: Photos */}
-        {step === 5 && (
-          <>
-            <Text style={styles.sectionTitle}>Photos</Text>
-            <Text style={styles.hint}>Add up to 15 photos of your property. Photos are uploaded immediately.</Text>
+          {/* ── 6. Photos Card ── */}
+          <SmartCard
+            title="Photos"
+            icon="images"
+            completion={completionMap.photos}
+            cardRef={r => { cardRefs.current.photos = r; }}
+          >
+            <Text style={styles.hint}>Great photos get 3x more inquiries. Add up to 15.</Text>
             <View style={styles.photoActionRow}>
               <Pressable style={styles.photoActionBtn} onPress={pickImages} disabled={form.photos.length >= 15 || uploading}>
                 <FontAwesome name="mobile-phone" size={22} color={COLORS.white} />
-                <Text style={styles.photoActionBtnText}>Add Photos from Phone</Text>
+                <Text style={styles.photoActionBtnText}>Add from Phone</Text>
               </Pressable>
-              <Pressable
-                style={[styles.photoActionBtn, !draftId && { opacity: 0.4 }]}
-                onPress={draftId ? handleSendUploadLink : null}
-                disabled={!draftId}
-              >
+              <Pressable style={[styles.photoActionBtn, !draftId && { opacity: 0.4 }]} onPress={draftId ? handleSendUploadLink : null} disabled={!draftId}>
                 <FontAwesome name="laptop" size={18} color={COLORS.white} />
-                <Text style={styles.photoActionBtnText}>
-                  {linkSent ? 'Resend Upload Link' : (photoUploadConfig?.metadata?.button_text || 'Upload Photos from Desktop/Laptop')}
-                </Text>
+                <Text style={styles.photoActionBtnText}>{linkSent ? 'Resend Link' : 'Upload from Desktop'}</Text>
               </Pressable>
             </View>
             {uploading && (
@@ -750,26 +450,28 @@ export default function CreateListingScreen() {
                 <View key={index} style={styles.photoItem}>
                   <Image source={{ uri: photo.url }} style={styles.photoImage} contentFit="cover" />
                   <Pressable style={styles.photoRemove} onPress={() => removePhoto(index)}>
-                    <Text style={styles.photoRemoveText}>✕</Text>
+                    <Text style={styles.photoRemoveText}>{'\u2715'}</Text>
                   </Pressable>
                 </View>
               ))}
             </View>
-          </>
-        )}
+          </SmartCard>
 
-        {/* Step 6: Contact */}
-        {step === 6 && (
-          <>
-            <Text style={styles.sectionTitle}>Contact Information</Text>
-            <Text style={styles.hint}>This is how tenants will reach you. Choose your preferred contact method.</Text>
-            <Input
-              label="Your Name (as shown to tenants)"
-              value={form.listing_agent_name}
-              onChangeText={v => update('listing_agent_name', v)}
-              placeholder="Your full name"
-              autoCapitalize="words"
-            />
+          {/* ── 7. Contact Card ── */}
+          <SmartCard
+            title="Contact & Notifications"
+            icon="call"
+            completion={completionMap.contact}
+            cardRef={r => { cardRefs.current.contact = r; }}
+          >
+            <Text style={styles.hint}>How renters will reach you.</Text>
+            <Input label="Your Name" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Your full name" autoCapitalize="words" />
+            {!form.listing_agent_name && (
+              <Pressable style={styles.prefillBtn} onPress={prefillContact}>
+                <Ionicons name="person-circle" size={16} color={COLORS.accent} />
+                <Text style={styles.prefillBtnText}>Fill from profile</Text>
+              </Pressable>
+            )}
             <Text style={styles.chipLabel}>Preferred Contact Method *</Text>
             <View style={styles.chipRow}>
               {[{ key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'both', label: 'Both' }].map(opt => (
@@ -786,7 +488,7 @@ export default function CreateListingScreen() {
               ))}
             </View>
             <Input
-              label="Email for Tenants"
+              label="Email for Renters"
               value={form.listing_agent_email}
               onChangeText={v => update('listing_agent_email', v)}
               onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
@@ -796,9 +498,9 @@ export default function CreateListingScreen() {
             />
             {(contactPref === 'phone' || contactPref === 'both') && (
               <Input
-                label="Phone Number for Tenants *"
+                label="Phone Number for Renters *"
                 value={form.listing_agent_phone}
-                onChangeText={v => update('listing_agent_phone', formatPhone(v))}
+                onChangeText={v => updatePhone(v)}
                 placeholder="(555) 123-4567"
                 keyboardType="phone-pad"
               />
@@ -812,83 +514,68 @@ export default function CreateListingScreen() {
               numberOfLines={3}
               style={styles.textArea}
             />
-            <View style={{ marginTop: 24 }}>
+            <View style={{ marginTop: 16 }}>
               <NotificationPreferences ref={notifPrefsRef} compact context="wizard" />
             </View>
-          </>
-        )}
+          </SmartCard>
 
-        {/* Step 7: Review */}
-        {step === 7 && (
-          <>
-            <Text style={styles.sectionTitle}>Review Your Listing</Text>
-            <View style={styles.reviewCard}>
-              <ReviewRow label="Address" value={`${address}, ${form.city}, FL ${form.postal_code}`} />
-              <ReviewRow label="Rent" value={form.list_price ? `$${form.list_price}/mo` : '—'} />
-              <ReviewRow label="Type" value={form.property_sub_type || '—'} />
-              <ReviewRow label="Beds / Baths" value={`${form.bedrooms_total || '—'} / ${form.bathrooms_total || '—'}`} />
-              <ReviewRow label="Sqft" value={form.living_area || '—'} />
-              <ReviewRow label="Description" value={form.public_remarks ? `${form.public_remarks.slice(0, 60)}...` : '—'} />
-              <ReviewRow label="Lease" value={form.lease_term ? `${form.lease_term} months` : '—'} />
-              <ReviewRow label="Pets" value={form.pets_allowed === true ? 'Yes' : form.pets_allowed === false ? 'No' : 'Unknown'} />
-              <ReviewRow label="Furnished" value={form.furnished ? 'Yes' : 'No'} />
-              <ReviewRow label="Photos" value={`${form.photos.length} photo${form.photos.length !== 1 ? 's' : ''}`} />
-              <ReviewRow label="Contact" value={form.listing_agent_name || '—'} />
-              <ReviewRow label="Method" value={contactPref === 'both' ? 'Email & Phone' : contactPref === 'phone' ? 'Phone' : 'Email'} />
-            </View>
-            <EqualHousingBadge style={{ marginTop: 16 }} />
-          </>
-        )}
-      </ScrollView>
+          <EqualHousingBadge style={{ marginTop: 8, marginBottom: 16 }} />
+        </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Navigation buttons */}
-      <View style={styles.navBar}>
-        {step > 0 && (
-          <Button title="Back" variant="secondary" onPress={prevStep} style={styles.navButton} />
-        )}
-        <View style={styles.navSpacer} />
-        {step < STEPS.length - 1 ? (
-          <Button title="Next" onPress={nextStep} style={styles.navButton} />
-        ) : (
-          <Button title="Submit Listing" onPress={handleSubmit} loading={submitting} style={styles.navButton} />
-        )}
+      {/* ── Floating Ask Pad Orb ── */}
+      <AskPadOrbOwner onPress={() => {
+        // TODO Phase 5: contextual AI helper based on active card
+        alert('Ask Pad', 'Ask Pad can help you write descriptions, suggest pricing, and fill in amenities. Try the sparkle buttons inside each card!');
+      }} />
+
+      {/* ── Bottom bar: Preview + Publish ── */}
+      <View style={styles.bottomBar}>
+        <View style={styles.bottomProgress}>
+          <View style={[styles.bottomProgressFill, { width: `${completionPercent}%` }]} />
+        </View>
+        <View style={styles.bottomActions}>
+          <PreviewPill
+            firstPhoto={form.photos?.[0]?.url}
+            completionPercent={completionPercent}
+            onPress={() => { setShowPreview(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          />
+          <Button
+            title={submitting ? 'Publishing...' : 'Publish Listing'}
+            onPress={handlePublish}
+            loading={submitting}
+            style={styles.publishBtn}
+          />
+        </View>
       </View>
+
+      {/* ── Live Preview Sheet ── */}
+      <ListingPreviewSheet
+        visible={showPreview}
+        onClose={() => setShowPreview(false)}
+        form={form}
+      />
+
+      {/* ── Confetti on publish ── */}
+      <ConfettiOverlay
+        visible={showConfetti}
+        onFinish={() => {
+          setShowConfetti(false);
+          router.replace('/(owner)/listings');
+        }}
+      />
+
+      {/* ── First-time onboarding ── */}
+      <StudioOnboardingTooltip
+        visible={!studio.hasOnboarded}
+        onDismiss={studio.markOnboarded}
+      />
     </SafeAreaView>
   );
 }
 
-function ReviewRow({ label, value }) {
-  return (
-    <View style={reviewStyles.row}>
-      <Text style={reviewStyles.label}>{label}</Text>
-      <Text style={reviewStyles.value}>{value}</Text>
-    </View>
-  );
-}
-
-const reviewStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  label: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  value: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text,
-    textAlign: 'right',
-    flex: 1,
-    marginLeft: 12,
-  },
-});
+// ── Styles ──────────────────────────────────────────────────
+// Reusing patterns from old wizard + new studio additions
 
 const styles = StyleSheet.create({
   container: {
@@ -899,54 +586,142 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: LAYOUT.padding.md,
-    paddingBottom: 360,
+    paddingTop: LAYOUT.padding.sm,
+    paddingBottom: 100,
   },
-  sectionTitle: {
-    fontFamily: FONTS.heading.semiBold,
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.text,
-    marginBottom: LAYOUT.padding.md,
+  // ── Shared field styles ──
+  row: {
+    flexDirection: 'row',
+    gap: 8,
   },
+  shortInput: { width: 80 },
+  flexInput: { flex: 1 },
+  thirdInput: { flex: 1 },
   label: {
-    fontFamily: FONTS.body.medium,
+    fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    marginTop: 12,
     marginBottom: 6,
+  },
+  fieldLabel: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  chipLabel: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
   },
   hint: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
-    marginBottom: LAYOUT.padding.md,
+    marginBottom: 12,
+    lineHeight: 20,
   },
-  row: {
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  charCounter: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  // ── AI buttons ──
+  aiButtonRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
+    marginBottom: 12,
+    flexWrap: 'wrap',
   },
-  shortInput: {
-    width: 90,
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  flexInput: {
-    flex: 1,
+  aiButtonVision: {
+    borderColor: COLORS.accent + '55',
   },
-  thirdInput: {
-    flex: 1,
-  },
-  fieldLabel: {
+  aiButtonText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.brandOrange,
+  },
+  // ── Comps ──
+  compsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 8,
+  },
+  compsLinkText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+  },
+  compsContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.sm,
+    marginVertical: 8,
+  },
+  compsTitle: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
     marginBottom: 6,
   },
+  compItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  compPrice: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brandOrange,
+  },
+  compDetails: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  compsDisclaimer: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+  // ── Date picker ──
   datePickerBtn: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
+    padding: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   datePickerText: {
     fontFamily: FONTS.body.regular,
@@ -958,228 +733,116 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.slate,
   },
-  chipLabel: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text,
-    marginBottom: 6,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: LAYOUT.padding.md,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  switchLabel: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text,
-  },
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  photoItem: {
-    width: (LAYOUT.window.width - 32 - 20) / 3,
-    height: (LAYOUT.window.width - 32 - 20) / 3,
-    borderRadius: LAYOUT.radius.sm,
-    overflow: 'hidden',
-  },
-  photoImage: {
-    flex: 1,
-  },
-  photoRemove: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.scrimDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoRemoveText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontFamily: FONTS.heading.bold,
-  },
-  addPhotoBtn: {
-    width: (LAYOUT.window.width - 32 - 20) / 3,
-    height: (LAYOUT.window.width - 32 - 20) / 3,
-    borderRadius: LAYOUT.radius.sm,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addPhotoText: {
-    fontSize: 28,
-    color: COLORS.textSecondary,
-  },
-  addPhotoLabel: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
+  // ── Photos ──
   photoActionRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 12,
   },
   photoActionBtn: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.accent,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   photoActionBtnText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.white,
-    textAlign: 'center',
-  },
-  photoCount: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
-    marginBottom: 8,
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
   },
   uploadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: LAYOUT.padding.md,
+    marginBottom: 8,
   },
   uploadingText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  photoCount: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
   },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  // ── Comparative pricing ─────────────────
-  compsLink: {
+  photoItem: {
+    width: 90,
+    height: 90,
+    borderRadius: LAYOUT.radius.sm,
+    overflow: 'hidden',
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoRemoveText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // ── Contact ──
+  prefillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 10,
-    marginBottom: 4,
+    marginTop: -4,
+    marginBottom: 8,
   },
-  compsLinkText: {
+  prefillBtnText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
   },
-  compsContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.md,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 8,
-  },
-  compsTitle: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  compItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  compPrice: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.brandOrange,
-  },
-  compDetails: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
-  },
-  compsDisclaimer: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xxs,
-    color: COLORS.slate,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  // ── AI description button ─────────────────
-  aiButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.brandOrange + '15',
-    borderRadius: LAYOUT.radius.md,
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.brandOrange + '33',
-  },
-  aiButtonText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.brandOrange,
-  },
-  charCounter: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
-    textAlign: 'right',
-    marginTop: -8,
-    marginBottom: 8,
-  },
-  draftBanner: {
-    backgroundColor: COLORS.success + '22',
-    paddingVertical: 4,
-    alignItems: 'center',
-  },
-  draftBannerText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.success,
-  },
-  reviewCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.md,
-  },
-  navBar: {
-    flexDirection: 'row',
-    padding: LAYOUT.padding.md,
-    paddingBottom: LAYOUT.padding.md + 50,
+  // ── Bottom bar ──
+  bottomBar: {
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingVertical: LAYOUT.padding.sm,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
-  navSpacer: {
-    flex: 1,
+  bottomProgress: {
+    height: 3,
+    backgroundColor: COLORS.surface,
+    borderRadius: 2,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
-  navButton: {
-    minWidth: 100,
+  bottomProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.accent,
+    borderRadius: 2,
+  },
+  bottomActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  publishBtn: {
+    flex: 1,
   },
 });
