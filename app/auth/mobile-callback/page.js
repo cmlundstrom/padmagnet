@@ -8,14 +8,14 @@ import { useEffect, useState } from 'react';
  * Flow:
  * 1. Supabase verifies the magic link token
  * 2. Supabase redirects here with tokens in the URL hash fragment
- * 3. This page opens the mobile app via Android Intent URI or iOS scheme
- * 4. Desktop users see a branded confirmation page
+ * 3. On mobile: opens the app via Android Intent URI or iOS scheme
+ * 4. On desktop: relays tokens to the mobile app via /auth/relay-tokens API
+ *    (the mobile app listens via Supabase Realtime subscription)
  * 5. If the app doesn't open on mobile, shows manual buttons
  */
 export default function MobileCallbackPage() {
   const [status, setStatus] = useState('redirecting');
   const [tokens, setTokens] = useState(null);
-  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -24,9 +24,9 @@ export default function MobileCallbackPage() {
       return;
     }
 
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
+    const hashParams = new URLSearchParams(hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
 
     if (!accessToken || !refreshToken) {
       setStatus('error');
@@ -35,6 +35,10 @@ export default function MobileCallbackPage() {
 
     setTokens({ accessToken, refreshToken });
 
+    // Read nonce from query string (passed through Supabase redirect)
+    const queryParams = new URLSearchParams(window.location.search);
+    const nonce = queryParams.get('nonce');
+
     const tokenQuery = `access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
 
     const isAndroid = /android/i.test(navigator.userAgent);
@@ -42,18 +46,35 @@ export default function MobileCallbackPage() {
     const isMobile = isAndroid || isIOS;
 
     if (!isMobile) {
-      // Desktop — show branded confirmation
-      setIsDesktop(true);
-      setStatus('desktop');
+      // Desktop — relay tokens to the mobile app via API
+      if (nonce) {
+        setStatus('desktop-relaying');
+        fetch('/auth/relay-tokens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nonce,
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            setStatus(data.ok ? 'desktop-relayed' : 'desktop');
+          })
+          .catch(() => setStatus('desktop'));
+      } else {
+        // No nonce — older magic link or direct visit
+        setStatus('desktop');
+      }
       return;
     }
 
+    // Mobile — deep-link into the app
     if (isAndroid) {
-      // Try standalone/dev client first
       const standaloneIntent = `intent://auth-callback?${tokenQuery}#Intent;scheme=padmagnet;package=com.padmagnet.app;end`;
       window.location.href = standaloneIntent;
 
-      // If standalone didn't open after 1.5s, try Expo Go
       setTimeout(() => {
         const expoIntent = `intent://auth-callback?${tokenQuery}#Intent;scheme=exp+padmagnet;package=host.exp.exponent;end`;
         window.location.href = expoIntent;
@@ -85,6 +106,13 @@ export default function MobileCallbackPage() {
       : `padmagnet://auth-callback?${tokenQuery}`;
   }
 
+  const infoBox = {
+    background: '#1A3358', border: '1px solid #3464A0', borderRadius: 12,
+    padding: '20px 28px', textAlign: 'center', maxWidth: 340,
+  };
+
+  const copyright = { color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' };
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -108,23 +136,40 @@ export default function MobileCallbackPage() {
         </>
       )}
 
-      {status === 'desktop' && (
+      {status === 'desktop-relaying' && (
+        <>
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Signing you in...</h2>
+          <p style={{ color: '#8899aa', fontSize: 14 }}>Sending your session to the PadMagnet app</p>
+        </>
+      )}
+
+      {status === 'desktop-relayed' && (
         <>
           <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>You're signed in!</h2>
           <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center', maxWidth: 360, lineHeight: '22px', marginBottom: 24 }}>
-            Your email has been verified. Open the PadMagnet app on your phone to continue.
+            Your session has been sent to the PadMagnet app. Check your phone — it should sign in automatically.
           </p>
-          <div style={{
-            background: '#1A3358', border: '1px solid #3464A0', borderRadius: 12,
-            padding: '20px 28px', textAlign: 'center', maxWidth: 340,
-          }}>
+          <div style={infoBox}>
             <p style={{ color: '#B0BEC5', fontSize: 13, margin: 0 }}>
-              Already have the app? Open it and you'll be automatically signed in.
+              If the app doesn't update within a few seconds, open it and tap <strong>Magic Link</strong> again.
             </p>
           </div>
-          <p style={{ color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
-            © {new Date().getFullYear()} PadMagnet LLC
+          <p style={copyright}>© {new Date().getFullYear()} PadMagnet LLC</p>
+        </>
+      )}
+
+      {status === 'desktop' && (
+        <>
+          <h2 style={{ marginBottom: 8, fontSize: 22, fontWeight: 700 }}>Open this link on your phone</h2>
+          <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center', maxWidth: 360, lineHeight: '22px', marginBottom: 24 }}>
+            This sign-in link works best when opened on the device where PadMagnet is installed.
           </p>
+          <div style={infoBox}>
+            <p style={{ color: '#B0BEC5', fontSize: 13, margin: 0 }}>
+              Open your email app on your phone and tap the link there instead.
+            </p>
+          </div>
+          <p style={copyright}>© {new Date().getFullYear()} PadMagnet LLC</p>
         </>
       )}
 
@@ -150,9 +195,7 @@ export default function MobileCallbackPage() {
           }}>
             Open in Expo Go (dev)
           </a>
-          <p style={{ color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
-            © {new Date().getFullYear()} PadMagnet LLC
-          </p>
+          <p style={copyright}>© {new Date().getFullYear()} PadMagnet LLC</p>
         </>
       )}
 
@@ -162,17 +205,12 @@ export default function MobileCallbackPage() {
           <p style={{ color: '#8899aa', fontSize: 14, textAlign: 'center', maxWidth: 340, lineHeight: '22px', marginBottom: 24 }}>
             This magic link has already been used or has expired. Each link can only be used once.
           </p>
-          <div style={{
-            background: '#1A3358', border: '1px solid #3464A0', borderRadius: 12,
-            padding: '20px 28px', textAlign: 'center', maxWidth: 340,
-          }}>
+          <div style={infoBox}>
             <p style={{ color: '#B0BEC5', fontSize: 13, margin: 0 }}>
               Open the PadMagnet app and request a new magic link to sign in.
             </p>
           </div>
-          <p style={{ color: '#556', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
-            © {new Date().getFullYear()} PadMagnet LLC
-          </p>
+          <p style={copyright}>© {new Date().getFullYear()} PadMagnet LLC</p>
         </>
       )}
     </div>

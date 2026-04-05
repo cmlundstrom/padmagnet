@@ -43,10 +43,14 @@ export async function getSession() {
   return session;
 }
 
-export async function signInWithMagicLink(email) {
+export async function signInWithMagicLink(email, nonce) {
   // Use web intermediary page that deep-links back to the app.
   // This works in both Expo Go and standalone builds, unlike padmagnet:// direct.
-  const redirectUrl = 'https://padmagnet.com/auth/mobile-callback';
+  // When nonce is provided, the desktop callback page can relay tokens back
+  // to the mobile app via Supabase Realtime (cross-device magic link support).
+  const redirectUrl = nonce
+    ? `https://padmagnet.com/auth/mobile-callback?nonce=${nonce}`
+    : 'https://padmagnet.com/auth/mobile-callback';
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: redirectUrl },

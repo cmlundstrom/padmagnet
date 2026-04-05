@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
@@ -10,8 +10,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
+import { subscribeMagicLinkRelay } from '../../hooks/useMagicLinkRelay';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -27,6 +29,13 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(null);
   const [magicSent, setMagicSent] = useState(false);
+
+  // Cross-device magic link relay cleanup
+  const relayCleanup = useRef(null);
+
+  useEffect(() => {
+    return () => relayCleanup.current?.();
+  }, []);
 
   // Keyboard-aware lift
   const keyboardOffset = useSharedValue(0);
@@ -148,7 +157,14 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     if (!magicEmail) return;
     setLoading('magic');
     try {
-      await signInWithMagicLink(magicEmail);
+      // Generate nonce for cross-device relay (desktop email → mobile app)
+      const nonce = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      });
+      await AsyncStorage.setItem('magic_link_nonce', nonce);
+
+      await signInWithMagicLink(magicEmail, nonce);
 
       // Save return path so auth-callback knows where to navigate
       const returnTo = getReturnPath();
@@ -158,6 +174,15 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       setShowMagicPrompt(false);
       setMagicSent(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Start listening for cross-device token relay
+      relayCleanup.current?.();
+      relayCleanup.current = subscribeMagicLinkRelay(nonce, (dest) => {
+        // Relay succeeded — tokens arrived from desktop, close sheet and navigate
+        resetState();
+        onClose?.();
+        router.replace(dest);
+      });
     } catch (err) {
       setError(err.message);
     }
@@ -195,6 +220,8 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setError(null);
     setMagicSent(false);
     setLoading(null);
+    relayCleanup.current?.();
+    relayCleanup.current = null;
   }
 
   function resetAndClose() {
