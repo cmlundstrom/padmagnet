@@ -10,6 +10,7 @@ import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 import usePreferences from '../../hooks/usePreferences';
 import useSwipe from '../../hooks/useSwipe';
 import usePadPoints from '../../hooks/usePadPoints';
+import { useAuth } from '../../hooks/useAuth';
 import { calculatePadScore } from '../../lib/padscore';
 import { supabase } from '../../lib/supabase';
 import { FontAwesome } from '@expo/vector-icons';
@@ -124,15 +125,15 @@ export default function ListingDetailScreen() {
 
   const [showAuth, setShowAuth] = useState(false);
   const padPoints = usePadPoints();
+  const { session: authSession } = useAuth();
+  const isAnon = !authSession || authSession.user?.is_anonymous === true;
 
   const handleContact = async () => {
     if (!listing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Check if anonymous — gate behind auth
-    const { data: { session } } = await supabase.auth.getSession();
-    const isAnon = session?.user?.is_anonymous || session?.user?.app_metadata?.provider === 'anonymous';
-    if (isAnon || !session) {
+    // Check if anonymous — gate behind auth (reactive via useAuth)
+    if (isAnon) {
       setShowAuth(true);
       return;
     }

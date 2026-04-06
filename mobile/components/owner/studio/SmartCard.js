@@ -1,16 +1,11 @@
 import { useState, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, Pressable, StyleSheet, LayoutAnimation } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../../constants/fonts';
 import { LAYOUT } from '../../../constants/layout';
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 /**
  * SmartCard — glassmorphic collapsible card for the Magic Listing Studio.

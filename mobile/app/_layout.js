@@ -29,6 +29,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
+import AuthSuccessBanner from '../components/auth/AuthSuccessBanner';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { COLORS } from '../constants/colors';
 
@@ -138,6 +139,7 @@ export default function RootLayout() {
         <RouteGuard>
         <StatusBar style="light" />
         <OfflineBanner />
+        <AuthSuccessBanner />
         <Stack
           screenOptions={{
             headerShown: false,
