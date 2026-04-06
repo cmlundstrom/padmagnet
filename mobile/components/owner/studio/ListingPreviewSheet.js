@@ -22,20 +22,10 @@ export default function ListingPreviewSheet({ visible, onClose, form }) {
 
   return (
     <SwipeableSheet visible={visible} onClose={onClose} sheetStyle={styles.sheetOverride}>
-      {/* Custom handle — capsule + chevron */}
-      <View style={styles.handleArea}>
-        <View style={styles.handleCapsule} />
-        <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.35)" style={{ marginTop: 2 }} />
-      </View>
-
-      {/* Gradient header band */}
-      <LinearGradient
-        colors={['rgba(11,29,58,0.6)', 'transparent']}
-        style={styles.headerBand}
-      >
+      <View style={styles.headerContent}>
         <Text style={styles.sheetTitle}>Live Preview</Text>
         <Text style={styles.sheetSubtitle}>This is how renters will see your listing</Text>
-      </LinearGradient>
+      </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Photo hero with inner shadow */}
@@ -156,53 +146,43 @@ const styles = StyleSheet.create({
   sheetOverride: {
     minHeight: SCREEN_H * 0.75,
     backgroundColor: 'rgba(26,51,88,0.90)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
   },
-  handleArea: {
-    alignItems: 'center',
-    paddingTop: 6,
-  },
-  handleCapsule: {
-    width: 60,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  // Gradient header band
-  headerBand: {
+  headerContent: {
     paddingHorizontal: LAYOUT.padding.md,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 6,
   },
   sheetTitle: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.md,
     color: COLORS.text,
-    marginBottom: 2,
+    paddingHorizontal: LAYOUT.padding.md,
+    marginTop: 6,
+    marginBottom: 1,
   },
   sheetSubtitle: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
+    paddingHorizontal: LAYOUT.padding.md,
   },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingBottom: 60,
+    paddingHorizontal: LAYOUT.padding.sm,
+    paddingTop: 8,
+    paddingBottom: 40,
   },
-  // Photo hero with inner shadow
+  // Photo hero — reduced height
   heroWrap: {
     width: '100%',
-    height: 200,
-    borderRadius: LAYOUT.radius.lg,
+    height: 150,
+    borderRadius: LAYOUT.radius.md,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   heroPhoto: {
     width: '100%',
@@ -233,50 +213,50 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: 8,
+    marginBottom: 2,
   },
   price: {
     fontFamily: FONTS.heading.bold,
-    fontSize: 28,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.logoOrange,
   },
   typeBadge: {
     backgroundColor: COLORS.accent + '22',
     borderRadius: LAYOUT.radius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderWidth: 1,
     borderColor: COLORS.accent + '33',
   },
   typeText: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.xs,
+    fontSize: FONT_SIZES.xxs,
     color: COLORS.accent,
   },
   address: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.text,
   },
   cityLine: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   // Specs — glass card within glass
   specsBlur: {
     borderRadius: LAYOUT.radius.md,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(52,100,160,0.3)',
   },
   specsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
   specItem: { alignItems: 'center', gap: 2 },
   specValue: {
@@ -290,25 +270,25 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   // Description
-  descSection: { marginBottom: 16 },
+  descSection: { marginBottom: 10 },
   descLabel: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   descText: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.text,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   // Feature badges — glass border
   featuresRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
+    gap: 6,
+    marginBottom: 8,
   },
   featureBadge: {
     flexDirection: 'row',
@@ -328,22 +308,22 @@ const styles = StyleSheet.create({
   },
   leaseText: {
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   contactSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 12,
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: 'rgba(52,100,160,0.3)',
   },
   contactName: {
     fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.text,
   },
   // Bottom fade

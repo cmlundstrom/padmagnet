@@ -69,6 +69,7 @@ export default function useListingStudio(draftIdParam) {
   const [submitting, setSubmitting] = useState(false);
   const [contactPref, setContactPref] = useState('email');
   const [aiLoading, setAiLoading] = useState(false);
+  const [coords, setCoords] = useState(null); // { latitude, longitude } from address
   const [hasOnboarded, setHasOnboarded] = useState(true); // assume yes until checked
 
   const saveTimer = useRef(null);
@@ -212,6 +213,10 @@ export default function useListingStudio(draftIdParam) {
         });
         if (data.listing_agent_phone) {
           setContactPref(data.listing_agent_email ? 'both' : 'phone');
+        }
+        // Capture coords from draft for nearby rentals search
+        if (data.latitude && data.longitude) {
+          setCoords({ latitude: data.latitude, longitude: data.longitude });
         }
       } catch {}
       if (!cancelled) setLoading(false);
@@ -484,6 +489,8 @@ export default function useListingStudio(draftIdParam) {
     generateFromPhotos,
     suggestAmenities,
     buildPayload,
+    coords,
+    setCoords,
     hasOnboarded,
     markOnboarded,
     formatPhone,

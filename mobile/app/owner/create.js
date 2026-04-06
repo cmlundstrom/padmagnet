@@ -45,7 +45,7 @@ export default function MagicListingStudio() {
   const { form, update, updatePhone, updateMany, completionMap, completionPercent,
     contactPref, setContactPref, aiLoading, loading, submitting,
     createDraft, prefillContact, generateDescription, generateFromPhotos,
-    suggestAmenities, publish, buildPayload, draftId } = studio;
+    suggestAmenities, publish, buildPayload, draftId, coords, setCoords } = studio;
 
   // ── Local UI state ──
   const [uploading, setUploading] = useState(false);
@@ -54,7 +54,6 @@ export default function MagicListingStudio() {
   const [showPreview, setShowPreview] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showComps, setShowComps] = useState(false);
-  const [addressCoords, setAddressCoords] = useState(null);
 
   // ── Photo upload ──
   const pickImages = async () => {
@@ -212,7 +211,7 @@ export default function MagicListingStudio() {
                   postal_code: addr.postal_code || '',
                 });
                 if (addr.latitude && addr.longitude) {
-                  setAddressCoords({ latitude: addr.latitude, longitude: addr.longitude });
+                  setCoords({ latitude: addr.latitude, longitude: addr.longitude });
                 }
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }}
@@ -556,7 +555,7 @@ export default function MagicListingStudio() {
         visible={showComps}
         onClose={() => setShowComps(false)}
         form={form}
-        coords={addressCoords}
+        coords={coords}
       />
 
       {/* ── Confetti on publish ── */}

@@ -4,22 +4,29 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DISMISS_THRESHOLD = 120;
 
 /**
- * Swipeable bottom sheet wrapper — drop-in replacement for Modal sheets.
- * Swipe the handle down to dismiss, tap backdrop to dismiss, or use onClose.
+ * SwipeableSheet — KingCard standard bottom sheet.
+ *
+ * The unified card base for PadMagnet overlay cards.
+ * Standard: 88% width, dual-bar handle + chevron + shaded header band,
+ * 24px top radius, drag-to-dismiss + tap-outside dismiss.
  *
  * Props:
  *   visible     — boolean, controls visibility
- *   onClose     — called when dismissed (swipe, backdrop tap, or back button)
- *   children    — sheet content (rendered inside the animated panel)
+ *   onClose     — called when dismissed
+ *   children    — sheet content
  *   sheetStyle  — optional additional styles for the sheet container
+ *   handleTint  — 'light' (default, white bars on dark) or 'dark' (brown bars on manila)
  */
-export default function SwipeableSheet({ visible, onClose, children, sheetStyle }) {
+export default function SwipeableSheet({ visible, onClose, children, sheetStyle, handleTint }) {
   const translateY = useSharedValue(SCREEN_HEIGHT);
+  const isDark = handleTint === 'dark';
 
   useEffect(() => {
     if (visible) {
@@ -58,16 +65,29 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle 
 
   if (!visible) return null;
 
+  // Handle bar colors adapt to tint
+  const barWideColor = isDark ? 'rgba(90,70,30,0.5)' : 'rgba(255,255,255,0.4)';
+  const barNarrowColor = isDark ? 'rgba(90,70,30,0.3)' : 'rgba(255,255,255,0.22)';
+  const chevronColor = isDark ? 'rgba(90,70,30,0.5)' : 'rgba(255,255,255,0.4)';
+  const bandColors = isDark
+    ? ['rgba(140,115,60,0.3)', 'transparent']
+    : ['rgba(255,255,255,0.08)', 'transparent'];
+
   return (
     <Modal visible transparent statusBarTranslucent onRequestClose={animateAndClose}>
       <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         <Pressable style={styles.backdrop} onPress={animateAndClose} />
         <Animated.View style={[styles.sheet, sheetStyle, panelStyle]}>
+          {/* KingCard handle — shaded header band + dual bars + chevron */}
           <GestureDetector gesture={panGesture}>
-            <View style={styles.handleRow}>
-              <View style={styles.handle} />
-            </View>
+            <LinearGradient colors={bandColors} style={styles.handleBand}>
+              <View style={styles.handleArea}>
+                <View style={[styles.handleBarWide, { backgroundColor: barWideColor }]} />
+                <View style={[styles.handleBarNarrow, { backgroundColor: barNarrowColor }]} />
+                <Ionicons name="chevron-down" size={14} color={chevronColor} style={{ marginTop: 3 }} />
+              </View>
+            </LinearGradient>
           </GestureDetector>
           {children}
         </Animated.View>
@@ -81,26 +101,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
+    width: SCREEN_WIDTH * 0.88,
     backgroundColor: '#111827',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: SCREEN_HEIGHT * 0.85,
     overflow: 'hidden',
   },
-  handleRow: {
-    alignItems: 'center',
-    paddingVertical: 10,
+  handleBand: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 4,
   },
-  handle: {
-    width: 40,
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 10,
+  },
+  handleBarWide: {
+    width: 60,
+    height: 5,
+    borderRadius: 3,
+  },
+  handleBarNarrow: {
+    width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#64748b',
+    marginTop: 4,
   },
 });
