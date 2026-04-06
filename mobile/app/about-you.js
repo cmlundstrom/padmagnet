@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Input, Button } from '../components/ui';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -74,6 +75,15 @@ export default function AboutYouScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Back arrow — escape hatch */}
+      <Pressable
+        style={styles.backBtn}
+        onPress={() => router.replace(role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe')}
+        hitSlop={12}
+      >
+        <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+      </Pressable>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -119,6 +129,13 @@ export default function AboutYouScreen() {
             loading={loading}
             style={styles.continueButton}
           />
+
+          <Pressable
+            style={styles.skipBtn}
+            onPress={() => router.replace(role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe')}
+          >
+            <Text style={styles.skipText}>Skip for now</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -148,9 +165,24 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 32,
   },
+  backBtn: {
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingTop: LAYOUT.padding.sm,
+    alignSelf: 'flex-start',
+  },
   continueButton: {
     width: '100%',
     marginTop: 16,
+  },
+  skipBtn: {
+    alignSelf: 'center',
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  skipText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
   },
   consentTitle: {
     fontFamily: FONTS.heading.semiBold,

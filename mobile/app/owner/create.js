@@ -1,11 +1,12 @@
 import { useRef, useState, useEffect } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Button, Input, Toggle, EqualHousingBadge } from '../../components/ui';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
@@ -32,6 +33,7 @@ export default function MagicListingStudio() {
   const router = useRouter();
   const { draft_id } = useLocalSearchParams();
   const alert = useAlert();
+  const insets = useSafeAreaInsets();
   const notifPrefsRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -57,7 +59,7 @@ export default function MagicListingStudio() {
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
-      selectionLimit: 15 - form.photos.length,
+      selectionLimit: 10 - form.photos.length,
     });
     if (result.canceled || !result.assets?.length) return;
 
@@ -166,12 +168,28 @@ export default function MagicListingStudio() {
   const [compsLoading, setCompsLoading] = useState(false);
 
   const fetchNearbyComps = async () => {
-    if (!form.city || !form.postal_code) return;
+    if (!form.city) {
+      alert('City Required', 'Please enter an address first so we can find nearby rentals.');
+      return;
+    }
     setCompsLoading(true);
     try {
-      const data = await apiFetch(`/api/listings?city=${encodeURIComponent(form.city)}&limit=3&page=1`);
-      if (data?.listings?.length > 0) setNearbyComps(data.listings.slice(0, 3));
-    } catch {}
+      // Try city-based search — returns MLS + owner listings in the same city
+      const data = await apiFetch(`/api/listings?city=${encodeURIComponent(form.city)}&limit=5&page=1`);
+      if (data?.listings?.length > 0) {
+        // Filter to similar property types if we know ours, otherwise show all
+        let comps = data.listings;
+        if (form.property_sub_type) {
+          const similar = comps.filter(c => c.property_sub_type === form.property_sub_type);
+          if (similar.length >= 2) comps = similar;
+        }
+        setNearbyComps(comps.slice(0, 5));
+      } else {
+        setNearbyComps([]);
+      }
+    } catch {
+      alert('Error', 'Could not load nearby rentals. Try again.');
+    }
     setCompsLoading(false);
   };
 
@@ -241,23 +259,53 @@ export default function MagicListingStudio() {
             cardRef={r => { cardRefs.current.details = r; }}
           >
             <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
-            {!nearbyComps && !compsLoading && form.city && (
+            {!nearbyComps && !compsLoading && (
               <Pressable style={styles.compsLink} onPress={fetchNearbyComps}>
                 <Ionicons name="trending-up" size={16} color={COLORS.accent} />
                 <Text style={styles.compsLinkText}>See what similar properties are renting for</Text>
               </Pressable>
             )}
-            {compsLoading && <ActivityIndicator size="small" color={COLORS.accent} style={{ marginVertical: 8 }} />}
-            {nearbyComps && (
+            {compsLoading && (
+              <View style={styles.compsLoadingRow}>
+                <ActivityIndicator size="small" color={COLORS.accent} />
+                <Text style={styles.compsLoadingText}>Finding nearby rentals...</Text>
+              </View>
+            )}
+            {nearbyComps && nearbyComps.length > 0 && (
               <View style={styles.compsContainer}>
-                <Text style={styles.compsTitle}>Nearby rentals in {form.city}</Text>
+                <View style={styles.compsHeader}>
+                  <Text style={styles.compsTitle}>Nearby rentals in {form.city}</Text>
+                  <Pressable onPress={() => setNearbyComps(null)} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={COLORS.slate} />
+                  </Pressable>
+                </View>
                 {nearbyComps.map((comp, i) => (
                   <View key={i} style={styles.compItem}>
-                    <Text style={styles.compPrice}>${Number(comp.list_price).toLocaleString()}/mo</Text>
-                    <Text style={styles.compDetails}>{comp.bedrooms_total}bd · {comp.bathrooms_total}ba{comp.living_area ? ` · ${Number(comp.living_area).toLocaleString()} sqft` : ''}</Text>
+                    <View style={styles.compLeft}>
+                      <Text style={styles.compPrice}>${Number(comp.list_price).toLocaleString()}/mo</Text>
+                      <Text style={styles.compAddress} numberOfLines={1}>
+                        {[comp.street_number, comp.street_name].filter(Boolean).join(' ') || comp.city}
+                      </Text>
+                    </View>
+                    <Text style={styles.compDetails}>
+                      {comp.bedrooms_total || '—'}bd · {comp.bathrooms_total || '—'}ba
+                      {comp.living_area ? ` · ${Number(comp.living_area).toLocaleString()} sqft` : ''}
+                    </Text>
                   </View>
                 ))}
+                <Pressable style={styles.compsRefresh} onPress={fetchNearbyComps}>
+                  <Ionicons name="refresh" size={14} color={COLORS.accent} />
+                  <Text style={styles.compsRefreshText}>Refresh</Text>
+                </Pressable>
                 <Text style={styles.compsDisclaimer}>For comparison only — not a property valuation.</Text>
+              </View>
+            )}
+            {nearbyComps && nearbyComps.length === 0 && (
+              <View style={styles.compsContainer}>
+                <Text style={styles.compsEmpty}>No similar rentals found in {form.city}. Try entering your address first.</Text>
+                <Pressable style={styles.compsRefresh} onPress={() => setNearbyComps(null)}>
+                  <Text style={styles.compsRefreshText}>Dismiss</Text>
+                </Pressable>
               </View>
             )}
             <Text style={styles.label}>Property Type *</Text>
@@ -294,8 +342,8 @@ export default function MagicListingStudio() {
                 onPress={generateDescription}
                 disabled={aiLoading}
               >
-                <Ionicons name="sparkles" size={16} color={COLORS.brandOrange} />
-                <Text style={styles.aiButtonText}>{aiLoading ? 'Writing...' : 'Let Ask Pad Write This'}</Text>
+                <Image source={require('../../assets/images/askpad-orb.png')} style={styles.aiOrbIcon} contentFit="contain" />
+                <Text style={styles.aiButtonText}>{aiLoading ? 'Writing...' : 'Let AskPad Write This'}</Text>
               </Pressable>
               {form.photos.length > 0 && (
                 <Pressable
@@ -303,7 +351,7 @@ export default function MagicListingStudio() {
                   onPress={generateFromPhotos}
                   disabled={aiLoading}
                 >
-                  <Ionicons name="camera" size={16} color={COLORS.accent} />
+                  <Image source={require('../../assets/images/askpad-orb.png')} style={styles.aiOrbIcon} contentFit="contain" />
                   <Text style={[styles.aiButtonText, { color: COLORS.accent }]}>AI Write from Photos</Text>
                 </Pressable>
               )}
@@ -386,7 +434,7 @@ export default function MagicListingStudio() {
           {/* ── 5. Features Card ── */}
           <SmartCard
             title="Features & Amenities"
-            icon="sparkles"
+            icon="options"
             completion={completionMap.features}
             cardRef={r => { cardRefs.current.features = r; }}
           >
@@ -396,7 +444,7 @@ export default function MagicListingStudio() {
                 onPress={suggestAmenities}
                 disabled={aiLoading}
               >
-                <Ionicons name="camera" size={16} color={COLORS.accent} />
+                <Image source={require('../../assets/images/askpad-orb.png')} style={styles.aiOrbIcon} contentFit="contain" />
                 <Text style={[styles.aiButtonText, { color: COLORS.accent }]}>{aiLoading ? 'Analyzing...' : 'Suggest from Photos'}</Text>
               </Pressable>
             )}
@@ -425,17 +473,18 @@ export default function MagicListingStudio() {
             completion={completionMap.photos}
             cardRef={r => { cardRefs.current.photos = r; }}
           >
-            <Text style={styles.hint}>Great photos get 3x more inquiries. Add up to 15.</Text>
+            <Text style={styles.hint}>Great photos get 3x more inquiries. Add up to 10.</Text>
             <View style={styles.photoActionRow}>
-              <Pressable style={styles.photoActionBtn} onPress={pickImages} disabled={form.photos.length >= 15 || uploading}>
+              <Pressable style={styles.photoActionBtn} onPress={pickImages} disabled={form.photos.length >= 10 || uploading}>
                 <FontAwesome name="mobile-phone" size={22} color={COLORS.white} />
                 <Text style={styles.photoActionBtnText}>Add from Phone</Text>
               </Pressable>
-              <Pressable style={[styles.photoActionBtn, !draftId && { opacity: 0.4 }]} onPress={draftId ? handleSendUploadLink : null} disabled={!draftId}>
+              <Pressable style={styles.photoActionBtn} onPress={handleSendUploadLink}>
                 <FontAwesome name="laptop" size={18} color={COLORS.white} />
                 <Text style={styles.photoActionBtnText}>{linkSent ? 'Resend Link' : 'Upload from Desktop'}</Text>
               </Pressable>
             </View>
+            <Text style={styles.photoTip}>Listings without photos have near zero probability of renting. Ensure you upload your photos and make them amazing!</Text>
             {uploading && (
               <View style={styles.uploadingRow}>
                 <ActivityIndicator size="small" color={COLORS.accent} />
@@ -443,7 +492,7 @@ export default function MagicListingStudio() {
               </View>
             )}
             {form.photos.length > 0 && (
-              <Text style={styles.photoCount}>{form.photos.length} of 15 photos</Text>
+              <Text style={styles.photoCount}>{form.photos.length} of 10 photos</Text>
             )}
             <View style={styles.photoGrid}>
               {form.photos.map((photo, index) => (
@@ -523,31 +572,44 @@ export default function MagicListingStudio() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ── Floating Ask Pad Orb ── */}
-      <AskPadOrbOwner onPress={() => {
-        // TODO Phase 5: contextual AI helper based on active card
-        alert('Ask Pad', 'Ask Pad can help you write descriptions, suggest pricing, and fill in amenities. Try the sparkle buttons inside each card!');
-      }} />
-
-      {/* ── Bottom bar: Preview + Publish ── */}
-      <View style={styles.bottomBar}>
-        <View style={styles.bottomProgress}>
-          <View style={[styles.bottomProgressFill, { width: `${completionPercent}%` }]} />
+      {/* ── Floating action panel — rides above phone nav bar ── */}
+      {!showPreview && (
+      <View style={[styles.floatingPanel, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+        <View style={styles.floatingProgress}>
+          <View style={[styles.floatingProgressFill, { width: `${completionPercent}%` }]} />
         </View>
-        <View style={styles.bottomActions}>
+        <View style={styles.floatingActions}>
+          <Pressable
+            style={styles.floatingOrbBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              alert('AskPad', 'AskPad can help you write descriptions, suggest pricing, and fill in amenities. Try the orb buttons inside each card!');
+            }}
+          >
+            <Image source={require('../../assets/images/askpad-orb.png')} style={styles.floatingOrbImg} contentFit="contain" />
+          </Pressable>
           <PreviewPill
             firstPhoto={form.photos?.[0]?.url}
             completionPercent={completionPercent}
             onPress={() => { setShowPreview(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
           />
-          <Button
-            title={submitting ? 'Publishing...' : 'Publish Listing'}
-            onPress={handlePublish}
-            loading={submitting}
-            style={styles.publishBtn}
-          />
+          <Pressable style={styles.floatingPublishBtn} onPress={handlePublish} disabled={submitting}>
+            <LinearGradient
+              colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.floatingPublishGradient}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.floatingPublishText}>Publish</Text>
+              )}
+            </LinearGradient>
+          </Pressable>
         </View>
       </View>
+      )}
 
       {/* ── Live Preview Sheet ── */}
       <ListingPreviewSheet
@@ -587,7 +649,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: LAYOUT.padding.sm,
-    paddingBottom: 100,
+    paddingBottom: 90,
   },
   // ── Shared field styles ──
   row: {
@@ -663,6 +725,10 @@ const styles = StyleSheet.create({
   aiButtonVision: {
     borderColor: COLORS.accent + '55',
   },
+  aiOrbIcon: {
+    width: 20,
+    height: 20,
+  },
   aiButtonText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
@@ -680,32 +746,83 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
   },
+  compsLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 8,
+  },
+  compsLoadingText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
   compsContainer: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
     padding: LAYOUT.padding.sm,
     marginVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(52,100,160,0.3)',
+  },
+  compsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   compsTitle: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
-    marginBottom: 6,
   },
   compItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(52,100,160,0.15)',
+  },
+  compLeft: {
+    flex: 1,
+    marginRight: 8,
   },
   compPrice: {
     fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.brandOrange,
   },
+  compAddress: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
+    marginTop: 1,
+  },
   compDetails: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
+  },
+  compsRefresh: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  compsRefreshText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.accent,
+  },
+  compsEmpty: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 8,
   },
   compsDisclaimer: {
     fontFamily: FONTS.body.regular,
@@ -713,6 +830,7 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     marginTop: 6,
     fontStyle: 'italic',
+    textAlign: 'center',
   },
   // ── Date picker ──
   datePickerBtn: {
@@ -741,20 +859,22 @@ const styles = StyleSheet.create({
   },
   photoActionBtn: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.md,
     paddingVertical: 14,
+    paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
+    minHeight: 70,
   },
   photoActionBtnText: {
     fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.text,
+    textAlign: 'center',
+    marginTop: 4,
   },
   uploadingRow: {
     flexDirection: 'row',
@@ -766,6 +886,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+  },
+  photoTip: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brandOrange,
+    lineHeight: 18,
+    marginBottom: 10,
+    fontStyle: 'italic',
   },
   photoCount: {
     fontFamily: FONTS.body.medium,
@@ -817,32 +945,75 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
   },
-  // ── Bottom bar ──
-  bottomBar: {
-    paddingHorizontal: LAYOUT.padding.md,
-    paddingVertical: LAYOUT.padding.sm,
+  // ── Floating action panel ──
+  floatingPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(11,29,58,0.92)',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderTopColor: 'rgba(52,100,160,0.4)',
+    paddingTop: 6,
+    paddingHorizontal: LAYOUT.padding.md,
   },
-  bottomProgress: {
+  floatingProgress: {
     height: 3,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 2,
-    marginBottom: 10,
+    marginBottom: 8,
     overflow: 'hidden',
   },
-  bottomProgressFill: {
+  floatingProgressFill: {
     height: '100%',
     backgroundColor: COLORS.accent,
     borderRadius: 2,
   },
-  bottomActions: {
+  floatingActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
-  publishBtn: {
+  floatingOrbBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  floatingOrbImg: {
+    width: 26,
+    height: 26,
+  },
+  floatingPublishBtn: {
     flex: 1,
+    borderRadius: LAYOUT.radius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  floatingPublishGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatingPublishText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+    letterSpacing: 0.3,
   },
 });

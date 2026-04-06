@@ -56,16 +56,8 @@ export async function resolvePostLoginDestination(session, knownRole) {
       .eq('id', session.user.id)
       .single();
 
-    // Anonymous owners skip the name gate — browse freely
-    if (ownerProfile?.is_anonymous) {
-      return '/(owner)/home';
-    }
-
-    // Authenticated owners need full name before entering
-    const displayName = ownerProfile?.display_name || session.user?.user_metadata?.display_name;
-    if (!displayName || !displayName.includes(' ')) {
-      return '/about-you';
-    }
+    // All owners go straight to home — name is collected later
+    // (at listing publish or via profile settings, not as a gate)
     return '/(owner)/home';
   }
 

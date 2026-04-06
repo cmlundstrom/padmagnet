@@ -43,6 +43,31 @@ export default function OwnerListingsTab() {
     ).start();
   }, []);
 
+  // ── Auto-dissolve into Listing Studio after auth ──
+  const wasAnon = useRef(isAnon);
+  const dissolveOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Detect transition: was anonymous → now authenticated, and no listings
+    if (wasAnon.current && !isAnon && listings.length === 0) {
+      // Wait for the green auth banner to register (1.5s), then dissolve + navigate
+      const timer = setTimeout(() => {
+        Animated.timing(dissolveOpacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start(() => {
+          router.push('/owner/create');
+          // Reset opacity for when they come back
+          setTimeout(() => dissolveOpacity.setValue(1), 500);
+        });
+      }, 1500);
+      wasAnon.current = isAnon;
+      return () => clearTimeout(timer);
+    }
+    wasAnon.current = isAnon;
+  }, [isAnon, listings.length]);
+
   const fetchListings = useCallback(async () => {
     try {
       const data = await apiFetch('/api/owner/listings');
@@ -126,7 +151,7 @@ export default function OwnerListingsTab() {
       </View>
 
       {listings.length === 0 ? (
-        <View style={styles.emptyState}>
+        <Animated.View style={[styles.emptyState, { opacity: dissolveOpacity }]}>
           {/* Hero card */}
           <LinearGradient
             colors={['rgba(35,65,112,0.65)', 'rgba(44,82,136,0.60)', 'rgba(35,65,112,0.65)']}
@@ -199,7 +224,7 @@ export default function OwnerListingsTab() {
           </Animated.View>
 
           <EqualHousingBadge style={{ marginTop: 16 }} />
-        </View>
+        </Animated.View>
       ) : (
         <FlatList
           data={listings}

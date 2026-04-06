@@ -1,4 +1,6 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import SwipeableSheet from '../../ui/SwipeableSheet';
@@ -7,14 +9,11 @@ import { COLORS } from '../../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../../constants/fonts';
 import { LAYOUT } from '../../../constants/layout';
 
+const { height: SCREEN_H } = Dimensions.get('window');
+
 /**
- * ListingPreviewSheet — shows a live preview of the listing as renters see it.
- * Wraps SwipeableSheet with a listing-card-style render from raw form state.
- *
- * Props:
- *   visible  — boolean
- *   onClose  — dismiss handler
- *   form     — current form state from useListingStudio
+ * ListingPreviewSheet — frosted glass live preview of the listing.
+ * Studio content bleeds through the translucent background.
  */
 export default function ListingPreviewSheet({ visible, onClose, form }) {
   const address = [form.street_number, form.street_name].filter(Boolean).join(' ');
@@ -22,16 +21,35 @@ export default function ListingPreviewSheet({ visible, onClose, form }) {
   const firstPhoto = form.photos?.[0]?.url;
 
   return (
-    <SwipeableSheet visible={visible} onClose={onClose}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <SwipeableSheet visible={visible} onClose={onClose} sheetStyle={styles.sheetOverride}>
+      {/* Custom handle — capsule + chevron */}
+      <View style={styles.handleArea}>
+        <View style={styles.handleCapsule} />
+        <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.35)" style={{ marginTop: 2 }} />
+      </View>
+
+      {/* Gradient header band */}
+      <LinearGradient
+        colors={['rgba(11,29,58,0.6)', 'transparent']}
+        style={styles.headerBand}
+      >
         <Text style={styles.sheetTitle}>Live Preview</Text>
         <Text style={styles.sheetSubtitle}>This is how renters will see your listing</Text>
+      </LinearGradient>
 
-        {/* Photo */}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Photo hero with inner shadow */}
         {firstPhoto ? (
-          <Image source={{ uri: firstPhoto }} style={styles.heroPhoto} contentFit="cover" />
+          <View style={styles.heroWrap}>
+            <Image source={{ uri: firstPhoto }} style={styles.heroPhoto} contentFit="cover" />
+            {/* Inner shadow overlay at bottom of photo */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.4)']}
+              style={styles.heroShadow}
+            />
+          </View>
         ) : (
-          <View style={[styles.heroPhoto, styles.heroPlaceholder]}>
+          <View style={[styles.heroWrap, styles.heroPlaceholder]}>
             <Ionicons name="camera-outline" size={40} color={COLORS.slate} />
             <Text style={styles.heroPlaceholderText}>Add photos to see them here</Text>
           </View>
@@ -40,7 +58,7 @@ export default function ListingPreviewSheet({ visible, onClose, form }) {
         {/* Price + Type */}
         <View style={styles.priceRow}>
           <Text style={styles.price}>
-            {form.list_price ? `$${Number(form.list_price).toLocaleString()}/mo` : '$—/mo'}
+            {form.list_price ? `$${Number(form.list_price).toLocaleString()}/mo` : '$\u2014/mo'}
           </Text>
           {form.property_sub_type ? (
             <View style={styles.typeBadge}>
@@ -53,13 +71,21 @@ export default function ListingPreviewSheet({ visible, onClose, form }) {
         <Text style={styles.address}>{address || 'Street address'}</Text>
         <Text style={styles.cityLine}>{cityLine || 'City, State, Zip'}</Text>
 
-        {/* Specs */}
-        <View style={styles.specsRow}>
-          <SpecItem icon="bed-outline" value={form.bedrooms_total || '—'} label="Beds" />
-          <SpecItem icon="water-outline" value={form.bathrooms_total || '—'} label="Baths" />
-          <SpecItem icon="resize-outline" value={form.living_area ? `${Number(form.living_area).toLocaleString()}` : '—'} label="Sq Ft" />
-          <SpecItem icon="calendar-outline" value={form.year_built || '—'} label="Built" />
-        </View>
+        {/* Specs — glass card within glass */}
+        <BlurView intensity={20} tint="dark" style={styles.specsBlur}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.specsRow}>
+            <SpecItem icon="bed-outline" value={form.bedrooms_total || '\u2014'} label="Beds" />
+            <SpecItem icon="water-outline" value={form.bathrooms_total || '\u2014'} label="Baths" />
+            <SpecItem icon="resize-outline" value={form.living_area ? `${Number(form.living_area).toLocaleString()}` : '\u2014'} label="Sq Ft" />
+            <SpecItem icon="calendar-outline" value={form.year_built || '\u2014'} label="Built" />
+          </View>
+        </BlurView>
 
         {/* Description */}
         {form.public_remarks ? (
@@ -69,7 +95,7 @@ export default function ListingPreviewSheet({ visible, onClose, form }) {
           </View>
         ) : null}
 
-        {/* Features */}
+        {/* Features — glass border badges */}
         <View style={styles.featuresRow}>
           {form.pets_allowed === true && <FeatureBadge label="Pet Friendly" />}
           {form.pool && <FeatureBadge label="Pool" />}
@@ -96,6 +122,13 @@ export default function ListingPreviewSheet({ visible, onClose, form }) {
 
         <EqualHousingBadge style={{ marginTop: 16 }} />
       </ScrollView>
+
+      {/* Bottom fade — hints at more content */}
+      <LinearGradient
+        colors={['transparent', 'rgba(26,51,88,0.95)']}
+        style={styles.bottomFade}
+        pointerEvents="none"
+      />
     </SwipeableSheet>
   );
 }
@@ -120,8 +153,28 @@ function FeatureBadge({ label }) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  scrollContent: { padding: LAYOUT.padding.md, paddingBottom: 40 },
+  sheetOverride: {
+    minHeight: SCREEN_H * 0.75,
+    backgroundColor: 'rgba(26,51,88,0.90)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 6,
+  },
+  handleCapsule: {
+    width: 60,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  // Gradient header band
+  headerBand: {
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
   sheetTitle: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
@@ -132,20 +185,42 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
-    marginBottom: 16,
   },
-  heroPhoto: {
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingBottom: 60,
+  },
+  // Photo hero with inner shadow
+  heroWrap: {
     width: '100%',
     height: 200,
     borderRadius: LAYOUT.radius.lg,
+    overflow: 'hidden',
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  heroPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  heroShadow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
   },
   heroPlaceholder: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(52,100,160,0.4)',
     borderStyle: 'dashed',
   },
   heroPlaceholderText: {
@@ -154,6 +229,7 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     marginTop: 8,
   },
+  // Price — brand orange
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -162,14 +238,16 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['2xl'] || 28,
-    color: COLORS.text,
+    fontSize: 28,
+    color: COLORS.logoOrange,
   },
   typeBadge: {
     backgroundColor: COLORS.accent + '22',
     borderRadius: LAYOUT.radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
   },
   typeText: {
     fontFamily: FONTS.body.semiBold,
@@ -187,13 +265,18 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 16,
   },
+  // Specs — glass card within glass
+  specsBlur: {
+    borderRadius: LAYOUT.radius.md,
+    overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(52,100,160,0.3)',
+  },
   specsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.md,
-    paddingVertical: 12,
-    marginBottom: 16,
+    paddingVertical: 14,
   },
   specItem: { alignItems: 'center', gap: 2 },
   specValue: {
@@ -206,6 +289,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxs,
     color: COLORS.textSecondary,
   },
+  // Description
   descSection: { marginBottom: 16 },
   descLabel: {
     fontFamily: FONTS.body.semiBold,
@@ -219,6 +303,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     lineHeight: 20,
   },
+  // Feature badges — glass border
   featuresRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -229,10 +314,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.success + '15',
+    backgroundColor: COLORS.success + '12',
     borderRadius: LAYOUT.radius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: COLORS.success + '30',
   },
   featureText: {
     fontFamily: FONTS.body.medium,
@@ -252,11 +339,21 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: 'rgba(52,100,160,0.3)',
   },
   contactName: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
+  },
+  // Bottom fade
+  bottomFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
 });
