@@ -16,6 +16,7 @@ import StudioHeader from '../../components/owner/studio/StudioHeader';
 import PreviewPill from '../../components/owner/studio/PreviewPill';
 import ListingPreviewSheet from '../../components/owner/studio/ListingPreviewSheet';
 import AskPadOrbOwner from '../../components/owner/studio/AskPadOrbOwner';
+import NearbyRentalsCard from '../../components/owner/studio/NearbyRentalsCard';
 import ConfettiOverlay from '../../components/owner/studio/ConfettiOverlay';
 import StudioOnboardingTooltip from '../../components/owner/studio/StudioOnboardingTooltip';
 import useListingStudio from '../../hooks/useListingStudio';
@@ -52,6 +53,8 @@ export default function MagicListingStudio() {
   const [linkSent, setLinkSent] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showComps, setShowComps] = useState(false);
+  const [addressCoords, setAddressCoords] = useState(null);
 
   // ── Photo upload ──
   const pickImages = async () => {
@@ -163,35 +166,6 @@ export default function MagicListingStudio() {
     }
   };
 
-  // ── Comps state ──
-  const [nearbyComps, setNearbyComps] = useState(null);
-  const [compsLoading, setCompsLoading] = useState(false);
-
-  const fetchNearbyComps = async () => {
-    if (!form.city) {
-      alert('City Required', 'Please enter an address first so we can find nearby rentals.');
-      return;
-    }
-    setCompsLoading(true);
-    try {
-      // Try city-based search — returns MLS + owner listings in the same city
-      const data = await apiFetch(`/api/listings?city=${encodeURIComponent(form.city)}&limit=5&page=1`);
-      if (data?.listings?.length > 0) {
-        // Filter to similar property types if we know ours, otherwise show all
-        let comps = data.listings;
-        if (form.property_sub_type) {
-          const similar = comps.filter(c => c.property_sub_type === form.property_sub_type);
-          if (similar.length >= 2) comps = similar;
-        }
-        setNearbyComps(comps.slice(0, 5));
-      } else {
-        setNearbyComps([]);
-      }
-    } catch {
-      alert('Error', 'Could not load nearby rentals. Try again.');
-    }
-    setCompsLoading(false);
-  };
 
   if (loading) {
     return (
@@ -237,6 +211,9 @@ export default function MagicListingStudio() {
                   state_or_province: addr.state_or_province || 'FL',
                   postal_code: addr.postal_code || '',
                 });
+                if (addr.latitude && addr.longitude) {
+                  setAddressCoords({ latitude: addr.latitude, longitude: addr.longitude });
+                }
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }}
             />
@@ -259,55 +236,6 @@ export default function MagicListingStudio() {
             cardRef={r => { cardRefs.current.details = r; }}
           >
             <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
-            {!nearbyComps && !compsLoading && (
-              <Pressable style={styles.compsLink} onPress={fetchNearbyComps}>
-                <Ionicons name="trending-up" size={16} color={COLORS.accent} />
-                <Text style={styles.compsLinkText}>See what similar properties are renting for</Text>
-              </Pressable>
-            )}
-            {compsLoading && (
-              <View style={styles.compsLoadingRow}>
-                <ActivityIndicator size="small" color={COLORS.accent} />
-                <Text style={styles.compsLoadingText}>Finding nearby rentals...</Text>
-              </View>
-            )}
-            {nearbyComps && nearbyComps.length > 0 && (
-              <View style={styles.compsContainer}>
-                <View style={styles.compsHeader}>
-                  <Text style={styles.compsTitle}>Nearby rentals in {form.city}</Text>
-                  <Pressable onPress={() => setNearbyComps(null)} hitSlop={8}>
-                    <Ionicons name="close-circle" size={18} color={COLORS.slate} />
-                  </Pressable>
-                </View>
-                {nearbyComps.map((comp, i) => (
-                  <View key={i} style={styles.compItem}>
-                    <View style={styles.compLeft}>
-                      <Text style={styles.compPrice}>${Number(comp.list_price).toLocaleString()}/mo</Text>
-                      <Text style={styles.compAddress} numberOfLines={1}>
-                        {[comp.street_number, comp.street_name].filter(Boolean).join(' ') || comp.city}
-                      </Text>
-                    </View>
-                    <Text style={styles.compDetails}>
-                      {comp.bedrooms_total || '—'}bd · {comp.bathrooms_total || '—'}ba
-                      {comp.living_area ? ` · ${Number(comp.living_area).toLocaleString()} sqft` : ''}
-                    </Text>
-                  </View>
-                ))}
-                <Pressable style={styles.compsRefresh} onPress={fetchNearbyComps}>
-                  <Ionicons name="refresh" size={14} color={COLORS.accent} />
-                  <Text style={styles.compsRefreshText}>Refresh</Text>
-                </Pressable>
-                <Text style={styles.compsDisclaimer}>For comparison only — not a property valuation.</Text>
-              </View>
-            )}
-            {nearbyComps && nearbyComps.length === 0 && (
-              <View style={styles.compsContainer}>
-                <Text style={styles.compsEmpty}>No similar rentals found in {form.city}. Try entering your address first.</Text>
-                <Pressable style={styles.compsRefresh} onPress={() => setNearbyComps(null)}>
-                  <Text style={styles.compsRefreshText}>Dismiss</Text>
-                </Pressable>
-              </View>
-            )}
             <Text style={styles.label}>Property Type *</Text>
             <View style={styles.chipRow}>
               {PROPERTY_TYPES.map(type => (
@@ -326,6 +254,11 @@ export default function MagicListingStudio() {
               <Input label="Sq/Ft *" value={form.living_area} onChangeText={v => update('living_area', v)} keyboardType="numeric" placeholder="1200" style={styles.thirdInput} />
             </View>
             <Input label="Year Built *" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
+
+            <Pressable style={styles.compsLink} onPress={() => setShowComps(true)}>
+              <Ionicons name="trending-up" size={16} color={COLORS.accent} />
+              <Text style={styles.compsLinkText}>See what similar properties are renting for</Text>
+            </Pressable>
           </SmartCard>
 
           {/* ── 3. Description Card ── */}
@@ -618,6 +551,14 @@ export default function MagicListingStudio() {
         form={form}
       />
 
+      {/* ── Nearby Rentals Comp Card ── */}
+      <NearbyRentalsCard
+        visible={showComps}
+        onClose={() => setShowComps(false)}
+        form={form}
+        coords={addressCoords}
+      />
+
       {/* ── Confetti on publish ── */}
       <ConfettiOverlay
         visible={showConfetti}
@@ -745,92 +686,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
-  },
-  compsLoadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginVertical: 8,
-  },
-  compsLoadingText: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  compsContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: LAYOUT.radius.md,
-    padding: LAYOUT.padding.sm,
-    marginVertical: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(52,100,160,0.3)',
-  },
-  compsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  compsTitle: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text,
-  },
-  compItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(52,100,160,0.15)',
-  },
-  compLeft: {
-    flex: 1,
-    marginRight: 8,
-  },
-  compPrice: {
-    fontFamily: FONTS.body.bold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.brandOrange,
-  },
-  compAddress: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xxs,
-    color: COLORS.slate,
-    marginTop: 1,
-  },
-  compDetails: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-  },
-  compsRefresh: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: 8,
-    paddingVertical: 4,
-  },
-  compsRefreshText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.accent,
-  },
-  compsEmpty: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    paddingVertical: 8,
-  },
-  compsDisclaimer: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xxs,
-    color: COLORS.slate,
-    marginTop: 6,
-    fontStyle: 'italic',
-    textAlign: 'center',
   },
   // ── Date picker ──
   datePickerBtn: {
