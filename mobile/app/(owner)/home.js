@@ -37,7 +37,7 @@ export default function OwnerHomeTab() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onRefresh={() => setRefreshKey(k => k + 1)}
-        viewModes={['map', 'grid']}
+        viewModes={['grid', 'map']}
       />
 
       <View style={{ flex: 1 }}>
