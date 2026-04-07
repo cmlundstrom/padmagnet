@@ -57,7 +57,7 @@ function RadarRing({ delay }) {
 }
 
 // ─── Base grid — remounts via key when coords change ────
-function BaseGrid({ coords, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateExplore }) {
+function BaseGrid({ coords, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore }) {
   const { listings, loading } = useNearbyRentals(
     null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
   );
