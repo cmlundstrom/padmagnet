@@ -5,16 +5,39 @@ import { supabase } from './supabase';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 
-export async function apiFetch(path, options = {}) {
-  // Get current session token — timeout after 3s to prevent UI hangs
-  let token = null;
+// Cache the session token to avoid calling getSession() on every API request
+let _cachedToken = null;
+let _tokenExpiry = 0;
+
+// Listen for auth changes to update cached token
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedToken = session?.access_token || null;
+  // JWT tokens typically expire in 1 hour — refresh 5 min early
+  _tokenExpiry = session ? Date.now() + 55 * 60 * 1000 : 0;
+});
+
+async function getToken() {
+  // Use cached token if still valid
+  if (_cachedToken && Date.now() < _tokenExpiry) {
+    return _cachedToken;
+  }
+  // Refresh from Supabase — timeout after 2s
   try {
     const result = await Promise.race([
       supabase.auth.getSession(),
-      new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 3000)),
+      new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 2000)),
     ]);
-    token = result.data?.session?.access_token;
-  } catch {}
+    const token = result.data?.session?.access_token || null;
+    _cachedToken = token;
+    _tokenExpiry = token ? Date.now() + 55 * 60 * 1000 : 0;
+    return token;
+  } catch {
+    return _cachedToken; // fallback to stale token
+  }
+}
+
+export async function apiFetch(path, options = {}) {
+  const token = await getToken();
 
   const { headers: optHeaders, ...rest } = options;
   const url = `${API_BASE}${path}`;

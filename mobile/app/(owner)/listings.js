@@ -70,10 +70,14 @@ export default function OwnerListingsTab() {
   }, [isAnon, listings.length, loading]);
 
   const fetchListings = useCallback(async () => {
+    const t0 = Date.now();
+    console.log('[Listings] fetchListings START');
     try {
       const data = await apiFetch('/api/owner/listings');
+      console.log('[Listings] API responded in', Date.now() - t0, 'ms, got', (data || []).length, 'listings');
       setListings(data || []);
     } catch (err) {
+      console.log('[Listings] API ERROR in', Date.now() - t0, 'ms:', err.message);
       alert('Error', err.message);
     } finally {
       setLoading(false);
