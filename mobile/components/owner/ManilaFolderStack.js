@@ -279,38 +279,51 @@ export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate
   const [ready, setReady] = useState(false);
 
   // Check persisted state + location permission on mount
+  // GPS is non-blocking — grid renders immediately with Miami fallback
   useEffect(() => {
     (async () => {
       try {
-        const [l1Seen, l2Seen] = await Promise.all([
+        const [l1Seen, l2Seen, cachedCoords] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_L1),
           AsyncStorage.getItem(STORAGE_KEY_L2),
+          AsyncStorage.getItem('owner_cached_coords'),
         ]);
 
         // Show folders only if not previously dismissed
         if (!l1Seen) setShowL1(true);
+
+        // Use cached coords immediately (no GPS wait)
+        if (cachedCoords) {
+          try {
+            const parsed = JSON.parse(cachedCoords);
+            if (parsed.latitude && parsed.longitude) setCoords(parsed);
+          } catch {}
+        }
+
         if (!l2Seen) {
-          // Check if GPS already granted — skip L2 if so
           const { status } = await Location.getForegroundPermissionsAsync();
           if (status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
             await AsyncStorage.setItem(STORAGE_KEY_L2, '1');
           } else {
             setShowL2(true);
           }
-        } else {
-          // L2 already seen — still grab GPS if available
-          try {
-            const { status } = await Location.getForegroundPermissionsAsync();
-            if (status === 'granted') {
-              const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-              setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-            }
-          } catch {}
         }
       } catch {}
+      // Render immediately — don't wait for GPS
       setReady(true);
+    })();
+
+    // Background GPS update — non-blocking, updates grid when ready
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+          const newCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+          setCoords(newCoords);
+          AsyncStorage.setItem('owner_cached_coords', JSON.stringify(newCoords));
+        }
+      } catch {}
     })();
   }, []);
 
