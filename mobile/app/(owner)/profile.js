@@ -60,7 +60,7 @@ export default function OwnerProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <OwnerHeader />
+      <OwnerHeader minimal />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Hero header — avatar + name */}
