@@ -1,4 +1,5 @@
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { useRef, useEffect } from 'react';
+import { ScrollView, View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +28,18 @@ export default function ExploreScreen() {
   const isPremium = tier === 'premium';
   const tierColor = TIER_COLORS[tier];
   const isUrgent = daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0;
+
+  // Pulsing glow for the Nearby Rentals card
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 2000, useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: 0, duration: 2000, useNativeDriver: false }),
+      ])
+    ).start();
+  }, []);
+  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
@@ -62,23 +75,37 @@ export default function ExploreScreen() {
           </Pressable>
         )}
 
-        {/* Nearby Rentals card */}
+        {/* Nearby Rentals — hero card */}
         <Pressable
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          style={({ pressed }) => [pressed && { opacity: 0.92 }]}
           onPress={() => router.push('/owner/nearby-rentals')}
         >
-          <View style={styles.cardRow}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="location-sharp" size={24} color={COLORS.accent} />
+          <LinearGradient
+            colors={['#1A3358', '#234170', '#2C5288']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.nearbyCard}
+          >
+            <Animated.View style={[styles.nearbyGlow, { opacity: glowOpacity }]} />
+            <View style={styles.nearbyPinCircle}>
+              <Ionicons name="navigate" size={28} color={COLORS.white} />
             </View>
-            <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>Nearby Rentals</Text>
-              <Text style={styles.cardSubtitle}>
-                See what's listed near your property
-              </Text>
+            <Text style={styles.nearbyTitle}>Nearby Rentals</Text>
+            <Text style={styles.nearbySubtitle}>
+              Scout your competition — see what's listed near you right now
+            </Text>
+            <View style={styles.nearbyCtaRow}>
+              <LinearGradient
+                colors={[COLORS.logoOrange, '#D14E2F']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.nearbyCtaBtn}
+              >
+                <Ionicons name="compass-outline" size={16} color={COLORS.white} />
+                <Text style={styles.nearbyCtaText}>Explore the Map</Text>
+              </LinearGradient>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </View>
+          </LinearGradient>
         </Pressable>
 
         {/* Market Snapshot */}
@@ -217,6 +244,66 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
   },
+  // ── Nearby Rentals hero card ───────────────────
+  nearbyCard: {
+    borderRadius: LAYOUT.radius.xl,
+    padding: LAYOUT.padding.lg,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: COLORS.logoOrange + '55',
+    overflow: 'hidden',
+  },
+  nearbyGlow: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: COLORS.logoOrange,
+  },
+  nearbyPinCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.logoOrange + '33',
+    borderWidth: 2,
+    borderColor: COLORS.logoOrange + '66',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  nearbyTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xl,
+    color: COLORS.white,
+  },
+  nearbySubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: LAYOUT.padding.md,
+  },
+  nearbyCtaRow: {
+    marginTop: 8,
+  },
+  nearbyCtaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: LAYOUT.radius.full,
+  },
+  nearbyCtaText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+  },
+
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.lg,
