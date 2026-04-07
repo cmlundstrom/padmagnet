@@ -9,7 +9,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 export default function ListingsPanel() {
   const [listings, setListings] = useState([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("pending_review");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -253,6 +253,35 @@ export default function ListingsPanel() {
 
     return (
       <div>
+        {/* Quick approve/reject at TOP for pending reviews */}
+        {isPending && (
+          <div style={{
+            display: "flex", gap: 10, alignItems: "center", padding: "12px 16px",
+            background: "#7C3AED15", border: "1px solid #7C3AED33", borderRadius: 8,
+            marginBottom: 16,
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#A78BFA" }}>Review Required</div>
+              <div style={{ fontSize: "12px", color: COLORS.textMuted }}>
+                {row.listing_agent_name || "Owner"} · {row.listing_agent_email || "No email"} · {photos.length} photo{photos.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+            <button
+              onClick={() => handleReviewAction(row.id, "approve")}
+              disabled={reviewLoading}
+              style={{ ...baseButton, background: COLORS.green, color: "#000", fontSize: "13px", fontWeight: 700, padding: "8px 20px" }}
+            >
+              ✓ Approve
+            </button>
+            <button
+              onClick={() => setReviewAction({ id: row.id, action: "reject" })}
+              style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "13px", padding: "8px 16px" }}
+            >
+              ✕ Reject
+            </button>
+          </div>
+        )}
+
         {/* Photo gallery for review */}
         {photos.length > 0 && (
           <div style={{ marginBottom: 16 }}>
@@ -260,18 +289,22 @@ export default function ListingsPanel() {
               Photos ({photos.length})
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {photos.map((url, i) => (
+              {photos.map((photo, i) => {
+                const photoUrl = typeof photo === 'string' ? photo : photo?.url || photo?.thumb_url;
+                if (!photoUrl) return null;
+                return (
                 <img
                   key={i}
-                  src={url}
+                  src={photoUrl}
                   alt={`Listing photo ${i + 1}`}
                   style={{
                     width: 120, height: 90, objectFit: "cover", borderRadius: 6,
                     border: `1px solid ${COLORS.border}`, cursor: "pointer",
                   }}
-                  onClick={() => window.open(url, '_blank')}
+                  onClick={() => window.open(photoUrl, '_blank')}
                 />
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -352,6 +385,27 @@ export default function ListingsPanel() {
         <StatCard label="Suppressed" value={suppressedCount} sub="Hidden from tenants" accent={COLORS.red} />
       </div>
 
+      {/* Pending Review Alert Banner */}
+      {pendingReviewCount > 0 && statusFilter !== "pending_review" && (
+        <div
+          onClick={() => setStatusFilter("pending_review")}
+          style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
+            background: "#7C3AED22", border: "1px solid #7C3AED44", borderRadius: 8,
+            marginBottom: 12, cursor: "pointer",
+          }}
+        >
+          <span style={{ fontSize: 20 }}>📋</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: "#A78BFA" }}>
+              {pendingReviewCount} listing{pendingReviewCount !== 1 ? "s" : ""} awaiting review
+            </div>
+            <div style={{ fontSize: "12px", color: COLORS.textMuted }}>Click to review and approve</div>
+          </div>
+          <span style={{ fontSize: "18px", color: "#A78BFA" }}>→</span>
+        </div>
+      )}
+
       {/* Search & Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <input
@@ -367,8 +421,12 @@ export default function ListingsPanel() {
             color: statusFilter === s ? COLORS.brand : COLORS.textMuted,
             border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : COLORS.border}`,
           }}>
-            {s === "all" ? "All" : s === "pending_review" ? "Pending Review" : s.charAt(0).toUpperCase() + s.slice(1)}
-            <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{statusCountFor(s)}</span>
+            {s === "all" ? "All" : s === "pending_review" ? "Pending Review" : s === "leased" ? "De-Listed" : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === "pending_review" && pendingReviewCount > 0 ? (
+              <span style={{ marginLeft: 6, fontSize: "11px", fontWeight: 700, background: "#7C3AED", color: "#fff", borderRadius: 8, padding: "1px 6px" }}>{pendingReviewCount}</span>
+            ) : (
+              <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{statusCountFor(s)}</span>
+            )}
           </button>
         ))}
       </div>

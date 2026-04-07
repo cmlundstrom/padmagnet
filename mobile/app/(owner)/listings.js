@@ -276,10 +276,20 @@ export default function OwnerListingsTab() {
 function getStatusColor(status) {
   switch (status) {
     case 'active': return COLORS.success;
+    case 'pending_review': return COLORS.slate;
     case 'draft': return COLORS.warning;
     case 'expired': return COLORS.danger;
     case 'leased': return COLORS.accent;
     default: return COLORS.slate;
+  }
+}
+
+function getStatusLabel(status) {
+  switch (status) {
+    case 'active': return 'Approved';
+    case 'pending_review': return 'Pending Review';
+    case 'leased': return 'De-Listed';
+    default: return status.charAt(0).toUpperCase() + status.slice(1);
   }
 }
 
@@ -445,7 +455,7 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
           <View style={styles.dashItem}>
             <View style={[styles.dashDot, { backgroundColor: getStatusColor(status) }]} />
             <Text style={[styles.dashValue, { color: getStatusColor(status) }]}>
-              {status === 'leased' ? 'Off-MKT' : status.charAt(0).toUpperCase() + status.slice(1)}
+              {getStatusLabel(status)}
             </Text>
           </View>
           {expiresLabel && (
