@@ -246,7 +246,8 @@ export default function ListingsPanel() {
       cell: ({ getValue }) => {
         const v = getValue();
         const statusColors = { active: "green", pending_review: "purple", draft: "amber", expired: "red", leased: "blue", archived: "gray", rejected: "red" };
-        return <Badge color={statusColors[v] || "gray"}>{v}</Badge>;
+        const statusLabels = { pending_review: "PENDING_REVIEW", leased: "DE-LISTED" };
+        return <Badge color={statusColors[v] || "gray"}>{statusLabels[v] || v.toUpperCase()}</Badge>;
       },
       size: 90,
       meta: {
@@ -255,7 +256,7 @@ export default function ListingsPanel() {
           { value: "active", label: "Active" },
           { value: "draft", label: "Draft" },
           { value: "expired", label: "Expired" },
-          { value: "leased", label: "Leased" },
+          { value: "leased", label: "De-Listed" },
           { value: "archived", label: "Archived" },
         ],
       },
