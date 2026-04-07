@@ -35,8 +35,10 @@ export default function ListingsPanel() {
 
   const TYPE_ABBREV = { "Single Family Residence": "SFR", "Condominium": "Condo", "Townhouse": "TH", "Duplex": "Duplex", "Apartment": "Apt", "Mobile Home": "MH" };
 
-  const STATUS_FILTERS = ["all", "pending_review", "active", "draft", "expired", "leased", "archived", "suppressed"];
+  const STATUS_FILTERS = ["pending_review", "owner_all", "all", "active", "draft", "expired", "leased", "archived", "suppressed"];
   const pendingReviewCount = listings.filter(l => l.status === "pending_review").length;
+  const ownerListings = listings.filter(l => l.source === "owner");
+  const ownerActiveCount = ownerListings.filter(l => l.status === "active" && l.is_active).length;
 
   const enriched = useMemo(() => {
     return listings.map(l => {
@@ -58,6 +60,8 @@ export default function ListingsPanel() {
         if (l.is_active) return false;
       } else if (statusFilter === "pending_review") {
         if (l.status !== "pending_review") return false;
+      } else if (statusFilter === "owner_all") {
+        if (l.source !== "owner") return false;
       } else if (statusFilter !== "all") {
         if (l.status !== statusFilter) return false;
         if (!l.is_active) return false;
@@ -85,7 +89,18 @@ export default function ListingsPanel() {
   const statusCountFor = (s) => {
     if (s === "all") return enriched.length;
     if (s === "suppressed") return suppressedCount;
+    if (s === "owner_all") return ownerListings.length;
     return enriched.filter(l => l.status === s && l.is_active).length;
+  };
+
+  const filterLabel = (s) => {
+    switch (s) {
+      case "pending_review": return "Pending Review";
+      case "owner_all": return "Owner Listings";
+      case "leased": return "De-Listed";
+      case "all": return "All";
+      default: return s.charAt(0).toUpperCase() + s.slice(1);
+    }
   };
 
   // CRUD handlers
@@ -419,9 +434,11 @@ export default function ListingsPanel() {
             color: statusFilter === s ? COLORS.brand : COLORS.textMuted,
             border: `1px solid ${statusFilter === s ? COLORS.brand + "44" : COLORS.border}`,
           }}>
-            {s === "all" ? "All" : s === "pending_review" ? "Pending Review" : s === "leased" ? "De-Listed" : s.charAt(0).toUpperCase() + s.slice(1)}
+            {filterLabel(s)}
             {s === "pending_review" && pendingReviewCount > 0 ? (
               <span style={{ marginLeft: 6, fontSize: "11px", fontWeight: 700, background: "#7C3AED", color: "#fff", borderRadius: 8, padding: "1px 6px" }}>{pendingReviewCount}</span>
+            ) : s === "owner_all" ? (
+              <span style={{ marginLeft: 6, fontSize: "11px", fontWeight: 700, background: COLORS.brand + "33", color: COLORS.brand, borderRadius: 8, padding: "1px 6px" }}>{ownerListings.length}</span>
             ) : (
               <span style={{ marginLeft: 6, fontSize: "11px", opacity: 0.7 }}>{statusCountFor(s)}</span>
             )}

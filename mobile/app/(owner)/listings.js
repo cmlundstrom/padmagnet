@@ -450,30 +450,51 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
         </View>
       </Pressable>
 
-      {/* Stats dashboard row */}
+      {/* Stats dashboard — two lines */}
       {status !== 'draft' && (
-        <View style={styles.dashRow}>
-          <View style={styles.dashItem}>
-            <View style={[styles.dashDot, { backgroundColor: getStatusColor(status) }]} />
-            <Text style={[styles.dashValue, { color: getStatusColor(status) }]}>
-              {getStatusLabel(status)}
-            </Text>
-          </View>
-          {expiresLabel && (
+        <View style={styles.dashBlock}>
+          {/* Line 1: Status + Days left + Tier */}
+          <View style={styles.dashRow}>
             <View style={styles.dashItem}>
-              <FontAwesome name="clock-o" size={11} color={COLORS.textSecondary} />
-              <Text style={styles.dashLabel}>{expiresLabel}</Text>
+              <View style={[styles.dashDot, { backgroundColor: getStatusColor(status) }]} />
+              <Text style={[styles.dashValue, { color: getStatusColor(status) }]}>
+                {getStatusLabel(status)}
+              </Text>
             </View>
-          )}
-          <View style={styles.dashItem}>
-            <FontAwesome name="eye" size={11} color={COLORS.accent} />
-            <Text style={styles.dashValue}>{listing.unique_view_count || 0}</Text>
-            <Text style={styles.dashLabel}>Views</Text>
+            {expiresLabel && (
+              <View style={styles.dashItem}>
+                <FontAwesome name="clock-o" size={11} color={COLORS.textSecondary} />
+                <Text style={styles.dashLabel}>{expiresLabel}</Text>
+              </View>
+            )}
+            <View style={[styles.dashItem, styles.tierChip, {
+              backgroundColor: ownerTier === 'premium' ? COLORS.gold + '22' : ownerTier === 'pro' ? COLORS.accent + '22' : COLORS.slate + '22',
+              borderColor: ownerTier === 'premium' ? COLORS.gold + '44' : ownerTier === 'pro' ? COLORS.accent + '44' : COLORS.slate + '44',
+            }]}>
+              <Ionicons
+                name={ownerTier === 'premium' ? 'diamond' : ownerTier === 'pro' ? 'shield-checkmark' : 'leaf-outline'}
+                size={12}
+                color={ownerTier === 'premium' ? COLORS.gold : ownerTier === 'pro' ? COLORS.accent : COLORS.slate}
+              />
+              <Text style={[styles.tierChipText, {
+                color: ownerTier === 'premium' ? COLORS.gold : ownerTier === 'pro' ? COLORS.accent : COLORS.slate,
+              }]}>
+                {ownerTier === 'premium' ? 'Premium' : ownerTier === 'pro' ? 'Pro' : 'Free'}
+              </Text>
+            </View>
           </View>
-          <View style={styles.dashItem}>
-            <FontAwesome name="envelope-o" size={11} color={COLORS.accent} />
-            <Text style={styles.dashValue}>{listing.inquiry_count || 0}</Text>
-            <Text style={styles.dashLabel}>Contacts</Text>
+          {/* Line 2: Views + Contacts */}
+          <View style={styles.dashRow}>
+            <View style={styles.dashItem}>
+              <FontAwesome name="eye" size={11} color={COLORS.accent} />
+              <Text style={styles.dashValue}>{listing.unique_view_count || 0}</Text>
+              <Text style={styles.dashLabel}>Views</Text>
+            </View>
+            <View style={styles.dashItem}>
+              <FontAwesome name="envelope-o" size={11} color={COLORS.accent} />
+              <Text style={styles.dashValue}>{listing.inquiry_count || 0}</Text>
+              <Text style={styles.dashLabel}>Contacts</Text>
+            </View>
           </View>
         </View>
       )}
@@ -647,19 +668,33 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
 
-  // Dashboard stats row
+  // Dashboard stats block (two rows)
+  dashBlock: {
+    backgroundColor: COLORS.background + 'AA',
+    paddingVertical: 6,
+    paddingHorizontal: LAYOUT.padding.sm,
+  },
   dashRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: LAYOUT.padding.sm,
-    backgroundColor: COLORS.background + 'AA',
+    paddingVertical: 5,
   },
   dashItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  tierChip: {
+    borderRadius: LAYOUT.radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  tierChipText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xxs,
+    letterSpacing: 0.3,
   },
   dashDot: {
     width: 7,
