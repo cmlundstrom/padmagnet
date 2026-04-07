@@ -30,7 +30,7 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
-      <OwnerHeader />
+      <OwnerHeader minimal />
       <Text style={styles.header}>Explore Your Market</Text>
 
       <ScrollView
