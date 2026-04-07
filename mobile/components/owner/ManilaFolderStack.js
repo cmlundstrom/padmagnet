@@ -361,7 +361,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
     <View style={styles.container}>
       {/* ── Base: grid or map view ── */}
       {viewMode === 'map' ? (
-        <MapView listings={nearbyListings} loading={nearbyLoading} />
+        <MapView listings={nearbyListings} loading={nearbyLoading} initialCoords={coords} />
       ) : (
         <BaseGrid
           key={gridKey}

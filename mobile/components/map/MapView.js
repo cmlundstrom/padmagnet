@@ -12,9 +12,10 @@ import { LAYOUT } from '../../constants/layout';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function MapView({ listings = [], loading }) {
+export default function MapView({ listings = [], loading, initialCoords }) {
   const router = useRouter();
   const { locationOrDefault: location } = useLocation();
+  const center = initialCoords || location;
   const mapRef = useRef(null);
   const [selectedListing, setSelectedListing] = useState(null);
 
@@ -38,8 +39,8 @@ export default function MapView({ listings = [], loading }) {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
-          latitude: location.latitude,
-          longitude: location.longitude,
+          latitude: center.latitude,
+          longitude: center.longitude,
           latitudeDelta: 0.15,
           longitudeDelta: 0.15,
         }}
