@@ -56,6 +56,22 @@ export default function ListingsPanel() {
 
   const filtered = useMemo(() => {
     return enriched.filter(l => {
+      // Search overrides all filters — search across everything
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          l.listing_id?.toLowerCase().includes(q) ||
+          l.listing_key?.toLowerCase().includes(q) ||
+          l.confirmation_code?.toLowerCase().includes(q) ||
+          l.address?.toLowerCase().includes(q) ||
+          l.city?.toLowerCase().includes(q) ||
+          l.listing_agent_name?.toLowerCase().includes(q) ||
+          l.listing_agent_email?.toLowerCase().includes(q) ||
+          l.status?.toLowerCase().includes(q) ||
+          l.source?.toLowerCase().includes(q)
+        );
+      }
+      // No search — apply filter
       if (statusFilter === "suppressed") {
         if (l.is_active) return false;
       } else if (statusFilter === "pending_review") {
@@ -65,14 +81,6 @@ export default function ListingsPanel() {
       } else if (statusFilter !== "all") {
         if (l.status !== statusFilter) return false;
         if (!l.is_active) return false;
-      }
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          l.listing_id?.toLowerCase().includes(q) ||
-          l.address?.toLowerCase().includes(q) ||
-          l.city?.toLowerCase().includes(q)
-        );
       }
       return true;
     });
