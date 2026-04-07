@@ -132,6 +132,12 @@ export default function ListingsPanel() {
       } else {
         setReviewAction(null);
         setRejectionReason("");
+        // Switch to the appropriate filter so the listing stays visible
+        if (action === 'approve') {
+          setStatusFilter('active');
+        } else if (action === 'reject') {
+          setStatusFilter('all');
+        }
         fetchListings();
       }
     } catch (err) {
