@@ -28,8 +28,8 @@ import RentRangePanel from "./panels/RentRangePanel";
 // ============================================================
 const NAV_ITEMS = [
   { id: "overview", label: "Metrics & KPIs", icon: "📊" },
-  { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "listings", label: "Listings", icon: "🏠" },
+  { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
   { id: "disclaimers", label: "Disclaimers", icon: "⚖️" },
   { id: "support", label: "Support", icon: "💬" },
