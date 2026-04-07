@@ -58,12 +58,9 @@ function RadarRing({ delay }) {
 
 // ─── Base grid — remounts via key when coords change ────
 function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExplore }) {
-  const { listings, loading, setFilters } = useNearbyRentals(
-    null, { lat: coords.latitude, lng: coords.longitude }
+  const { listings, loading } = useNearbyRentals(
+    null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
   );
-
-  // Widen to 10mi ring on mount
-  useEffect(() => { setFilters({ radius: 10 }); }, []);
 
   if (loading && listings.length === 0) {
     return (

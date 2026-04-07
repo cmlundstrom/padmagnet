@@ -7,14 +7,14 @@ import { apiFetch } from '../lib/api';
  * - listingId provided: query by listing ownership
  * - { lat, lng } provided (no listingId): query by coordinates (free, no paywall)
  */
-export default function useNearbyRentals(listingId, { lat, lng } = {}) {
+export default function useNearbyRentals(listingId, { lat, lng, defaultRadius } = {}) {
   const [listings, setListings] = useState([]);
   const [subject, setSubject] = useState(null);
   const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(false);
-  const [filters, setFiltersState] = useState({ radius: 5, beds: null, baths: null });
+  const [filters, setFiltersState] = useState({ radius: defaultRadius || 5, beds: null, baths: null });
 
   const pageRef = useRef(1);
   const abortRef = useRef(null);
