@@ -48,6 +48,7 @@ export default function OwnerHomeTab() {
         )}
         <ManilaFolderStack
           refreshKey={refreshKey}
+          viewMode={viewMode}
           isAnon={isAnon}
           ownerHasListings={ownerHasListings}
           onShowAuth={() => setShowAuth(true)}

@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
+import MapView from '../map/MapView';
 import { formatCurrency } from '../../utils/format';
 import { EqualHousingBadge } from '../ui';
 import { COLORS } from '../../constants/colors';
@@ -56,12 +57,8 @@ function RadarRing({ delay }) {
   return <Animated.View style={[styles.radarRing, style]} />;
 }
 
-// ─── Base grid — remounts via key when coords change ────
-function BaseGrid({ coords, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore }) {
-  const { listings, loading } = useNearbyRentals(
-    null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
-  );
-
+// ─── Base grid — receives listings from parent ────
+function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore }) {
   if (loading && listings.length === 0) {
     return (
       <View style={styles.gridLoading}>
@@ -271,7 +268,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
 const STORAGE_KEY_L1 = 'owner_folder_l1_seen';
 const STORAGE_KEY_L2 = 'owner_folder_l2_seen';
 
-export default function ManilaFolderStack({ isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore, refreshKey }) {
+export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore, refreshKey }) {
   const l1Ref = useRef();
   const l2Ref = useRef();
   const [showL1, setShowL1] = useState(false);
@@ -355,19 +352,29 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, onShowAuth
   // Grid key forces remount when coords change (Miami -> GPS)
   const gridKey = `${coords.latitude.toFixed(4)},${coords.longitude.toFixed(4)},${refreshKey || 0}`;
 
+  // Lift data fetch so grid + map share the same listings
+  const { listings: nearbyListings, loading: nearbyLoading } = useNearbyRentals(
+    null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
+  );
+
   return (
     <View style={styles.container}>
-      {/* ── Base: 2-column rental grid (always loading) ── */}
-      <BaseGrid
-        key={gridKey}
-        coords={coords}
-        isAnon={isAnon}
-        ownerHasListings={ownerHasListings}
-        onShowAuth={onShowAuth}
-        onNavigateCreate={onNavigateCreate}
-        onNavigateListings={onNavigateListings}
-        onNavigateExplore={onNavigateExplore}
-      />
+      {/* ── Base: grid or map view ── */}
+      {viewMode === 'map' ? (
+        <MapView listings={nearbyListings} loading={nearbyLoading} />
+      ) : (
+        <BaseGrid
+          key={gridKey}
+          listings={nearbyListings}
+          loading={nearbyLoading}
+          isAnon={isAnon}
+          ownerHasListings={ownerHasListings}
+          onShowAuth={onShowAuth}
+          onNavigateCreate={onNavigateCreate}
+          onNavigateListings={onNavigateListings}
+          onNavigateExplore={onNavigateExplore}
+        />
+      )}
 
       {/* ── L2: GPS soft-ask (behind L1, angled +1.5deg) ─ */}
       {showL2 && ready && (
