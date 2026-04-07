@@ -107,10 +107,10 @@ export async function PUT(request) {
 
     const supabase = createServiceClient();
 
-    // Fetch listing + owner profile
+    // Fetch listing
     const { data: listing, error: fetchErr } = await supabase
       .from('listings')
-      .select('*, profiles!listings_owner_user_id_fkey(email, display_name)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -122,8 +122,18 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Listing is not pending review' }, { status: 400 });
     }
 
-    const ownerEmail = listing.profiles?.email;
-    const ownerName = listing.profiles?.display_name || 'Property Owner';
+    // Fetch owner profile separately (FK is to auth.users, not profiles)
+    let ownerEmail = null;
+    let ownerName = 'Property Owner';
+    if (listing.owner_user_id) {
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('email, display_name')
+        .eq('id', listing.owner_user_id)
+        .single();
+      ownerEmail = ownerProfile?.email;
+      ownerName = ownerProfile?.display_name || 'Property Owner';
+    }
     const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
     const fullAddress = [address, listing.city, listing.state_or_province].filter(Boolean).join(', ');
 

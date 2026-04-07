@@ -121,15 +121,22 @@ export default function ListingsPanel() {
   const handleReviewAction = useCallback(async (id, action, reason) => {
     setReviewLoading(true);
     try {
-      await fetch("/api/admin/listings", {
+      const res = await fetch("/api/admin/listings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, action, rejection_reason: reason }),
       });
-      setReviewAction(null);
-      setRejectionReason("");
-      fetchListings();
-    } catch { /* silent */ }
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        alert(`Review failed: ${errBody.error || res.statusText}`);
+      } else {
+        setReviewAction(null);
+        setRejectionReason("");
+        fetchListings();
+      }
+    } catch (err) {
+      alert(`Review error: ${err.message}`);
+    }
     setReviewLoading(false);
   }, [fetchListings]);
 
