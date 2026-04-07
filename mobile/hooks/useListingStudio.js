@@ -380,6 +380,7 @@ export default function useListingStudio(draftIdParam) {
       });
       if (result?.description) {
         update('public_remarks', result.description.slice(0, 500));
+        setAiLoading(false);
         return result.description;
       }
     } catch {}
@@ -414,6 +415,7 @@ export default function useListingStudio(draftIdParam) {
       });
       if (result?.description) {
         update('public_remarks', result.description.slice(0, 500));
+        setAiLoading(false);
         return result.description;
       }
     } catch {}
@@ -449,6 +451,7 @@ export default function useListingStudio(draftIdParam) {
           pets_allowed: a.pets_allowed ?? prev.pets_allowed,
           parking_spaces: a.parking_spaces ? String(a.parking_spaces) : prev.parking_spaces,
         }));
+        setAiLoading(false);
         return result.amenities;
       }
     } catch {}

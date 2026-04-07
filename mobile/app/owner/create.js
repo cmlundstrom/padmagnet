@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, Input, Toggle, EqualHousingBadge } from '../../components/ui';
 import AddressAutocomplete from '../../components/owner/AddressAutocomplete';
 import NotificationPreferences from '../../components/owner/NotificationPreferences';
@@ -52,6 +53,27 @@ export default function MagicListingStudio() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [aiDescUses, setAiDescUses] = useState(0);
+  const AI_DESC_LIMIT = 8;
+
+  // Persist AI description usage with 24-hour reset
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('padmagnet_ai_desc_usage');
+        if (raw) {
+          const { count, resetDate } = JSON.parse(raw);
+          const now = new Date();
+          if (new Date(resetDate) > now) {
+            setAiDescUses(count);
+          } else {
+            // 24 hours expired — reset
+            await AsyncStorage.removeItem('padmagnet_ai_desc_usage');
+          }
+        }
+      } catch {}
+    })();
+  }, []);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showComps, setShowComps] = useState(false);
 
@@ -254,9 +276,16 @@ export default function MagicListingStudio() {
             </View>
             <Input label="Year Built *" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
 
-            <Pressable style={styles.compsLink} onPress={() => setShowComps(true)}>
-              <Ionicons name="trending-up" size={16} color={COLORS.accent} />
-              <Text style={styles.compsLinkText}>See what similar properties are renting for</Text>
+            <Pressable style={styles.compsBtn} onPress={() => setShowComps(true)}>
+              <LinearGradient
+                colors={[COLORS.accent, '#2563EB']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.compsBtnGradient}
+              >
+                <Ionicons name="stats-chart" size={18} color={COLORS.white} />
+                <Text style={styles.compsBtnText}>See what similar properties are renting for near your address</Text>
+              </LinearGradient>
             </Pressable>
           </SmartCard>
 
@@ -267,26 +296,30 @@ export default function MagicListingStudio() {
             completion={completionMap.description}
             cardRef={r => { cardRefs.current.description = r; }}
           >
-            <Text style={styles.hint}>Pitch the pad. What makes it shine?</Text>
-            <View style={styles.aiButtonRow}>
+            <Text style={styles.hint}>Pitch the Pad. Pitch the Location. What makes it shine?!</Text>
+            <View style={styles.aiRow}>
               <Pressable
-                style={[styles.aiButton, aiLoading && { opacity: 0.6 }]}
-                onPress={generateDescription}
-                disabled={aiLoading}
+                style={[styles.aiButton, aiDescUses >= AI_DESC_LIMIT && { opacity: 0.4 }, aiLoading && { opacity: 0.6 }]}
+                onPress={async () => {
+                  if (aiDescUses >= AI_DESC_LIMIT || aiLoading) return;
+                  const result = await generateDescription();
+                  if (result) {
+                    const newCount = aiDescUses + 1;
+                    setAiDescUses(newCount);
+                    const resetDate = new Date();
+                    resetDate.setHours(resetDate.getHours() + 24);
+                    AsyncStorage.setItem('padmagnet_ai_desc_usage', JSON.stringify({ count: newCount, resetDate: resetDate.toISOString() }));
+                  }
+                }}
+                disabled={aiLoading || aiDescUses >= AI_DESC_LIMIT}
               >
                 <Image source={require('../../assets/images/askpad-orb.png')} style={styles.aiOrbIcon} contentFit="contain" />
-                <Text style={styles.aiButtonText}>{aiLoading ? 'Writing...' : 'Let AskPad Write This'}</Text>
+                <Text style={styles.aiButtonText}>
+                  {aiDescUses >= AI_DESC_LIMIT ? 'Limit reached' : 'Let AskPad Write This'}
+                </Text>
               </Pressable>
-              {form.photos.length > 0 && (
-                <Pressable
-                  style={[styles.aiButton, styles.aiButtonVision, aiLoading && { opacity: 0.6 }]}
-                  onPress={generateFromPhotos}
-                  disabled={aiLoading}
-                >
-                  <Image source={require('../../assets/images/askpad-orb.png')} style={styles.aiOrbIcon} contentFit="contain" />
-                  <Text style={[styles.aiButtonText, { color: COLORS.accent }]}>AI Write from Photos</Text>
-                </Pressable>
-              )}
+              {aiLoading && <ActivityIndicator size="small" color={COLORS.brandOrange} />}
+              <Text style={styles.aiUseCounter}>{AI_DESC_LIMIT - aiDescUses} left</Text>
             </View>
             <Input
               label="Describe Your Rental Property"
@@ -295,9 +328,10 @@ export default function MagicListingStudio() {
               autoCapitalize="sentences"
               placeholder="Spacious 3-bed home with updated kitchen..."
               multiline
-              numberOfLines={5}
+              numberOfLines={3}
               maxLength={500}
-              style={styles.textArea}
+              scrollEnabled={false}
+              style={styles.textAreaGrow}
             />
             <Text style={styles.charCounter}>
               <Text style={{ color: form.public_remarks.length > 450 ? COLORS.warning : COLORS.success }}>{form.public_remarks.length}</Text>/500
@@ -370,16 +404,6 @@ export default function MagicListingStudio() {
             completion={completionMap.features}
             cardRef={r => { cardRefs.current.features = r; }}
           >
-            {form.photos.length > 0 && (
-              <Pressable
-                style={[styles.aiButton, styles.aiButtonVision, aiLoading && { opacity: 0.6 }]}
-                onPress={suggestAmenities}
-                disabled={aiLoading}
-              >
-                <Image source={require('../../assets/images/askpad-orb.png')} style={styles.aiOrbIcon} contentFit="contain" />
-                <Text style={[styles.aiButtonText, { color: COLORS.accent }]}>{aiLoading ? 'Analyzing...' : 'Suggest from Photos'}</Text>
-              </Pressable>
-            )}
             <Text style={styles.label}>Pets Allowed</Text>
             <View style={styles.chipRow}>
               {[{ label: 'Yes', value: true }, { label: 'No', value: false }].map(opt => (
@@ -589,7 +613,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: LAYOUT.padding.sm,
-    paddingBottom: 90,
+    paddingBottom: 130,
   },
   // ── Shared field styles ──
   row: {
@@ -637,6 +661,11 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
+  textAreaGrow: {
+    minHeight: 60,
+    textAlignVertical: 'top',
+    lineHeight: 20,
+  },
   charCounter: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
@@ -645,11 +674,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   // ── AI buttons ──
-  aiButtonRow: {
+  aiRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
-    flexWrap: 'wrap',
+    marginBottom: 10,
   },
   aiButton: {
     flexDirection: 'row',
@@ -661,6 +690,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
+    flexShrink: 1,
   },
   aiButtonVision: {
     borderColor: COLORS.accent + '55',
@@ -673,18 +703,39 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.brandOrange,
+    flex: 1,
+  },
+  aiUseCounter: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
   },
   // ── Comps ──
-  compsLink: {
+  compsBtn: {
+    marginTop: 12,
+    borderRadius: LAYOUT.radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(59,130,246,0.3)',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  compsBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginVertical: 8,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  compsLinkText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+  compsBtnText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.white,
+    flexShrink: 1,
   },
   // ── Date picker ──
   datePickerBtn: {

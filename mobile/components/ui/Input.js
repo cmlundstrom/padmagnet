@@ -23,12 +23,14 @@ export default function Input({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
 
   return (
     <View style={[styles.container, style]}>
       {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
       <View style={[
         styles.inputWrapper,
+        multiline && { flexDirection: 'column', alignItems: 'stretch' },
         focused && styles.inputFocused,
         error && styles.inputError,
       ]}>
@@ -41,12 +43,17 @@ export default function Input({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           multiline={multiline}
-          numberOfLines={numberOfLines}
+          numberOfLines={multiline ? undefined : numberOfLines}
           onFocus={() => setFocused(true)}
           onBlur={() => { setFocused(false); onBlurProp?.(); }}
+          onContentSizeChange={multiline ? (e) => setContentHeight(e.nativeEvent.contentSize.height) : undefined}
+          scrollEnabled={multiline ? false : undefined}
           style={[
             styles.input,
-            multiline && { minHeight: numberOfLines * 20, textAlignVertical: 'top' },
+            multiline && {
+              height: Math.max(numberOfLines * 22, contentHeight + 8),
+              textAlignVertical: 'top',
+            },
             inputStyle,
           ]}
           {...props}

@@ -127,6 +127,27 @@ export async function PUT(request, { params }) {
     // Expiry + is_active set by admin on approval, not here
     const submitting = updates.status === 'active' && existing.status !== 'active';
     if (submitting) {
+      // Duplicate check: does this owner already have an active or pending listing at this address?
+      const checkStreet = updates.street_name ?? existing.street_name;
+      const checkCity = updates.city ?? existing.city;
+      if (checkStreet && checkCity) {
+        const { data: dupes } = await supabase
+          .from('listings')
+          .select('id, status')
+          .eq('owner_user_id', user.id)
+          .eq('source', 'owner')
+          .eq('street_name', checkStreet)
+          .eq('city', checkCity)
+          .in('status', ['active', 'pending_review'])
+          .neq('id', id);
+        if (dupes && dupes.length > 0) {
+          return NextResponse.json(
+            { error: 'You already have an active or pending listing at this address.' },
+            { status: 409 }
+          );
+        }
+      }
+
       updates.status = 'pending_review';
       updates.is_active = false;
       if (!existing.confirmation_code) {
