@@ -425,16 +425,21 @@ export default function NearbyRentalsScreen() {
         title="Nearby Rentals"
         showBack
         rightAction={
-          <Pressable
-            style={styles.viewToggleBtn}
-            onPress={() => setViewMode(v => v === 'grid' ? 'map' : 'grid')}
-          >
-            <FontAwesome
-              name={viewMode === 'grid' ? 'map-o' : 'th'}
-              size={20}
-              color={COLORS.white}
-            />
-          </Pressable>
+          <View style={styles.viewToggleGroup}>
+            {['grid', 'map'].map(mode => (
+              <Pressable
+                key={mode}
+                style={[styles.viewToggleItem, viewMode === mode && styles.viewToggleItemActive]}
+                onPress={() => setViewMode(mode)}
+              >
+                <FontAwesome
+                  name={mode === 'grid' ? 'th-large' : 'map-o'}
+                  size={14}
+                  color={viewMode === mode ? COLORS.accent : COLORS.textSecondary}
+                />
+              </Pressable>
+            ))}
+          </View>
         }
       />
 
@@ -757,18 +762,19 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
   },
-  viewToggleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.logoOrange,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.logoOrange,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
+  viewToggleGroup: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.sm,
+    padding: 2,
+  },
+  viewToggleItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: LAYOUT.radius.sm - 2,
+  },
+  viewToggleItemActive: {
+    backgroundColor: COLORS.card,
   },
 
   // Permission screen
