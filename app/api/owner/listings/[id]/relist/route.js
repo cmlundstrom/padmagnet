@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../../../../lib/supabase';
 import { getAuthUser } from '../../../../../../lib/auth-helpers';
+import { writeAuditLogBatch } from '../../../../../../lib/api-helpers';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,16 @@ export async function POST(request, { params }) {
       if (updateErr) {
         return NextResponse.json({ error: updateErr.message }, { status: 500 });
       }
+
+      await writeAuditLogBatch([{
+        tableName: 'listings',
+        rowId: id,
+        action: 'relist',
+        fieldChanged: 'status',
+        oldValue: listing.status,
+        newValue: 'active',
+        metadata: { days_remaining: daysRemaining, triggered_by: 'owner' },
+      }]).catch(() => {});
 
       return NextResponse.json({
         success: true,

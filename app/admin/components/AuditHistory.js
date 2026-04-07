@@ -8,6 +8,10 @@ const ACTION_COLORS = {
   delete: '#ef4444',
   suppress: '#f59e0b',
   unsuppress: '#22d3ee',
+  approve: '#22c55e',
+  reject: '#ef4444',
+  delist: '#f59e0b',
+  relist: '#3b82f6',
 };
 
 function formatTimestamp(ts) {

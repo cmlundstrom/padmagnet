@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../../../../lib/supabase';
 import { getAuthUser } from '../../../../../../lib/auth-helpers';
+import { writeAuditLogBatch } from '../../../../../../lib/api-helpers';
 import { sendTemplateEmail } from '../../../../../../lib/email';
 import { NextResponse } from 'next/server';
 
@@ -67,6 +68,17 @@ export async function POST(request, { params }) {
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
+
+    // Audit log
+    await writeAuditLogBatch([{
+      tableName: 'listings',
+      rowId: id,
+      action: 'delist',
+      fieldChanged: 'status',
+      oldValue: listing.status,
+      newValue: 'leased',
+      metadata: { days_remaining: daysRemaining, triggered_by: 'owner' },
+    }]).catch(() => {});
 
     // Send de-list confirmation email
     const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');

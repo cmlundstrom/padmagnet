@@ -78,6 +78,9 @@ export default function ListingsPanel() {
         if (l.status !== "pending_review") return false;
       } else if (statusFilter === "owner_all") {
         if (l.source !== "owner") return false;
+      } else if (statusFilter === "archived" || statusFilter === "leased" || statusFilter === "expired" || statusFilter === "rejected") {
+        // These statuses have is_active=false — don't filter by is_active
+        if (l.status !== statusFilter) return false;
       } else if (statusFilter !== "all") {
         if (l.status !== statusFilter) return false;
         if (!l.is_active) return false;
@@ -98,6 +101,10 @@ export default function ListingsPanel() {
     if (s === "all") return enriched.length;
     if (s === "suppressed") return suppressedCount;
     if (s === "owner_all") return ownerListings.length;
+    // Inactive statuses don't require is_active check
+    if (["archived", "leased", "expired", "rejected", "draft", "pending_review"].includes(s)) {
+      return enriched.filter(l => l.status === s).length;
+    }
     return enriched.filter(l => l.status === s && l.is_active).length;
   };
 
