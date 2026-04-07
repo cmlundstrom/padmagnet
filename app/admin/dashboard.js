@@ -49,7 +49,23 @@ const TOOLS_NAV_ITEMS = [
 ];
 
 export default function PadMagnetAdmin() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTabState] = useState(() => {
+    // Restore from URL hash on initial load (e.g., /admin#listings)
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.slice(1);
+      const allIds = [...NAV_ITEMS, ...TOOLS_NAV_ITEMS].map(i => i.id);
+      if (allIds.includes(hash)) return hash;
+    }
+    return "overview";
+  });
+
+  // Persist active tab to URL hash so refresh returns to the same view
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${tab}`);
+    }
+  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openTicketCount, setOpenTicketCount] = useState(0);
   const [adminName, setAdminName] = useState("");
