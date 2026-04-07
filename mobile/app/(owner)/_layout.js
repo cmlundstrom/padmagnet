@@ -1,18 +1,10 @@
-import { useState, useEffect } from 'react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 export default function OwnerTabLayout() {
-  const [userId, setUserId] = useState(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUserId(session.user.id);
-    });
-  }, []);
-
-  const unreadCount = useUnreadCount(userId);
+  const { user } = useAuth();
+  const unreadCount = useUnreadCount(user?.id);
 
   return (
     <NativeTabs

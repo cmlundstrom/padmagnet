@@ -38,8 +38,6 @@ export default function OwnerProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
-      const interval = setInterval(fetchProfile, 3000);
-      return () => clearInterval(interval);
     }, [fetchProfile])
   );
 
