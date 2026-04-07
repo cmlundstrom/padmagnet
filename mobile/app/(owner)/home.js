@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
+import { apiFetch } from '../../lib/api';
 import ManilaFolderStack from '../../components/owner/ManilaFolderStack';
 import OwnerHeader from '../../components/owner/OwnerHeader';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
@@ -20,6 +21,15 @@ export default function OwnerHomeTab() {
   const [showAuth, setShowAuth] = useState(false);
   const [viewMode, setViewMode] = useState(view || 'grid');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ownerHasListings, setOwnerHasListings] = useState(false);
+
+  // Check if owner already has any listings (any status)
+  useEffect(() => {
+    if (isAnon || !session?.user?.id) return;
+    apiFetch('/api/owner/listings')
+      .then(data => setOwnerHasListings((data || []).length > 0))
+      .catch(() => {});
+  }, [isAnon, session?.user?.id]);
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
@@ -39,8 +49,10 @@ export default function OwnerHomeTab() {
         <ManilaFolderStack
           refreshKey={refreshKey}
           isAnon={isAnon}
+          ownerHasListings={ownerHasListings}
           onShowAuth={() => setShowAuth(true)}
           onNavigateCreate={() => router.push('/owner/create')}
+          onNavigateListings={() => router.push('/(owner)/listings')}
           onNavigateExplore={() => router.push('/(owner)/explore')}
         />
       </View>

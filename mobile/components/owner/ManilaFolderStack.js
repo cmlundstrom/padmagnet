@@ -57,7 +57,7 @@ function RadarRing({ delay }) {
 }
 
 // ─── Base grid — remounts via key when coords change ────
-function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExplore }) {
+function BaseGrid({ coords, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateExplore }) {
   const { listings, loading } = useNearbyRentals(
     null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
   );
@@ -100,10 +100,14 @@ function BaseGrid({ coords, isAnon, onShowAuth, onNavigateCreate, onNavigateExpl
             </Pressable>
             <Pressable
               style={[styles.gridActionBtn, styles.gridActionPrimary]}
-              onPress={() => isAnon ? onShowAuth?.() : onNavigateCreate?.()}
+              onPress={() => {
+                if (isAnon) return onShowAuth?.();
+                if (ownerHasListings) return onNavigateListings?.();
+                onNavigateCreate?.();
+              }}
             >
-              <FontAwesome name="plus" size={14} color={COLORS.white} />
-              <Text style={styles.gridActionText}>Enter My Listing</Text>
+              <FontAwesome name={ownerHasListings ? 'list-ul' : 'plus'} size={14} color={COLORS.white} />
+              <Text style={styles.gridActionText}>{ownerHasListings ? 'My Listings' : 'Enter My Listing'}</Text>
             </Pressable>
           </View>
         </View>
@@ -267,7 +271,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
 const STORAGE_KEY_L1 = 'owner_folder_l1_seen';
 const STORAGE_KEY_L2 = 'owner_folder_l2_seen';
 
-export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate, onNavigateExplore, refreshKey }) {
+export default function ManilaFolderStack({ isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore, refreshKey }) {
   const l1Ref = useRef();
   const l2Ref = useRef();
   const [showL1, setShowL1] = useState(false);
@@ -358,8 +362,10 @@ export default function ManilaFolderStack({ isAnon, onShowAuth, onNavigateCreate
         key={gridKey}
         coords={coords}
         isAnon={isAnon}
+        ownerHasListings={ownerHasListings}
         onShowAuth={onShowAuth}
         onNavigateCreate={onNavigateCreate}
+        onNavigateListings={onNavigateListings}
         onNavigateExplore={onNavigateExplore}
       />
 
