@@ -18,7 +18,7 @@ export default function OwnerMessages() {
   if (isAnon) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <OwnerHeader />
+        <OwnerHeader minimal />
         <Text style={styles.header}>Messages</Text>
 
         <View style={styles.teaserCard}>
@@ -60,7 +60,7 @@ export default function OwnerMessages() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <OwnerHeader />
+      <OwnerHeader minimal />
       <MessagesScreen emptySubtitle="Tenants will reach out when interested in your listing." />
     </SafeAreaView>
   );
