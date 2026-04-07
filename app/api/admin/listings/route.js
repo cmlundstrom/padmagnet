@@ -14,16 +14,35 @@ export async function GET(request) {
 
   try {
     const supabase = createServiceClient();
-    const { data, error } = await supabase
+    // Fetch recent MLS listings (capped at 1000 for performance)
+    const { data: recentListings, error } = await supabase
       .from('listings')
       .select(LISTING_COLUMNS)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1000);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    // Always include ALL owner listings (even if outside the 1000 window)
+    const { data: ownerListings } = await supabase
+      .from('listings')
+      .select(LISTING_COLUMNS)
+      .eq('source', 'owner')
+      .order('created_at', { ascending: false });
+
+    // Merge — deduplicate by id
+    const seen = new Set(recentListings.map(l => l.id));
+    const merged = [...recentListings];
+    for (const ol of (ownerListings || [])) {
+      if (!seen.has(ol.id)) {
+        merged.push(ol);
+        seen.add(ol.id);
+      }
+    }
+
+    return NextResponse.json(merged);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
