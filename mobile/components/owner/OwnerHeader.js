@@ -6,7 +6,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 const DEFAULT_VIEW_MODES = ['grid', 'map', 'list'];
-const VIEW_ICONS = { grid: '\u25a3', map: '\u25ce', list: '\u2630' };
+const VIEW_ICONS = { grid: 'th-large', map: 'map-o', list: 'list' };
 
 /**
  * Shared branded header for all owner tab screens.
@@ -70,14 +70,11 @@ export default function OwnerHeader({ viewMode, onViewModeChange, onRefresh, min
                 ]}
                 onPress={() => handleViewMode(mode)}
               >
-                <Text
-                  style={[
-                    styles.toggleIcon,
-                    viewMode === mode && styles.toggleIconActive,
-                  ]}
-                >
-                  {VIEW_ICONS[mode]}
-                </Text>
+                <FontAwesome
+                  name={VIEW_ICONS[mode]}
+                  size={14}
+                  color={viewMode === mode ? COLORS.accent : COLORS.textSecondary}
+                />
               </Pressable>
             ))}
           </View>
