@@ -48,8 +48,10 @@ export default function OwnerListingsTab() {
   const dissolveOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Detect transition: was anonymous → now authenticated, and no listings
-    if (wasAnon.current && !isAnon && listings.length === 0) {
+    // Detect transition: was anonymous → now authenticated, no listings, AND loading is done
+    // Must wait for listings fetch to complete before deciding — otherwise we dissolve
+    // into the studio even when the user has existing listings (still loading)
+    if (wasAnon.current && !isAnon && !loading && listings.length === 0) {
       // Wait for the green auth banner to register (1.5s), then dissolve + navigate
       const timer = setTimeout(() => {
         Animated.timing(dissolveOpacity, {
@@ -58,7 +60,6 @@ export default function OwnerListingsTab() {
           useNativeDriver: true,
         }).start(() => {
           router.push('/owner/create');
-          // Reset opacity for when they come back
           setTimeout(() => dissolveOpacity.setValue(1), 500);
         });
       }, 1500);
@@ -66,7 +67,7 @@ export default function OwnerListingsTab() {
       return () => clearTimeout(timer);
     }
     wasAnon.current = isAnon;
-  }, [isAnon, listings.length]);
+  }, [isAnon, listings.length, loading]);
 
   const fetchListings = useCallback(async () => {
     try {

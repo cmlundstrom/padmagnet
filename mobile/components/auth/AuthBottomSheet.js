@@ -163,33 +163,36 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   async function sendMagicLink() {
     if (!magicEmail) return;
     setLoading('magic');
+    setError(null);
     try {
       // Generate nonce for cross-device relay (desktop email → mobile app)
       const nonce = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         const r = (Math.random() * 16) | 0;
         return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
       });
-      await AsyncStorage.setItem('magic_link_nonce', nonce);
 
       await signInWithMagicLink(magicEmail, nonce);
 
-      // Save return path so auth-callback knows where to navigate
-      const returnTo = getReturnPath();
-      if (returnTo) await AsyncStorage.setItem('auth_return_to', returnTo);
-
+      // Email sent successfully — transition UI immediately
       setEmail(magicEmail);
       setShowMagicPrompt(false);
       setMagicSent(true);
+      setLoading(null);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // These are fire-and-forget — don't let them block the UI
+      AsyncStorage.setItem('magic_link_nonce', nonce).catch(() => {});
+      const returnTo = getReturnPath();
+      if (returnTo) AsyncStorage.setItem('auth_return_to', returnTo).catch(() => {});
 
       // Start listening for cross-device token relay
       relayCleanup.current?.();
       relayCleanup.current = subscribeMagicLinkRelay(nonce, (dest) => {
-        // Relay succeeded — tokens arrived from desktop, close sheet and navigate
         resetState();
         onClose?.();
         router.replace(dest);
       });
+      return;
     } catch (err) {
       setError(err.message);
     }
@@ -417,10 +420,15 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
             <Ionicons name="mail" size={28} color={COLORS.accent} style={{ marginBottom: 8 }} />
             <Text style={styles.promptTitle}>Send Magic Link</Text>
             <Text style={styles.promptSubtitle}>We'll email you a sign-in link — no password needed.</Text>
+            {error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
             <TextInput
               style={styles.promptInput}
               value={magicEmail}
-              onChangeText={setMagicEmail}
+              onChangeText={(v) => { setMagicEmail(v); setError(null); }}
               placeholder="Your email address"
               placeholderTextColor={COLORS.slate}
               keyboardType="email-address"
