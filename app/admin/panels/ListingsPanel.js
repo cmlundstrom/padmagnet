@@ -350,32 +350,17 @@ export default function ListingsPanel() {
           ))}
         </div>
 
-        {/* Action buttons */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {isPending && (
-            <>
-              <button
-                onClick={() => handleReviewAction(row.id, "approve")}
-                disabled={reviewLoading}
-                style={{ ...baseButton, background: COLORS.green, color: "#000", fontSize: "12px", fontWeight: 700 }}
-              >
-                ✓ Approve Listing
-              </button>
-              <button
-                onClick={() => setReviewAction({ id: row.id, action: "reject" })}
-                style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}
-              >
-                ✕ Reject
-              </button>
-            </>
-          )}
-          {!isPending && row.is_active && (
-            <button onClick={handleSuppress} style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
-          )}
-          {!isPending && !row.is_active && row.status !== "pending_review" && (
-            <button onClick={handleUnsuppress} style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Unsuppress</button>
-          )}
-        </div>
+        {/* Action buttons — approve/reject is in the top Review Required bar only */}
+        {!isPending && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {row.is_active && (
+              <button onClick={handleSuppress} style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
+            )}
+            {!row.is_active && (
+              <button onClick={handleUnsuppress} style={{ ...baseButton, background: COLORS.greenDim, color: COLORS.green, fontSize: "12px" }}>Unsuppress</button>
+            )}
+          </div>
+        )}
         <AuditHistory tableName="listings" rowId={row.id} />
       </div>
     );
