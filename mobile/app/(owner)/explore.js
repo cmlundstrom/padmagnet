@@ -1,8 +1,6 @@
-import { useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EqualHousingBadge } from '../../components/ui';
@@ -23,15 +21,12 @@ export default function ExploreScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const isAnon = session?.user?.is_anonymous === true;
-  const { tier, tierLabel, daysRemaining, isExpired, refresh: refreshTier } = useSubscription();
+  const { tier, tierLabel, daysRemaining, isExpired } = useSubscription();
   const isFree = tier === 'free';
   const isPro = tier === 'pro';
   const isPremium = tier === 'premium';
   const tierColor = TIER_COLORS[tier];
   const isUrgent = daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0;
-
-  // Refresh tier when tab gains focus (e.g., after purchase)
-  useFocusEffect(useCallback(() => { refreshTier(); }, [refreshTier]));
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>

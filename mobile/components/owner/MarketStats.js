@@ -16,16 +16,26 @@ const DEFAULT_STATS = {
   source: 'RentCafe / RealPage, 2025',
 };
 
+// Module-level cache — market stats rarely change, no need to re-fetch every mount
+let _cachedStats = null;
+
 export default function MarketStats() {
-  const [stats, setStats] = useState(DEFAULT_STATS);
+  const [stats, setStats] = useState(_cachedStats || DEFAULT_STATS);
 
   useEffect(() => {
+    if (_cachedStats) return; // already fetched this session
     // Try to fetch admin-editable stats from site_config
     apiFetch('/api/config?key=market_stats')
       .then(data => {
-        if (data?.value) setStats({ ...DEFAULT_STATS, ...data.value });
+        if (data?.value) {
+          const merged = { ...DEFAULT_STATS, ...data.value };
+          _cachedStats = merged;
+          setStats(merged);
+        } else {
+          _cachedStats = DEFAULT_STATS;
+        }
       })
-      .catch(() => {}); // Fall back to defaults
+      .catch(() => { _cachedStats = DEFAULT_STATS; });
   }, []);
 
   return (

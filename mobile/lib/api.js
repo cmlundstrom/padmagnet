@@ -8,6 +8,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 // Cache the session token to avoid calling getSession() on every API request
 let _cachedToken = null;
 let _tokenExpiry = 0;
+let _inflightToken = null; // dedup concurrent getToken() calls
 
 // Listen for auth changes to update cached token
 supabase.auth.onAuthStateChange((_event, session) => {
@@ -21,19 +22,26 @@ async function getToken() {
   if (_cachedToken && Date.now() < _tokenExpiry) {
     return _cachedToken;
   }
+  // If a refresh is already in-flight, reuse it instead of spawning another
+  if (_inflightToken) return _inflightToken;
   // Refresh from Supabase — timeout after 2s
-  try {
-    const result = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 2000)),
-    ]);
-    const token = result.data?.session?.access_token || null;
-    _cachedToken = token;
-    _tokenExpiry = token ? Date.now() + 55 * 60 * 1000 : 0;
-    return token;
-  } catch {
-    return _cachedToken; // fallback to stale token
-  }
+  _inflightToken = (async () => {
+    try {
+      const result = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), 2000)),
+      ]);
+      const token = result.data?.session?.access_token || null;
+      _cachedToken = token;
+      _tokenExpiry = token ? Date.now() + 55 * 60 * 1000 : 0;
+      return token;
+    } catch {
+      return _cachedToken; // fallback to stale token
+    } finally {
+      _inflightToken = null;
+    }
+  })();
+  return _inflightToken;
 }
 
 export async function apiFetch(path, options = {}) {
