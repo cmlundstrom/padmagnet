@@ -57,7 +57,31 @@ function RadarRing({ delay }) {
   return <Animated.View style={[styles.radarRing, style]} />;
 }
 
-// ─── Base grid — receives listings from parent ────
+// ─── Shared data layer — keyed by coords so hook remounts on GPS update ────
+function NearbyDataLayer({ coords, viewMode, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore }) {
+  const { listings, loading } = useNearbyRentals(
+    null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
+  );
+
+  if (viewMode === 'map') {
+    return <MapView listings={listings} loading={loading} initialCoords={coords} />;
+  }
+
+  return (
+    <BaseGrid
+      listings={listings}
+      loading={loading}
+      isAnon={isAnon}
+      ownerHasListings={ownerHasListings}
+      onShowAuth={onShowAuth}
+      onNavigateCreate={onNavigateCreate}
+      onNavigateListings={onNavigateListings}
+      onNavigateExplore={onNavigateExplore}
+    />
+  );
+}
+
+// ─── Base grid — receives listings from data layer ────
 function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onNavigateCreate, onNavigateListings, onNavigateExplore }) {
   if (loading && listings.length === 0) {
     return (
@@ -349,32 +373,23 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
     l1Ref.current?.dismiss();
   }, []);
 
-  // Grid key forces remount when coords change (Miami -> GPS)
-  const gridKey = `${coords.latitude.toFixed(4)},${coords.longitude.toFixed(4)},${refreshKey || 0}`;
-
-  // Lift data fetch so grid + map share the same listings
-  const { listings: nearbyListings, loading: nearbyLoading } = useNearbyRentals(
-    null, { lat: coords.latitude, lng: coords.longitude, defaultRadius: 10 }
-  );
+  // Key forces remount of shared data layer when coords or refreshKey change
+  const dataKey = `${coords.latitude.toFixed(4)},${coords.longitude.toFixed(4)},${refreshKey || 0}`;
 
   return (
     <View style={styles.container}>
-      {/* ── Base: grid or map view ── */}
-      {viewMode === 'map' ? (
-        <MapView listings={nearbyListings} loading={nearbyLoading} initialCoords={coords} />
-      ) : (
-        <BaseGrid
-          key={gridKey}
-          listings={nearbyListings}
-          loading={nearbyLoading}
-          isAnon={isAnon}
-          ownerHasListings={ownerHasListings}
-          onShowAuth={onShowAuth}
-          onNavigateCreate={onNavigateCreate}
-          onNavigateListings={onNavigateListings}
-          onNavigateExplore={onNavigateExplore}
-        />
-      )}
+      {/* Keyed wrapper — remounts when coords change so hook re-fetches */}
+      <NearbyDataLayer
+        key={dataKey}
+        coords={coords}
+        viewMode={viewMode}
+        isAnon={isAnon}
+        ownerHasListings={ownerHasListings}
+        onShowAuth={onShowAuth}
+        onNavigateCreate={onNavigateCreate}
+        onNavigateListings={onNavigateListings}
+        onNavigateExplore={onNavigateExplore}
+      />
 
       {/* ── L2: GPS soft-ask (behind L1, angled +1.5deg) ─ */}
       {showL2 && ready && (
