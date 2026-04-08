@@ -12,7 +12,7 @@ export default function TenantMessages() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <MessagesScreen emptySubtitle="Contact a property owner from a listing to start chatting." />
+      <MessagesScreen emptySubtitle="Message owners and listing agents about properties you love." />
       <AuthBottomSheet
         visible={isAnon}
         onClose={() => {}}

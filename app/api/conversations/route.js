@@ -19,7 +19,7 @@ export async function GET(request) {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('conversations')
-      .select('*')
+      .select('*, owner:profiles!owner_user_id(display_name)')
       .or(`tenant_user_id.eq.${user.id},owner_user_id.eq.${user.id}`)
       .order('last_message_at', { ascending: false, nullsFirst: false });
 
@@ -27,8 +27,15 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Flatten owner display_name into conversation object
+    const flattened = (data || []).map(c => {
+      const ownerName = c.owner?.display_name || null;
+      const { owner, ...rest } = c;
+      return { ...rest, owner_display_name: ownerName };
+    });
+
     // Per-user archive/unread filtering
-    const filtered = (data || []).filter(c => {
+    const filtered = flattened.filter(c => {
       const isTenant = c.tenant_user_id === user.id;
       const archived = isTenant ? c.archived_by_tenant : c.archived_by_owner;
       const unreadCount = isTenant ? c.tenant_unread_count : c.owner_unread_count;

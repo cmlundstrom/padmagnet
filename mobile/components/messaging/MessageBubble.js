@@ -17,11 +17,19 @@ function formatTime(dateString) {
  *   isMine        - boolean: did current user send this?
  *   isRead        - boolean: has counterparty read this message?
  *   isExternal    - boolean: is this an external agent conversation?
+ *   agentName     - string: external agent name (for label on their messages)
  */
-export default function MessageBubble({ message, isMine, isRead, isExternal }) {
+export default function MessageBubble({ message, isMine, isRead, isExternal, agentName }) {
+  // Delivery channel indicator text
+  const channelLabel = isMine && message.channel && message.channel !== 'in_app'
+    ? ` via ${message.channel === 'sms' ? 'SMS' : 'email'}`
+    : '';
+
   let checkmark = null;
   if (isMine) {
-    if (isExternal) {
+    if (message.delivery_status === 'failed') {
+      checkmark = <Text style={[styles.check, { color: COLORS.danger }]}>  !</Text>;
+    } else if (isExternal) {
       // External: max grey double check (delivered). Never blue.
       checkmark = <Text style={[styles.check, styles.checkGrey]}>  {'\u2713\u2713'}</Text>;
     } else if (isRead || message.read_at) {
@@ -38,13 +46,14 @@ export default function MessageBubble({ message, isMine, isRead, isExternal }) {
       <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
         {/* External agent label for incoming messages */}
         {!isMine && message.sender_id === null && (
-          <Text style={styles.agentLabel}>MLS Agent</Text>
+          <Text style={styles.agentLabel}>{agentName || 'Listing Agent'}</Text>
         )}
         <Text style={[styles.body, isMine ? styles.bodyMine : styles.bodyTheirs]}>
           {message.body}
         </Text>
         <Text style={[styles.time, isMine ? styles.timeMine : styles.timeTheirs]}>
           {formatTime(message.created_at)}
+          {channelLabel ? <Text style={styles.channelLabel}>{channelLabel}</Text> : null}
           {checkmark}
         </Text>
       </View>
@@ -114,5 +123,9 @@ const styles = StyleSheet.create({
   },
   checkBlue: {
     color: COLORS.accent,
+  },
+  channelLabel: {
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.slate,
   },
 });

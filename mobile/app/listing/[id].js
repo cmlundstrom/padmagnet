@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withDelay } from 'react-native-reanimated';
@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { Header, GlossyHeart } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
+import ChannelPrompt from '../../components/messaging/ChannelPrompt';
 import usePreferences from '../../hooks/usePreferences';
 import useSwipe from '../../hooks/useSwipe';
 import usePadPoints from '../../hooks/usePadPoints';
@@ -128,16 +129,9 @@ export default function ListingDetailScreen() {
   const { session: authSession } = useAuth();
   const isAnon = !authSession || authSession.user?.is_anonymous === true;
 
-  const handleContact = async () => {
-    if (!listing) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const [showChannelPrompt, setShowChannelPrompt] = useState(false);
 
-    // Check if anonymous — gate behind auth (reactive via useAuth)
-    if (isAnon) {
-      setShowAuth(true);
-      return;
-    }
-
+  const sendFirstMessage = async () => {
     try {
       const result = await apiFetch('/api/conversations', {
         method: 'POST',
@@ -150,6 +144,25 @@ export default function ListingDetailScreen() {
     } catch (err) {
       alert('Error', err.message);
     }
+  };
+
+  const handleContact = async () => {
+    if (!listing) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (isAnon) {
+      setShowAuth(true);
+      return;
+    }
+
+    // Show channel preference prompt if not yet shown
+    const prompted = await ChannelPrompt.hasBeenShown();
+    if (!prompted) {
+      setShowChannelPrompt(true);
+      return;
+    }
+
+    sendFirstMessage();
   };
 
   if (loading) {
@@ -235,6 +248,26 @@ export default function ListingDetailScreen() {
         context="message"
         padpoints={padPoints.padpoints}
       />
+
+      {/* First-time channel preference prompt */}
+      <Modal
+        visible={showChannelPrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowChannelPrompt(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}
+          onPress={() => setShowChannelPrompt(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <ChannelPrompt onDismiss={() => {
+              setShowChannelPrompt(false);
+              sendFirstMessage();
+            }} />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

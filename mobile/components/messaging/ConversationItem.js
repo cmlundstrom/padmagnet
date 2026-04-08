@@ -122,14 +122,22 @@ export default function ConversationItem({ conversation, currentUserId, onPress 
           </View>
         </View>
 
+        {/* Subtitle: agent name or owner name */}
+        {isExternal && conversation.external_agent_name ? (
+          <Text style={styles.agentSubtitle} numberOfLines={1}>
+            via {conversation.external_agent_name} (Agent)
+          </Text>
+        ) : conversation.owner_display_name ? (
+          <Text style={styles.agentSubtitle} numberOfLines={1}>
+            Listed by {conversation.owner_display_name}
+          </Text>
+        ) : null}
+
         <View style={styles.bottomRow}>
           <Text
             style={[styles.preview, hasUnread && styles.unreadText]}
             numberOfLines={1}
           >
-            {isExternal && conversation.external_agent_name
-              ? `${conversation.external_agent_name}: `
-              : ''}
             {conversation.last_message_text || 'No messages yet'}
           </Text>
           <ReadReceipt status={receiptStatus} isExternal={isExternal} />
@@ -188,6 +196,12 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: COLORS.accent,
+  },
+  agentSubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.brandOrange,
+    marginBottom: 2,
   },
   bottomRow: {
     flexDirection: 'row',

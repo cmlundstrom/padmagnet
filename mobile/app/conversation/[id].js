@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FlatList, View, Text, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { Header } from '../../components/ui';
 import { MessageBubble, ChatInput } from '../../components/messaging';
@@ -17,8 +18,14 @@ export default function ConversationScreen() {
   const [sending, setSending] = useState(false);
   const [userId, setUserId] = useState(null);
   const [title, setTitle] = useState('Chat');
+  const [subtitle, setSubtitle] = useState(null);
   const [conversationType, setConversationType] = useState('internal_owner');
   const [counterpartyLastReadAt, setCounterpartyLastReadAt] = useState(null);
+  const [agentName, setAgentName] = useState(null);
+  const [agentEmail, setAgentEmail] = useState(null);
+  const [agentPhone, setAgentPhone] = useState(null);
+  const [ownerName, setOwnerName] = useState(null);
+  const [conversationCreatedAt, setConversationCreatedAt] = useState(null);
   const flatListRef = useRef(null);
 
   // Get current user
@@ -60,14 +67,27 @@ export default function ConversationScreen() {
       .catch(err => console.warn('Mark-read failed:', err.message));
   }, [id, userId]);
 
-  // Fetch conversation title
+  // Fetch conversation details (title, agent/owner info)
   useEffect(() => {
     async function fetchConvo() {
       try {
         const convos = await apiFetch('/api/conversations');
         const convo = (convos || []).find(c => c.id === id);
-        if (convo?.listing_address) {
-          setTitle(convo.listing_address);
+        if (!convo) return;
+        if (convo.listing_address) setTitle(convo.listing_address);
+        if (convo.created_at) setConversationCreatedAt(convo.created_at);
+
+        if (convo.conversation_type === 'external_agent') {
+          setAgentName(convo.external_agent_name || null);
+          setAgentEmail(convo.external_agent_email || null);
+          setAgentPhone(convo.external_agent_phone || null);
+          const city = convo.listing_address?.split(',').slice(1).join(',').trim();
+          setSubtitle(city
+            ? `${city}\nListed by ${convo.external_agent_name || 'Listing Agent'}`
+            : `Listed by ${convo.external_agent_name || 'Listing Agent'}`);
+        } else if (convo.owner_display_name) {
+          setSubtitle(`Listed by ${convo.owner_display_name}`);
+          setOwnerName(convo.owner_display_name);
         }
       } catch {
         // title stays as 'Chat'
@@ -179,9 +199,16 @@ export default function ConversationScreen() {
 
   const isExternal = conversationType === 'external_agent';
 
+  // Agent: show contact info immediately. Owner: show after 8 hours with no reply.
+  const OWNER_FALLBACK_MS = 8 * 60 * 60 * 1000;
+  const hasCounterpartyReply = messages.some(m => m.sender_id !== userId && m.sender_id !== null)
+    || messages.some(m => m.sender_id === null); // agent reply
+  const showOwnerFallback = !isExternal && !hasCounterpartyReply && conversationCreatedAt
+    && (Date.now() - new Date(conversationCreatedAt).getTime() > OWNER_FALLBACK_MS);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Header title={title} showBack />
+      <Header title={title} subtitle={subtitle} showBack />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -197,6 +224,46 @@ export default function ConversationScreen() {
             ref={flatListRef}
             data={messages}
             keyExtractor={item => item.id}
+            ListHeaderComponent={
+              <View>
+                {/* System message: agent conversation */}
+                {isExternal && agentName && (
+                  <View style={styles.systemMsg}>
+                    <Ionicons name="information-circle-outline" size={16} color={COLORS.textSecondary} />
+                    <Text style={styles.systemMsgText}>
+                      This listing is managed by {agentName}. They'll receive your message via email and can reply directly to you.
+                    </Text>
+                  </View>
+                )}
+                {/* Agent contact info — shown immediately */}
+                {isExternal && (agentEmail || agentPhone) && (
+                  <View style={styles.contactCard}>
+                    <Text style={styles.contactTitle}>Reach {agentName || 'the agent'} directly:</Text>
+                    {agentEmail && (
+                      <Pressable style={styles.contactRow} onPress={() => Linking.openURL(`mailto:${agentEmail}`)}>
+                        <Ionicons name="mail-outline" size={14} color={COLORS.accent} />
+                        <Text style={styles.contactText}>{agentEmail}</Text>
+                      </Pressable>
+                    )}
+                    {agentPhone && (
+                      <Pressable style={styles.contactRow} onPress={() => Linking.openURL(`tel:${agentPhone}`)}>
+                        <Ionicons name="call-outline" size={14} color={COLORS.accent} />
+                        <Text style={styles.contactText}>{agentPhone}</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+                {/* Owner no-reply fallback — 8 hours */}
+                {showOwnerFallback && ownerName && (
+                  <View style={styles.systemMsg}>
+                    <Ionicons name="time-outline" size={16} color={COLORS.warning} />
+                    <Text style={styles.systemMsgText}>
+                      No reply yet from {ownerName}. You can reach them via the listing details.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            }
             renderItem={({ item }) => {
               const isMine = item.sender_id === userId;
               const isRead = isMine && counterpartyLastReadAt
@@ -210,6 +277,7 @@ export default function ConversationScreen() {
                     isMine={isMine}
                     isRead={isRead}
                     isExternal={isExternal}
+                    agentName={agentName}
                   />
                   {item.id === lastReadMessageId && (
                     <Text style={styles.readLabel}>
@@ -258,5 +326,48 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     paddingRight: LAYOUT.padding.md,
     paddingBottom: 4,
+  },
+  systemMsg: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginHorizontal: LAYOUT.padding.md,
+    marginVertical: 8,
+    padding: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+  },
+  systemMsgText: {
+    flex: 1,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  contactCard: {
+    marginHorizontal: LAYOUT.padding.md,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  contactTitle: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  contactText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
   },
 });
