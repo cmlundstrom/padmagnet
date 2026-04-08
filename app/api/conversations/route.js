@@ -132,10 +132,14 @@ export async function POST(request) {
       if (existing.conversation_type === 'external_agent') {
         // No owner to increment unread for — notify external agent
         const { data: sender } = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
-        notifyExternalAgent(
-          { ...msg, sender_name: sender?.display_name || 'Someone' },
-          existing
-        ).catch(err => console.error('External agent notification error:', err));
+        try {
+          await notifyExternalAgent(
+            { ...msg, sender_name: sender?.display_name || 'Someone' },
+            existing
+          );
+        } catch (err) {
+          console.error('External agent notification error:', err);
+        }
       } else {
         await supabase.rpc('increment_unread', {
           p_conversation_id: existing.id,
@@ -202,10 +206,14 @@ export async function POST(request) {
 
     if (isExternalAgent) {
       // No phone_mappings for external agents — email only (no SMS routing)
-      notifyExternalAgent(
-        { ...firstMsg, sender_name: senderName },
-        convo
-      ).catch(err => console.error('External agent notification error:', err));
+      try {
+        await notifyExternalAgent(
+          { ...firstMsg, sender_name: senderName },
+          convo
+        );
+      } catch (err) {
+        console.error('External agent notification error:', err);
+      }
     } else if (convo.owner_user_id) {
       const { data: recipient } = await supabase
         .from('profiles')
@@ -223,11 +231,15 @@ export async function POST(request) {
           }, { onConflict: 'twilio_number,user_phone' });
         }
 
-        notifyRecipient(
-          { ...firstMsg, sender_name: senderName },
-          convo,
-          recipient
-        ).catch(err => console.error('Notification error:', err));
+        try {
+          await notifyRecipient(
+            { ...firstMsg, sender_name: senderName },
+            convo,
+            recipient
+          );
+        } catch (err) {
+          console.error('Notification error:', err);
+        }
       }
     }
 

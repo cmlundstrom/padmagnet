@@ -156,10 +156,14 @@ export async function POST(request) {
     // Route notification based on conversation type
     if (convo.conversation_type === 'external_agent') {
       // External MLS agent — email only, no phone_mappings, no push
-      notifyExternalAgent(
-        { ...message, sender_name: senderName },
-        convo
-      ).catch(err => console.error('External agent notification error:', err));
+      try {
+        await notifyExternalAgent(
+          { ...message, sender_name: senderName },
+          convo
+        );
+      } catch (err) {
+        console.error('External agent notification error:', err);
+      }
 
     } else if (convo.owner_user_id) {
       // Internal owner — standard PadMagnet user flow
@@ -184,11 +188,15 @@ export async function POST(request) {
           }, { onConflict: 'twilio_number,user_phone' });
         }
 
-        notifyRecipient(
-          { ...message, sender_name: senderName },
-          convo,
-          recipient
-        ).catch(err => console.error('Notification error:', err));
+        try {
+          await notifyRecipient(
+            { ...message, sender_name: senderName },
+            convo,
+            recipient
+          );
+        } catch (err) {
+          console.error('Notification error:', err);
+        }
       }
     }
 
