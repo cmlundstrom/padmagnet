@@ -243,7 +243,7 @@ export default function ConversationScreen() {
         const h = e.endCoordinates.height;
         kbOffset.value = withTiming(h, { duration: 250 });
         setKbHeight(h);
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 300);
+        setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 300);
       }
     );
     const hideSub = Keyboard.addListener(
@@ -308,11 +308,12 @@ export default function ConversationScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={displayItems}
+            data={[...displayItems].reverse()}
+            inverted
             keyExtractor={item => item.id}
-            ListHeaderComponent={
+            ListFooterComponent={
               <View>
-                {/* System message: agent conversation */}
+                {/* System message: agent conversation (shown at top of thread) */}
                 {isExternal && agentName && (
                   <View style={styles.systemMsg}>
                     <Ionicons name="information-circle-outline" size={16} color={COLORS.textSecondary} />
@@ -407,10 +408,7 @@ export default function ConversationScreen() {
                 </View>
               );
             }}
-            contentContainerStyle={[styles.listContent, { paddingBottom: kbHeight + 80 }]}
-            onContentSizeChange={() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }}
+            contentContainerStyle={[styles.listContent, { paddingTop: kbHeight + 80 }]}
           />
         )}
 

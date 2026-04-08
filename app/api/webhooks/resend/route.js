@@ -58,12 +58,10 @@ export async function POST(request) {
 
     const { data } = body;
 
-    // Fetch full email content via Resend REST API (SDK doesn't support receiving.get)
-    const emailRes = await fetch(`https://api.resend.com/emails/${data.email_id}`, {
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-    });
-    const fullEmail = emailRes.ok ? await emailRes.json() : {};
-    const rawText = fullEmail.text || fullEmail.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
+    // Fetch full email content via Resend Receiving API (SDK v6+)
+    const fullEmail = await resend.emails.receiving.get(data.email_id);
+    const emailData = fullEmail.data || {};
+    const rawText = emailData.text || emailData.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
     const cleanBody = stripReplyChain(rawText);
 
     if (!cleanBody.trim()) {
