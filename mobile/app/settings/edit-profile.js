@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Pressable,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../providers/AlertProvider';
 import { supabase } from '../../lib/supabase';
@@ -191,6 +192,19 @@ export default function EditProfileScreen() {
               Optional. Used for contact preferences or account recovery.
             </Text>
           </View>
+
+          {/* Bottom Save Button */}
+          <Pressable onPress={handleSave} disabled={saving} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
+            <LinearGradient
+              colors={[COLORS.logoOrange, '#D14E2F']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.bottomSaveBtn}
+            >
+              <Ionicons name="checkmark-circle" size={18} color={COLORS.white} />
+              <Text style={styles.bottomSaveText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+            </LinearGradient>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -210,7 +224,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 80,
+    paddingBottom: 300,
   },
   header: {
     flexDirection: 'row',
@@ -291,5 +305,24 @@ const styles = StyleSheet.create({
   },
   hintActive: {
     color: COLORS.warning,
+  },
+  bottomSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: LAYOUT.radius.lg,
+    marginTop: 8,
+    shadowColor: COLORS.logoOrange,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  bottomSaveText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
   },
 });
