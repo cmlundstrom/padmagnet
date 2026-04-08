@@ -10,6 +10,7 @@
 
 import { Webhook } from 'svix';
 import { Resend } from 'resend';
+import EmailReplyParser from 'email-reply-parser';
 import { createServiceClient } from '../../../../lib/supabase';
 import { NextResponse } from 'next/server';
 
@@ -62,7 +63,7 @@ export async function POST(request) {
     const fullEmail = await resend.emails.receiving.get(data.email_id);
     const emailData = fullEmail.data || {};
     const rawText = emailData.text || emailData.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
-    const cleanBody = stripReplyChain(rawText);
+    const cleanBody = new EmailReplyParser().read(rawText).getVisibleText().trim();
 
     if (!cleanBody.trim()) {
       await updateLog(supabase, logId, 'processed', 'Empty reply body after stripping');
@@ -182,26 +183,7 @@ export async function POST(request) {
  * Strip reply chain / forwarded content from email body.
  * Keeps only the new reply text above common email markers.
  */
-function stripReplyChain(text) {
-  const markers = [
-    /\n\s*On .+ wrote:\s*$/ms,           // "On [date] [name] wrote:"
-    /\n\s*-{2,}\s*Original Message/mi,   // "--- Original Message ---"
-    /\n\s*From:\s+.*@/m,                 // "From: email@..." (forwarded)
-    /\n\s*Sent from my /m,               // "Sent from my iPhone"
-    /\n\s*--\s*\n/m,                     // Email signature separator "-- "
-    /\n\s*>{2,}/m,                       // Multiple > (deep quote, not single >)
-    /\n\s*_{3,}/m,                       // ___ underline separators
-    /\n\s*\[image:/mi,                   // [image: ...] inline image markers
-    /\n\s*\[cid:/mi,                     // [cid:...] content-id image refs
-    /\n.*(?:South Florida Realty|SFRM)/mi, // Known business signature
-  ];
-  let clean = text;
-  for (const marker of markers) {
-    const match = clean.match(marker);
-    if (match) clean = clean.slice(0, match.index);
-  }
-  return clean.trim();
-}
+// Reply chain stripping handled by email-reply-parser library
 
 async function updateLog(supabase, id, status, error, conversationId, messageId) {
   if (!id) return;
