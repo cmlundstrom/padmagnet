@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAvoidingView, Keyboard, Platform, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
@@ -199,6 +200,24 @@ export default function ConversationScreen() {
 
   const isExternal = conversationType === 'external_agent';
 
+  // Keyboard lift for Android — Reanimated translateY
+  const kbOffset = useSharedValue(0);
+  const kbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -kbOffset.value }],
+  }));
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => { kbOffset.value = withTiming(e.endCoordinates.height, { duration: 250 }); }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => { kbOffset.value = withTiming(0, { duration: 200 }); }
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   // Agent: show contact info immediately. Owner: show after 8 hours with no reply.
   const OWNER_FALLBACK_MS = 8 * 60 * 60 * 1000;
   const hasCounterpartyReply = messages.some(m => m.sender_id !== userId && m.sender_id !== null)
@@ -207,14 +226,10 @@ export default function ConversationScreen() {
     && (Date.now() - new Date(conversationCreatedAt).getTime() > OWNER_FALLBACK_MS);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Header title={title} subtitle={subtitle} showBack />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
+      <Animated.View style={[styles.flex, kbStyle]}>
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={COLORS.accent} />
@@ -298,7 +313,7 @@ export default function ConversationScreen() {
         )}
 
         <ChatInput onSend={handleSend} disabled={sending} />
-      </KeyboardAvoidingView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
