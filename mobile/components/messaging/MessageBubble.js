@@ -47,10 +47,10 @@ export default function MessageBubble({ message, isMine, isRead, isExternal, age
       <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
         {/* Role + name label for incoming messages */}
         {!isMine && isExternal && (
-          <Text style={styles.agentLabel}>From the Agent, {agentName || 'Listing Agent'}:</Text>
+          <Text style={styles.agentLabel}>Agent, {agentName || 'Listing Agent'}:</Text>
         )}
         {!isMine && !isExternal && message.sender_id !== null && ownerName && (
-          <Text style={styles.agentLabel}>From the Owner, {ownerName}:</Text>
+          <Text style={styles.agentLabel}>Owner, {ownerName}:</Text>
         )}
         <Text style={[styles.body, isMine ? styles.bodyMine : styles.bodyTheirs]}>
           {message.body}
