@@ -19,7 +19,7 @@ export async function GET(request) {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('conversations')
-      .select('*, owner:profiles!owner_user_id(display_name)')
+      .select('*')
       .or(`tenant_user_id.eq.${user.id},owner_user_id.eq.${user.id}`)
       .order('last_message_at', { ascending: false, nullsFirst: false });
 
@@ -27,12 +27,21 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Flatten owner display_name into conversation object
-    const flattened = (data || []).map(c => {
-      const ownerName = c.owner?.display_name || null;
-      const { owner, ...rest } = c;
-      return { ...rest, owner_display_name: ownerName };
-    });
+    // Fetch owner display names for internal conversations
+    const ownerIds = [...new Set((data || []).filter(c => c.owner_user_id).map(c => c.owner_user_id))];
+    let ownerNames = {};
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', ownerIds);
+      ownerNames = Object.fromEntries((profiles || []).map(p => [p.id, p.display_name]));
+    }
+
+    const flattened = (data || []).map(c => ({
+      ...c,
+      owner_display_name: c.owner_user_id ? (ownerNames[c.owner_user_id] || null) : null,
+    }));
 
     // Per-user archive/unread filtering
     const filtered = flattened.filter(c => {
