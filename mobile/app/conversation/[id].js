@@ -124,7 +124,7 @@ export default function ConversationScreen() {
     fetchConvo();
   }, [id]);
 
-  // Supabase Realtime: listen for new messages in this conversation
+  // Supabase Realtime: listen for new messages + status updates in this conversation
   useEffect(() => {
     const channel = supabase
       .channel(`messages-${id}`)
@@ -150,6 +150,22 @@ export default function ConversationScreen() {
             apiFetch(`/api/conversations/${id}/mark-read`, { method: 'POST' })
               .catch(() => {});
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${id}`,
+        },
+        (payload) => {
+          // Live update: delivery_status, read_at, channel changes
+          const updated = payload.new;
+          setMessages(prev => prev.map(m =>
+            m.id === updated.id ? { ...m, ...updated } : m
+          ));
         }
       )
       .subscribe();
