@@ -7,6 +7,7 @@
 
 import { createServiceClient } from '../../../../lib/supabase';
 import { getAuthUser } from '../../../../lib/auth-helpers';
+import { sendSMS } from '../../../../lib/sms';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -54,6 +55,17 @@ export async function POST(request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Send CTIA-required welcome SMS on first opt-in
+    if (consent && phone) {
+      sendSMS(phone, [
+        'PadMagnet: You\'re now signed up for SMS notifications',
+        '(inquiry alerts, listing reminders, messages).',
+        'Msg frequency varies. Msg & data rates may apply.',
+        'Reply HELP for help. Reply STOP to opt out.',
+        'padmagnet.com/terms',
+      ].join(' ')).catch(err => console.error('[SMS] Welcome SMS failed:', err.message));
     }
 
     return NextResponse.json({ ok: true });

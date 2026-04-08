@@ -58,7 +58,7 @@ export async function POST(request) {
     if (OptOutType === 'STOP') {
       await supabase
         .from('profiles')
-        .update({ sms_consent: false })
+        .update({ sms_consent: false, preferred_channel: 'in_app' })
         .eq('phone', From);
       await updateLog(supabase, logId, 'processed');
       return twiml('You have been unsubscribed from PadMagnet SMS. Reply START to re-subscribe.');

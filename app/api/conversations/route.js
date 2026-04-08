@@ -185,16 +185,7 @@ export async function POST(request) {
     const senderName = sender?.display_name || 'Someone';
 
     if (isExternalAgent) {
-      // Upsert phone mapping for SMS reply routing
-      if (convo.external_agent_phone) {
-        await supabase.from('phone_mappings').upsert({
-          twilio_number: process.env.TWILIO_PHONE_NUMBER,
-          user_phone: convo.external_agent_phone,
-          conversation_id: convo.id,
-          user_id: null,
-        }, { onConflict: 'twilio_number,user_phone' });
-      }
-
+      // No phone_mappings for external agents — email only (no SMS routing)
       notifyExternalAgent(
         { ...firstMsg, sender_name: senderName },
         convo
