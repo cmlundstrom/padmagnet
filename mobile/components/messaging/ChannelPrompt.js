@@ -51,7 +51,7 @@ export default function ChannelPrompt({ onDismiss }) {
           onPress={() => handleChoice('sms')}
           disabled={saving}
         >
-          <Ionicons name="phone-portrait-outline" size={20} color={COLORS.accent} />
+          <Ionicons name="phone-portrait-outline" size={20} color={COLORS.brandOrange} />
           <Text style={styles.optionLabel}>Text Me</Text>
         </Pressable>
         <Pressable
@@ -59,7 +59,7 @@ export default function ChannelPrompt({ onDismiss }) {
           onPress={() => handleChoice('email')}
           disabled={saving}
         >
-          <Ionicons name="mail-outline" size={20} color={COLORS.accent} />
+          <Ionicons name="mail-outline" size={20} color={COLORS.brandOrange} />
           <Text style={styles.optionLabel}>Email Me</Text>
         </Pressable>
       </View>
@@ -106,17 +106,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: COLORS.card,
     borderRadius: LAYOUT.radius.md,
-    borderWidth: 1,
-    borderColor: COLORS.accent + '44',
+    borderWidth: 1.5,
+    borderColor: COLORS.brandOrange + '66',
   },
   optionPressed: {
     opacity: 0.8,
-    backgroundColor: COLORS.accent + '22',
+    backgroundColor: COLORS.brandOrange + '22',
   },
   optionLabel: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.md,
-    color: COLORS.accent,
+    color: COLORS.brandOrange,
   },
   hint: {
     fontFamily: FONTS.body.regular,

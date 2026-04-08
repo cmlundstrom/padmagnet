@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withDelay } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withDelay, withRepeat, Easing } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Header, GlossyHeart } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
@@ -14,7 +15,7 @@ import usePadPoints from '../../hooks/usePadPoints';
 import { useAuth } from '../../hooks/useAuth';
 import { calculatePadScore } from '../../lib/padscore';
 import { supabase } from '../../lib/supabase';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { apiFetch } from '../../lib/api';
 import { shareListing } from '../../lib/share-listing';
 import { useAlert } from '../../providers/AlertProvider';
@@ -231,12 +232,20 @@ export default function ListingDetailScreen() {
         </Pressable>
       )}
 
-      {/* Sticky bottom CTAs */}
+      {/* Sticky bottom CTA */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.ctaButton} onPress={handleContact}>
-          <Text style={styles.ctaButtonText}>
-            {context === 'owner_browse' ? 'Contact Listing Agent' : 'Check Availability'}
-          </Text>
+        <Pressable onPress={handleContact} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
+          <LinearGradient
+            colors={[COLORS.logoOrange, '#D14E2F', '#B8432A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaButton}
+          >
+            <Ionicons name="chatbubble-ellipses" size={20} color={COLORS.white} />
+            <Text style={styles.ctaButtonText}>
+              {context === 'owner_browse' ? 'Contact Listing Agent' : 'Ask About This Rental'}
+            </Text>
+          </LinearGradient>
         </Pressable>
       </View>
 
@@ -356,15 +365,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   ctaButton: {
-    backgroundColor: COLORS.accent,
-    paddingVertical: 16,
-    borderRadius: LAYOUT.radius.md,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: LAYOUT.radius.lg,
+    shadowColor: COLORS.logoOrange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
   },
   ctaButtonText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.white,
+    letterSpacing: 0.3,
   },
 });
