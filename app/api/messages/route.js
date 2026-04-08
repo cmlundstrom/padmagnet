@@ -154,6 +154,7 @@ export async function POST(request) {
     const senderName = sender?.display_name || 'Someone';
 
     // Route notification based on conversation type
+    console.log('[Messages] Routing notification:', { type: convo.conversation_type, owner: convo.owner_user_id, sender: user.id });
     if (convo.conversation_type === 'external_agent') {
       // External MLS agent — email only, no phone_mappings, no push
       try {
@@ -177,6 +178,7 @@ export async function POST(request) {
         .eq('id', recipientId)
         .single();
 
+      console.log('[Messages] Recipient:', recipient ? { id: recipient.id, email: recipient.email, channel: recipient.preferred_channel } : 'NOT FOUND');
       if (recipient) {
         // Upsert phone mapping for SMS reply routing
         if (recipient.preferred_channel === 'sms' && recipient.phone) {
