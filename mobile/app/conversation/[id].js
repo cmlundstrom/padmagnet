@@ -113,7 +113,9 @@ export default function ConversationScreen() {
           const newMsg = payload.new;
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+            // Remove any optimistic message that this real message replaces
+            const filtered = prev.filter(m => !m.id.startsWith('optimistic-') || m.body !== newMsg.body);
+            return [...filtered, newMsg];
           });
 
           // Mark as read immediately if it's from someone else
@@ -200,8 +202,9 @@ export default function ConversationScreen() {
 
   const isExternal = conversationType === 'external_agent';
 
-  // Keyboard lift for Android — Reanimated translateY
+  // Keyboard handling — track height for input lift + FlatList margin
   const kbOffset = useSharedValue(0);
+  const [kbHeight, setKbHeight] = useState(0);
   const kbStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -kbOffset.value }],
   }));
@@ -209,11 +212,19 @@ export default function ConversationScreen() {
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => { kbOffset.value = withTiming(e.endCoordinates.height, { duration: 250 }); }
+      (e) => {
+        const h = e.endCoordinates.height;
+        kbOffset.value = withTiming(h, { duration: 250 });
+        setKbHeight(h);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 300);
+      }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => { kbOffset.value = withTiming(0, { duration: 200 }); }
+      () => {
+        kbOffset.value = withTiming(0, { duration: 200 });
+        setKbHeight(0);
+      }
     );
     return () => { showSub.remove(); hideSub.remove(); };
   }, []);
@@ -229,7 +240,7 @@ export default function ConversationScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Header title={title} subtitle={subtitle} showBack />
 
-      <Animated.View style={[styles.flex, kbStyle]}>
+      <View style={styles.flex}>
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={COLORS.accent} />
@@ -305,15 +316,17 @@ export default function ConversationScreen() {
                 </View>
               );
             }}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: kbHeight + 80 }]}
             onContentSizeChange={() => {
               flatListRef.current?.scrollToEnd({ animated: true });
             }}
           />
         )}
 
-        <ChatInput onSend={handleSend} disabled={sending} />
-      </Animated.View>
+        <Animated.View style={kbStyle}>
+          <ChatInput onSend={handleSend} disabled={sending} />
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -332,7 +345,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    paddingVertical: LAYOUT.padding.sm,
+    paddingTop: LAYOUT.padding.sm,
+    paddingBottom: 80,
   },
   readLabel: {
     fontFamily: FONTS.body.regular,
