@@ -58,9 +58,12 @@ export async function POST(request) {
 
     const { data } = body;
 
-    // Fetch full email content via Resend Receiving API
-    const fullEmail = await resend.emails.receiving.get(data.email_id);
-    const rawText = fullEmail.data?.text || fullEmail.data?.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
+    // Fetch full email content via Resend REST API (SDK doesn't support receiving.get)
+    const emailRes = await fetch(`https://api.resend.com/emails/${data.email_id}`, {
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    });
+    const fullEmail = emailRes.ok ? await emailRes.json() : {};
+    const rawText = fullEmail.text || fullEmail.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
     const cleanBody = stripReplyChain(rawText);
 
     if (!cleanBody.trim()) {
@@ -185,8 +188,12 @@ function stripReplyChain(text) {
     /\n\s*-{2,}\s*Original Message/mi,   // "--- Original Message ---"
     /\n\s*From:\s+.*@/m,                 // "From: email@..." (forwarded)
     /\n\s*Sent from my /m,               // "Sent from my iPhone"
-    /\n\s*--\s*\n/m,                     // Email signature separator
+    /\n\s*--\s*\n/m,                     // Email signature separator "-- "
     /\n\s*>{2,}/m,                       // Multiple > (deep quote, not single >)
+    /\n\s*_{3,}/m,                       // ___ underline separators
+    /\n\s*\[image:/mi,                   // [image: ...] inline image markers
+    /\n\s*\[cid:/mi,                     // [cid:...] content-id image refs
+    /\n.*(?:South Florida Realty|SFRM)/mi, // Known business signature
   ];
   let clean = text;
   for (const marker of markers) {

@@ -159,10 +159,18 @@ const styles = StyleSheet.create({
   },
   photoWrapper: {
     marginRight: 12,
+    borderRadius: LAYOUT.radius.sm + 2,
+    borderWidth: 1.5,
+    borderColor: COLORS.accent + '44',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   photo: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: LAYOUT.radius.sm,
   },
   content: {

@@ -4,6 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { MessageBubble, ChatInput } from '../../components/messaging';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
@@ -30,6 +31,7 @@ export default function ConversationScreen() {
   const [listingId, setListingId] = useState(null);
   const [streetAddress, setStreetAddress] = useState(null);
   const [cityStateZip, setCityStateZip] = useState(null);
+  const [listingPhoto, setListingPhoto] = useState(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState(null);
   const flatListRef = useRef(null);
   const router = useRouter();
@@ -82,13 +84,25 @@ export default function ConversationScreen() {
         if (!convo) return;
         if (convo.created_at) setConversationCreatedAt(convo.created_at);
         if (convo.listing_id) setListingId(convo.listing_id);
+        if (convo.listing_photo_url) setListingPhoto(convo.listing_photo_url);
 
-        // Parse address into street + city/state/zip
-        const fullAddr = convo.listing_address || '';
-        const parts = fullAddr.split(',').map(s => s.trim());
-        setStreetAddress(parts[0] || 'Listing');
-        setCityStateZip(parts.slice(1).join(', ') || null);
-        setTitle(parts[0] || 'Listing');
+        // Fetch listing for structured address fields
+        if (convo.listing_id) {
+          try {
+            const listing = await apiFetch(`/api/listings/${convo.listing_id}`);
+            const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+            const cityLine = [listing.city, listing.state_or_province, listing.postal_code].filter(Boolean).join(', ');
+            setStreetAddress(street || convo.listing_address || 'Listing');
+            setCityStateZip(cityLine || null);
+            setTitle(street || convo.listing_address || 'Listing');
+          } catch {
+            setStreetAddress(convo.listing_address || 'Listing');
+            setTitle(convo.listing_address || 'Listing');
+          }
+        } else {
+          setStreetAddress(convo.listing_address || 'Listing');
+          setTitle(convo.listing_address || 'Listing');
+        }
 
         if (convo.conversation_type === 'external_agent') {
           setAgentName(convo.external_agent_name || null);
@@ -263,11 +277,16 @@ export default function ConversationScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Custom chat header — tappable address links to listing */}
+      {/* Custom chat header — photo + tappable address links to listing */}
       <View style={styles.chatHeader}>
         <Pressable style={styles.chatHeaderBack} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </Pressable>
+        {listingPhoto && (
+          <Pressable onPress={() => listingId && router.push(`/listing/${listingId}`)}>
+            <Image source={{ uri: listingPhoto }} style={styles.chatHeaderPhoto} contentFit="cover" />
+          </Pressable>
+        )}
         <View style={styles.chatHeaderCenter}>
           <Pressable onPress={() => listingId && router.push(`/listing/${listingId}`)}>
             <Text style={styles.chatHeaderTitle} numberOfLines={1}>{streetAddress || title}</Text>
@@ -279,7 +298,6 @@ export default function ConversationScreen() {
             <Text style={styles.chatHeaderSubtitle} numberOfLines={1}>{subtitle}</Text>
           )}
         </View>
-        <View style={styles.chatHeaderRight} />
       </View>
 
       <View style={styles.flex}>
@@ -484,13 +502,20 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   chatHeaderBack: {
-    width: 36,
+    width: 32,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
+  chatHeaderPhoto: {
+    width: 48,
+    height: 48,
+    borderRadius: LAYOUT.radius.sm,
+    marginRight: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.accent + '44',
+  },
   chatHeaderCenter: {
     flex: 1,
-    alignItems: 'center',
   },
   chatHeaderTitle: {
     fontFamily: FONTS.heading.bold,
@@ -510,10 +535,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 1,
   },
-  chatHeaderRight: {
-    width: 36,
-  },
-
   // ── Chronological fallback card ────────────────
   fallbackCard: {
     flexDirection: 'row',
