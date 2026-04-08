@@ -413,6 +413,7 @@ export default function ConversationScreen() {
                     isRead={isRead}
                     isExternal={isExternal}
                     agentName={agentName}
+                    ownerName={ownerName}
                   />
                   {item.id === lastReadMessageId && (
                     <Text style={styles.readLabel}>
