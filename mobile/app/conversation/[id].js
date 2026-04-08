@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { MessageBubble, ChatInput } from '../../components/messaging';
+import { EqualHousingBadge } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { COLORS } from '../../constants/colors';
@@ -430,6 +431,7 @@ export default function ConversationScreen() {
 
         <Animated.View style={kbStyle}>
           <ChatInput onSend={handleSend} disabled={sending} />
+          <EqualHousingBadge style={{ paddingVertical: 6, backgroundColor: COLORS.background }} />
         </Animated.View>
       </View>
     </SafeAreaView>

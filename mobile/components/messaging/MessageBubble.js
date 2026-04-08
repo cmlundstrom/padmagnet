@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
   },
   check: {
-    fontSize: FONT_SIZES.xs,
+    fontSize: FONT_SIZES.xxs,
   },
   checkSent: {
     color: '#E0E7EE',
