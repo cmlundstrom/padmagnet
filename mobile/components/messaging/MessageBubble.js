@@ -82,8 +82,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubbleTheirs: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#1A3358',
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   agentLabel: {
     fontFamily: FONTS.body.semiBold,
@@ -120,16 +122,16 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxs,
   },
   checkSent: {
-    color: COLORS.textSecondary,
+    color: '#90A4AE',
   },
   checkDelivered: {
-    color: COLORS.brandOrange,
+    color: '#FFB74D',
   },
   checkRead: {
-    color: COLORS.successLight,
+    color: '#66BB6A',
   },
   channelLabel: {
     fontSize: FONT_SIZES.xxs,
-    color: COLORS.slate,
+    color: '#90A4AE',
   },
 });
