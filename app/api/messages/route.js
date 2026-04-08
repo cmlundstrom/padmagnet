@@ -110,7 +110,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Not a participant' }, { status: 403 });
     }
 
-    // Insert message
+    // Insert message — delivery_status starts as 'pending' until notification is sent
     const { data: message, error } = await supabase
       .from('messages')
       .insert({
@@ -118,6 +118,7 @@ export async function POST(request) {
         sender_id: user.id,
         body: messageBody,
         channel: 'in_app',
+        delivery_status: 'pending',
         ...(flagged ? { flagged_external_url: true } : {}),
       })
       .select()
@@ -154,16 +155,7 @@ export async function POST(request) {
 
     // Route notification based on conversation type
     if (convo.conversation_type === 'external_agent') {
-      // External MLS agent — no PadMagnet profile, no push
-      if (convo.external_agent_phone) {
-        await supabase.from('phone_mappings').upsert({
-          twilio_number: process.env.TWILIO_PHONE_NUMBER,
-          user_phone: convo.external_agent_phone,
-          conversation_id: convo.id,
-          user_id: null,
-        }, { onConflict: 'twilio_number,user_phone' });
-      }
-
+      // External MLS agent — email only, no phone_mappings, no push
       notifyExternalAgent(
         { ...message, sender_name: senderName },
         convo

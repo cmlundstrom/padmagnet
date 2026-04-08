@@ -27,17 +27,18 @@ export default function MessageBubble({ message, isMine, isRead, isExternal, age
 
   let checkmark = null;
   if (isMine) {
-    if (message.delivery_status === 'failed') {
+    const status = message.delivery_status;
+    if (status === 'failed') {
       checkmark = <Text style={[styles.check, { color: COLORS.danger }]}>  !</Text>;
-    } else if (isExternal) {
-      // External: max grey double check (delivered). Never blue.
-      checkmark = <Text style={[styles.check, styles.checkGrey]}>  {'\u2713\u2713'}</Text>;
     } else if (isRead || message.read_at) {
-      // Internal: blue double check = read
-      checkmark = <Text style={[styles.check, styles.checkBlue]}>  {'\u2713\u2713'}</Text>;
+      // Read by counterparty — green double check (internal only)
+      checkmark = <Text style={[styles.check, styles.checkRead]}>  {'\u2713\u2713'}</Text>;
+    } else if (status === 'delivered' || status === 'sent') {
+      // Notification delivered/sent — orange double check
+      checkmark = <Text style={[styles.check, styles.checkDelivered]}>  {'\u2713\u2713'}</Text>;
     } else {
-      // Sent/delivered but not read — grey double check
-      checkmark = <Text style={[styles.check, styles.checkGrey]}>  {'\u2713\u2713'}</Text>;
+      // Pending or in-app only — single check (stored on server)
+      checkmark = <Text style={[styles.check, styles.checkSent]}>  {'\u2713'}</Text>;
     }
   }
 
@@ -118,11 +119,14 @@ const styles = StyleSheet.create({
   check: {
     fontSize: FONT_SIZES.xxs,
   },
-  checkGrey: {
-    color: COLORS.slate,
+  checkSent: {
+    color: COLORS.textSecondary,
   },
-  checkBlue: {
-    color: COLORS.accent,
+  checkDelivered: {
+    color: COLORS.brandOrange,
+  },
+  checkRead: {
+    color: COLORS.successLight,
   },
   channelLabel: {
     fontSize: FONT_SIZES.xxs,

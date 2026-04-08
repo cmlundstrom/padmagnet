@@ -54,7 +54,7 @@ function ReadReceipt({ status, isExternal }) {
   if (!status) return null;
 
   const isRead = status === 'read';
-  const color = isRead ? COLORS.accent : COLORS.slate;
+  const color = isRead ? COLORS.successLight : COLORS.brandOrange;
 
   return (
     <View style={receiptStyles.container}>
