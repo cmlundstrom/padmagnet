@@ -63,7 +63,7 @@ export async function POST(request) {
     const fullEmail = await resend.emails.receiving.get(data.email_id);
     const emailData = fullEmail.data || {};
     const rawText = emailData.text || emailData.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
-    const cleanBody = new EmailReplyParser().read(rawText).getVisibleText().trim();
+    const cleanBody = stripEmailReply(rawText);
 
     if (!cleanBody.trim()) {
       await updateLog(supabase, logId, 'processed', 'Empty reply body after stripping');
@@ -183,7 +183,32 @@ export async function POST(request) {
  * Strip reply chain / forwarded content from email body.
  * Keeps only the new reply text above common email markers.
  */
-// Reply chain stripping handled by email-reply-parser library
+/**
+ * Two-pass email reply stripping:
+ * 1. email-reply-parser library (handles standard patterns)
+ * 2. Custom patterns for edge cases (non-standard sigs, TypeApp, etc.)
+ */
+function stripEmailReply(text) {
+  // Pass 1: library-based parsing
+  let clean = new EmailReplyParser().read(text).getVisibleText().trim();
+
+  // Pass 2: custom patterns for non-standard signatures
+  const customMarkers = [
+    /\n\s*[\u2063\u200B\uFEFF]*-\s*-\s*\n/m,  // TypeApp: invisible chars + "- -"
+    /\n.*Logo\s*<https?:\/\//mi,                 // "Logo <https://..." (Thunderbird image sigs)
+    /\n.*<https?:\/\/[^>]+>\s*\t/m,             // Link + tab (HTML sig artifacts)
+    /\n\s*(?:Office|Tel|Phone|Fax):\s*\(?[0-9]/mi, // Contact block starting with phone
+    /\n.*(?:Licensed|Realtor|Real Estate|Broker|Agent)\b.*(?:RMP|CAM|GRI|CRS|ABR)/mi, // Real estate credentials
+    /\n\s*www\.[a-z0-9]+\.[a-z]{2,}/mi,         // www.domain.com on its own line
+  ];
+
+  for (const marker of customMarkers) {
+    const match = clean.match(marker);
+    if (match) clean = clean.slice(0, match.index).trim();
+  }
+
+  return clean;
+}
 
 async function updateLog(supabase, id, status, error, conversationId, messageId) {
   if (!id) return;
