@@ -58,9 +58,9 @@ export async function POST(request) {
 
     const { data } = body;
 
-    // Fetch full email content via Resend API
-    const fullEmail = await resend.emails.get(data.email_id);
-    const rawText = fullEmail.data?.text || '';
+    // Fetch full email content via Resend Receiving API
+    const fullEmail = await resend.emails.receiving.get(data.email_id);
+    const rawText = fullEmail.data?.text || fullEmail.data?.html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') || '';
     const cleanBody = stripReplyChain(rawText);
 
     if (!cleanBody.trim()) {
@@ -181,12 +181,12 @@ export async function POST(request) {
  */
 function stripReplyChain(text) {
   const markers = [
-    /\n\s*On .+ wrote:\s*$/ms,
-    /\n\s*-{2,}\s*Original Message/mi,
-    /\n\s*>{1,}/m,
-    /\n\s*From:\s+/m,
-    /\n\s*Sent from my /m,
-    /\n\s*--\s*\n/m,
+    /\n\s*On .+ wrote:\s*$/ms,           // "On [date] [name] wrote:"
+    /\n\s*-{2,}\s*Original Message/mi,   // "--- Original Message ---"
+    /\n\s*From:\s+.*@/m,                 // "From: email@..." (forwarded)
+    /\n\s*Sent from my /m,               // "Sent from my iPhone"
+    /\n\s*--\s*\n/m,                     // Email signature separator
+    /\n\s*>{2,}/m,                       // Multiple > (deep quote, not single >)
   ];
   let clean = text;
   for (const marker of markers) {
