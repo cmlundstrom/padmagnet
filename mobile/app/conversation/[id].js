@@ -3,8 +3,7 @@ import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAv
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { Header } from '../../components/ui';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MessageBubble, ChatInput } from '../../components/messaging';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
@@ -26,8 +25,14 @@ export default function ConversationScreen() {
   const [agentEmail, setAgentEmail] = useState(null);
   const [agentPhone, setAgentPhone] = useState(null);
   const [ownerName, setOwnerName] = useState(null);
+  const [ownerEmail, setOwnerEmail] = useState(null);
+  const [ownerPhone, setOwnerPhone] = useState(null);
+  const [listingId, setListingId] = useState(null);
+  const [streetAddress, setStreetAddress] = useState(null);
+  const [cityStateZip, setCityStateZip] = useState(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState(null);
   const flatListRef = useRef(null);
+  const router = useRouter();
 
   // Get current user
   useEffect(() => {
@@ -75,20 +80,28 @@ export default function ConversationScreen() {
         const convos = await apiFetch('/api/conversations');
         const convo = (convos || []).find(c => c.id === id);
         if (!convo) return;
-        if (convo.listing_address) setTitle(convo.listing_address);
         if (convo.created_at) setConversationCreatedAt(convo.created_at);
+        if (convo.listing_id) setListingId(convo.listing_id);
+
+        // Parse address into street + city/state/zip
+        const fullAddr = convo.listing_address || '';
+        const parts = fullAddr.split(',').map(s => s.trim());
+        setStreetAddress(parts[0] || 'Listing');
+        setCityStateZip(parts.slice(1).join(', ') || null);
+        setTitle(parts[0] || 'Listing');
 
         if (convo.conversation_type === 'external_agent') {
           setAgentName(convo.external_agent_name || null);
           setAgentEmail(convo.external_agent_email || null);
           setAgentPhone(convo.external_agent_phone || null);
-          const city = convo.listing_address?.split(',').slice(1).join(',').trim();
-          setSubtitle(city
-            ? `${city}\nListed by ${convo.external_agent_name || 'Listing Agent'}`
-            : `Listed by ${convo.external_agent_name || 'Listing Agent'}`);
-        } else if (convo.owner_display_name) {
-          setSubtitle(`Listed by ${convo.owner_display_name}`);
-          setOwnerName(convo.owner_display_name);
+          setSubtitle(`Listed by ${convo.external_agent_name || 'Listing Agent'}`);
+        } else {
+          setOwnerName(convo.owner_display_name || null);
+          setOwnerEmail(convo.owner_email || null);
+          setOwnerPhone(convo.owner_phone || null);
+          if (convo.owner_display_name) {
+            setSubtitle(`Listed by ${convo.owner_display_name}`);
+          }
         }
       } catch {
         // title stays as 'Chat'
@@ -229,16 +242,45 @@ export default function ConversationScreen() {
     return () => { showSub.remove(); hideSub.remove(); };
   }, []);
 
-  // Agent: show contact info immediately. Owner: show after 8 hours with no reply.
+  // Build the display list: messages + chronological system cards
   const OWNER_FALLBACK_MS = 8 * 60 * 60 * 1000;
   const hasCounterpartyReply = messages.some(m => m.sender_id !== userId && m.sender_id !== null)
-    || messages.some(m => m.sender_id === null); // agent reply
+    || messages.some(m => m.sender_id === null);
   const showOwnerFallback = !isExternal && !hasCounterpartyReply && conversationCreatedAt
     && (Date.now() - new Date(conversationCreatedAt).getTime() > OWNER_FALLBACK_MS);
 
+  // Insert fallback card at the correct chronological position
+  const displayItems = [...messages];
+  if (showOwnerFallback && conversationCreatedAt) {
+    const fallbackTime = new Date(new Date(conversationCreatedAt).getTime() + OWNER_FALLBACK_MS).toISOString();
+    displayItems.push({
+      id: 'system-fallback',
+      _systemCard: 'owner_fallback',
+      created_at: fallbackTime,
+    });
+    displayItems.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <Header title={title} subtitle={subtitle} showBack />
+      {/* Custom chat header — tappable address links to listing */}
+      <View style={styles.chatHeader}>
+        <Pressable style={styles.chatHeaderBack} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+        </Pressable>
+        <View style={styles.chatHeaderCenter}>
+          <Pressable onPress={() => listingId && router.push(`/listing/${listingId}`)}>
+            <Text style={styles.chatHeaderTitle} numberOfLines={1}>{streetAddress || title}</Text>
+          </Pressable>
+          {cityStateZip && (
+            <Text style={styles.chatHeaderCity} numberOfLines={1}>{cityStateZip}</Text>
+          )}
+          {subtitle && (
+            <Text style={styles.chatHeaderSubtitle} numberOfLines={1}>{subtitle}</Text>
+          )}
+        </View>
+        <View style={styles.chatHeaderRight} />
+      </View>
 
       <View style={styles.flex}>
         {loading ? (
@@ -248,7 +290,7 @@ export default function ConversationScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={displayItems}
             keyExtractor={item => item.id}
             ListHeaderComponent={
               <View>
@@ -279,18 +321,49 @@ export default function ConversationScreen() {
                     )}
                   </View>
                 )}
-                {/* Owner no-reply fallback — 8 hours */}
-                {showOwnerFallback && ownerName && (
-                  <View style={styles.systemMsg}>
-                    <Ionicons name="time-outline" size={16} color={COLORS.warning} />
-                    <Text style={styles.systemMsgText}>
-                      No reply yet from {ownerName}. You can reach them via the listing details.
-                    </Text>
-                  </View>
-                )}
               </View>
             }
             renderItem={({ item }) => {
+              // System fallback card — rendered chronologically
+              if (item._systemCard === 'owner_fallback') {
+                const contactName = ownerName || agentName || 'the owner';
+                const contactEmail = ownerEmail || agentEmail;
+                const contactPhone = ownerPhone || agentPhone;
+                return (
+                  <View style={styles.fallbackCard}>
+                    <Ionicons name="time-outline" size={18} color={COLORS.warning} />
+                    <View style={styles.fallbackContent}>
+                      <Text style={styles.fallbackText}>
+                        No reply yet from {contactName}.
+                      </Text>
+                      {(contactEmail || contactPhone) && (
+                        <View style={styles.fallbackContacts}>
+                          <Text style={styles.contactTitle}>Reach them directly:</Text>
+                          {contactEmail && (
+                            <Pressable style={styles.contactRow} onPress={() => Linking.openURL(`mailto:${contactEmail}`)}>
+                              <Ionicons name="mail-outline" size={14} color={COLORS.accent} />
+                              <Text style={styles.contactText}>{contactEmail}</Text>
+                            </Pressable>
+                          )}
+                          {contactPhone && (
+                            <Pressable style={styles.contactRow} onPress={() => Linking.openURL(`tel:${contactPhone}`)}>
+                              <Ionicons name="call-outline" size={14} color={COLORS.accent} />
+                              <Text style={styles.contactText}>{contactPhone}</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      )}
+                      {listingId && (
+                        <Pressable style={styles.fallbackLink} onPress={() => router.push(`/listing/${listingId}`)}>
+                          <Ionicons name="home-outline" size={14} color={COLORS.brandOrange} />
+                          <Text style={styles.fallbackLinkText}>View Listing Details</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+                );
+              }
+
               const isMine = item.sender_id === userId;
               const isRead = isMine && counterpartyLastReadAt
                 ? new Date(item.created_at) <= new Date(counterpartyLastReadAt)
@@ -398,5 +471,88 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
+  },
+
+  // ── Custom chat header ─────────────────────────
+  chatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: LAYOUT.padding.sm,
+    paddingVertical: 8,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  chatHeaderBack: {
+    width: 36,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  chatHeaderCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  chatHeaderTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.brandOrange,
+    textDecorationLine: 'underline',
+  },
+  chatHeaderCity: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  chatHeaderSubtitle: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  chatHeaderRight: {
+    width: 36,
+  },
+
+  // ── Chronological fallback card ────────────────
+  fallbackCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: LAYOUT.padding.md,
+    marginVertical: 10,
+    padding: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '44',
+  },
+  fallbackContent: {
+    flex: 1,
+    gap: 8,
+  },
+  fallbackText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+  },
+  fallbackContacts: {
+    gap: 2,
+  },
+  fallbackLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.brandOrange + '18',
+    borderRadius: LAYOUT.radius.sm,
+    alignSelf: 'flex-start',
+  },
+  fallbackLinkText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.brandOrange,
   },
 });

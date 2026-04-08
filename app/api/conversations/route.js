@@ -33,15 +33,24 @@ export async function GET(request) {
     if (ownerIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, display_name')
+        .select('id, display_name, email, phone')
         .in('id', ownerIds);
-      ownerNames = Object.fromEntries((profiles || []).map(p => [p.id, p.display_name]));
+      ownerNames = Object.fromEntries((profiles || []).map(p => [p.id, {
+        display_name: p.display_name,
+        email: p.email,
+        phone: p.phone,
+      }]));
     }
 
-    const flattened = (data || []).map(c => ({
-      ...c,
-      owner_display_name: c.owner_user_id ? (ownerNames[c.owner_user_id] || null) : null,
-    }));
+    const flattened = (data || []).map(c => {
+      const ownerInfo = c.owner_user_id ? (ownerNames[c.owner_user_id] || {}) : {};
+      return {
+        ...c,
+        owner_display_name: ownerInfo.display_name || null,
+        owner_email: ownerInfo.email || null,
+        owner_phone: ownerInfo.phone || null,
+      };
+    });
 
     // Per-user archive/unread filtering
     const filtered = flattened.filter(c => {
