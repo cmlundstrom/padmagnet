@@ -108,23 +108,25 @@ export async function POST(request) {
       : data.from?.email || data.from?.[0];
     let senderId = null;
 
-    // Check 1: Is sender a PadMagnet participant?
-    const participantIds = [conv.tenant_user_id, conv.owner_user_id].filter(Boolean);
-    if (participantIds.length > 0) {
-      const { data: senderProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', senderEmail)
-        .in('id', participantIds)
-        .maybeSingle();
-      if (senderProfile) senderId = senderProfile.id;
-    }
-
-    // Check 2: Is sender an external agent for this conversation?
-    const isExternalAgent = !senderId
-      && conv.conversation_type === 'external_agent'
+    // Check external agent FIRST — agent replies always have sender_id = null
+    // (even if the agent happens to have a PadMagnet profile)
+    const isExternalAgent = conv.conversation_type === 'external_agent'
       && conv.external_agent_email
       && senderEmail.toLowerCase() === conv.external_agent_email.toLowerCase();
+
+    // If not an external agent reply, check if sender is a PadMagnet participant
+    if (!isExternalAgent) {
+      const participantIds = [conv.tenant_user_id, conv.owner_user_id].filter(Boolean);
+      if (participantIds.length > 0) {
+        const { data: senderProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', senderEmail)
+          .in('id', participantIds)
+          .maybeSingle();
+        if (senderProfile) senderId = senderProfile.id;
+      }
+    }
 
     if (!senderId && !isExternalAgent) {
       await updateLog(supabase, logId, 'failed', `Sender ${senderEmail} not a participant or recognized agent`);
