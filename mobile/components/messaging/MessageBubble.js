@@ -20,8 +20,8 @@ function formatTime(dateString) {
  *   agentName     - string: external agent name (for label on their messages)
  */
 export default function MessageBubble({ message, isMine, isRead, isExternal, agentName }) {
-  // Delivery channel indicator text
-  const channelLabel = isMine && message.channel && message.channel !== 'in_app'
+  // Delivery channel indicator — show on any message delivered via SMS or email
+  const channelLabel = message.channel && message.channel !== 'in_app'
     ? ` via ${message.channel === 'sms' ? 'SMS' : 'email'}`
     : '';
 
@@ -82,10 +82,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubbleTheirs: {
-    backgroundColor: '#1A3358',
+    backgroundColor: '#162D4E',
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderWidth: 1.5,
+    borderColor: '#3B6AA0',
   },
   agentLabel: {
     fontFamily: FONTS.body.semiBold,
@@ -119,19 +119,19 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
   },
   check: {
-    fontSize: FONT_SIZES.xxs,
+    fontSize: FONT_SIZES.xs,
   },
   checkSent: {
-    color: '#90A4AE',
+    color: '#E0E7EE',
   },
   checkDelivered: {
-    color: '#FFB74D',
+    color: '#FFC107',
   },
   checkRead: {
-    color: '#66BB6A',
+    color: '#4CAF50',
   },
   channelLabel: {
-    fontSize: FONT_SIZES.xxs,
-    color: '#90A4AE',
+    fontSize: FONT_SIZES.xs,
+    color: '#90CAF9',
   },
 });
