@@ -248,8 +248,27 @@ export async function DELETE(request) {
       return NextResponse.json({ error: fetchErr.message }, { status: 500 });
     }
 
-    // Delete auth users first (this cascades to profiles via FK)
+    // Clean up all referencing rows before deleting auth user
     for (const id of ids) {
+      // Nullify references in tables that reference user IDs
+      await supabase.from('messages').update({ sender_id: null }).eq('sender_id', id);
+      await supabase.from('webhook_logs').update({ conversation_id: null, message_id: null })
+        .or(`conversation_id.in.(${(await supabase.from('conversations').select('id').or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)).data?.map(c => c.id).join(',') || 'null'})`);
+      await supabase.from('message_delivery_queue').delete()
+        .in('message_id', (await supabase.from('messages').select('id').in('conversation_id',
+          (await supabase.from('conversations').select('id').or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)).data?.map(c => c.id) || []
+        )).data?.map(m => m.id) || []);
+      await supabase.from('messages').delete()
+        .in('conversation_id', (await supabase.from('conversations').select('id').or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)).data?.map(c => c.id) || []);
+      await supabase.from('conversations').delete().or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`);
+      await supabase.from('phone_mappings').delete().eq('user_id', id);
+      await supabase.from('swipes').delete().eq('user_id', id);
+      await supabase.from('listing_views').delete().eq('user_id', id);
+      await supabase.from('askpad_chats').delete().eq('user_id', id);
+      await supabase.from('tenant_preferences').delete().eq('user_id', id);
+      await supabase.from('listings').update({ owner_user_id: null }).eq('owner_user_id', id);
+
+      // Now delete auth user (cascades to profiles)
       const { error: authErr } = await supabase.auth.admin.deleteUser(id);
       if (authErr) {
         return NextResponse.json({ error: `Failed to delete auth user: ${authErr.message}` }, { status: 500 });
