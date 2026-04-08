@@ -91,9 +91,9 @@ const styles = StyleSheet.create({
     borderColor: '#3B6AA0',
   },
   agentLabel: {
-    fontFamily: FONTS.body.semiBold,
+    fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xxs,
-    color: COLORS.brandOrange,
+    color: '#C9B06A',
     marginBottom: 2,
   },
   body: {
