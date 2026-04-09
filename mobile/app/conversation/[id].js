@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAvoidingView, Keyboard, Platform, StyleSheet } from 'react-native';
+import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAvoidingView, Keyboard, Platform, AppState, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,6 +69,14 @@ export default function ConversationScreen() {
 
   useEffect(() => {
     fetchMessages();
+  }, [fetchMessages]);
+
+  // Re-fetch messages when returning from background (Realtime may have disconnected)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') fetchMessages();
+    });
+    return () => sub.remove();
   }, [fetchMessages]);
 
   // Mark conversation as read when opening
