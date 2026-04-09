@@ -33,6 +33,8 @@ export default function ConversationScreen() {
   const [streetAddress, setStreetAddress] = useState(null);
   const [cityStateZip, setCityStateZip] = useState(null);
   const [listingPhoto, setListingPhoto] = useState(null);
+  const [viewerRole, setViewerRole] = useState(null); // 'renter' | 'owner'
+  const [renterName, setRenterName] = useState(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState(null);
   const flatListRef = useRef(null);
   const router = useRouter();
@@ -105,6 +107,10 @@ export default function ConversationScreen() {
           setTitle(convo.listing_address || 'Listing');
         }
 
+        // Determine viewer role
+        const isViewerRenter = userId === convo.tenant_user_id;
+        setViewerRole(isViewerRenter ? 'renter' : 'owner');
+
         if (convo.conversation_type === 'external_agent') {
           setAgentName(convo.external_agent_name || null);
           setAgentEmail(convo.external_agent_email || null);
@@ -116,6 +122,20 @@ export default function ConversationScreen() {
           setOwnerPhone(convo.owner_phone || null);
           if (convo.owner_display_name) {
             setSubtitle(`Listed by ${convo.owner_display_name}`);
+          }
+        }
+
+        // Fetch renter name (for owner's view of inbound messages)
+        if (convo.tenant_user_id && !isViewerRenter) {
+          try {
+            const { data: renterProfile } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('id', convo.tenant_user_id)
+              .single();
+            setRenterName(renterProfile?.display_name || 'Renter');
+          } catch {
+            setRenterName('Renter');
           }
         }
       } catch {
@@ -405,15 +425,25 @@ export default function ConversationScreen() {
                 ? new Date(item.created_at) <= new Date(counterpartyLastReadAt)
                 : false;
 
+              // Compute sender label based on viewer's perspective
+              let senderLabel = null;
+              if (!isMine) {
+                if (viewerRole === 'renter' && isExternal) {
+                  senderLabel = `Agent, ${agentName || 'Listing Agent'}:`;
+                } else if (viewerRole === 'renter' && !isExternal) {
+                  senderLabel = `Owner, ${ownerName || 'Property Owner'}:`;
+                } else if (viewerRole === 'owner') {
+                  senderLabel = `Renter, ${renterName || 'Renter'}:`;
+                }
+              }
+
               return (
                 <View>
                   <MessageBubble
                     message={item}
                     isMine={isMine}
                     isRead={isRead}
-                    isExternal={isExternal}
-                    agentName={agentName}
-                    ownerName={ownerName}
+                    senderLabel={senderLabel}
                   />
                   {item.id === lastReadMessageId && (
                     <Text style={styles.readLabel}>

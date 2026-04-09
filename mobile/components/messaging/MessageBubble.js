@@ -19,7 +19,7 @@ function formatTime(dateString) {
  *   isExternal    - boolean: is this an external agent conversation?
  *   agentName     - string: external agent name (for label on their messages)
  */
-export default function MessageBubble({ message, isMine, isRead, isExternal, agentName, ownerName }) {
+export default function MessageBubble({ message, isMine, isRead, senderLabel }) {
   // Delivery channel indicator — show on any message delivered via SMS or email
   const channelLabel = message.channel && message.channel !== 'in_app'
     ? ` via ${message.channel === 'sms' ? 'SMS' : 'email'}`
@@ -45,12 +45,9 @@ export default function MessageBubble({ message, isMine, isRead, isExternal, age
   return (
     <View style={[styles.row, isMine && styles.rowMine]}>
       <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-        {/* Role + name label for incoming messages */}
-        {!isMine && isExternal && (
-          <Text style={styles.agentLabel}>Agent, {agentName || 'Listing Agent'}:</Text>
-        )}
-        {!isMine && !isExternal && message.sender_id !== null && ownerName && (
-          <Text style={styles.agentLabel}>Owner, {ownerName}:</Text>
+        {/* Sender label — perspective-aware, computed by conversation screen */}
+        {senderLabel && (
+          <Text style={styles.agentLabel}>{senderLabel}</Text>
         )}
         <Text style={[styles.body, isMine ? styles.bodyMine : styles.bodyTheirs]}>
           {message.body}
