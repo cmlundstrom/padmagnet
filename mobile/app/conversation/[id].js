@@ -79,7 +79,9 @@ export default function ConversationScreen() {
   }, [id, userId]);
 
   // Fetch conversation details (title, agent/owner info)
+  // Must wait for userId so viewerRole can be determined correctly
   useEffect(() => {
+    if (!userId) return;
     async function fetchConvo() {
       try {
         const convos = await apiFetch('/api/conversations');
@@ -143,7 +145,7 @@ export default function ConversationScreen() {
       }
     }
     fetchConvo();
-  }, [id]);
+  }, [id, userId]);
 
   // Supabase Realtime: listen for new messages + status updates in this conversation
   useEffect(() => {
