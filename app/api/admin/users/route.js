@@ -179,6 +179,19 @@ export async function PATCH(request) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
+    // Sync email to auth.users if email was changed
+    if (changes.email) {
+      for (const id of ids) {
+        const { error: authErr } = await supabase.auth.admin.updateUserById(id, {
+          email: changes.email,
+          email_confirm: true, // Admin override — no verification needed
+        });
+        if (authErr) {
+          console.error(`[Admin] Failed to sync auth email for ${id}:`, authErr.message);
+        }
+      }
+    }
+
     // Write audit logs for each changed field
     const auditEntries = [];
     for (const oldRow of oldRows) {
