@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -120,10 +120,9 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
 
           {/* CTA */}
           <Animated.View style={[{ width: '100%' }, ctaStyle]}>
-            <TouchableOpacity
-              style={styles.enableButton}
+            <Pressable
+              style={({ pressed }) => [styles.enableButton, pressed && { opacity: 0.85 }]}
               onPress={onEnable}
-              activeOpacity={0.85}
             >
               <LinearGradient
                 colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
@@ -139,14 +138,13 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
                 />
                 <Text style={styles.enableText}>Enable Location</Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           </Animated.View>
 
           {/* Skip */}
-          <TouchableOpacity
-            style={styles.skipButton}
+          <Pressable
+            style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
             onPress={onSkip}
-            activeOpacity={0.7}
           >
             <Text style={styles.skipText}>I'll search manually</Text>
           </TouchableOpacity>
@@ -163,6 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
+    elevation: 100,
   },
   cardOuter: {
     width: LAYOUT.card.width,
