@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -8,7 +8,6 @@ import Animated, {
   withRepeat,
   withTiming,
   withDelay,
-  withSpring,
   Easing,
   interpolate,
 } from 'react-native-reanimated';
@@ -53,73 +52,43 @@ function BenefitRow({ icon, text }) {
 }
 
 export default function LocationSoftAsk({ onEnable, onSkip }) {
-  // Card entrance spring
-  const cardTranslateY = useSharedValue(60);
-  const cardOpacity = useSharedValue(0);
-
-  // CTA pulse
-  const ctaScale = useSharedValue(1);
-
-  useEffect(() => {
-    cardTranslateY.value = withSpring(0, { damping: 14, stiffness: 120 });
-    cardOpacity.value = withTiming(1, { duration: 350 });
-
-    ctaScale.value = withDelay(
-      600,
-      withRepeat(
-        withTiming(1.025, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true,
-      ),
-    );
-  }, []);
-
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: cardTranslateY.value }],
-    opacity: cardOpacity.value,
-  }));
-
-  const ctaStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: ctaScale.value }],
-  }));
-
   return (
-    <View style={styles.overlay}>
-      <Animated.View style={[styles.cardOuter, cardStyle]}>
-        <LinearGradient
-          colors={['#1E4976', '#234170', '#1A3358']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.card}
-        >
-          {/* Radar icon */}
-          <View style={styles.iconContainer}>
-            {Array.from({ length: RING_COUNT }).map((_, i) => (
-              <RadarRing key={i} delay={i * (RING_DURATION / RING_COUNT)} />
-            ))}
-            <LinearGradient
-              colors={[COLORS.accent, '#2563EB']}
-              style={styles.iconCircle}
-            >
-              <FontAwesome name="map-marker" size={32} color={COLORS.white} />
-            </LinearGradient>
-          </View>
+    <Modal visible transparent animationType="fade" onRequestClose={onSkip}>
+      <View style={styles.overlay}>
+        <View style={styles.cardOuter}>
+          <LinearGradient
+            colors={['#1E4976', '#234170', '#1A3358']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.card}
+          >
+            {/* Radar icon */}
+            <View style={styles.iconContainer}>
+              {Array.from({ length: RING_COUNT }).map((_, i) => (
+                <RadarRing key={i} delay={i * (RING_DURATION / RING_COUNT)} />
+              ))}
+              <LinearGradient
+                colors={[COLORS.accent, '#2563EB']}
+                style={styles.iconCircle}
+              >
+                <FontAwesome name="map-marker" size={32} color={COLORS.white} />
+              </LinearGradient>
+            </View>
 
-          {/* Heading */}
-          <Text style={styles.heading}>
-            Find your next home{'\n'}
-            <Text style={styles.headingHighlight}>right where you are</Text>
-          </Text>
+            {/* Heading */}
+            <Text style={styles.heading}>
+              Find your next home{'\n'}
+              <Text style={styles.headingHighlight}>right where you are</Text>
+            </Text>
 
-          {/* Benefits */}
-          <View style={styles.benefits}>
-            <BenefitRow icon="crosshairs" text="Listings nearest to you appear first" />
-            <BenefitRow icon="star" text="PadScore boosts for nearby matches" />
-            <BenefitRow icon="shield" text="Your location is never shared" />
-          </View>
+            {/* Benefits */}
+            <View style={styles.benefits}>
+              <BenefitRow icon="crosshairs" text="Listings nearest to you appear first" />
+              <BenefitRow icon="star" text="PadScore boosts for nearby matches" />
+              <BenefitRow icon="shield" text="Your location is never shared" />
+            </View>
 
-          {/* CTA */}
-          <Animated.View style={[{ width: '100%' }, ctaStyle]}>
+            {/* CTA */}
             <Pressable
               style={({ pressed }) => [styles.enableButton, pressed && { opacity: 0.85 }]}
               onPress={onEnable}
@@ -139,18 +108,18 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
                 <Text style={styles.enableText}>Enable Location</Text>
               </LinearGradient>
             </Pressable>
-          </Animated.View>
 
-          {/* Skip */}
-          <Pressable
-            style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
-            onPress={onSkip}
-          >
-            <Text style={styles.skipText}>I'll search manually</Text>
-          </Pressable>
-        </LinearGradient>
-      </Animated.View>
-    </View>
+            {/* Skip */}
+            <Pressable
+              style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
+              onPress={onSkip}
+            >
+              <Text style={styles.skipText}>I'll search manually</Text>
+            </Pressable>
+          </LinearGradient>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
