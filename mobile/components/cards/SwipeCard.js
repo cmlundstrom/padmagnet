@@ -99,9 +99,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, onPreferences, isTo
       if (onTap) runOnJS(onTap)();
     });
 
-  const composedGesture = Gesture.Simultaneous(
-    Gesture.Race(panGesture, tapGesture)
-  );
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
 
   const cardStyle = useAnimatedStyle(() => {
     const rotate = interpolate(
