@@ -147,7 +147,7 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
             onPress={onSkip}
           >
             <Text style={styles.skipText}>I'll search manually</Text>
-          </TouchableOpacity>
+          </Pressable>
         </LinearGradient>
       </Animated.View>
     </View>
