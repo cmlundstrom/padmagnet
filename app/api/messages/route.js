@@ -154,13 +154,6 @@ export async function POST(request) {
     const senderName = sender?.display_name || 'Someone';
 
     // Route notification based on conversation type
-    console.log('[Messages] Routing notification:', { type: convo.conversation_type, owner: convo.owner_user_id, sender: user.id });
-    // Debug breadcrumb — traces notification flow via DB
-    await supabase.from('webhook_logs').insert({
-      source: 'debug',
-      event_type: 'notify_attempt',
-      payload: { type: convo.conversation_type, owner: convo.owner_user_id, sender: user.id, message_id: message.id },
-    });
     if (convo.conversation_type === 'external_agent') {
       // External MLS agent — email only, no phone_mappings, no push
       try {

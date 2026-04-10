@@ -57,25 +57,21 @@ export async function POST(request) {
       .eq('external_id', MessageSid);
 
     // Update delivery queue if entry exists
-    if (deliveryStatus === 'delivered' || deliveryStatus === 'sent') {
-      await supabase
-        .from('message_delivery_queue')
-        .update({ status: 'sent' })
-        .eq('status', 'pending')
-        .eq('channel', 'sms')
-        .in('message_id',
-          supabase.from('messages').select('id').eq('external_id', MessageSid)
-        );
-    } else if (deliveryStatus === 'failed') {
-      // Mark queue entry failed — delivery-retry cron will handle retries
-      // if attempts < max_attempts
-      const { data: msg } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('external_id', MessageSid)
-        .maybeSingle();
+    const { data: msg } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('external_id', MessageSid)
+      .maybeSingle();
 
-      if (msg) {
+    if (msg) {
+      if (deliveryStatus === 'delivered' || deliveryStatus === 'sent') {
+        await supabase
+          .from('message_delivery_queue')
+          .update({ status: 'sent' })
+          .eq('message_id', msg.id)
+          .eq('channel', 'sms')
+          .eq('status', 'pending');
+      } else if (deliveryStatus === 'failed') {
         await supabase
           .from('message_delivery_queue')
           .update({
