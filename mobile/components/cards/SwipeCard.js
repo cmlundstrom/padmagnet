@@ -63,8 +63,9 @@ export default function SwipeCard({ listing, onSwipe, onTap, onPreferences, isTo
 
   const panGesture = Gesture.Pan()
     .enabled(isTop)
-    .activeOffsetX([-15, 15])
-    .failOffsetY([-15, 15])
+    .onStart(() => {
+      // Reset context — fresh drag each time
+    })
     .onUpdate((event) => {
       translateX.value = event.translationX;
       translateY.value = event.translationY * 0.3;
@@ -87,9 +88,6 @@ export default function SwipeCard({ listing, onSwipe, onTap, onPreferences, isTo
         translateX.value = withSpring(0, { damping: 15, stiffness: 150 });
         translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
       }
-    })
-    .onFinalize(() => {
-      // Ensure gesture system releases even if animation is interrupted
     });
 
   const tapGesture = Gesture.Tap()
