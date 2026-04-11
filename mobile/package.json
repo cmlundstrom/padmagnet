@@ -22,7 +22,7 @@
     "expo-blur": "~55.0.10",
     "expo-constants": "~55.0.7",
     "expo-crypto": "~55.0.9",
-    "expo-dev-client": "~55.0.16",
+    "expo-dev-client": "~55.0.26",
     "expo-device": "~55.0.9",
     "expo-font": "~55.0.4",
     "expo-haptics": "~55.0.8",
