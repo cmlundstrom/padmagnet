@@ -130,7 +130,7 @@ export default function WelcomeScreen() {
             </View>
             <View style={styles.buttonTextWrap}>
               <Text style={styles.buttonTitle}>{loadingRenter ? 'Loading...' : 'Find a Rental'}</Text>
-              <Text style={styles.buttonHint}>Swipe, match, and discover instantly</Text>
+              <Text style={styles.buttonHint}>Swipe, match, and discover</Text>
             </View>
             {!loadingRenter && <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />}
           </TouchableOpacity>
