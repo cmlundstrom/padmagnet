@@ -49,7 +49,7 @@ export default function WelcomeScreen() {
       if (data?.session) {
         try {
           await supabase.from('profiles')
-            .update({ is_anonymous: true, role: 'tenant' })
+            .update({ is_anonymous: true, role: 'tenant', roles: ['tenant'] })
             .eq('id', data.session.user.id);
         } catch (err) {
           console.warn('[Welcome] Profile update failed:', err.message);
@@ -93,7 +93,7 @@ export default function WelcomeScreen() {
       if (data?.session) {
         try {
           await supabase.from('profiles')
-            .update({ is_anonymous: true, role: 'owner' })
+            .update({ is_anonymous: true, role: 'owner', roles: ['owner'] })
             .eq('id', data.session.user.id);
         } catch (err) {
           console.warn('[Welcome] Profile update failed:', err.message);

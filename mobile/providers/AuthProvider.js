@@ -7,12 +7,14 @@ export const AuthContext = createContext({
   session: null,
   user: null,
   role: null,
+  roles: [],
   loading: true,
 });
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Single source of truth: profiles.role (DB) → AsyncStorage cache → 'tenant' fallback
@@ -25,12 +27,13 @@ export function AuthProvider({ children }) {
     // 1. Query profiles table with 3s timeout (prevents splash hang if Supabase is slow)
     try {
       const result = await Promise.race([
-        supabase.from('profiles').select('role').eq('id', authSession.user.id).single(),
+        supabase.from('profiles').select('role, roles').eq('id', authSession.user.id).single(),
         new Promise((resolve) => setTimeout(() => resolve({ data: null, timedOut: true }), 3000)),
       ]);
 
       if (result.data?.role) {
         setRole(result.data.role);
+        setRoles(result.data.roles || [result.data.role]);
         await saveUserRole(result.data.role);
         return;
       }
@@ -45,6 +48,7 @@ export function AuthProvider({ children }) {
     const localRole = await getUserRole();
     const fallbackRole = localRole || 'tenant';
     setRole(fallbackRole);
+    setRoles([fallbackRole]);
 
     // New user or missing role — persist the stored role to the profile (awaited)
     if (localRole) {
@@ -79,6 +83,7 @@ export function AuthProvider({ children }) {
         setTimeout(() => resolveRole(session), 0);
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
+        setRoles([]);
         clearUserRole();
         clearTokenCache();
       }
@@ -88,7 +93,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, role, loading }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, role, roles, loading }}>
       {children}
     </AuthContext.Provider>
   );

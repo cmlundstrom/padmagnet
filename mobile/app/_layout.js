@@ -42,7 +42,7 @@ SplashScreen.preventAutoHideAsync();
  *   - Auth state changes (login/logout)
  */
 function RouteGuard({ children }) {
-  const { session, user, role, loading } = useContext(AuthContext);
+  const { session, user, role, roles, loading } = useContext(AuthContext);
   const segments = useSegments();
   const router = useRouter();
 
@@ -71,14 +71,18 @@ function RouteGuard({ children }) {
     const inOwner = segments[0] === '(owner)';
     const inApp = inTenant || inOwner;
 
+    // Multi-role users (including admins) can access any tab group — no redirect
+    const isMultiRole = roles.length > 1;
+    const isAdmin = roles.includes('admin') || role === 'admin' || role === 'super_admin';
+
     if (!session && inApp) {
       // Logged out but still on an app screen → go to welcome
       router.replace('/welcome');
-    } else if (session && role === 'owner' && inTenant) {
-      // Owner stuck in tenant tab group → redirect
+    } else if (session && !isMultiRole && !isAdmin && role === 'owner' && inTenant) {
+      // Single-role owner stuck in tenant tab group → redirect
       router.replace('/(owner)/home');
-    } else if (session && role && role !== 'owner' && inOwner) {
-      // Tenant stuck in owner tab group → redirect (only if role is resolved)
+    } else if (session && !isMultiRole && !isAdmin && role && role !== 'owner' && inOwner) {
+      // Single-role tenant stuck in owner tab group → redirect
       router.replace('/(tenant)/swipe');
     }
   }, [session, role, loading, segments]);
@@ -87,9 +91,12 @@ function RouteGuard({ children }) {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active' || loading || !session) return;
-
-      // Skip while on auth-callback
       if (segments[0] === 'auth-callback') return;
+
+      // Multi-role users and admins — no auto-redirect
+      const isMultiRole = roles.length > 1;
+      const isAdmin = roles.includes('admin') || role === 'admin' || role === 'super_admin';
+      if (isMultiRole || isAdmin) return;
 
       const inTenant = segments[0] === '(tenant)';
       const inOwner = segments[0] === '(owner)';
@@ -102,7 +109,7 @@ function RouteGuard({ children }) {
     });
 
     return () => sub.remove();
-  }, [session, role, loading, segments]);
+  }, [session, role, roles, loading, segments]);
 
   return children;
 }
