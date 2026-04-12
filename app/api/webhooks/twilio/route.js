@@ -154,10 +154,13 @@ export async function POST(request) {
   }
 }
 
-/** Return a TwiML response. Empty = no auto-reply. */
+/** Return a TwiML response. Empty = no auto-reply. XML-escaped for safety. */
 function twiml(message) {
-  const body = message
-    ? `<Response><Message>${message}</Message></Response>`
+  const escaped = message
+    ? message.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]))
+    : '';
+  const body = escaped
+    ? `<Response><Message>${escaped}</Message></Response>`
     : '<Response/>';
   return new Response(body, {
     headers: { 'Content-Type': 'text/xml' },

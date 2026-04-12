@@ -19,7 +19,7 @@ async function getRequestingUser() {
     .eq('id', user.id)
     .single();
 
-  return profile || { id: user.id, email: user.email, role: 'admin' };
+  return profile || null;
 }
 
 // GET /api/admin/users — list profiles by role filter
@@ -129,6 +129,10 @@ export async function PATCH(request) {
     const supabase = createServiceClient();
     const requestor = await getRequestingUser();
 
+    if (!requestor) {
+      return NextResponse.json({ error: 'Could not verify admin profile' }, { status: 403 });
+    }
+
     // Fetch target rows
     const { data: oldRows, error: fetchErr } = await supabase
       .from('profiles')
@@ -168,10 +172,22 @@ export async function PATCH(request) {
       }
     }
 
+    // Field allowlist — prevent mass assignment
+    const ALLOWED_FIELDS = ['display_name', 'phone', 'sms_consent', 'preferred_channel', 'expo_push_token'];
+    const SUPER_ADMIN_FIELDS = [...ALLOWED_FIELDS, 'role', 'roles', 'email', 'tier', 'tier_expires_at', 'tier_started_at', 'is_active'];
+    const allowedSet = isSuperAdmin ? SUPER_ADMIN_FIELDS : ALLOWED_FIELDS;
+    const safeChanges = Object.fromEntries(
+      Object.entries(changes).filter(([k]) => allowedSet.includes(k))
+    );
+
+    if (Object.keys(safeChanges).length === 0) {
+      return NextResponse.json({ error: 'No allowed fields to update' }, { status: 400 });
+    }
+
     // Apply update
     const { data: updatedRows, error: updateErr } = await supabase
       .from('profiles')
-      .update(changes)
+      .update(safeChanges)
       .in('id', ids)
       .select();
 
@@ -245,6 +261,10 @@ export async function DELETE(request) {
     }
 
     const requestor = await getRequestingUser();
+
+    if (!requestor) {
+      return NextResponse.json({ error: 'Could not verify admin profile' }, { status: 403 });
+    }
 
     // Only super_admins can delete profiles
     if (requestor?.role !== 'super_admin') {
