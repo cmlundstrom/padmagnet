@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getUserRole, saveUserRole, clearUserRole } from '../lib/storage';
+import { clearTokenCache } from '../lib/api';
 
 export const AuthContext = createContext({
   session: null,
@@ -21,30 +22,40 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // 1. Query profiles table (single source of truth)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', authSession.user.id)
-      .single();
+    // 1. Query profiles table with 3s timeout (prevents splash hang if Supabase is slow)
+    try {
+      const result = await Promise.race([
+        supabase.from('profiles').select('role').eq('id', authSession.user.id).single(),
+        new Promise((resolve) => setTimeout(() => resolve({ data: null, timedOut: true }), 3000)),
+      ]);
 
-    if (profile?.role) {
-      setRole(profile.role);
-      await saveUserRole(profile.role);
-      return;
+      if (result.data?.role) {
+        setRole(result.data.role);
+        await saveUserRole(result.data.role);
+        return;
+      }
+      if (result.timedOut) {
+        console.warn('[Auth] resolveRole timed out — using fallback');
+      }
+    } catch (err) {
+      console.warn('[Auth] resolveRole query failed:', err.message);
     }
 
-    // 2. Offline fallback: AsyncStorage cache — also sync to profile
+    // 2. Offline fallback: AsyncStorage cache
     const localRole = await getUserRole();
     const fallbackRole = localRole || 'tenant';
     setRole(fallbackRole);
 
-    // New user or missing role — persist the stored role to the profile
+    // New user or missing role — persist the stored role to the profile (awaited)
     if (localRole) {
-      supabase.from('profiles')
-        .update({ role: localRole })
-        .eq('id', authSession.user.id)
-        .then(() => console.log('[Auth] Synced role to profile:', localRole));
+      try {
+        await supabase.from('profiles')
+          .update({ role: localRole })
+          .eq('id', authSession.user.id);
+        console.log('[Auth] Synced role to profile:', localRole);
+      } catch (err) {
+        console.warn('[Auth] Role sync failed:', err.message);
+      }
     }
   }
 
@@ -69,6 +80,7 @@ export function AuthProvider({ children }) {
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
         clearUserRole();
+        clearTokenCache();
       }
     });
 

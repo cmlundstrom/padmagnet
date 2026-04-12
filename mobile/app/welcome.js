@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -20,114 +20,140 @@ const WELCOME_IMAGES = [
   require('../assets/images/welcome-3.jpg'),
 ];
 
-// State managed by the component — set via setters
-let setLoadingRenter = null;
-let setLoadingOwner = null;
-
-async function handleRenterRole() {
-  if (setLoadingRenter) setLoadingRenter(true);
-  try {
-    await saveUserRole('tenant');
-    await setRoleSelected();
-
-    // Check for existing session first
-    const { data: { session: existing } } = await supabase.auth.getSession();
-    if (existing) {
-      router.replace('/(tenant)/swipe');
-      return;
-    }
-
-    // Create anonymous session
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.error('Anonymous sign-in failed:', error.message);
-      router.replace('/(auth)/email');
-      return;
-    }
-    if (data?.session) {
-      // Fire and forget — don't await the profile update
-      supabase.from('profiles').update({ is_anonymous: true, role: 'tenant' }).eq('id', data.session.user.id);
-    }
-
-    // Navigate immediately — AuthProvider will catch up
-    router.replace('/(tenant)/swipe');
-  } catch (err) {
-    console.error('handleRenterRole error:', err);
-    router.replace('/(auth)/email');
-  }
-}
-
-async function handleOwnerRole() {
-  if (setLoadingOwner) setLoadingOwner(true);
-  try {
-    await saveUserRole('owner');
-    await setRoleSelected();
-
-    // Check for existing session first
-    const { data: { session: existing } } = await supabase.auth.getSession();
-    if (existing) {
-      router.replace('/(owner)/home');
-      return;
-    }
-
-    // Create anonymous session with owner role in metadata
-    // The handle_new_user trigger reads raw_user_meta_data->>'role' to set profiles.role
-    const { data, error } = await supabase.auth.signInAnonymously({
-      options: { data: { role: 'owner' } },
-    });
-    if (error) {
-      console.error('Anonymous sign-in failed:', error.message);
-      router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
-      return;
-    }
-
-    // Navigate after role is set
-    router.replace('/(owner)/home');
-  } catch (err) {
-    console.error('handleOwnerRole error:', err);
-    router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
-  }
-}
-
 export default function WelcomeScreen() {
-  const [loadingRenter, _setLoadingRenter] = useState(false);
-  const [loadingOwner, _setLoadingOwner] = useState(false);
-  setLoadingRenter = _setLoadingRenter;
-  setLoadingOwner = _setLoadingOwner;
+  const [loadingRenter, setLoadingRenter] = useState(false);
+  const [loadingOwner, setLoadingOwner] = useState(false);
+
+  const handleRenterRole = useCallback(async () => {
+    setLoadingRenter(true);
+    try {
+      await saveUserRole('tenant');
+      await setRoleSelected();
+
+      // Check for existing session first
+      const { data: { session: existing } } = await supabase.auth.getSession();
+      if (existing) {
+        router.replace('/(tenant)/swipe');
+        return;
+      }
+
+      // Create anonymous session
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) {
+        console.error('Anonymous sign-in failed:', error.message);
+        router.replace('/(auth)/email');
+        return;
+      }
+
+      // Await profile update — ensures role is set before AuthProvider queries it
+      if (data?.session) {
+        try {
+          await supabase.from('profiles')
+            .update({ is_anonymous: true, role: 'tenant' })
+            .eq('id', data.session.user.id);
+        } catch (err) {
+          console.warn('[Welcome] Profile update failed:', err.message);
+        }
+      }
+
+      router.replace('/(tenant)/swipe');
+    } catch (err) {
+      console.error('handleRenterRole error:', err);
+      router.replace('/(auth)/email');
+    } finally {
+      setLoadingRenter(false);
+    }
+  }, []);
+
+  const handleOwnerRole = useCallback(async () => {
+    setLoadingOwner(true);
+    try {
+      await saveUserRole('owner');
+      await setRoleSelected();
+
+      // Check for existing session first
+      const { data: { session: existing } } = await supabase.auth.getSession();
+      if (existing) {
+        router.replace('/(owner)/home');
+        return;
+      }
+
+      // Create anonymous session with owner role in metadata
+      // The handle_new_user trigger reads raw_user_meta_data->>'role' to set profiles.role
+      const { data, error } = await supabase.auth.signInAnonymously({
+        options: { data: { role: 'owner' } },
+      });
+      if (error) {
+        console.error('Anonymous sign-in failed:', error.message);
+        router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
+        return;
+      }
+
+      // Also explicitly set role (don't rely solely on trigger timing)
+      if (data?.session) {
+        try {
+          await supabase.from('profiles')
+            .update({ is_anonymous: true, role: 'owner' })
+            .eq('id', data.session.user.id);
+        } catch (err) {
+          console.warn('[Welcome] Profile update failed:', err.message);
+        }
+      }
+
+      router.replace('/(owner)/home');
+    } catch (err) {
+      console.error('handleOwnerRole error:', err);
+      router.replace({ pathname: '/(auth)/email', params: { role: 'owner' } });
+    } finally {
+      setLoadingOwner(false);
+    }
+  }, []);
+
   return (
     <View style={styles.container}>
       {/* Image rotator — top portion */}
       <View style={styles.imageSection}>
-        <ImageRotator images={WELCOME_IMAGES} interval={4000} />
+        <ImageRotator images={WELCOME_IMAGES} intervalMs={5000} />
         <LinearGradient
-          colors={['transparent', COLORS.background]}
-          style={styles.gradient}
+          colors={['transparent', COLORS.navy]}
+          locations={[0, 0.95]}
+          style={styles.imageFade}
         />
       </View>
 
-      <SafeAreaView style={styles.bottomSection} edges={['bottom']}>
-        {/* Branding */}
-        <View style={styles.branding}>
+      {/* Bottom card content */}
+      <View style={styles.content}>
+        {/* PadMagnet Logo */}
+        <View style={styles.logoRow}>
           <Image
-            source={require('../assets/images/padmagnet-icon-512-dark.png')}
-            style={styles.icon}
+            source={require('../assets/icon.png')}
+            style={styles.logoIcon}
             contentFit="contain"
           />
-          <View style={styles.wordmarkRow}>
-            <Text style={styles.wordmarkPad}>Pad</Text>
-            <Text style={styles.wordmarkMagnet}>Magnet</Text>
-          </View>
-          <Text style={styles.tagline}>
-            Find Your Perfect Pad with PadScore<Text style={styles.tm}>{'\u2122'}</Text>
-          </Text>
         </View>
+        <Text style={styles.brandText}>
+          <Text style={styles.brandPad}>Pad</Text>
+          <Text style={styles.brandMagnet}>Magnet</Text>
+        </Text>
+        <Text style={styles.tagline}>
+          Find Your Perfect Pad with PadScore{'\u2122'}
+        </Text>
 
-        {/* Role buttons — modern glass style */}
+        {/* Role buttons */}
         <View style={styles.buttons}>
-          <TouchableOpacity style={[styles.renterButton, loadingRenter && { opacity: 0.7 }]} onPress={handleRenterRole} activeOpacity={0.85} disabled={loadingRenter || loadingOwner}>
-            <View style={styles.buttonIconCircle}>
-              {loadingRenter ? <ActivityIndicator size="small" color={COLORS.white} /> : <Ionicons name="home" size={20} color={COLORS.white} />}
-            </View>
+          <TouchableOpacity
+            style={[styles.renterButton, loadingRenter && { opacity: 0.7 }]}
+            onPress={handleRenterRole}
+            activeOpacity={0.85}
+            disabled={loadingRenter || loadingOwner}
+          >
+            {loadingRenter ? (
+              <ActivityIndicator size="small" color={COLORS.white} style={{ width: 36, height: 36, marginRight: 12 }} />
+            ) : (
+              <View style={styles.buttonIcon}>
+                <Ionicons name="home" size={16} color={COLORS.white} />
+              </View>
+            )}
             <View style={styles.buttonTextWrap}>
               <Text style={styles.buttonTitle}>{loadingRenter ? 'Loading...' : 'Find a Rental'}</Text>
               <Text style={styles.buttonHint}>Swipe, match, and discover</Text>
@@ -135,34 +161,45 @@ export default function WelcomeScreen() {
             {!loadingRenter && <Ionicons name="chevron-forward" size={18} color={COLORS.white} style={{ opacity: 0.5 }} />}
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.ownerButton, loadingOwner && { opacity: 0.7 }]} onPress={handleOwnerRole} activeOpacity={0.85} disabled={loadingRenter || loadingOwner}>
-            <View style={styles.buttonIconCircleOutline}>
-              {loadingOwner ? <ActivityIndicator size="small" color={COLORS.accent} /> : <Ionicons name="key" size={20} color={COLORS.accent} />}
-            </View>
+          <TouchableOpacity
+            style={[styles.ownerButton, loadingOwner && { opacity: 0.7 }]}
+            onPress={handleOwnerRole}
+            activeOpacity={0.85}
+            disabled={loadingRenter || loadingOwner}
+          >
+            {loadingOwner ? (
+              <ActivityIndicator size="small" color={COLORS.text} style={{ width: 36, height: 36, marginRight: 12 }} />
+            ) : (
+              <View style={[styles.buttonIcon, styles.ownerIcon]}>
+                <Ionicons name="key" size={16} color={COLORS.accent} />
+              </View>
+            )}
             <View style={styles.buttonTextWrap}>
-              <Text style={styles.buttonTitleOutline}>{loadingOwner ? 'Loading...' : 'List My Property'}</Text>
-              <Text style={styles.buttonHintOutline}>Find qualified renters fast</Text>
+              <Text style={[styles.buttonTitle, styles.ownerTitle]}>{loadingOwner ? 'Loading...' : 'List My Property'}</Text>
+              <Text style={[styles.buttonHint, styles.ownerHint]}>Find qualified renters fast</Text>
             </View>
-            {!loadingOwner && <Ionicons name="chevron-forward" size={18} color={COLORS.accent} style={{ opacity: 0.5 }} />}
+            {!loadingOwner && <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} style={{ opacity: 0.5 }} />}
           </TouchableOpacity>
         </View>
 
         {/* Sign in link */}
         <TouchableOpacity
           onPress={() => router.replace('/(auth)/email')}
-          style={styles.signInLink}
+          style={styles.signInRow}
+          activeOpacity={0.7}
+          disabled={loadingRenter || loadingOwner}
         >
           <Text style={styles.signInText}>
-            Already have an account? <Text style={styles.signInBold}>Sign In</Text>
+            Already have an account? <Text style={styles.signInLink}>Sign In</Text>
           </Text>
         </TouchableOpacity>
 
-        {/* Trust badge */}
-        <View style={styles.trustBadge}>
+        {/* Free badge */}
+        <View style={styles.freeBadge}>
           <Ionicons name="shield-checkmark" size={14} color={COLORS.success} />
-          <Text style={styles.trustText}>Free for renters. Always.</Text>
+          <Text style={styles.freeText}>Free for renters. Always.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -170,69 +207,56 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.navy,
   },
   imageSection: {
-    height: height * 0.30,
+    height: height * 0.38,
     position: 'relative',
   },
-  gradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
+  imageFade: {
+    ...StyleSheet.absoluteFillObject,
   },
-  bottomSection: {
+  content: {
     flex: 1,
-    justifyContent: 'space-between',
     paddingHorizontal: LAYOUT.padding.lg,
-  },
-  branding: {
     alignItems: 'center',
-    paddingTop: 8,
   },
-  icon: {
-    width: 64,
-    height: 64,
-    marginBottom: 8,
+  logoRow: {
+    marginBottom: 6,
   },
-  wordmarkRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  logoIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: LAYOUT.radius.md,
+  },
+  brandText: {
+    fontSize: 32,
+    fontFamily: FONTS.heading.bold,
     marginBottom: 4,
   },
-  wordmarkPad: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['3xl'],
+  brandPad: {
     color: COLORS.white,
   },
-  wordmarkMagnet: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['3xl'],
+  brandMagnet: {
     color: COLORS.deepOrange,
   },
   tagline: {
-    fontFamily: FONTS.heading.semiBold,
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
-    textAlign: 'center',
-  },
-  tm: {
-    fontSize: FONT_SIZES.xxs,
+    color: COLORS.brandOrange,
+    marginBottom: LAYOUT.padding.lg,
   },
   buttons: {
+    width: '100%',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: LAYOUT.padding.md,
   },
   renterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.logoOrange,
     borderRadius: LAYOUT.radius.lg,
-    paddingHorizontal: 16,
-    gap: 14,
-    height: 76,
+    padding: LAYOUT.padding.md,
     shadowColor: COLORS.logoOrange,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -242,29 +266,23 @@ const styles = StyleSheet.create({
   ownerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.frostedGlass,
+    backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.lg,
-    paddingHorizontal: 16,
+    padding: LAYOUT.padding.md,
     borderWidth: 1,
-    borderColor: COLORS.accent + '44',
-    gap: 14,
-    height: 76,
+    borderColor: COLORS.border,
   },
-  buttonIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  buttonIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  buttonIconCircleOutline: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.accent + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
+  ownerIcon: {
+    backgroundColor: COLORS.accent + '18',
   },
   buttonTextWrap: {
     flex: 1,
@@ -274,46 +292,38 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
   },
-  buttonTitleOutline: {
-    fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.white,
+  ownerTitle: {
+    color: COLORS.text,
   },
   buttonHint: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 1,
   },
-  buttonHintOutline: {
-    fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.xs,
+  ownerHint: {
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
-  signInLink: {
-    alignItems: 'center',
-    paddingVertical: LAYOUT.padding.sm,
+  signInRow: {
+    marginBottom: LAYOUT.padding.sm,
   },
   signInText: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
   },
-  signInBold: {
-    fontFamily: FONTS.body.semiBold,
+  signInLink: {
     color: COLORS.accent,
+    fontFamily: FONTS.body.semiBold,
   },
-  trustBadge: {
+  freeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
-    paddingBottom: LAYOUT.padding.sm,
   },
-  trustText: {
+  freeText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.textSecondary,
   },
 });

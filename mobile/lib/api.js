@@ -10,12 +10,12 @@ let _cachedToken = null;
 let _tokenExpiry = 0;
 let _inflightToken = null; // dedup concurrent getToken() calls
 
-// Listen for auth changes to update cached token
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cachedToken = session?.access_token || null;
-  // JWT tokens typically expire in 1 hour — refresh 5 min early
-  _tokenExpiry = session ? Date.now() + 55 * 60 * 1000 : 0;
-});
+// Clear token cache — called by AuthProvider on sign-out
+export function clearTokenCache() {
+  _cachedToken = null;
+  _tokenExpiry = 0;
+  _inflightToken = null;
+}
 
 async function getToken() {
   // Use cached token if still valid
