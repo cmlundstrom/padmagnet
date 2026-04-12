@@ -1,36 +1,63 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { COLORS } from '../../constants/colors';
 
 export default function TenantTabLayout() {
   const { user } = useAuth();
   const unreadCount = useUnreadCount(user?.id);
 
   return (
-    <NativeTabs
-      tintColor="#FFFFFF"
-      barTintColor="#0B1D3A"
-      inactiveTintColor="#B0BEC5"
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#B0BEC5',
+        tabBarStyle: {
+          backgroundColor: '#0B1D3A',
+          borderTopWidth: 0,
+          elevation: 0,
+        },
+      }}
     >
-      <NativeTabs.Trigger name="swipe">
-        <NativeTabs.Trigger.Icon md="dashboard" />
-        <NativeTabs.Trigger.Label>Swipe</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="saved">
-        <NativeTabs.Trigger.Icon md="favorite" />
-        <NativeTabs.Trigger.Label>Saved</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="messages">
-        <NativeTabs.Trigger.Icon md="mail" />
-        <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
-        {unreadCount > 0 && (
-          <NativeTabs.Trigger.Badge>{unreadCount > 9 ? '9+' : String(unreadCount)}</NativeTabs.Trigger.Badge>
-        )}
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Icon md="person" />
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+      <Tabs.Screen
+        name="swipe"
+        options={{
+          title: 'Swipe',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Saved',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="heart-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="mail-outline" size={size} color={color} />
+          ),
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : undefined,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }

@@ -114,7 +114,10 @@ export default function SwipeScreen() {
   const handleLocationSkip = useCallback(async () => {
     setShowLocationAsk(false);
     await setLocationAsked();
-    setLocationReady(true);
+    // Wait one frame for gesture handler to stabilize after overlay dismissal
+    requestAnimationFrame(() => {
+      setLocationReady(true);
+    });
   }, []);
 
   // Check streak on mount

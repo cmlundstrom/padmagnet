@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import { View, Text, Pressable, InteractionManager, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -52,8 +52,16 @@ function BenefitRow({ icon, text }) {
 }
 
 export default function LocationSoftAsk({ onEnable, onSkip }) {
+  // Wrap callbacks with InteractionManager to let gesture system stabilize
+  const handleEnable = () => {
+    InteractionManager.runAfterInteractions(() => onEnable());
+  };
+  const handleSkip = () => {
+    InteractionManager.runAfterInteractions(() => onSkip());
+  };
+
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onSkip}>
+    <View style={styles.overlay} pointerEvents="box-none">
       <View style={styles.overlay}>
         <View style={styles.cardOuter}>
           <LinearGradient
@@ -91,7 +99,7 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
             {/* CTA */}
             <Pressable
               style={({ pressed }) => [styles.enableButton, pressed && { opacity: 0.85 }]}
-              onPress={onEnable}
+              onPress={handleEnable}
             >
               <LinearGradient
                 colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
@@ -112,14 +120,14 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
             {/* Skip */}
             <Pressable
               style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
-              onPress={onSkip}
+              onPress={handleSkip}
             >
               <Text style={styles.skipText}>I'll search manually</Text>
             </Pressable>
           </LinearGradient>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }
 
