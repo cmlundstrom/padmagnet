@@ -179,6 +179,19 @@ export async function PATCH(request) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
+    // Broadcast role_changed if role or roles were updated
+    if (changes.role || changes.roles) {
+      for (const id of ids) {
+        const row = updatedRows.find(r => r.id === id);
+        await supabase.channel(`admin-events-${id}`)
+          .send({
+            type: 'broadcast',
+            event: 'role_changed',
+            payload: { role: row?.role, roles: row?.roles },
+          });
+      }
+    }
+
     // Sync email to auth.users if email was changed
     if (changes.email) {
       for (const id of ids) {
@@ -259,6 +272,12 @@ export async function DELETE(request) {
 
     if (fetchErr) {
       return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+    }
+
+    // Broadcast session_killed to each user's Realtime channel BEFORE deletion
+    for (const id of ids) {
+      await supabase.channel(`admin-events-${id}`)
+        .send({ type: 'broadcast', event: 'session_killed', payload: {} });
     }
 
     // Clean up all referencing rows before deleting auth user

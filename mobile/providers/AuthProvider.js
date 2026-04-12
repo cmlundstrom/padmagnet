@@ -1,4 +1,5 @@
 import { createContext, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { getUserRole, saveUserRole, clearUserRole } from '../lib/storage';
 import { clearTokenCache } from '../lib/api';
@@ -91,6 +92,36 @@ export function AuthProvider({ children }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Real-time admin events: session invalidation + role changes
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const channel = supabase
+      .channel(`admin-events-${session.user.id}`)
+      .on('broadcast', { event: 'session_killed' }, () => {
+        Alert.alert(
+          'Session Ended',
+          'Your account has been deactivated by an administrator.',
+          [{ text: 'OK' }]
+        );
+        supabase.auth.signOut();
+      })
+      .on('broadcast', { event: 'role_changed' }, (payload) => {
+        const { role: newRole, roles: newRoles } = payload.payload || {};
+        if (newRole) {
+          setRole(newRole);
+          saveUserRole(newRole);
+        }
+        if (newRoles) {
+          setRoles(newRoles);
+        }
+        console.log('[Auth] Role updated by admin:', newRole, newRoles);
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [session?.user?.id]);
 
   return (
     <AuthContext.Provider value={{ session, user: session?.user ?? null, role, roles, loading }}>
