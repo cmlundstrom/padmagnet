@@ -139,6 +139,26 @@ export default function OwnersPanel() {
       size: 90,
     },
     {
+      accessorKey: "roles",
+      header: "Roles",
+      cell: ({ getValue }) => {
+        const roles = getValue() || [];
+        return (
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {roles.map(r => (
+              <span key={r} style={{
+                display: "inline-block", padding: "1px 6px", borderRadius: 4,
+                fontSize: "10px", fontWeight: 600, letterSpacing: "0.03em",
+                background: r === "admin" ? "#7C3AED22" : r === "owner" ? "#3B82F622" : "#22C55E22",
+                color: r === "admin" ? "#7C3AED" : r === "owner" ? "#3B82F6" : "#22C55E",
+              }}>{r}</span>
+            ))}
+          </div>
+        );
+      },
+      size: 120,
+    },
+    {
       id: "stripe",
       header: "Stripe",
       accessorFn: (row) => row.stripe_customer_id,

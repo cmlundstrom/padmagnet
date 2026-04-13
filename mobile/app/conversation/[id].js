@@ -322,6 +322,26 @@ export default function ConversationScreen() {
     displayItems.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   }
 
+  // Insert date separators between messages on different days
+  const withDates = [];
+  let lastDate = null;
+  for (const item of displayItems) {
+    const d = new Date(item.created_at);
+    const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (dateKey !== lastDate) {
+      const today = new Date();
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const isToday = d.toDateString() === today.toDateString();
+      const isYesterday = d.toDateString() === yesterday.toDateString();
+      const label = isToday ? 'Today' : isYesterday ? 'Yesterday'
+        : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+      withDates.push({ id: `date-${dateKey}`, _dateSeparator: label, created_at: item.created_at });
+      lastDate = dateKey;
+    }
+    withDates.push(item);
+  }
+  const finalItems = withDates;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Custom chat header — photo + tappable address links to listing */}
@@ -355,7 +375,7 @@ export default function ConversationScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={[...displayItems].reverse()}
+            data={[...finalItems].reverse()}
             inverted
             keyExtractor={item => item.id}
             ListFooterComponent={
@@ -390,6 +410,17 @@ export default function ConversationScreen() {
               </View>
             }
             renderItem={({ item }) => {
+              // Date separator
+              if (item._dateSeparator) {
+                return (
+                  <View style={styles.dateSeparator}>
+                    <View style={styles.dateLine} />
+                    <Text style={styles.dateLabel}>{item._dateSeparator}</Text>
+                    <View style={styles.dateLine} />
+                  </View>
+                );
+              }
+
               // System fallback card — rendered chronologically
               if (item._systemCard === 'owner_fallback') {
                 const contactName = ownerName || agentName || 'the owner';
@@ -632,5 +663,24 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.brandOrange,
+  },
+
+  // ── Date separators ────────────────────────────
+  dateSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+    paddingHorizontal: LAYOUT.padding.lg,
+  },
+  dateLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dateLabel: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.textSecondary,
+    marginHorizontal: 12,
   },
 });

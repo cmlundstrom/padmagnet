@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from '../../lib/auth';
+import RoleSwitcher from '../../components/auth/RoleSwitcher';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
@@ -134,6 +135,9 @@ export default function OwnerProfileScreen() {
             />
 
             <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ACCOUNT</Text>
+
+            {/* Role switcher — only visible for multi-role users */}
+            <RoleSwitcher />
 
             {/* Sign Out */}
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>

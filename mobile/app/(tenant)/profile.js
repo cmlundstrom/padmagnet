@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from '../../lib/auth';
+import RoleSwitcher from '../../components/auth/RoleSwitcher';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import usePadPoints from '../../hooks/usePadPoints';
@@ -172,6 +173,9 @@ export default function TenantProfileScreen() {
           onPress={handleResetSwipes}
           danger
         />
+
+        {/* Role switcher — only visible for multi-role users */}
+        <RoleSwitcher />
 
         {/* Sign Out */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
