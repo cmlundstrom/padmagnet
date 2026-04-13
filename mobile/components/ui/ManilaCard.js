@@ -1,125 +1,200 @@
 /**
- * ManilaCard — reusable manila folder card with integrated tab notch.
+ * ManilaCard — authentic manila folder with SVG tab outline.
  *
- * The tab is part of the folder body, not a separate element.
- * A small notch protrudes from the top edge with the label text.
- * Drag handle sits at the junction of tab and body.
+ * The tab is part of the folder's outline — one continuous SVG shape.
+ * No separate tab element. The tab "grows" out of the top edge.
+ * Includes integrated DragHandle at the junction.
  *
  * Props:
- *   label       - tab label text (e.g., "List For Free", "Account")
+ *   label       - tab label text (e.g., "List For Free", "MESSAGES")
  *   tabAlign    - 'left' | 'right' | 'center' (default: 'right')
+ *   tabWidth    - width of the tab notch (default: 140)
  *   children    - folder body content
  *   style       - additional style for outer container
- *   onTabPress  - optional tap handler for the tab area
  */
 
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import DragHandle from './DragHandle';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
-// Manila gradient — warm aged parchment
-const MANILA_COLORS = [
-  '#C4AD78',
-  '#DECA92',
-  '#E8D8A4',
-  '#D8C88E',
-  '#BEA66A',
-  '#A08040',
-];
+const { width: SCREEN_W } = Dimensions.get('window');
+const DEFAULT_WIDTH = SCREEN_W - 24; // 12px margin each side
+const TAB_HEIGHT = 32;
+const BODY_RADIUS = 14;
+const TAB_RADIUS = 8;
 
-export default function ManilaCard({ label, tabAlign = 'right', children, style, onTabPress }) {
-  const alignSelf = tabAlign === 'left' ? 'flex-start'
-    : tabAlign === 'center' ? 'center'
-    : 'flex-end';
+/**
+ * Build the SVG path for a manila folder with an integrated tab.
+ * One continuous path — no seam between tab and body.
+ */
+function buildFolderPath(width, bodyHeight, tabWidth, tabAlign) {
+  const totalHeight = TAB_HEIGHT + bodyHeight;
+  const r = BODY_RADIUS;
+  const tr = TAB_RADIUS;
+
+  // Calculate tab position
+  let tabLeft, tabRight;
+  if (tabAlign === 'left') {
+    tabLeft = r;
+    tabRight = tabLeft + tabWidth;
+  } else if (tabAlign === 'center') {
+    tabLeft = (width - tabWidth) / 2;
+    tabRight = tabLeft + tabWidth;
+  } else {
+    // right (default)
+    tabRight = width - r;
+    tabLeft = tabRight - tabWidth;
+  }
+
+  // Path: start at top-left of body, go up into tab, across, back down, continue body
+  return `
+    M ${r} ${TAB_HEIGHT}
+    L ${tabLeft - tr} ${TAB_HEIGHT}
+    Q ${tabLeft} ${TAB_HEIGHT} ${tabLeft} ${TAB_HEIGHT - tr}
+    L ${tabLeft} ${tr}
+    Q ${tabLeft} 0 ${tabLeft + tr} 0
+    L ${tabRight - tr} 0
+    Q ${tabRight} 0 ${tabRight} ${tr}
+    L ${tabRight} ${TAB_HEIGHT - tr}
+    Q ${tabRight} ${TAB_HEIGHT} ${tabRight + tr} ${TAB_HEIGHT}
+    L ${width - r} ${TAB_HEIGHT}
+    Q ${width} ${TAB_HEIGHT} ${width} ${TAB_HEIGHT + r}
+    L ${width} ${totalHeight - r}
+    Q ${width} ${totalHeight} ${width - r} ${totalHeight}
+    L ${r} ${totalHeight}
+    Q 0 ${totalHeight} 0 ${totalHeight - r}
+    L 0 ${TAB_HEIGHT + r}
+    Q 0 ${TAB_HEIGHT} ${r} ${TAB_HEIGHT}
+    Z
+  `;
+}
+
+export default function ManilaCard({
+  label,
+  tabAlign = 'right',
+  tabWidth = 140,
+  children,
+  style,
+  bodyHeight = 500,
+}) {
+  const cardWidth = DEFAULT_WIDTH;
+  const totalHeight = TAB_HEIGHT + bodyHeight;
+
+  // Tab label position
+  let tabLeft;
+  if (tabAlign === 'left') {
+    tabLeft = BODY_RADIUS;
+  } else if (tabAlign === 'center') {
+    tabLeft = (cardWidth - tabWidth) / 2;
+  } else {
+    tabLeft = cardWidth - BODY_RADIUS - tabWidth;
+  }
+
+  const path = buildFolderPath(cardWidth, bodyHeight, tabWidth, tabAlign);
 
   return (
-    <View style={[styles.outerWrap, style]}>
-      {/* Integrated tab notch — sits on top of body */}
-      <Pressable
-        style={[styles.tabNotch, { alignSelf }]}
-        onPress={onTabPress}
-        disabled={!onTabPress}
-      >
-        <LinearGradient
-          colors={['#D4BA82', '#E8D8A4', '#DECA92']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.tabGradient}
-        >
-          <Text style={styles.tabLabel}>{label}</Text>
-        </LinearGradient>
-      </Pressable>
+    <View style={[styles.container, { width: cardWidth, height: totalHeight }, style]}>
+      {/* SVG folder shape with gradient fill */}
+      <Svg width={cardWidth} height={totalHeight} style={StyleSheet.absoluteFill}>
+        <Defs>
+          {/* Main manila gradient */}
+          <SvgGradient id="manilaGrad" x1="0" y1="0" x2="0.74" y2="1">
+            <Stop offset="0" stopColor="#D4BE8A" />
+            <Stop offset="0.2" stopColor="#DECA92" />
+            <Stop offset="0.4" stopColor="#E8D8A4" />
+            <Stop offset="0.6" stopColor="#D8C88E" />
+            <Stop offset="0.8" stopColor="#C4AD78" />
+            <Stop offset="1" stopColor="#A89050" />
+          </SvgGradient>
+          {/* Subtle inner shadow gradient for 3D depth */}
+          <SvgGradient id="innerShadow" x1="0" y1="0" x2="0" y2="0.08">
+            <Stop offset="0" stopColor="#000000" stopOpacity="0.06" />
+            <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+          </SvgGradient>
+          {/* Top sheen for 3D highlight */}
+          <SvgGradient id="topSheen" x1="0" y1="0" x2="0" y2="0.15">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+          </SvgGradient>
+        </Defs>
 
-      {/* Folder body — seamless with tab */}
-      <LinearGradient
-        colors={MANILA_COLORS}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.74, y: 1 }}
-        style={styles.body}
-      >
-        {/* Drag handle at top of body, right below tab junction */}
+        {/* Outer shadow (slightly offset darker shape behind) */}
+        <Path
+          d={path}
+          fill="rgba(0,0,0,0.2)"
+          transform="translate(0, 3)"
+        />
+
+        {/* Main folder shape */}
+        <Path d={path} fill="url(#manilaGrad)" />
+
+        {/* 3D depth: inner shadow at top */}
+        <Path d={path} fill="url(#innerShadow)" />
+
+        {/* 3D highlight: top sheen */}
+        <Path d={path} fill="url(#topSheen)" />
+
+        {/* Subtle edge line for definition */}
+        <Path
+          d={path}
+          fill="none"
+          stroke="rgba(160,128,64,0.3)"
+          strokeWidth="1"
+        />
+      </Svg>
+
+      {/* Tab label — positioned over the SVG tab area */}
+      <View style={[styles.tabLabel, { left: tabLeft, width: tabWidth }]}>
+        <Text style={styles.tabText}>{label}</Text>
+      </View>
+
+      {/* Drag handle — at junction of tab and body */}
+      <View style={[styles.dragHandleWrap]}>
         <DragHandle />
+      </View>
 
-        {/* Inner content area */}
-        <LinearGradient
-          colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)', 'transparent']}
-          style={styles.innerSheen}
-        >
-          {children}
-        </LinearGradient>
-      </LinearGradient>
+      {/* Body content — below drag handle */}
+      <View style={styles.bodyContent}>
+        {children}
+      </View>
     </View>
   );
 }
 
-/** Export manila gradient colors for consistent use */
-ManilaCard.COLORS = MANILA_COLORS;
+/** Export for consistent use */
+ManilaCard.TAB_HEIGHT = TAB_HEIGHT;
+ManilaCard.BODY_RADIUS = BODY_RADIUS;
 
 const styles = StyleSheet.create({
-  outerWrap: {
-    // No gap between tab and body — seamless
-  },
-  tabNotch: {
-    // Small notch protruding from body top
-    marginBottom: -1, // overlap 1px to hide any seam
-    zIndex: 1,
-  },
-  tabGradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderTopLeftRadius: LAYOUT.radius.md,
-    borderTopRightRadius: LAYOUT.radius.md,
-    // No bottom radius — merges into body
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    // Subtle shadow for tab depth
+  container: {
+    position: 'relative',
+    // Drop shadow for the whole card
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
   tabLabel: {
+    position: 'absolute',
+    top: 4,
+    height: TAB_HEIGHT - 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xs,
-    color: '#4A3A1A',
-    letterSpacing: 0.3,
+    color: '#3A2E14',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  body: {
-    borderRadius: LAYOUT.radius.lg,
-    borderTopRightRadius: LAYOUT.radius.lg,
-    borderTopLeftRadius: LAYOUT.radius.lg,
-    overflow: 'hidden',
-    // Drop shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+  dragHandleWrap: {
+    marginTop: TAB_HEIGHT - 4,
   },
-  innerSheen: {
+  bodyContent: {
     paddingHorizontal: LAYOUT.padding.lg,
     paddingBottom: LAYOUT.padding.lg,
   },
