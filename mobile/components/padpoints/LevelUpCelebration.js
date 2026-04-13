@@ -85,7 +85,7 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
       <Pressable onPress={handleTapDismiss} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <Text style={styles.celebration}>🎉</Text>
-        <Text style={styles.title}>PADLEVEL UP!</Text>
+        <Text style={styles.title}>PAD LEVEL UP!</Text>
         <Text style={[styles.levelName, { color: levelColor }]}>
           ⭐ {frozenLevel.name} ⭐
         </Text>
@@ -128,10 +128,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES['2xl'],
+    fontSize: FONT_SIZES.xl,
     color: COLORS.white,
     letterSpacing: 2,
     marginBottom: 8,
+    textAlign: 'center',
   },
   levelName: {
     fontFamily: FONTS.heading.bold,

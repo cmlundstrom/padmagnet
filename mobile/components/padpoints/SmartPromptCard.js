@@ -6,10 +6,13 @@ import Animated, {
   withSequence, FadeIn, FadeOut,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 import { getNearestCities } from '../../constants/service-areas';
+
+const ASKPAD_ICON = require('../../assets/images/askpad-orb.png');
 
 /**
  * Smart Prompt Card — modal overlay that appears between swipes
@@ -113,7 +116,8 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) 
             {/* Ask Pad CTA (on later prompts) */}
             {prompt.afterSwipe >= 25 && onAskPad && (
               <TouchableOpacity style={styles.askPadButton} onPress={() => { handleSkip(); setTimeout(() => onAskPad(), 200); }} activeOpacity={0.7}>
-                <Text style={styles.askPadText}>✨ Ask Pad instead</Text>
+                <Image source={ASKPAD_ICON} style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }} />
+                <Text style={styles.askPadText}>AskPad instead</Text>
               </TouchableOpacity>
             )}
 
@@ -311,7 +315,8 @@ const styles = StyleSheet.create({
   options: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 10,
     paddingHorizontal: LAYOUT.padding.lg,
     paddingBottom: LAYOUT.padding.md,
   },

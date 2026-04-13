@@ -432,7 +432,7 @@ export default function SwipeScreen() {
 
         {/* Level Up Celebration */}
         <LevelUpCelebration
-          visible={padPoints.lastEarned?.leveledUp === true}
+          visible={padPoints.lastEarned?.leveledUp === true && !activePrompt}
           level={padPoints.lastEarned?.newLevel}
           onDismiss={() => {}}
         />
