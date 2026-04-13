@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../hooks/useAuth';
 import MessagesScreen from '../../components/screens/MessagesScreen';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
@@ -27,13 +28,13 @@ export default function OwnerMessages() {
 
           <View style={styles.bridgeRow}>
             <View style={styles.bridgePill}>
-              <Ionicons name="mail-outline" size={14} color={COLORS.brandOrange} />
-              <Text style={styles.bridgeText}>Owners reply from email</Text>
-            </View>
-            <Ionicons name="swap-horizontal" size={18} color={COLORS.slate} />
-            <View style={styles.bridgePill}>
               <Ionicons name="chatbox-outline" size={14} color={COLORS.success} />
-              <Text style={styles.bridgeText}>Renters reply by text</Text>
+              <Text style={styles.bridgeText}>Renters will message you here, in PadMagnet and your e-mail</Text>
+            </View>
+            <Ionicons name="swap-horizontal" size={20} color={COLORS.textSecondary} />
+            <View style={styles.bridgePill}>
+              <Ionicons name="mail-outline" size={14} color={COLORS.brandOrange} />
+              <Text style={styles.bridgeText}>Owner's respond via e-mail, or in PadMagnet</Text>
             </View>
           </View>
 
@@ -41,12 +42,17 @@ export default function OwnerMessages() {
             Text ↔ Email bridge powered by PadMagnet
           </Text>
 
-          <Text
-            style={styles.signInLink}
-            onPress={() => setShowAuth(true)}
-          >
-            Sign in to activate your inbox →
-          </Text>
+          <Pressable onPress={() => setShowAuth(true)} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
+            <LinearGradient
+              colors={[COLORS.logoOrange, '#D14E2F']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.signInButton}
+            >
+              <Ionicons name="log-in-outline" size={18} color={COLORS.white} />
+              <Text style={styles.signInButtonText}>Sign in to activate your inbox</Text>
+            </LinearGradient>
+          </Pressable>
         </View>
 
         <AuthBottomSheet
@@ -125,14 +131,29 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   teaserHint: {
-    fontFamily: FONTS.body.regular,
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.slate,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
-  signInLink: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
+  signInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: LAYOUT.radius.lg,
     marginTop: 4,
+    shadowColor: COLORS.logoOrange,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  signInButtonText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
   },
 });
