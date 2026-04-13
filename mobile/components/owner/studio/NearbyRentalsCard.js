@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import DragHandle from '../../ui/DragHandle';
+import ManilaCard from '../../ui/ManilaCard';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
   runOnJS, interpolate,
@@ -152,48 +153,12 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
 
         <View style={styles.cardContainer} pointerEvents="box-none">
           <Animated.View style={[styles.card, cardStyle]}>
-            {/* Manila tab — outside gradient to avoid clip */}
-            <View style={styles.tabWrap}>
-              <LinearGradient
-                colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0.74, y: 1 }}
-                style={styles.tab}
-              >
-                <View style={styles.labelSticker}>
-                  <Text style={styles.labelText}>Nearby Rentals</Text>
-                </View>
-              </LinearGradient>
-            </View>
-
-            <LinearGradient
-              colors={['#C4AD78', '#DECA92', '#E8D8A4', '#D8C88E', '#BEA66A', '#A08040']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0.74, y: 1 }}
-              style={styles.cardGradient}
-            >
-              <LinearGradient
-                colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-
-              {/* Standard card handle — two staggered bars + chevron + shaded header */}
-              <GestureDetector gesture={panGesture}>
-                <LinearGradient
-                  colors={['rgba(140,115,60,0.35)', 'transparent']}
-                  style={styles.handleBand}
-                >
-                  <View style={styles.handleArea}>
-                    <DragHandle />
-                    <Ionicons name="chevron-down" size={14} color="rgba(90,70,30,0.5)" style={{ marginTop: 3 }} />
-                  </View>
+            <GestureDetector gesture={panGesture}>
+              <View>
+                <ManilaCard label="Nearby Rentals" tabAlign="right" bodyHeight={450}>
                   <Text style={styles.headerText}>
                     These are advertised rentals offering similar features
                   </Text>
-                </LinearGradient>
-              </GestureDetector>
 
               {/* Radius chips — using global CHIP_STYLES */}
               <View style={styles.chipSection}>
@@ -255,7 +220,9 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
               <Text style={styles.disclaimer}>
                 For comparison only — not a property valuation.
               </Text>
-            </LinearGradient>
+                </ManilaCard>
+              </View>
+            </GestureDetector>
           </Animated.View>
         </View>
     </View>
