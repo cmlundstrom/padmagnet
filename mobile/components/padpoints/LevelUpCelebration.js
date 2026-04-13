@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
+import DragHandle from '../ui/DragHandle';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
@@ -84,6 +85,7 @@ export default function LevelUpCelebration({ visible, level, onDismiss }) {
     <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
       <Pressable onPress={handleTapDismiss} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        <DragHandle light />
         <Text style={styles.celebration}>🎉</Text>
         <Text style={styles.title}>PAD LEVEL UP!</Text>
         <Text style={[styles.levelName, { color: levelColor }]}>

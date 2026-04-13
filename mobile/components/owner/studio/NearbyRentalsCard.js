@@ -4,6 +4,7 @@ import {
   StyleSheet, Dimensions, BackHandler,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import DragHandle from '../../ui/DragHandle';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
   runOnJS, interpolate,
@@ -185,8 +186,7 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
                   style={styles.handleBand}
                 >
                   <View style={styles.handleArea}>
-                    <View style={styles.handleBarWide} />
-                    <View style={styles.handleBarNarrow} />
+                    <DragHandle />
                     <Ionicons name="chevron-down" size={14} color="rgba(90,70,30,0.5)" style={{ marginTop: 3 }} />
                   </View>
                   <Text style={styles.headerText}>

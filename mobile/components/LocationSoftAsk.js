@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { View, Text, Pressable, InteractionManager, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import DragHandle from './ui/DragHandle';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -70,6 +71,8 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
             end={{ x: 0.5, y: 1 }}
             style={styles.card}
           >
+            <DragHandle light />
+
             {/* Radar icon */}
             <View style={styles.iconContainer}>
               {Array.from({ length: RING_COUNT }).map((_, i) => (

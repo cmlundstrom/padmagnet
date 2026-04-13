@@ -12,3 +12,4 @@ export { default as BackButton } from './BackButton';
 export { default as NoPhotoPlaceholder } from './NoPhotoPlaceholder';
 export { default as EqualHousingBadge } from './EqualHousingBadge';
 export { default as SwipeableSheet } from './SwipeableSheet';
+export { default as DragHandle } from './DragHandle';

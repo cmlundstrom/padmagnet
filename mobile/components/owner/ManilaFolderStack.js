@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
+import DragHandle from '../ui/DragHandle';
 import MapView from '../map/MapView';
 import { formatCurrency } from '../../utils/format';
 import { EqualHousingBadge } from '../ui';
@@ -258,7 +259,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
             <View style={styles.labelSticker}>
               <Text style={styles.labelText}>{tabLabel}</Text>
             </View>
-            <View style={styles.dragHandle} />
+            <DragHandle />
           </LinearGradient>
         </View>
       </GestureDetector>

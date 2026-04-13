@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import DragHandle from '../ui/DragHandle';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -269,7 +270,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                   <View style={styles.labelSticker}>
                     <Text style={styles.labelText}>{contextCopy.tabLabel || 'Sign In'}</Text>
                   </View>
-                  <View style={styles.dragHandle} />
+                  <DragHandle />
                 </LinearGradient>
               </View>
             </GestureDetector>

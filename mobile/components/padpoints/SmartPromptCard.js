@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import DragHandle from '../ui/DragHandle';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -65,6 +66,8 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) 
             end={{ x: 1, y: 1 }}
             style={styles.card}
           >
+            <DragHandle light />
+
             {/* Decorative top accent line */}
             <LinearGradient
               colors={['#A89050', '#C4AD78', '#DECA92', '#C4AD78', '#A89050']}

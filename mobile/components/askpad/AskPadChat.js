@@ -8,6 +8,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import DragHandle from '../ui/DragHandle';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
 } from 'react-native-reanimated';
@@ -175,8 +176,8 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
       >
         {/* Drag handle — swipe down to dismiss */}
         <GestureDetector gesture={panGesture}>
-          <View style={styles.handleRow}>
-            <View style={styles.handle} />
+          <View>
+            <DragHandle light />
           </View>
         </GestureDetector>
 

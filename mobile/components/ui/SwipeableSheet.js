@@ -6,6 +6,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import DragHandle from './DragHandle';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DISMISS_THRESHOLD = 120;
@@ -90,11 +91,7 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle,
         <Animated.View style={[styles.sheet, sheetStyle, panelStyle]}>
           <GestureDetector gesture={panGesture}>
             <LinearGradient colors={bandColors} style={styles.handleBand}>
-              <View style={styles.handleArea}>
-                <View style={[styles.handleBarWide, { backgroundColor: barWideColor }]} />
-                <View style={[styles.handleBarNarrow, { backgroundColor: barNarrowColor }]} />
-                <Ionicons name="chevron-down" size={14} color={chevronColor} style={{ marginTop: 3 }} />
-              </View>
+              <DragHandle light={!isDark} />
             </LinearGradient>
           </GestureDetector>
           {children}

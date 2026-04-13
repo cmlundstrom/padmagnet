@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import PadScoreRing from './PadScoreRing';
 import { COLORS } from '../../constants/colors';
+import DragHandle from '../ui/DragHandle';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
@@ -161,6 +162,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
       <Modal visible={showTooltip} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowTooltip(false)}>
         <Pressable style={styles.tooltipBackdrop} onPress={() => setShowTooltip(false)}>
           <Pressable style={styles.tooltipCard} onPress={e => e.stopPropagation()}>
+            <DragHandle light />
             {/* Header */}
             <Text style={styles.tooltipEmoji}>🔥</Text>
             <Text style={styles.tooltipTitle}>
@@ -251,6 +253,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
         <View style={styles.tooltipBackdrop}>
           <Pressable style={{ flex: 1, width: '100%' }} onPress={() => setShowGameRules(false)} />
           <View style={styles.rulesCard}>
+            <DragHandle light />
             <ScrollView showsVerticalScrollIndicator={true} bounces={false} nestedScrollEnabled>
               {/* Header */}
               <Text style={styles.rulesEmoji}>🎮</Text>

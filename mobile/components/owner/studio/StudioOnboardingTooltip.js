@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import DragHandle from '../../ui/DragHandle';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 import { COLORS } from '../../../constants/colors';
@@ -50,6 +51,7 @@ export default function StudioOnboardingTooltip({ visible, onDismiss }) {
             style={StyleSheet.absoluteFill}
           />
 
+          <DragHandle />
           <View style={styles.headerBlock}>
             <Text style={styles.title}>Welcome to the Listing Studio</Text>
             <View style={styles.headerAiRow}>

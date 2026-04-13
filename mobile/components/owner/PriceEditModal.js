@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import DragHandle from '../ui/DragHandle';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
 import { COLORS } from '../../constants/colors';
@@ -73,6 +74,7 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
       >
         <Pressable style={styles.backdrop} onPress={onClose}>
           <Pressable style={styles.card} onPress={() => {}}>
+            <DragHandle light />
             <Text style={styles.title}>Edit My Price</Text>
 
             {currentPrice && (
