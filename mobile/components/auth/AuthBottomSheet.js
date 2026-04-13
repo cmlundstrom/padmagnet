@@ -317,7 +317,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                       style={styles.input}
                       value={password}
                       onChangeText={setPassword}
-                      placeholder="Password (or use Magic Link)"
+                      placeholder="Password (or Magic Link)"
                       placeholderTextColor={COLORS.slate}
                       secureTextEntry
                     />
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetOuter: {
-    marginHorizontal: 7,
+    alignItems: 'center',
   },
 
   // ── Right-side tab with label sticker ─────────────
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   },
   bodyContent: {
     paddingHorizontal: LAYOUT.padding.lg,
-    paddingTop: LAYOUT.padding.lg,
+    paddingTop: 4,
     paddingBottom: LAYOUT.padding['2xl'] + 20,
   },
   subtitle: {
@@ -689,21 +689,21 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: 'rgba(255,255,255,0.35)',
     borderRadius: LAYOUT.radius.sm,
-    padding: 14,
+    padding: 12,
     fontFamily: FONTS.body.regular,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: '#3A2810',
     borderWidth: 1,
     borderColor: '#A08040',
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
   // ── Dual action buttons ───────────────────────────
   dualButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 2,
   },
   dualOr: {
     fontFamily: FONTS.body.regular,
@@ -716,16 +716,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(59,130,246,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
     borderRadius: LAYOUT.radius.md,
     paddingVertical: 11,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#8B7035',
+    shadowColor: '#6B5020',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
   },
   magicText: {
-    fontFamily: FONTS.body.semiBold,
+    fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.sm,
-    color: '#2A5DB0',
+    color: '#5A4420',
   },
   passwordButton: {
     flex: 1,

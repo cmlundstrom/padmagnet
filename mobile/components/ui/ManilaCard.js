@@ -14,14 +14,14 @@
  */
 
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Line, Rect, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import DragHandle from './DragHandle';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const DEFAULT_WIDTH = SCREEN_W - 24; // 12px margin each side
-const TAB_HEIGHT = 32;
+const TAB_HEIGHT = 37;
 const BODY_RADIUS = 14;
 const TAB_RADIUS = 8;
 
@@ -43,8 +43,8 @@ function buildFolderPath(width, bodyHeight, tabWidth, tabAlign) {
     tabLeft = (width - tabWidth) / 2;
     tabRight = tabLeft + tabWidth;
   } else {
-    // right (default)
-    tabRight = width - r;
+    // right (default) — offset 20px from edge
+    tabRight = width - r - 20;
     tabLeft = tabRight - tabWidth;
   }
 
@@ -74,7 +74,7 @@ function buildFolderPath(width, bodyHeight, tabWidth, tabAlign) {
 export default function ManilaCard({
   label,
   tabAlign = 'right',
-  tabWidth = 140,
+  tabWidth = 160,
   children,
   style,
   bodyHeight = 500,
@@ -89,7 +89,7 @@ export default function ManilaCard({
   } else if (tabAlign === 'center') {
     tabLeft = (cardWidth - tabWidth) / 2;
   } else {
-    tabLeft = cardWidth - BODY_RADIUS - tabWidth;
+    tabLeft = cardWidth - BODY_RADIUS - tabWidth - 20;
   }
 
   const path = buildFolderPath(cardWidth, bodyHeight, tabWidth, tabAlign);
@@ -99,55 +99,105 @@ export default function ManilaCard({
       {/* SVG folder shape with gradient fill */}
       <Svg width={cardWidth} height={totalHeight} style={StyleSheet.absoluteFill}>
         <Defs>
-          {/* Main manila gradient */}
-          <SvgGradient id="manilaGrad" x1="0" y1="0" x2="0.74" y2="1">
-            <Stop offset="0" stopColor="#D4BE8A" />
-            <Stop offset="0.2" stopColor="#DECA92" />
-            <Stop offset="0.4" stopColor="#E8D8A4" />
-            <Stop offset="0.6" stopColor="#D8C88E" />
-            <Stop offset="0.8" stopColor="#C4AD78" />
+          {/* Main manila gradient — warm parchment */}
+          <SvgGradient id="manilaGrad" x1="0" y1="0" x2="0.6" y2="1">
+            <Stop offset="0" stopColor="#E2D0A0" />
+            <Stop offset="0.15" stopColor="#DECA92" />
+            <Stop offset="0.35" stopColor="#E8D8A4" />
+            <Stop offset="0.55" stopColor="#D8C88E" />
+            <Stop offset="0.75" stopColor="#C4AD78" />
             <Stop offset="1" stopColor="#A89050" />
           </SvgGradient>
-          {/* Subtle inner shadow gradient for 3D depth */}
-          <SvgGradient id="innerShadow" x1="0" y1="0" x2="0" y2="0.08">
-            <Stop offset="0" stopColor="#000000" stopOpacity="0.06" />
+          {/* Top-left light source — diagonal highlight */}
+          <SvgGradient id="lightSource" x1="0" y1="0" x2="0.5" y2="0.5">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.18" />
+            <Stop offset="0.3" stopColor="#FFFFFF" stopOpacity="0.06" />
             <Stop offset="1" stopColor="#000000" stopOpacity="0" />
           </SvgGradient>
-          {/* Top sheen for 3D highlight */}
-          <SvgGradient id="topSheen" x1="0" y1="0" x2="0" y2="0.15">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.15" />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+          {/* Bottom-right shadow — away from light */}
+          <SvgGradient id="bottomShadow" x1="0.5" y1="0.6" x2="1" y2="1">
+            <Stop offset="0" stopColor="#000000" stopOpacity="0" />
+            <Stop offset="0.7" stopColor="#000000" stopOpacity="0.06" />
+            <Stop offset="1" stopColor="#000000" stopOpacity="0.12" />
+          </SvgGradient>
+          {/* Tab shadow — tab casts shadow on body */}
+          <SvgGradient id="tabShadow" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#000000" stopOpacity="0.1" />
+            <Stop offset="1" stopColor="#000000" stopOpacity="0" />
           </SvgGradient>
         </Defs>
 
-        {/* Outer shadow (slightly offset darker shape behind) */}
+        {/* Outer drop shadow (offset behind) */}
         <Path
           d={path}
-          fill="rgba(0,0,0,0.2)"
-          transform="translate(0, 3)"
+          fill="rgba(0,0,0,0.18)"
+          transform="translate(2, 4)"
+        />
+        <Path
+          d={path}
+          fill="rgba(0,0,0,0.08)"
+          transform="translate(1, 2)"
         />
 
         {/* Main folder shape */}
         <Path d={path} fill="url(#manilaGrad)" />
 
-        {/* 3D depth: inner shadow at top */}
-        <Path d={path} fill="url(#innerShadow)" />
+        {/* Diagonal light source highlight (top-left) */}
+        <Path d={path} fill="url(#lightSource)" />
 
-        {/* 3D highlight: top sheen */}
-        <Path d={path} fill="url(#topSheen)" />
+        {/* Bottom-right shadow (depth) */}
+        <Path d={path} fill="url(#bottomShadow)" />
 
-        {/* Subtle edge line for definition */}
+        {/* Tab shadow on body — horizontal strip below tab junction */}
+        <Rect
+          x={tabLeft - 5}
+          y={TAB_HEIGHT}
+          width={tabWidth + 10}
+          height={8}
+          fill="url(#tabShadow)"
+          clipPath="url(#manilaClip)"
+        />
+
+        {/* Fold line — subtle horizontal crease for realism */}
+        <Line
+          x1={16}
+          y1={TAB_HEIGHT + totalHeight * 0.35}
+          x2={cardWidth - 16}
+          y2={TAB_HEIGHT + totalHeight * 0.35}
+          stroke="rgba(120,100,60,0.12)"
+          strokeWidth="1"
+        />
+        {/* Fold highlight — bright line just above the crease */}
+        <Line
+          x1={16}
+          y1={TAB_HEIGHT + totalHeight * 0.35 - 1}
+          x2={cardWidth - 16}
+          y2={TAB_HEIGHT + totalHeight * 0.35 - 1}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth="1"
+        />
+
+        {/* Top-left edge highlight — light catching the edge */}
         <Path
           d={path}
           fill="none"
-          stroke="rgba(160,128,64,0.3)"
-          strokeWidth="1"
+          stroke="rgba(255,245,220,0.35)"
+          strokeWidth="1.5"
+        />
+        {/* Outer definition stroke — darker */}
+        <Path
+          d={path}
+          fill="none"
+          stroke="rgba(140,115,60,0.25)"
+          strokeWidth="0.5"
         />
       </Svg>
 
-      {/* Tab label — positioned over the SVG tab area */}
+      {/* Tab label — white sticker on the tab */}
       <View style={[styles.tabLabel, { left: tabLeft, width: tabWidth }]}>
-        <Text style={styles.tabText}>{label}</Text>
+        <View style={styles.labelSticker}>
+          <Text style={styles.tabText}>{label}</Text>
+        </View>
       </View>
 
       {/* Drag handle — at junction of tab and body */}
@@ -179,23 +229,30 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     position: 'absolute',
-    top: 4,
-    height: TAB_HEIGHT - 4,
+    top: 3,
+    height: TAB_HEIGHT - 3,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  labelSticker: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
   tabText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xs,
+    fontSize: FONT_SIZES.xxs,
     color: '#3A2E14',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   dragHandleWrap: {
-    marginTop: TAB_HEIGHT - 4,
+    marginTop: TAB_HEIGHT + 6,
   },
   bodyContent: {
-    paddingHorizontal: LAYOUT.padding.lg,
-    paddingBottom: LAYOUT.padding.lg,
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingTop: 0,
+    paddingBottom: LAYOUT.padding.md,
   },
 });
