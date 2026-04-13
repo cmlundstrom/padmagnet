@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function PostActivationScreen() {
+  useAndroidBack();
   const router = useRouter();
   const { confirmation_code, county, preview } = useLocalSearchParams();
   const { role } = useAuth();

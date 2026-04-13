@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, StyleSheet, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -30,6 +31,7 @@ function SectionHeader({ icon, color, title }) {
 }
 
 export default function PreferencesScreen() {
+  useAndroidBack();
   const router = useRouter();
   const { preferences, loading, updatePreferences } = usePreferences();
   const { zones, addZone, removeZone, updateZone } = useSearchZones();

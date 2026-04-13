@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +29,7 @@ function formatDate(dateStr) {
 }
 
 export default function SubscriptionScreen() {
+  useAndroidBack();
   const {
     tier, tierLabel, tierExpiresAt, tierStartedAt,
     daysRemaining, isExpired,

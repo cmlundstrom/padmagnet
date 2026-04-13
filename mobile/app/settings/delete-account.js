@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,6 +14,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function DeleteAccountScreen() {
+  useAndroidBack();
   const { role } = useAuth();
   const alert = useAlert();
   const [confirmation, setConfirmation] = useState('');

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import {
   View, Text, TextInput, TouchableOpacity, Pressable,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet,
@@ -24,6 +25,7 @@ function formatPhone(raw) {
 const EMAIL_CHANGE_HINT = 'Changing your email will send a confirmation link to your new address. You must tap that link to complete the change.';
 
 export default function EditProfileScreen() {
+  useAndroidBack();
   const { user } = useAuth();
   const alert = useAlert();
 

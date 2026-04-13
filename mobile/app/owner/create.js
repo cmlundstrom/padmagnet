@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -32,6 +33,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 const PROPERTY_TYPES = ['Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home'];
 
 export default function MagicListingStudio() {
+  useAndroidBack();
   const router = useRouter();
   const { draft_id } = useLocalSearchParams();
   const alert = useAlert();

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useAndroidBack from '../hooks/useAndroidBack';
 import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ const PROPERTY_TYPES = [
 ];
 
 export default function OnboardingScreen() {
+  useAndroidBack();
   const router = useRouter();
   const alert = useAlert();
   const { session } = useAuth();

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -28,6 +29,7 @@ function formatPhone(raw) {
 }
 
 export default function EditListingScreen() {
+  useAndroidBack();
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const alert = useAlert();

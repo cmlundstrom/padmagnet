@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -120,6 +121,7 @@ function TierCard({ tierKey, tier, currentTier, badge, badgeColor, ctaColor, cta
 }
 
 export default function UpgradeScreen() {
+  useAndroidBack();
   const router = useRouter();
   const alert = useAlert();
   const { preview } = useLocalSearchParams();

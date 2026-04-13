@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -26,6 +27,7 @@ import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 const RADIUS_OPTIONS = [2, 5, 7];
 
 export default function NearbyRentalsScreen() {
+  useAndroidBack();
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
   const alert = useAlert();

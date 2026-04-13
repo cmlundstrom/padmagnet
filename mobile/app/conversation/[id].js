@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { FlatList, View, Text, Pressable, Linking, ActivityIndicator, KeyboardAvoidingView, Keyboard, Platform, AppState, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function ConversationScreen() {
+  useAndroidBack();
   const { id } = useLocalSearchParams();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,6 +15,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function PreviewScreen() {
+  useAndroidBack();
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
   const alert = useAlert();

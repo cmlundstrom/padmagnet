@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform,
@@ -41,6 +42,7 @@ const CHANNELS = [
 ];
 
 export default function NotificationsScreen() {
+  useAndroidBack();
   const { user } = useAuth();
   const alert = useAlert();
 

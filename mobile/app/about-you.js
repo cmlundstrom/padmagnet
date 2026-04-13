@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import useAndroidBack from '../hooks/useAndroidBack';
 import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -15,6 +16,7 @@ import { ROLE_LABELS } from '../constants/roles';
 import NotificationPreferences from '../components/owner/NotificationPreferences';
 
 export default function AboutYouScreen() {
+  useAndroidBack();
   const { user, role } = useAuth();
   const alert = useAlert();
   const prefsRef = useRef(null);

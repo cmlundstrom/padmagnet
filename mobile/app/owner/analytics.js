@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import {
   View,
   Text,
@@ -19,6 +20,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function AnalyticsScreen() {
+  useAndroidBack();
   const { listing_id } = useLocalSearchParams();
   const { tier, canViewAnalytics, tierLabel } = useSubscription();
   const [data, setData] = useState(null);

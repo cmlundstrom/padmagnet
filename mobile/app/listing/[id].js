@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, BackHandler, StyleSheet } from 'react-native';
+import useAndroidBack from '../../hooks/useAndroidBack';
+import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withDelay, withRepeat, Easing } from 'react-native-reanimated';
@@ -24,6 +25,7 @@ import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function ListingDetailScreen() {
+  useAndroidBack();
   const { id, context } = useLocalSearchParams();
   const alert = useAlert();
   const router = useRouter();
@@ -35,18 +37,6 @@ export default function ListingDetailScreen() {
   const [isSaved, setIsSaved] = useState(context === 'saved');
   const savingRef = useRef(false);
   const heartScale = useSharedValue(1);
-
-  // Android back button handler
-  useEffect(() => {
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (router.canGoBack()) {
-        router.back();
-        return true;
-      }
-      return false;
-    });
-    return () => handler.remove();
-  }, [router]);
 
   // Burst particles — 3 mini hearts fly outward on save
   const burst0 = useSharedValue(0);
