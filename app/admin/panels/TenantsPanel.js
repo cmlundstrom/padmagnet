@@ -411,7 +411,7 @@ export default function TenantsPanel() {
           <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
             <p style={{ fontWeight: 700, fontSize: "15px", marginBottom: 4 }}>
               {actionModal.type === 'gift_points' && `🎁 Gift PadPoints to ${actionModal.user.display_name || actionModal.user.email}`}
-              {actionModal.type === 'gift_queries' && `🔍 Gift Ask Pad Queries to ${actionModal.user.display_name || actionModal.user.email}`}
+              {actionModal.type === 'gift_queries' && `🔍 Gift AskPad Queries to ${actionModal.user.display_name || actionModal.user.email}`}
               {actionModal.type === 'upgrade_tier' && `⬆️ Upgrade Tier for ${actionModal.user.display_name || actionModal.user.email}`}
               {actionModal.type === 'downgrade_tier' && `⬇️ Downgrade ${actionModal.user.display_name || actionModal.user.email} to Free?`}
               {actionModal.type === 'clear_cooldown' && `🔓 Clear Cooldown for ${actionModal.user.display_name || actionModal.user.email}?`}

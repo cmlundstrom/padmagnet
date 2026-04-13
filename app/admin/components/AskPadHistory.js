@@ -18,7 +18,7 @@ const COLORS = {
 
 const ROLE_STYLES = {
   user: { bg: '#1e3a5f', color: '#93c5fd', label: 'Renter' },
-  pad:  { bg: '#1a2236', color: '#e2e8f0', label: 'Ask Pad' },
+  pad:  { bg: '#1a2236', color: '#e2e8f0', label: 'AskPad' },
 };
 
 const TYPE_BADGES = {
@@ -93,7 +93,7 @@ export default function AskPadHistory({ userId, userName }) {
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        {loading ? 'Loading...' : expanded ? '▼ Hide Ask Pad History' : '▶ View Ask Pad History'}
+        {loading ? 'Loading...' : expanded ? '▼ Hide AskPad History' : '▶ View AskPad History'}
       </button>
 
       {expanded && messages !== null && (
@@ -138,7 +138,7 @@ export default function AskPadHistory({ userId, userName }) {
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {sorted.length === 0 ? (
               <div style={{ fontSize: 12, color: COLORS.textDim, textAlign: 'center', padding: 20 }}>
-                {filter ? 'No messages match filter' : 'No Ask Pad history for this renter'}
+                {filter ? 'No messages match filter' : 'No AskPad history for this renter'}
               </div>
             ) : sorted.map((msg, i) => {
               const rs = ROLE_STYLES[msg.role] || ROLE_STYLES.pad;

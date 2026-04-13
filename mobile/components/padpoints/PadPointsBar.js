@@ -187,7 +187,7 @@ export default function PadPointsBar({ padpoints, level, progress, streakDays, l
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{dailyQueries}</Text>
-                <Text style={styles.statLabel}>Ask Pad</Text>
+                <Text style={styles.statLabel}>AskPad</Text>
               </View>
             </View>
 

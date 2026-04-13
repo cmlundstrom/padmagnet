@@ -30,7 +30,7 @@ export default function TierCard({ tier, tierLabel, verified, queriesToday, dail
           </View>
           <View>
             <Text style={styles.tierLabel}>{tierLabel}</Text>
-            <Text style={styles.tierSub}>Ask Pad Tier</Text>
+            <Text style={styles.tierSub}>AskPad Tier</Text>
           </View>
         </View>
         {verified && <VerifiedBadge size="sm" />}

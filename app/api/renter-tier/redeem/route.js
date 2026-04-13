@@ -1,5 +1,5 @@
 /**
- * Renter Tier Redeem — Spend 350 PadPoints to unlock Ask Pad Explorer tier
+ * Renter Tier Redeem — Spend 350 PadPoints to unlock AskPad Explorer tier
  */
 import { createServiceClient } from '../../../../lib/supabase';
 import { getAuthUser } from '../../../../lib/auth-helpers';
@@ -29,7 +29,7 @@ export async function POST(request) {
     }
 
     if (profile.renter_tier === 'explorer') {
-      return NextResponse.json({ error: 'You already have Ask Pad Explorer tier' }, { status: 400 });
+      return NextResponse.json({ error: 'You already have AskPad Explorer tier' }, { status: 400 });
     }
 
     if ((profile.padpoints || 0) < EXPLORER_COST) {

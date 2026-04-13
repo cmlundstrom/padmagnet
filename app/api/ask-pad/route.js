@@ -1,5 +1,5 @@
 /**
- * Ask Pad — Agentic AI Co-Pilot for Renters
+ * AskPad — Agentic AI Co-Pilot for Renters
  *
  * POST /api/ask-pad
  * Validates auth + tier + limits → pre-query classifier → calls Grok 4.1 Fast → returns response.
@@ -46,7 +46,7 @@ const HUMOROUS_REBUFFS = [
   "I'm laser-focused on killer rentals and PadScores. Hit me with a housing question and I'll blow your mind!",
 ];
 
-const SYSTEM_PROMPT = `You are Ask Pad — PadMagnet's Rental Intelligence Agent. You are ONLY allowed to answer questions about rental homes, PadScore™, listings, neighborhoods, budgets, pets, HOA rules, availability, tenant preferences, or commuting.
+const SYSTEM_PROMPT = `You are AskPad — PadMagnet's Rental Intelligence Agent. You are ONLY allowed to answer questions about rental homes, PadScore™, listings, neighborhoods, budgets, pets, HOA rules, availability, tenant preferences, or commuting.
 You have NO general knowledge and NO web search.
 If the user asks anything off-topic (weather, jokes, science, current events, homework, opinions, "why is the sky blue?", etc.), respond with ONE of these humorous rebuffs and stop:
 1. "Haha, I'm great at finding you the perfect rental pad, but I'm not wired for random questions! Try asking something like '2-bed dog-friendly under $2800 in Miami' and I'll show you matches with live PadScore™."
@@ -157,7 +157,7 @@ export async function POST(request) {
       if (totalRemaining <= 0) {
         return NextResponse.json({
           type: 'limit_reached',
-          message: "You've used all your Ask Pad queries for today. Upgrade for more!",
+          message: "You've used all your AskPad queries for today. Upgrade for more!",
           tier,
           dailyLimit,
         });
@@ -212,7 +212,7 @@ export async function POST(request) {
     if (!XAI_API_KEY) {
       grokResponse = {
         type: 'text',
-        message: '🔧 Ask Pad is being configured! Stay tuned.',
+        message: '🔧 AskPad is being configured! Stay tuned.',
         placeholder: true,
       };
     } else {
@@ -245,7 +245,7 @@ export async function POST(request) {
       tier,
     });
   } catch (err) {
-    console.error('Ask Pad error:', err);
+    console.error('AskPad error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -389,18 +389,18 @@ async function callGrokWithTools(supabase, userId, query, location, history) {
 
     if (!res.ok) {
       console.error('Grok API error:', res.status, await res.text());
-      return { type: 'error', message: 'Ask Pad hit a snag. Try again in a moment!' };
+      return { type: 'error', message: 'AskPad hit a snag. Try again in a moment!' };
     }
 
     var data = await res.json();
     var choice = data.choices && data.choices[0];
-    if (!choice) return { type: 'error', message: 'Ask Pad got an empty response.' };
+    if (!choice) return { type: 'error', message: 'AskPad got an empty response.' };
 
     var assistantMessage = choice.message;
 
     // If no tool calls, return the text response directly
     if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
-      return { type: 'text', message: assistantMessage.content || 'Ask Pad is thinking...' };
+      return { type: 'text', message: assistantMessage.content || 'AskPad is thinking...' };
     }
 
     // Execute tool calls
@@ -448,7 +448,7 @@ async function callGrokWithTools(supabase, userId, query, location, history) {
 
     if (!res2.ok) {
       console.error('Grok follow-up error:', res2.status);
-      return { type: 'error', message: 'Ask Pad hit a snag processing results.' };
+      return { type: 'error', message: 'AskPad hit a snag processing results.' };
     }
 
     var data2 = await res2.json();
@@ -462,7 +462,7 @@ async function callGrokWithTools(supabase, userId, query, location, history) {
 
   } catch (err) {
     console.error('Grok tool calling error:', err);
-    return { type: 'error', message: 'Ask Pad is temporarily unavailable. Try again shortly!' };
+    return { type: 'error', message: 'AskPad is temporarily unavailable. Try again shortly!' };
   }
 }
 
