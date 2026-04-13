@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { View, Pressable, StyleSheet, Dimensions, Modal } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Pressable, StyleSheet, Dimensions, BackHandler } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
 } from 'react-native-reanimated';
@@ -63,6 +63,16 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle,
     transform: [{ translateY: translateY.value }],
   }));
 
+  // Android back button handler
+  useEffect(() => {
+    if (!visible) return;
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      animateAndClose();
+      return true;
+    });
+    return () => handler.remove();
+  }, [visible]);
+
   if (!visible) return null;
 
   // Handle bar colors adapt to tint
@@ -74,12 +84,10 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle,
     : ['rgba(255,255,255,0.08)', 'transparent'];
 
   return (
-    <Modal visible transparent statusBarTranslucent onRequestClose={animateAndClose}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={styles.absoluteOverlay}>
       <View style={styles.container}>
         <Pressable style={styles.backdrop} onPress={animateAndClose} />
         <Animated.View style={[styles.sheet, sheetStyle, panelStyle]}>
-          {/* KingCard handle — shaded header band + dual bars + chevron */}
           <GestureDetector gesture={panGesture}>
             <LinearGradient colors={bandColors} style={styles.handleBand}>
               <View style={styles.handleArea}>
@@ -92,12 +100,16 @@ export default function SwipeableSheet({ visible, onClose, children, sheetStyle,
           {children}
         </Animated.View>
       </View>
-      </GestureHandlerRootView>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  absoluteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+    elevation: 999,
+  },
   container: {
     flex: 1,
     justifyContent: 'flex-end',

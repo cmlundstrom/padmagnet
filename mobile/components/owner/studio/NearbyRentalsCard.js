@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, Pressable, FlatList, ActivityIndicator,
-  StyleSheet, Dimensions, Modal,
+  StyleSheet, Dimensions, BackHandler,
 } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
   runOnJS, interpolate,
@@ -127,6 +127,16 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
     opacity: interpolate(opacity.value, [0, 1], [0, 0.5]),
   }));
 
+  // Android back button handler
+  useEffect(() => {
+    if (!visible) return;
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      dismiss();
+      return true;
+    });
+    return () => handler.remove();
+  }, [visible]);
+
   if (!visible) return null;
 
   // Display the widest possible range used by the filter
@@ -134,8 +144,7 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
   const priceMax = form.list_price ? parseFloat(form.list_price) + 3000 : null;
 
   return (
-    <Modal visible transparent statusBarTranslucent onRequestClose={dismiss}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={styles.absoluteOverlay}>
         <Animated.View style={[styles.backdrop, backdropStyle]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
         </Animated.View>
@@ -249,8 +258,7 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
             </LinearGradient>
           </Animated.View>
         </View>
-      </GestureHandlerRootView>
-    </Modal>
+    </View>
   );
 }
 
@@ -294,6 +302,11 @@ function CompCard({ listing }) {
 }
 
 const styles = StyleSheet.create({
+  absoluteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+    elevation: 999,
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',

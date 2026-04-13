@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Modal, Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView,
+  Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView, BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -65,6 +65,16 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   const enterY = useSharedValue(SCREEN_HEIGHT);
   const swipeY = useSharedValue(0);
   const backdropOpacity = useSharedValue(0);
+
+  // Android back button handler (replaces Modal's onRequestClose)
+  useEffect(() => {
+    if (!visible) return;
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      resetAndClose();
+      return true;
+    });
+    return () => handler.remove();
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -239,15 +249,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     onClose?.();
   }
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={resetAndClose}
-    >
-      <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={styles.absoluteOverlay}>
       <Animated.View style={[styles.backdrop, backdropStyle]}>
       <Pressable style={{ flex: 1, justifyContent: 'flex-end' }} onPress={resetAndClose}>
         <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
@@ -452,8 +457,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
         </View>
       )}
 
-      </GestureHandlerRootView>
-    </Modal>
+    </View>
   );
 }
 
@@ -536,6 +540,11 @@ function getContextCopy(context, padpoints) {
 }
 
 const styles = StyleSheet.create({
+  absoluteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+    elevation: 999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: COLORS.scrimDark,
