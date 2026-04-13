@@ -13,6 +13,7 @@
  *   style       - additional style for outer container
  */
 
+import { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Path, Line, Rect, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import DragHandle from './DragHandle';
@@ -77,9 +78,11 @@ export default function ManilaCard({
   tabWidth = 160,
   children,
   style,
-  bodyHeight = 500,
+  minBodyHeight = 200,
 }) {
+  const [measuredHeight, setMeasuredHeight] = useState(0);
   const cardWidth = DEFAULT_WIDTH;
+  const bodyHeight = Math.max(minBodyHeight, measuredHeight + 30); // +30 for drag handle + padding
   const totalHeight = TAB_HEIGHT + bodyHeight;
 
   // Tab label position
@@ -205,8 +208,14 @@ export default function ManilaCard({
         <DragHandle />
       </View>
 
-      {/* Body content — below drag handle */}
-      <View style={styles.bodyContent}>
+      {/* Body content — below drag handle, auto-measured */}
+      <View
+        style={styles.bodyContent}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h > 0 && Math.abs(h - measuredHeight) > 5) setMeasuredHeight(h);
+        }}
+      >
         {children}
       </View>
     </View>
