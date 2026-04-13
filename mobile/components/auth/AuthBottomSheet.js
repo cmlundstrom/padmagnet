@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import DragHandle from '../ui/DragHandle';
+import ManilaCard from '../ui/ManilaCard';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -258,37 +259,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       <Pressable style={{ flex: 1, justifyContent: 'flex-end' }} onPress={resetAndClose}>
         <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
           <Pressable style={styles.sheetOuter} onPress={e => e.stopPropagation()}>
-            {/* Right-side tab with label sticker — matches folder stack */}
             <GestureDetector gesture={panGesture}>
-              <View style={styles.tabWrapper}>
-                <LinearGradient
-                  colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0.74, y: 1 }}
-                  style={styles.tab}
-                >
-                  <View style={styles.labelSticker}>
-                    <Text style={styles.labelText}>{contextCopy.tabLabel || 'Sign In'}</Text>
-                  </View>
-                  <DragHandle />
-                </LinearGradient>
-              </View>
-            </GestureDetector>
-
-            {/* Folder body */}
-            <LinearGradient
-              colors={['#C4AD78', '#DECA92', '#E8D8A4', '#D8C88E', '#BEA66A', '#A08040']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0.74, y: 1 }}
-              style={styles.folderBody}
-            >
-              <LinearGradient
-                colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <ScrollView
+              <View>
+                <ManilaCard label={contextCopy.tabLabel || 'Sign In'} tabAlign="right">
+                  <ScrollView
                 contentContainerStyle={styles.bodyContent}
                 showsVerticalScrollIndicator={false}
                 bounces={false}
@@ -412,7 +386,9 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                   </TouchableOpacity>
                 )}
               </ScrollView>
-            </LinearGradient>
+                </ManilaCard>
+              </View>
+            </GestureDetector>
           </Pressable>
         </Animated.View>
       </Pressable>
