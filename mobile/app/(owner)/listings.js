@@ -23,9 +23,8 @@ import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
-  const { session } = useAuth();
+  const { session, isAnon } = useAuth();
   const { tier: ownerTier } = useSubscription();
-  const isAnon = session?.user?.is_anonymous === true;
   const [showAuth, setShowAuth] = useState(false);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,23 +202,45 @@ export default function OwnerListingsTab() {
             alignSelf: 'stretch',
             borderRadius: LAYOUT.radius.xl,
             shadowColor: '#F97316',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: ctaGlow.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] }),
-            shadowRadius: ctaGlow.interpolate({ inputRange: [0, 1], outputRange: [8, 22] }),
-            elevation: 10,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: ctaGlow.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.25] }),
+            shadowRadius: ctaGlow.interpolate({ inputRange: [0, 1], outputRange: [4, 10] }),
+            elevation: 6,
           }}>
             <Pressable
               style={styles.emptyCta}
               onPress={() => isAnon ? setShowAuth(true) : router.push('/owner/create')}
             >
               <LinearGradient
-                colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
+                colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.emptyCtaGradient}
               >
-                <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
-                <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.emptyCtaShine}
+                />
+                <LinearGradient
+                  colors={['rgba(255,200,100,0.25)', 'transparent']}
+                  start={{ x: 0.5, y: 0.3 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.emptyCtaInnerGlow}
+                />
+                <View style={styles.emptyCtaContent}>
+                  <View style={styles.emptyCtaIconWrap}>
+                    <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
+                  </View>
+                  <Text style={styles.emptyCtaText}>Create Your First Listing</Text>
+                </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.15)']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.emptyCtaBottomEdge}
+                />
               </LinearGradient>
             </Pressable>
           </Animated.View>
@@ -1006,24 +1027,61 @@ const styles = StyleSheet.create({
   },
   emptyCta: {
     alignSelf: 'stretch',
-    borderRadius: LAYOUT.radius.xl,
+    borderRadius: 18,
     overflow: 'hidden',
     marginTop: LAYOUT.padding.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,180,80,0.4)',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   emptyCtaGradient: {
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  emptyCtaShine: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: '50%',
+  },
+  emptyCtaInnerGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  emptyCtaBottomEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 6,
+  },
+  emptyCtaContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 12,
+  },
+  emptyCtaIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   emptyCtaText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.white,
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   browseRatesCta: {
     flexDirection: 'row',

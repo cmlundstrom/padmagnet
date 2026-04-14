@@ -144,7 +144,11 @@ export default function ResetPasswordPage() {
               <>
                 <p className={styles.hint}>Sign in with your new password.</p>
                 <button
-                  onClick={() => window.close()}
+                  onClick={() => {
+                    // Try deep link into the app first, fall back to website
+                    window.location.href = 'padmagnet://';
+                    setTimeout(() => { window.location.href = 'https://padmagnet.com'; }, 1500);
+                  }}
                   className={styles.button}
                 >
                   Back to App

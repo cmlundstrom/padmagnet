@@ -469,14 +469,15 @@ export default function ConversationScreen() {
                 : false;
 
               // Compute sender label based on viewer's perspective
+              // Returns { name, role } for split styling in MessageBubble
               let senderLabel = null;
               if (!isMine) {
                 if (viewerRole === 'renter' && isExternal) {
-                  senderLabel = `Agent, ${agentName || 'Listing Agent'}:`;
+                  senderLabel = { name: agentName || 'Listing Agent', role: 'Agent' };
                 } else if (viewerRole === 'renter' && !isExternal) {
-                  senderLabel = `Owner, ${ownerName || 'Property Owner'}:`;
+                  senderLabel = { name: ownerName || 'Property Owner', role: 'Owner' };
                 } else if (viewerRole === 'owner') {
-                  senderLabel = `Renter, ${renterName || 'Renter'}:`;
+                  senderLabel = { name: renterName || 'Renter', role: 'Renter' };
                 }
               }
 

@@ -12,8 +12,7 @@ import { LAYOUT } from '../../constants/layout';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OwnerMessages() {
-  const { session } = useAuth();
-  const isAnon = session?.user?.is_anonymous === true;
+  const { isAnon } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
 
   if (isAnon) {

@@ -30,6 +30,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(null);
   const [magicSent, setMagicSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Cross-device magic link relay cleanup
   const relayCleanup = useRef(null);
@@ -239,6 +240,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setPassword('');
     setMagicEmail('');
     setShowMagicPrompt(false);
+    setShowPassword(false);
     setError(null);
     setMagicSent(false);
     setLoading(null);
@@ -313,14 +315,28 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                       keyboardType="email-address"
                       autoCapitalize="none"
                     />
-                    <TextInput
-                      style={styles.input}
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Password (or Magic Link)"
-                      placeholderTextColor={COLORS.slate}
-                      secureTextEntry
-                    />
+                    <View style={styles.passwordWrap}>
+                      <TextInput
+                        style={styles.passwordInput}
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Password (or Magic Link)"
+                        placeholderTextColor={COLORS.slate}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.eyeToggle}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off' : 'eye'}
+                          size={20}
+                          color="#6B5020"
+                        />
+                      </TouchableOpacity>
+                    </View>
 
                     {/* ── Dual action buttons ────────── */}
                     <View style={styles.dualButtons}>
@@ -595,7 +611,7 @@ const styles = StyleSheet.create({
   bodyContent: {
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: 4,
-    paddingBottom: LAYOUT.padding['2xl'] + 20,
+    paddingBottom: LAYOUT.padding.md,
   },
   subtitle: {
     fontFamily: FONTS.body.regular,
@@ -696,6 +712,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#A08040',
     marginBottom: 8,
+  },
+
+  // ── Password field with eyeball ────────────────────
+  passwordWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderRadius: LAYOUT.radius.sm,
+    borderWidth: 1,
+    borderColor: '#A08040',
+    marginBottom: 8,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: '#3A2810',
+  },
+  eyeToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 
   // ── Dual action buttons ───────────────────────────

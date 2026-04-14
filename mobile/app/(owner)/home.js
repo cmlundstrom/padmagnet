@@ -15,8 +15,7 @@ import { SCREEN } from '../../constants/screenStyles';
 export default function OwnerHomeTab() {
   const router = useRouter();
   const { preview, view } = useLocalSearchParams();
-  const { session, role } = useAuth();
-  const isAnon = session?.user?.is_anonymous === true;
+  const { session, role, isAnon } = useAuth();
   const isAdminPreview = preview === 'true' && ['admin', 'super_admin'].includes(role);
   const [showAuth, setShowAuth] = useState(false);
   const [viewMode, setViewMode] = useState(view || 'grid');

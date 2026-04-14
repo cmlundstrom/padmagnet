@@ -10,6 +10,7 @@ import Animated, {
   withTiming, withSpring, withDelay, withRepeat,
   interpolate, runOnJS, Easing,
 } from 'react-native-reanimated';
+import Svg, { Path, Line, Rect, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
@@ -32,30 +33,89 @@ const CARD_W = (SCREEN_W - LAYOUT.padding.md * 2 - GRID_GAP) / 2;
 // Miami fallback — grid loads immediately while folders are on top
 const MIAMI_FALLBACK = { latitude: 25.7617, longitude: -80.1918 };
 
-// Semi-transparent manila body (93% opacity — grid peeks through)
-const BODY_COLORS = [
-  'rgba(196, 173, 120, 0.93)',
-  'rgba(222, 202, 146, 0.93)',
-  'rgba(232, 216, 164, 0.93)',
-  'rgba(216, 200, 142, 0.93)',
-  'rgba(190, 166, 106, 0.93)',
-  'rgba(160, 128, 64, 0.93)',
-];
+// SVG folder constants (match ManilaCard 3.0)
+const TAB_H = 37;
+const BODY_R = 14;
+const TAB_R = 8;
+const TAB_W = 160;
+
+/**
+ * Build SVG path for manila folder — same algorithm as ManilaCard.
+ * One continuous shape: tab notch grows out of the top edge.
+ */
+function buildFolderPath(width, bodyHeight, tabWidth, tabAlign) {
+  const totalHeight = TAB_H + bodyHeight;
+  const r = BODY_R;
+  const tr = TAB_R;
+
+  let tabLeft, tabRight;
+  if (tabAlign === 'left') {
+    tabLeft = r;
+    tabRight = tabLeft + tabWidth;
+  } else if (tabAlign === 'center') {
+    tabLeft = (width - tabWidth) / 2;
+    tabRight = tabLeft + tabWidth;
+  } else {
+    tabRight = width - r - 20;
+    tabLeft = tabRight - tabWidth;
+  }
+
+  return `
+    M ${r} ${TAB_H}
+    L ${tabLeft - tr} ${TAB_H}
+    Q ${tabLeft} ${TAB_H} ${tabLeft} ${TAB_H - tr}
+    L ${tabLeft} ${tr}
+    Q ${tabLeft} 0 ${tabLeft + tr} 0
+    L ${tabRight - tr} 0
+    Q ${tabRight} 0 ${tabRight} ${tr}
+    L ${tabRight} ${TAB_H - tr}
+    Q ${tabRight} ${TAB_H} ${tabRight + tr} ${TAB_H}
+    L ${width - r} ${TAB_H}
+    Q ${width} ${TAB_H} ${width} ${TAB_H + r}
+    L ${width} ${totalHeight - r}
+    Q ${width} ${totalHeight} ${width - r} ${totalHeight}
+    L ${r} ${totalHeight}
+    Q 0 ${totalHeight} 0 ${totalHeight - r}
+    L 0 ${TAB_H + r}
+    Q 0 ${TAB_H} ${r} ${TAB_H}
+    Z
+  `;
+}
 
 // ─── Radar ring for L2 GPS ask ──────────────────────────
-function RadarRing({ delay }) {
+function RadarRing({ delay, size = 56, color, duration = 2400 }) {
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = withDelay(
       delay,
-      withRepeat(withTiming(1, { duration: 2400, easing: Easing.out(Easing.ease) }), -1, false)
+      withRepeat(withTiming(1, { duration, easing: Easing.out(Easing.ease) }), -1, false)
     );
   }, []);
   const style = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(progress.value, [0, 1], [1, 2.8]) }],
-    opacity: interpolate(progress.value, [0, 0.3, 1], [0.5, 0.3, 0]),
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    borderColor: color || COLORS.accent + '55',
+    transform: [{ scale: interpolate(progress.value, [0, 1], [1, 3.2]) }],
+    opacity: interpolate(progress.value, [0, 0.2, 1], [0.6, 0.35, 0]),
   }));
   return <Animated.View style={[styles.radarRing, style]} />;
+}
+
+// ─── Pulsing glow behind radar icon ────────────────────
+function PulseGlow() {
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+      -1, true
+    );
+  }, []);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.35]) }],
+    opacity: interpolate(pulse.value, [0, 1], [0.4, 0.15]),
+  }));
+  return <Animated.View style={styles.pulseGlow} />;
 }
 
 // ─── Shared data layer — keyed by coords so hook remounts on GPS update ────
@@ -116,10 +176,35 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
             There are <Text style={styles.gridCount}>{listings.length}</Text> rentals within a <Text style={styles.gridCount}>10 mi</Text> ring being advertised right now:
           </Text>
           <View style={styles.gridActions}>
+            {/* Market Research — blue gradient */}
             <Pressable style={styles.gridActionBtn} onPress={onNavigateExplore}>
-              <MaterialIcons name="assessment" size={16} color={COLORS.white} />
-              <Text style={styles.gridActionText}>Market Research</Text>
+              <LinearGradient
+                colors={['#4A9EF5', '#3B82F6', COLORS.accent, '#1D4ED8', '#1A3FAA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gridActionGradient}
+              >
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.06)', 'transparent']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.gridActionShine}
+                />
+                <View style={styles.gridActionContent}>
+                  <View style={styles.gridActionIconWrap}>
+                    <MaterialIcons name="assessment" size={15} color={COLORS.white} />
+                  </View>
+                  <Text style={styles.gridActionText}>Market Research</Text>
+                </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.15)']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.gridActionBottomEdge}
+                />
+              </LinearGradient>
             </Pressable>
+            {/* Enter My Listing — orange gradient */}
             <Pressable
               style={[styles.gridActionBtn, styles.gridActionPrimary]}
               onPress={() => {
@@ -128,8 +213,31 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
                 onNavigateCreate?.();
               }}
             >
-              <FontAwesome name={ownerHasListings ? 'list-ul' : 'plus'} size={14} color={COLORS.white} />
-              <Text style={styles.gridActionText}>{ownerHasListings ? 'My Listings' : 'Enter My Listing'}</Text>
+              <LinearGradient
+                colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gridActionGradient}
+              >
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.06)', 'transparent']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.gridActionShine}
+                />
+                <View style={styles.gridActionContent}>
+                  <View style={styles.gridActionIconWrap}>
+                    <FontAwesome name={ownerHasListings ? 'list-ul' : 'plus'} size={13} color={COLORS.white} />
+                  </View>
+                  <Text style={styles.gridActionText}>{ownerHasListings ? 'My Listings' : 'Enter My Listing'}</Text>
+                </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.15)']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.gridActionBottomEdge}
+                />
+              </LinearGradient>
             </Pressable>
           </View>
         </View>
@@ -165,11 +273,13 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
   );
 }
 
-// ─── Manila folder with slide-to-corner dismiss ─────────
+// ─── Manila folder with slide-to-corner dismiss (SVG 3.0) ─────────
 const ManilaFolder = forwardRef(function ManilaFolder(
-  { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, offsetTop, onTabPress, onDismissComplete, children },
+  { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, opaque, offsetTop, onTabPress, onDismissComplete, children },
   ref
 ) {
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
   // Animated properties
   const tX = useSharedValue(0);
   const tY = useSharedValue(SCREEN_H * (enterOffset || 0.6)); // entrance from below
@@ -238,45 +348,142 @@ const ManilaFolder = forwardRef(function ManilaFolder(
     opacity: opacityV.value,
   }));
 
-  const isRight = tabAlign === 'right';
+  // SVG dimensions
+  const cw = containerSize.width;
+  const ch = containerSize.height;
+  const bodyHeight = ch > 0 ? ch - TAB_H : 0;
+  const path = cw > 0 ? buildFolderPath(cw, bodyHeight, TAB_W, tabAlign) : '';
+
+  // Tab label position (matches path builder)
+  let tabLeft;
+  if (tabAlign === 'left') {
+    tabLeft = BODY_R;
+  } else {
+    tabLeft = cw - BODY_R - TAB_W - 20;
+  }
+
+  // Unique gradient IDs per folder (so L1 and L2 don't collide)
+  const gid = tabAlign === 'left' ? 'l2' : 'l1';
+  const fillOpacity = opaque ? '1' : '0.93';
 
   return (
     <Animated.View pointerEvents="box-none" style={[
       styles.folderOuter,
       { zIndex },
-      offsetTop != null && { top: 113 + offsetTop },
+      offsetTop != null && { top: 103 + offsetTop },
       animStyle,
-    ]}>
-      {/* Tab — tap to switch, swipe to dismiss */}
-      <GestureDetector gesture={composedGesture}>
-        <View style={[styles.tabWrapper, isRight ? styles.tabRight : styles.tabLeft]}>
-          <LinearGradient
-            colors={['#A89050', '#C4AD78', '#DECA92', '#E8D8A4']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0.74, y: 1 }}
-            style={styles.tab}
-          >
-            <View style={styles.labelSticker}>
-              <Text style={styles.labelText}>{tabLabel}</Text>
-            </View>
-            <DragHandle />
-          </LinearGradient>
-        </View>
-      </GestureDetector>
+    ]}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        if (width > 0 && height > 0 && (Math.abs(width - cw) > 2 || Math.abs(height - ch) > 2)) {
+          setContainerSize({ width, height });
+        }
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {/* SVG folder shape — continuous tab + body */}
+        {cw > 0 && (
+          <Svg width={cw} height={ch} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Defs>
+              {/* Manila gradient — semi-transparent for grid peek-through */}
+              <SvgGradient id={`mg_${gid}`} x1="0" y1="0" x2="0.6" y2="1">
+                <Stop offset="0" stopColor="#E2D0A0" stopOpacity={fillOpacity} />
+                <Stop offset="0.15" stopColor="#DECA92" stopOpacity={fillOpacity} />
+                <Stop offset="0.35" stopColor="#E8D8A4" stopOpacity={fillOpacity} />
+                <Stop offset="0.55" stopColor="#D8C88E" stopOpacity={fillOpacity} />
+                <Stop offset="0.75" stopColor="#C4AD78" stopOpacity={fillOpacity} />
+                <Stop offset="1" stopColor="#A89050" stopOpacity={fillOpacity} />
+              </SvgGradient>
+              {/* Diagonal light source */}
+              <SvgGradient id={`ls_${gid}`} x1="0" y1="0" x2="0.5" y2="0.5">
+                <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.18" />
+                <Stop offset="0.3" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+              </SvgGradient>
+              {/* Bottom-right shadow */}
+              <SvgGradient id={`bs_${gid}`} x1="0.5" y1="0.6" x2="1" y2="1">
+                <Stop offset="0" stopColor="#000000" stopOpacity="0" />
+                <Stop offset="0.7" stopColor="#000000" stopOpacity="0.06" />
+                <Stop offset="1" stopColor="#000000" stopOpacity="0.12" />
+              </SvgGradient>
+              {/* Tab shadow on body */}
+              <SvgGradient id={`ts_${gid}`} x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#000000" stopOpacity="0.1" />
+                <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+              </SvgGradient>
+            </Defs>
 
-      {/* Semi-transparent manila body — grid visible behind */}
-      <LinearGradient
-        colors={BODY_COLORS}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.74, y: 1 }}
-        style={[styles.folderBody, dropShadow && styles.folderBodyShadow]}
-      >
-        <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFill}
-        />
+            {/* Drop shadows */}
+            {dropShadow && (
+              <>
+                <Path d={path} fill="rgba(0,0,0,0.18)" transform="translate(2, 4)" />
+                <Path d={path} fill="rgba(0,0,0,0.08)" transform="translate(1, 2)" />
+              </>
+            )}
+
+            {/* Main folder fill */}
+            <Path d={path} fill={`url(#mg_${gid})`} />
+
+            {/* Diagonal light highlight */}
+            <Path d={path} fill={`url(#ls_${gid})`} />
+
+            {/* Bottom-right depth shadow */}
+            <Path d={path} fill={`url(#bs_${gid})`} />
+
+            {/* Tab shadow strip */}
+            <Rect
+              x={tabLeft - 5}
+              y={TAB_H}
+              width={TAB_W + 10}
+              height={8}
+              fill={`url(#ts_${gid})`}
+            />
+
+            {/* Fold line */}
+            <Line
+              x1={16}
+              y1={TAB_H + ch * 0.35}
+              x2={cw - 16}
+              y2={TAB_H + ch * 0.35}
+              stroke="rgba(120,100,60,0.12)"
+              strokeWidth="1"
+            />
+            <Line
+              x1={16}
+              y1={TAB_H + ch * 0.35 - 1}
+              x2={cw - 16}
+              y2={TAB_H + ch * 0.35 - 1}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="1"
+            />
+
+            {/* Edge highlight — warm light catching the top-left edge */}
+            <Path d={path} fill="none" stroke="rgba(255,245,220,0.65)" strokeWidth="2" />
+            {/* Definition stroke — strong outline for stacked card separation */}
+            <Path d={path} fill="none" stroke="rgba(80,60,25,0.7)" strokeWidth="1.8" />
+          </Svg>
+        )}
+
+        {/* Tab + drag handle — gesture target for swipe-to-dismiss */}
+        <GestureDetector gesture={composedGesture}>
+          <View>
+            {/* Tab label — white sticker on the tab */}
+            {cw > 0 && (
+              <View style={[styles.tabLabel, { left: tabLeft, width: TAB_W }]}>
+                <View style={styles.labelSticker}>
+                  <Text style={styles.labelText}>{tabLabel}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Drag handle — at tab/body junction */}
+            <View style={styles.dragHandleWrap}>
+              <DragHandle />
+            </View>
+          </View>
+        </GestureDetector>
+
+        {/* Scrollable content — free from gesture interference */}
         <ScrollView
           contentContainerStyle={styles.folderScroll}
           showsVerticalScrollIndicator={false}
@@ -284,7 +491,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
         >
           {children}
         </ScrollView>
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
 });
@@ -312,8 +519,9 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           AsyncStorage.getItem('owner_cached_coords'),
         ]);
 
-        // Show folders only if not previously dismissed
-        if (!l1Seen) setShowL1(true);
+        // Show L1 only if not previously dismissed AND user has no listings
+        // Authenticated owners with active listings don't need the sales pitch
+        if (!l1Seen && !ownerHasListings) setShowL1(true);
 
         // Use cached coords immediately (no GPS wait)
         if (cachedCoords) {
@@ -349,6 +557,13 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
       } catch {}
     })();
   }, []);
+
+  // Auto-dismiss L1 if user gains listings (e.g. after sign-in resolves)
+  useEffect(() => {
+    if (ownerHasListings && showL1) {
+      l1Ref.current?.dismiss();
+    }
+  }, [ownerHasListings, showL1]);
 
   // L2: request location then slide-away
   const handleEnableLocation = useCallback(async () => {
@@ -399,17 +614,29 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           tabLabel="Your GPS"
           tabAlign="left"
           zIndex={10}
-          angle={-2}
+          angle={-1}
+          dropShadow
           dismissCorner="right"
           onTabPress={showL1 ? handleBrowseNearby : undefined}
           onDismissComplete={() => { setShowL2(false); AsyncStorage.setItem(STORAGE_KEY_L2, '1'); }}
         >
-          {/* Radar animation */}
+          {/* Radar animation — enhanced with glow + extra rings */}
           <View style={styles.radarContainer}>
-            <RadarRing delay={0} />
-            <RadarRing delay={800} />
-            <RadarRing delay={1600} />
-            <LinearGradient colors={[COLORS.accent, '#2563EB']} style={styles.radarIcon}>
+            {/* Outer faint rings */}
+            <RadarRing delay={0} size={60} duration={2800} />
+            <RadarRing delay={600} size={56} duration={2400} />
+            <RadarRing delay={1200} size={52} duration={2600} />
+            <RadarRing delay={1800} size={48} duration={2200} />
+            {/* Warm accent ring */}
+            <RadarRing delay={400} size={44} color="#F9731644" duration={3000} />
+            {/* Pulsing glow behind icon */}
+            <PulseGlow />
+            <LinearGradient
+              colors={['#3B82F6', COLORS.accent, '#1D4ED8']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.radarIcon}
+            >
               <FontAwesome name="map-marker" size={28} color={COLORS.white} />
             </LinearGradient>
           </View>
@@ -420,10 +647,53 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           </Text>
 
           <Text style={styles.l2Explain}>
-            We use your location to show nearby rental listings and local market rates.
             Your exact location is never shared with anyone.
           </Text>
 
+          {/* Enable Location CTA — above the fold, full art treatment */}
+          <Pressable style={styles.enableBtn} onPress={handleEnableLocation}>
+            {/* Base gradient — warm orange to deep amber */}
+            <LinearGradient
+              colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.enableGradient}
+            >
+              {/* Top shine — glossy highlight across the top */}
+              <LinearGradient
+                colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.enableShine}
+              />
+              {/* Inner glow — warm radial from center */}
+              <LinearGradient
+                colors={['rgba(255,200,100,0.25)', 'transparent']}
+                start={{ x: 0.5, y: 0.3 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.enableInnerGlow}
+              />
+              <View style={styles.enableContent}>
+                <View style={styles.enableIconWrap}>
+                  <FontAwesome name="location-arrow" size={18} color={COLORS.white} />
+                </View>
+                <Text style={styles.enableText}>Enable Location</Text>
+              </View>
+              {/* Bottom edge darkening for 3D depth */}
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.15)']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.enableBottomEdge}
+              />
+            </LinearGradient>
+          </Pressable>
+
+          <Pressable onPress={() => l2Ref.current?.dismiss()} style={styles.skipBtn}>
+            <Text style={styles.skipText}>Skip for now</Text>
+          </Pressable>
+
+          {/* Benefits — below the CTA, visible on scroll */}
           <View style={styles.l2Benefits}>
             {[
               { icon: 'crosshairs', text: 'Nearby rentals and their asking prices' },
@@ -438,23 +708,6 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
               </View>
             ))}
           </View>
-
-          {/* Enable Location CTA */}
-          <Pressable style={styles.enableBtn} onPress={handleEnableLocation}>
-            <LinearGradient
-              colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.enableGradient}
-            >
-              <FontAwesome name="location-arrow" size={17} color={COLORS.white} />
-              <Text style={styles.enableText}>Enable Location</Text>
-            </LinearGradient>
-          </Pressable>
-
-          <Pressable onPress={() => l2Ref.current?.dismiss()} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip for now</Text>
-          </Pressable>
         </ManilaFolder>
       )}
 
@@ -467,7 +720,8 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           zIndex={20}
           angle={1}
           enterOffset={0.3}
-          offsetTop={-10}
+          offsetTop={10}
+          opaque
           dropShadow
           dismissCorner="left"
           onTabPress={handleBrowseNearby}
@@ -546,35 +800,21 @@ const styles = StyleSheet.create({
     left: 22,
     right: 12,
     bottom: -20,
-    top: 113,
-    elevation: 10,
+    top: 103,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 20,
   },
 
-  // ── Tab ───────────────────────────────────────────
-  tabWrapper: {
-    marginBottom: -1,
-    zIndex: 1,
-  },
-  tabRight: {
-    alignSelf: 'flex-end',
-    marginRight: 36,
-  },
-  tabLeft: {
-    alignSelf: 'flex-start',
-    marginLeft: 36,
-  },
-  tab: {
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    paddingHorizontal: 6,
-    paddingTop: 6,
-    paddingBottom: 4,
+  // ── Tab label (SVG 3.0) ────────────────────────────
+  tabLabel: {
+    position: 'absolute',
+    top: 3,
+    height: TAB_H - 3,
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
   },
   labelSticker: {
     backgroundColor: 'rgba(255,255,255,0.5)',
@@ -589,33 +829,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  dragHandle: {
-    width: 32,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#6B5020',
-    opacity: 0.5,
-  },
-
-  // ── Folder body ───────────────────────────────────
-  folderBody: {
-    flex: 1,
-    borderTopLeftRadius: LAYOUT.radius.xl,
-    borderTopRightRadius: LAYOUT.radius.xl,
-    overflow: 'hidden',
-  },
-  folderBodyShadow: {
-    borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.18)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 18,
+  dragHandleWrap: {
+    marginTop: TAB_H + 6,
   },
   folderScroll: {
     paddingHorizontal: LAYOUT.padding.lg,
-    paddingTop: LAYOUT.padding.lg,
+    paddingTop: 0,
     paddingBottom: LAYOUT.padding['2xl'] + 40,
   },
 
@@ -727,27 +946,37 @@ const styles = StyleSheet.create({
 
   // ── L2: GPS ask ───────────────────────────────────
   radarContainer: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginBottom: LAYOUT.padding.lg,
+    marginBottom: LAYOUT.padding.md,
   },
   radarRing: {
     position: 'absolute',
-    width: 56,
-    height: 56,
-    borderRadius: LAYOUT.radius.full,
     borderWidth: 2,
-    borderColor: COLORS.accent + '55',
+  },
+  pulseGlow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.accent,
   },
   radarIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: LAYOUT.radius.full,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
   },
   l2Heading: {
     fontFamily: FONTS.heading.bold,
@@ -792,26 +1021,63 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   enableBtn: {
-    borderRadius: LAYOUT.radius.xl,
+    borderRadius: 18,
     overflow: 'hidden',
-    marginBottom: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.md,
+    // Warm orange glow shadow
     shadowColor: '#F97316',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 20,
+    elevation: 12,
+    // Subtle border for definition
+    borderWidth: 1,
+    borderColor: 'rgba(255,180,80,0.4)',
   },
   enableGradient: {
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  enableShine: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: '50%',
+  },
+  enableInnerGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  enableBottomEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 6,
+  },
+  enableContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 10,
+    gap: 12,
+  },
+  enableIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   enableText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.lg,
     color: COLORS.white,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   skipBtn: {
     alignItems: 'center',
@@ -850,21 +1116,61 @@ const styles = StyleSheet.create({
   },
   gridActionBtn: {
     flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  gridActionPrimary: {
+    shadowColor: '#F97316',
+    borderColor: 'rgba(255,180,80,0.35)',
+  },
+  gridActionGradient: {
+    paddingVertical: 13,
+    paddingHorizontal: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  gridActionShine: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: '50%',
+  },
+  gridActionBottomEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 5,
+  },
+  gridActionContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.accent,
-    borderRadius: LAYOUT.radius.md,
-    paddingVertical: 11,
+    gap: 8,
   },
-  gridActionPrimary: {
-    backgroundColor: COLORS.logoOrange,
+  gridActionIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   gridActionText: {
-    fontFamily: FONTS.body.semiBold,
+    fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.xs,
     color: COLORS.white,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   gridCard: {
     width: CARD_W,

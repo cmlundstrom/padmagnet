@@ -38,7 +38,7 @@ const NAV_ITEMS = [
   { id: "templates", label: "Templates", icon: "📝" },
   { id: "sales-pages", label: "Sales Pages", icon: "📄" },
   { id: "products", label: "Revenue & Products", icon: "💰" },
-  { id: "tenants", label: "Tenants", icon: "🏘️" },
+  { id: "tenants", label: "Renters", icon: "🏘️" },
   { id: "owners", label: "Owners", icon: "🔑" },
   { id: "users", label: "Administrators", icon: "🔐" },
   { id: "audit", label: "Audit Log", icon: "📝" },

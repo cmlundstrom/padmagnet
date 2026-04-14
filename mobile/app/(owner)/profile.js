@@ -18,8 +18,7 @@ import { LAYOUT } from '../../constants/layout';
 import { EqualHousingBadge } from '../../components/ui';
 
 export default function OwnerProfileScreen() {
-  const { session, user, role } = useAuth();
-  const isAnon = session?.user?.is_anonymous === true;
+  const { session, user, role, isAnon } = useAuth();
   const { tier } = useSubscription();
   const [profile, setProfile] = useState({});
   const [showAuth, setShowAuth] = useState(false);

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -639,6 +640,12 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
 function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, onDismiss }) {
   const router = useRouter();
   const mappable = listings.filter(l => l.latitude && l.longitude);
+  const [markersReady, setMarkersReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMarkersReady(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Use subject coords (listing mode) or GPS/address coords (location mode)
   const centerLat = subject?.latitude || coords?.latitude || 26.7;
@@ -649,6 +656,10 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
       <RNMapView
         provider={PROVIDER_GOOGLE}
         style={{ flex: 1 }}
+        mapType="hybrid"
+        showsBuildings={true}
+        showsPointsOfInterest={false}
+        showsTraffic={false}
         initialRegion={{
           latitude: centerLat,
           longitude: centerLng,
@@ -661,10 +672,17 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
         {subject?.latitude && subject?.longitude && (
           <Marker
             coordinate={{ latitude: subject.latitude, longitude: subject.longitude }}
-            pinColor={COLORS.brandOrange}
+            anchor={{ x: 0.5, y: 1 }}
+            tracksViewChanges={!markersReady}
           >
-            <View style={styles.subjectMarker}>
-              <Text style={styles.subjectMarkerText}>YOU</Text>
+            <View style={styles.markerOuter}>
+              <View style={styles.subjectMarker}>
+                <Text style={styles.subjectMarkerText}>YOU</Text>
+              </View>
+              <View style={styles.markerStemSubject} />
+              <View style={styles.markerDotSubject}>
+                <View style={styles.markerDotInnerSubject} />
+              </View>
             </View>
           </Marker>
         )}
@@ -673,34 +691,46 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
         {!subject?.latitude && coords && (
           <Marker
             coordinate={{ latitude: coords.latitude, longitude: coords.longitude }}
-            pinColor={COLORS.brandOrange}
+            anchor={{ x: 0.5, y: 1 }}
+            tracksViewChanges={!markersReady}
           >
-            <View style={styles.subjectMarker}>
-              <Text style={styles.subjectMarkerText}>YOU</Text>
+            <View style={styles.markerOuter}>
+              <View style={styles.subjectMarker}>
+                <Text style={styles.subjectMarkerText}>YOU</Text>
+              </View>
+              <View style={styles.markerStemSubject} />
+              <View style={styles.markerDotSubject}>
+                <View style={styles.markerDotInnerSubject} />
+              </View>
             </View>
           </Marker>
         )}
 
-        {/* Nearby listing markers */}
-        {mappable.map(listing => (
-          <Marker
-            key={listing.id}
-            coordinate={{ latitude: listing.latitude, longitude: listing.longitude }}
-            onPress={() => onMarkerPress(listing)}
-          >
-            <View style={[
-              styles.priceMarker,
-              selectedListing?.id === listing.id && styles.priceMarkerSelected,
-            ]}>
-              <Text style={[
-                styles.priceMarkerText,
-                selectedListing?.id === listing.id && styles.priceMarkerTextSelected,
-              ]}>
-                {formatCurrency(listing.list_price)}
-              </Text>
-            </View>
-          </Marker>
-        ))}
+        {/* Nearby listing markers — stem + dot design */}
+        {mappable.map(listing => {
+          const isSelected = selectedListing?.id === listing.id;
+          return (
+            <Marker
+              key={listing.id}
+              coordinate={{ latitude: listing.latitude, longitude: listing.longitude }}
+              onPress={() => onMarkerPress(listing)}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges={!markersReady}
+            >
+              <View style={styles.markerOuter}>
+                <View style={[styles.priceMarker, isSelected && styles.priceMarkerSelected]}>
+                  <Text style={[styles.priceMarkerText, isSelected && styles.priceMarkerTextSelected]}>
+                    {formatCurrency(listing.list_price)}
+                  </Text>
+                </View>
+                <View style={[styles.markerStem, isSelected && styles.markerStemSelected]} />
+                <View style={[styles.markerDot, isSelected && styles.markerDotSelected]}>
+                  <View style={[styles.markerDotInner, isSelected && styles.markerDotInnerSelected]} />
+                </View>
+              </View>
+            </Marker>
+          );
+        })}
       </RNMapView>
 
       {/* Selected listing preview */}
@@ -709,25 +739,38 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
           style={styles.mapPreview}
           onPress={() => router.push(`/listing/${selectedListing.id}?context=owner_browse`)}
         >
-          <View style={styles.mapPreviewImage}>
+          <View style={styles.mapPreviewImageWrap}>
             {selectedListing.photos?.[0]?.url ? (
-              <Image source={{ uri: selectedListing.photos[0].url }} style={{ flex: 1 }} contentFit="cover" />
+              <Image source={{ uri: selectedListing.photos[0].url }} style={styles.mapPreviewImage} contentFit="cover" />
             ) : (
-              <NoPhotoPlaceholder size="thumb" style={{ flex: 1 }} />
+              <NoPhotoPlaceholder size="thumb" style={styles.mapPreviewImage} />
             )}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.4)']}
+              style={styles.mapPreviewPhotoGrad}
+            />
+            <View style={styles.mapPreviewPriceBadge}>
+              <Text style={styles.mapPreviewPriceText}>
+                {formatCurrency(selectedListing.list_price)}
+                <Text style={styles.mapPreviewPerMonth}>/mo</Text>
+              </Text>
+            </View>
           </View>
           <View style={styles.mapPreviewInfo}>
-            <Text style={styles.nearbyPrice}>
-              {formatCurrency(selectedListing.list_price)}
-              <Text style={styles.nearbyPerMonth}>/mo</Text>
-            </Text>
             <Text style={styles.nearbyAddress} numberOfLines={1}>
               {[selectedListing.street_number, selectedListing.street_name].filter(Boolean).join(' ')}
             </Text>
+            {selectedListing.city && (
+              <Text style={styles.mapPreviewCity} numberOfLines={1}>{selectedListing.city}</Text>
+            )}
             <Text style={styles.nearbyDetails} numberOfLines={1}>
-              {selectedListing.bedrooms_total === 0 ? 'Studio' : `${selectedListing.bedrooms_total}b`} · {selectedListing.bathrooms_total}ba
-              {selectedListing.distance_miles != null ? ` · ${formatDistance(selectedListing.distance_miles)}` : ''}
+              {selectedListing.bedrooms_total === 0 ? 'Studio' : `${selectedListing.bedrooms_total}b`} {'\u00b7'} {selectedListing.bathrooms_total}ba
+              {selectedListing.distance_miles != null ? ` \u00b7 ${formatDistance(selectedListing.distance_miles)}` : ''}
             </Text>
+            <View style={styles.mapPreviewCta}>
+              <Text style={styles.mapPreviewCtaText}>View Details</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
+            </View>
           </View>
         </Pressable>
       )}
@@ -1239,59 +1282,182 @@ const styles = StyleSheet.create({
   },
 
   // Map markers
+  // ── Map markers — stem + dot design ────────────────
+  markerOuter: {
+    alignItems: 'center',
+  },
   subjectMarker: {
     backgroundColor: COLORS.brandOrange,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: LAYOUT.radius.sm,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 6,
   },
   subjectMarkerText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xxs,
     color: COLORS.white,
   },
+  markerStemSubject: {
+    width: 2,
+    height: 40,
+    backgroundColor: COLORS.brandOrange,
+  },
+  markerDotSubject: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(249,115,22,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markerDotInnerSubject: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.brandOrange,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
+  },
   priceMarker: {
-    backgroundColor: COLORS.navy,
+    backgroundColor: 'rgba(26, 51, 88, 0.92)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: LAYOUT.radius.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: COLORS.logoOrange,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 6,
   },
   priceMarkerSelected: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.logoOrange,
+    borderColor: COLORS.white,
+    shadowColor: '#F97316',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
   },
   priceMarkerText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.xs,
+    fontFamily: FONTS.body.bold,
+    fontSize: 11,
     color: COLORS.white,
+    letterSpacing: 0.3,
   },
   priceMarkerTextSelected: {
-    color: COLORS.navy,
+    color: COLORS.white,
   },
+  markerStem: {
+    width: 2,
+    height: 40,
+    backgroundColor: COLORS.logoOrange,
+  },
+  markerStemSelected: {
+    backgroundColor: COLORS.logoOrange,
+  },
+  markerDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(249,115,22,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markerDotSelected: {
+    backgroundColor: 'rgba(249,115,22,0.5)',
+  },
+  markerDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.logoOrange,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
+  },
+  markerDotInnerSelected: {
+    backgroundColor: COLORS.logoOrange,
+  },
+
+  // ── Map preview card ─────────────────────────────
   mapPreview: {
     position: 'absolute',
-    bottom: 16,
+    bottom: 20,
     left: 16,
     right: 16,
     flexDirection: 'row',
     backgroundColor: COLORS.card,
-    borderRadius: LAYOUT.radius.md,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  mapPreviewImageWrap: {
+    width: 120,
+    height: 110,
+    position: 'relative',
   },
   mapPreviewImage: {
-    width: 90,
-    height: 80,
+    flex: 1,
+  },
+  mapPreviewPhotoGrad: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 40,
+  },
+  mapPreviewPriceBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  mapPreviewPriceText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+  },
+  mapPreviewPerMonth: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: 'rgba(255,255,255,0.7)',
   },
   mapPreviewInfo: {
     flex: 1,
     padding: LAYOUT.padding.sm,
     justifyContent: 'center',
+    gap: 2,
+  },
+  mapPreviewCity: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  mapPreviewCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  mapPreviewCtaText: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.accent,
   },
 
   // Empty state

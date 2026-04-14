@@ -10,6 +10,7 @@ export const AuthContext = createContext({
   role: null,
   roles: [],
   loading: true,
+  isAnon: true,
 });
 
 export function AuthProvider({ children }) {
@@ -80,13 +81,16 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
+      // Clear cached API token on any auth state change so apiFetch
+      // picks up the correct JWT (critical for anon → authenticated upgrades)
+      clearTokenCache();
+
       if (event === 'SIGNED_IN') {
         setTimeout(() => resolveRole(session), 0);
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
         setRoles([]);
         clearUserRole();
-        clearTokenCache();
       }
     });
 
@@ -124,7 +128,16 @@ export function AuthProvider({ children }) {
   }, [session?.user?.id]);
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, role, roles, loading }}>
+    <AuthContext.Provider value={{
+      session,
+      user: session?.user ?? null,
+      role,
+      roles,
+      loading,
+      // Centralized anon check — user is anonymous if:
+      // no session, OR flagged anonymous AND has no email (belt + suspenders)
+      isAnon: !session || (session.user?.is_anonymous === true && !session.user?.email),
+    }}>
       {children}
     </AuthContext.Provider>
   );

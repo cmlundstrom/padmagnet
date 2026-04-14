@@ -129,8 +129,7 @@ export default function ListingDetailScreen() {
 
   const [showAuth, setShowAuth] = useState(false);
   const padPoints = usePadPoints();
-  const { session: authSession } = useAuth();
-  const isAnon = !authSession || authSession.user?.is_anonymous === true;
+  const { session: authSession, isAnon } = useAuth();
 
   const [showChannelPrompt, setShowChannelPrompt] = useState(false);
 

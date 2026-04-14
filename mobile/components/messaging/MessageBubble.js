@@ -45,9 +45,15 @@ export default function MessageBubble({ message, isMine, isRead, senderLabel }) 
   return (
     <View style={[styles.row, isMine && styles.rowMine]}>
       <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-        {/* Sender label — perspective-aware, computed by conversation screen */}
+        {/* Sender label — name + (role) with split styling */}
         {senderLabel && (
-          <Text style={styles.agentLabel}>{senderLabel}</Text>
+          <Text style={styles.senderName}>
+            {typeof senderLabel === 'string' ? senderLabel : (
+              <>
+                {senderLabel.name} <Text style={styles.senderRole}>({senderLabel.role})</Text>
+              </>
+            )}
+          </Text>
         )}
         <Text style={[styles.body, isMine ? styles.bodyMine : styles.bodyTheirs]}>
           {message.body}
@@ -87,11 +93,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#3B6AA0',
   },
-  agentLabel: {
-    fontFamily: FONTS.body.regular,
+  senderName: {
+    fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xxs,
     color: '#C9B06A',
     marginBottom: 2,
+  },
+  senderRole: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: 'rgba(201,176,106,0.55)',
   },
   body: {
     fontSize: FONT_SIZES.md,

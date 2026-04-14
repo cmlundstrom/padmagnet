@@ -6,8 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { COLORS } from '../../constants/colors';
 
 export default function TenantMessages() {
-  const { session } = useAuth();
-  const isAnon = !session || session.user?.is_anonymous === true;
+  const { isAnon } = useAuth();
   const padPoints = usePadPoints();
 
   return (

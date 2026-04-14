@@ -20,8 +20,7 @@ const TIER_ICONS = { free: 'leaf-outline', pro: 'shield-checkmark', premium: 'di
 
 export default function ExploreScreen() {
   const router = useRouter();
-  const { session } = useAuth();
-  const isAnon = session?.user?.is_anonymous === true;
+  const { isAnon } = useAuth();
   const { tier, tierLabel, daysRemaining, isExpired } = useSubscription();
   const isFree = tier === 'free';
   const isPro = tier === 'pro';

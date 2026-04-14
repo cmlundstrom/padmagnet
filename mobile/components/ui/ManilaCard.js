@@ -82,7 +82,7 @@ export default function ManilaCard({
 }) {
   const [measuredHeight, setMeasuredHeight] = useState(0);
   const cardWidth = DEFAULT_WIDTH;
-  const bodyHeight = Math.max(minBodyHeight, measuredHeight + 30); // +30 for drag handle + padding
+  const bodyHeight = Math.max(minBodyHeight, measuredHeight + 28);
   const totalHeight = TAB_HEIGHT + bodyHeight;
 
   // Tab label position
