@@ -1,0 +1,4 @@
+# Taps "Find a Rental" from the role gate. Precondition: role gate visible.
+appId: com.padmagnet.app
+---
+- tapOn: "Find a Rental"

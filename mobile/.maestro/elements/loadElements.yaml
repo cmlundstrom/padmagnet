@@ -1,0 +1,6 @@
+appId: com.padmagnet.app
+---
+- runScript: role_gate.js
+- runScript: auth.js
+- runScript: listings.js
+- runScript: messages.js

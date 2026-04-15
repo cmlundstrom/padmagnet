@@ -1,0 +1,5 @@
+screenshots/
+*.log
+.last-run/
+.maestro-debug/
+secrets.env

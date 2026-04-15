@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "maestro": {
+      "command": "C:\\Users\\chris\\.maestro\\bin\\maestro.bat",
+      "args": ["mcp"],
+      "env": {
+        "JAVA_HOME": "C:\\Program Files\\Android\\Android Studio\\jbr",
+        "ANDROID_HOME": "C:\\Users\\chris\\AppData\\Local\\Android\\Sdk",
+        "ANDROID_SDK_ROOT": "C:\\Users\\chris\\AppData\\Local\\Android\\Sdk"
+      }
+    }
+  }
+}

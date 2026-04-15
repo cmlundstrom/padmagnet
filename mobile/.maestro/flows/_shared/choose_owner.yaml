@@ -1,0 +1,4 @@
+# Taps "List My Property" from the role gate. Precondition: role gate visible.
+appId: com.padmagnet.app
+---
+- tapOn: "List My Property"

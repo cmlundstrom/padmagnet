@@ -42,3 +42,10 @@ yarn-error.*
 /android
 
 .vercel
+
+# Maestro test artifacts
+.maestro/screenshots/
+.maestro/*.log
+.maestro/.last-run/
+.maestro/.maestro-debug/
+.maestro/secrets.env

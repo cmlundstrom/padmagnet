@@ -1,0 +1,10 @@
+flows:
+  - flows/**/*.yaml
+
+includeTags: []
+excludeTags:
+  - wip
+  - manual
+
+executionOrder:
+  continueOnFailure: false

@@ -1,0 +1,8 @@
+# Cold-starts PadMagnet with cleared state and waits for the role gate.
+# Every smoke flow should start with this subflow for a deterministic baseline.
+appId: com.padmagnet.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Find a Rental"
+- assertVisible: "List My Property"
