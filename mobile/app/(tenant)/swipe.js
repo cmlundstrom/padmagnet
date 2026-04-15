@@ -390,6 +390,7 @@ export default function SwipeScreen() {
         {viewMode === 'cards' && scoredListings.length > 0 && (
           <View style={styles.actions}>
             <Pressable
+              testID="swipe-deck-pass-button"
               style={[styles.actionButton, styles.skipButton]}
               onPress={() => {
                 if (scoredListings.length > 0) {
@@ -413,6 +414,7 @@ export default function SwipeScreen() {
             </Pressable>
 
             <Pressable
+              testID="swipe-deck-like-button"
               style={[styles.actionButton, styles.saveButton]}
               onPress={() => {
                 if (scoredListings.length > 0) {

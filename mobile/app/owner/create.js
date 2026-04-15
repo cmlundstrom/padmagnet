@@ -242,7 +242,7 @@ export default function MagicListingStudio() {
             />
             <View style={styles.row}>
               <Input label="Number" value={form.street_number} onChangeText={v => update('street_number', v)} placeholder="123" style={styles.shortInput} />
-              <Input label="Street Name *" value={form.street_name} onChangeText={v => update('street_name', v)} placeholder="Main St" autoCapitalize="words" style={styles.flexInput} />
+              <Input testID="owner-create-address-input" label="Street Name *" value={form.street_name} onChangeText={v => update('street_name', v)} placeholder="Main St" autoCapitalize="words" style={styles.flexInput} />
             </View>
             <View style={styles.row}>
               <Input label="City *" value={form.city} onChangeText={v => update('city', v)} placeholder="Stuart" autoCapitalize="words" style={styles.flexInput} />
@@ -258,7 +258,7 @@ export default function MagicListingStudio() {
             completion={completionMap.details}
             cardRef={r => { cardRefs.current.details = r; }}
           >
-            <Input label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
+            <Input testID="owner-create-price-input" label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
             <Text style={styles.label}>Property Type *</Text>
             <View style={styles.chipRow}>
               {PROPERTY_TYPES.map(type => (
@@ -551,7 +551,7 @@ export default function MagicListingStudio() {
             completionPercent={completionPercent}
             onPress={() => { setShowPreview(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
           />
-          <Pressable style={styles.floatingPublishBtn} onPress={handlePublish} disabled={submitting}>
+          <Pressable testID="owner-create-submit-cta" style={styles.floatingPublishBtn} onPress={handlePublish} disabled={submitting}>
             <LinearGradient
               colors={['#F97316', COLORS.logoOrange, '#DC5A2C']}
               start={{ x: 0, y: 0 }}

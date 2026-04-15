@@ -96,7 +96,7 @@ export default function ConversationItem({ conversation, currentUserId, onPress 
   const receiptStatus = getReceiptStatus(conversation, currentUserId);
 
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable testID="conversation-row" style={styles.container} onPress={onPress}>
       <View style={styles.photoWrapper}>
         {conversation.listing_photo_url ? (
           <Image

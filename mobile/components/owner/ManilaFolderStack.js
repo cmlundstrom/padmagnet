@@ -651,7 +651,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           </Text>
 
           {/* Enable Location CTA — above the fold, full art treatment */}
-          <Pressable style={styles.enableBtn} onPress={handleEnableLocation}>
+          <Pressable testID="manila-l2-enable-location-cta" style={styles.enableBtn} onPress={handleEnableLocation}>
             {/* Base gradient — warm orange to deep amber */}
             <LinearGradient
               colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
@@ -772,12 +772,12 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           </View>
 
           {/* Primary CTA */}
-          <Pressable style={styles.l1Cta} onPress={handleCreateListing}>
+          <Pressable testID="manila-l1-primary-cta" style={styles.l1Cta} onPress={handleCreateListing}>
             <Text style={styles.l1CtaText}>Create Your First Listing</Text>
           </Pressable>
 
           {/* Secondary CTA — dismiss L1 to expose L2 GPS ask */}
-          <Pressable style={styles.l1BrowseBtn} onPress={handleBrowseNearby}>
+          <Pressable testID="manila-l1-dismiss" style={styles.l1BrowseBtn} onPress={handleBrowseNearby}>
             <FontAwesome name="map-marker" size={14} color="#E8D8A4" />
             <Text style={styles.l1BrowseText}>Browse Nearby Rentals</Text>
           </Pressable>

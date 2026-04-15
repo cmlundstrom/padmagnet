@@ -213,12 +213,14 @@ export default function MessagesScreen({ emptySubtitle }) {
 
       {conversations.length === 0 ? (
         <EmptyState
+          testID="messages-inbox-empty"
           icon="💬"
           title={emptyMessages[activeTab].title}
           subtitle={emptyMessages[activeTab].subtitle}
         />
       ) : (
         <FlatList
+          testID="messages-inbox-list"
           data={conversations}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (

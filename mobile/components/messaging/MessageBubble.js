@@ -44,10 +44,10 @@ export default function MessageBubble({ message, isMine, isRead, senderLabel }) 
 
   return (
     <View style={[styles.row, isMine && styles.rowMine]}>
-      <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
+      <View testID="conversation-message-bubble" style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
         {/* Sender label — name + (role) with split styling */}
         {senderLabel && (
-          <Text style={styles.senderName}>
+          <Text testID="conversation-sender-label" style={styles.senderName}>
             {typeof senderLabel === 'string' ? senderLabel : (
               <>
                 {senderLabel.name} <Text style={styles.senderRole}>({senderLabel.role})</Text>

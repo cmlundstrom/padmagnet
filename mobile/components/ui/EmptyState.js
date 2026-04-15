@@ -3,9 +3,9 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import Button from './Button';
 
-export default function EmptyState({ icon, title, subtitle, actionLabel, onAction, style }) {
+export default function EmptyState({ icon, title, subtitle, actionLabel, onAction, style, testID }) {
   return (
-    <View style={[styles.container, style]}>
+    <View testID={testID} style={[styles.container, style]}>
       {icon && (typeof icon === 'string'
         ? <Text style={styles.icon}>{icon}</Text>
         : <View style={styles.iconWrap}>{icon}</View>

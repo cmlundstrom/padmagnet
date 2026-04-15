@@ -78,7 +78,7 @@ export default function CardStack({
   if (shouldWiggle) hasWiggled.current = true;
 
   return (
-    <View style={styles.container}>
+    <View testID="swipe-deck-container" style={styles.container}>
       {/* Next card (behind) — no gestures, just visual */}
       {listings.length > 1 && (
         <View style={[styles.cardWrapper, styles.backCard]} pointerEvents="none">

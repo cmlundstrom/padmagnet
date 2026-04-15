@@ -12,7 +12,7 @@ import { COLORS } from '../../constants/colors';
  * On press-in:  semi-transparent ring appears around the icon
  * On release:   ring flashes brighter briefly, then navigates back
  */
-export default function BackButton({ onPress, color, style }) {
+export default function BackButton({ onPress, color, style, testID = 'back-button' }) {
   const router = useRouter();
   const ringOpacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
@@ -52,6 +52,7 @@ export default function BackButton({ onPress, color, style }) {
 
   return (
     <Pressable
+      testID={testID}
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}

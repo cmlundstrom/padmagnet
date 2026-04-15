@@ -126,7 +126,7 @@ export default function SwipeCard({ listing, onSwipe, onTap, onPreferences, isTo
 
   return (
     <GestureDetector gesture={composedGesture}>
-      <Animated.View style={[styles.gestureTarget, cardStyle]} collapsable={false}>
+      <Animated.View testID="swipe-deck-card" style={[styles.gestureTarget, cardStyle]} collapsable={false}>
         <View style={styles.card}>
           {/* Photo */}
           <View style={styles.imageContainer}>

@@ -307,6 +307,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
                     {/* ── Email + Password fields ─────── */}
                     <TextInput
+                      testID="auth-sheet-email-input"
                       style={styles.input}
                       value={email}
                       onChangeText={setEmail}
@@ -317,6 +318,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                     />
                     <View style={styles.passwordWrap}>
                       <TextInput
+                        testID="auth-sheet-password-input"
                         style={styles.passwordInput}
                         value={password}
                         onChangeText={setPassword}
@@ -341,6 +343,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                     {/* ── Dual action buttons ────────── */}
                     <View style={styles.dualButtons}>
                       <TouchableOpacity
+                        testID="auth-sheet-sign-in-cta"
                         style={styles.passwordButton}
                         onPress={handlePassword}
                         disabled={!!loading}

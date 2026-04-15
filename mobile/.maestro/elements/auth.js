@@ -1,18 +1,22 @@
 // Auth surfaces — AuthBottomSheet, Manila folder L1/L2, biometric CTAs.
-// TODO(Stage 3): replace nulls with verified testIDs after live audit.
+// Stage 3 audit (2026-04-14): source-verified testIDs. Pending rebuild for live
+// hierarchy check (current preview build = c31eceea, pre-testID).
 output.auth = {
   bottomSheet: {
-    emailInput: null,
-    passwordInput: null,
-    signInCta: null,
+    emailInput: 'auth-sheet-email-input',
+    passwordInput: 'auth-sheet-password-input',
+    signInCta: 'auth-sheet-sign-in-cta',
+    // No discrete create-account link: sign-up is implicit fallback in handlePassword().
     createAccountLink: null,
+    // No forgot-password link: replaced by Magic Link flow.
     forgotPasswordLink: null,
   },
   manilaL1: {
-    primaryCta: null,
-    dismiss: null,
+    primaryCta: 'manila-l1-primary-cta',
+    // "Browse Nearby Rentals" button — functionally dismisses L1 (calls l1Ref.dismiss()).
+    dismiss: 'manila-l1-dismiss',
   },
   manilaL2: {
-    enableLocationCta: null,
+    enableLocationCta: 'manila-l2-enable-location-cta',
   },
 };

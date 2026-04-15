@@ -235,7 +235,7 @@ export default function ListingDetailScreen() {
 
       {/* Sticky bottom CTA */}
       <View style={styles.bottomBar}>
-        <Pressable onPress={handleContact} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
+        <Pressable testID="listing-detail-contact-owner" onPress={handleContact} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
           <LinearGradient
             colors={[COLORS.logoOrange, '#D14E2F', '#B8432A']}
             start={{ x: 0, y: 0 }}

@@ -17,6 +17,7 @@ export default function ChatInput({ onSend, disabled = false }) {
   return (
     <View style={styles.container}>
       <TextInput
+        testID="conversation-message-input"
         style={styles.input}
         value={text}
         onChangeText={setText}
@@ -27,6 +28,7 @@ export default function ChatInput({ onSend, disabled = false }) {
         editable={!disabled}
       />
       <Pressable
+        testID="conversation-send-button"
         style={[styles.sendButton, (!text.trim() || disabled) && styles.sendDisabled]}
         onPress={handleSend}
         disabled={!text.trim() || disabled}
