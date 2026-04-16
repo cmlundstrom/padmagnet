@@ -1,6 +1,5 @@
 // Listing swipe deck, listing detail, owner create-listing flow.
-// Stage 3 audit (2026-04-14): source-verified testIDs. Pending rebuild for live
-// hierarchy check (current preview build = c31eceea, pre-testID).
+// Stage 3 audit (2026-04-14): source-verified. Live-verified 2026-04-16 on build 251b5712.
 output.listings = {
   swipeDeck: {
     container: 'swipe-deck-container',

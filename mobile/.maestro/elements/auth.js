@@ -1,6 +1,5 @@
 // Auth surfaces — AuthBottomSheet, Manila folder L1/L2, biometric CTAs.
-// Stage 3 audit (2026-04-14): source-verified testIDs. Pending rebuild for live
-// hierarchy check (current preview build = c31eceea, pre-testID).
+// Stage 3 audit (2026-04-14): source-verified. Live-verified 2026-04-16 on build 251b5712.
 output.auth = {
   bottomSheet: {
     emailInput: 'auth-sheet-email-input',

@@ -1,0 +1,87 @@
+# Smoke test: anon → authenticated upgrade
+# Targets the April 13 token cache regression where apiFetch kept using
+# the stale anonymous JWT after sign-in, causing empty listings/messages.
+#
+# Flow:
+#   1. Cold start → role gate → choose renter (anonymous)
+#   2. Assert swipe deck loads with listing cards
+#   3. Tap a card → listing detail → tap contact owner → auth sheet appears
+#   4. Seed a test renter via admin API, sign in through auth sheet
+#   5. After auth upgrade: back to swipe → assert cards still render
+#   6. Navigate to Messages → assert inbox renders (not broken)
+#   7. Cleanup seeded user
+appId: com.padmagnet.app
+---
+
+# ── Load element selectors ──
+- runFlow: ../../elements/loadElements.yaml
+
+# ── 1. Fresh launch → role gate → renter ──
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# ── 2. Assert swipe deck loaded with cards ──
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- assertVisible:
+    id: ${output.listings.swipeDeck.card}
+
+# ── 3. Tap card → listing detail → trigger auth sheet ──
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.detail.contactOwner}
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+# ── 4. Seed test renter + sign in ──
+- runScript: ../../helpers/seed_test_renter.js
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# ── 5. Post-auth: verify swipe deck still has cards ──
+# Auth sheet auto-dismisses after sign-in. We land on listing detail.
+# Tap the in-app back button to return to swipe deck.
+- assertVisible:
+    id: ${output.listings.detail.backButton}
+- tapOn:
+    id: ${output.listings.detail.backButton}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- assertVisible:
+    id: ${output.listings.swipeDeck.card}
+
+# ── 6. Navigate to Messages → assert inbox renders ──
+# Tenant bottom tabs: Swipe, Saved, Messages, Profile (4 tabs).
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 5000
+# New user has no conversations — empty state should render, not a crash/blank.
+- assertVisible:
+    id: ${output.messages.inbox.emptyState}
+
+# ── 7. Cleanup ──
+- runScript: ../../helpers/cleanup_test_users.js
