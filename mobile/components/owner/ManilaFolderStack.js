@@ -772,9 +772,9 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
             </View>
           </View>
 
-          {/* Primary CTA */}
+          {/* Primary CTA — label mirrors the destination handleCreateListing resolves to */}
           <Pressable testID="manila-l1-primary-cta" style={styles.l1Cta} onPress={handleCreateListing}>
-            <Text style={styles.l1CtaText}>Create Your First Listing</Text>
+            <Text style={styles.l1CtaText}>{ownerHasListings ? 'Open My Listings' : 'Create Your First Listing'}</Text>
           </Pressable>
 
           {/* Secondary CTA — dismiss L1 to expose L2 GPS ask */}
