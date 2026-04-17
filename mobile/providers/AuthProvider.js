@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { getUserRole, saveUserRole, clearUserRole } from '../lib/storage';
@@ -11,6 +11,7 @@ export const AuthContext = createContext({
   roles: [],
   loading: true,
   isAnon: true,
+  switchRole: async () => {},
 });
 
 export function AuthProvider({ children }) {
@@ -127,6 +128,15 @@ export function AuthProvider({ children }) {
     return () => supabase.removeChannel(channel);
   }, [session?.user?.id]);
 
+  // Imperative role switch for multi-role users (RoleSwitcher).
+  // resolveRole only re-runs on auth state changes, so router.replace alone
+  // doesn't update local role state — without this, switching tenant→owner
+  // leaves role='tenant' and the next switch back is a no-op.
+  const switchRole = useCallback(async (newRole) => {
+    setRole(newRole);
+    await saveUserRole(newRole);
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       session,
@@ -137,6 +147,7 @@ export function AuthProvider({ children }) {
       // Centralized anon check — user is anonymous if:
       // no session, OR flagged anonymous AND has no email (belt + suspenders)
       isAnon: !session || (session.user?.is_anonymous === true && !session.user?.email),
+      switchRole,
     }}>
       {children}
     </AuthContext.Provider>
