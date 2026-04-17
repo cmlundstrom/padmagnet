@@ -22,3 +22,6 @@ if (output.seed && output.seed.renter && output.seed.renter.userId) {
 if (output.seed && output.seed.owner && output.seed.owner.userId) {
   deleteUser(output.seed.owner.userId);
 }
+if (output.seed && output.seed.dualRole && output.seed.dualRole.userId) {
+  deleteUser(output.seed.dualRole.userId);
+}

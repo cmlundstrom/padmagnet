@@ -1,0 +1,96 @@
+# Smoke test: dual-role user switches from renter to owner view via the
+# Profile-tab RoleSwitcher (added in commit 0eb5809).
+#
+# RoleSwitcher only renders for users with roles.length > 1, so we use a
+# dedicated dual-role seed helper instead of the single-role tenant/owner ones.
+#
+# NOTE: the reverse direction (owner→renter) is currently broken — see task
+# #22. AuthProvider's role state isn't updated by router.replace, so
+# handleSwitch's targetRole === role bail fires when the user tries to switch
+# back. We only verify tenant→owner here until that's fixed.
+#
+# Flow:
+#   1. Seed a dual-role user (tenant + owner)
+#   2. Anon launch → choose renter → trigger auth via Contact Owner → sign in
+#   3. From tenant Profile, scroll to RoleSwitcher → tap "Owner"
+#   4. Assert we land on owner home (manila L1 tab "List For Free" visible)
+#   5. Cleanup the seeded user
+appId: com.padmagnet.app
+---
+
+- runFlow: ../../elements/loadElements.yaml
+- runScript: ../../helpers/seed_dual_role_user.js
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# Sign in via the same Contact Owner path the other smoke flows use
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${output.seed.dualRole.email}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${output.seed.dualRole.password}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 10000
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# Back out of listing detail to expose the bottom tabs, then to Profile
+- assertVisible:
+    id: ${output.listings.detail.backButton}
+- tapOn:
+    id: ${output.listings.detail.backButton}
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# RoleSwitcher sits below MenuItems and above Sign Out — needs a scroll
+- scrollUntilVisible:
+    element:
+      id: ${output.profile.roleSwitcher.owner}
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 50
+- tapOn:
+    id: ${output.profile.roleSwitcher.owner}
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# We should be on owner home now. The L1 manila tab label "List For Free"
+# is visible at the top of the screen without scrolling. The testID for the
+# L1 primary CTA is below the fold within the L1 card and would need a
+# scroll — text match is simpler here.
+- assertVisible: "List For Free"
+
+# Confirm we're really on owner side (bottom tabs include owner-only "Listings")
+- assertVisible: "Listings"
+
+# Reverse direction (owner→renter) skipped — see task #22. Cleanup the seed.
+- runScript: ../../helpers/cleanup_test_users.js
