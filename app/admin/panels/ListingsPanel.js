@@ -307,7 +307,7 @@ export default function ListingsPanel() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: "13px", fontWeight: 700, color: "#A78BFA" }}>Review Required</div>
               <div style={{ fontSize: "12px", color: COLORS.textMuted }}>
-                {row.listing_agent_name || "Owner"} · {row.listing_agent_email || "No email"} · {photos.length} photo{photos.length !== 1 ? "s" : ""}
+                {row.listing_agent_name || "—"} · {row.listing_agent_email || "(uses account email)"} · {photos.length} photo{photos.length !== 1 ? "s" : ""}
               </div>
             </div>
             <button

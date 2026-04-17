@@ -499,10 +499,11 @@ export default function MagicListingStudio() {
               value={form.listing_agent_email}
               onChangeText={v => update('listing_agent_email', v)}
               onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
-              placeholder="your@email.com"
+              placeholder="Leave blank to use your account email"
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            <Text style={styles.hint}>Leave blank to use your account email, or override to route inquiries elsewhere (e.g. a property manager or specific agent).</Text>
             {(contactPref === 'phone' || contactPref === 'both') && (
               <Input
                 label="Phone Number for Renters *"

@@ -137,6 +137,13 @@ export async function POST(request) {
       }
     }
 
+    // Default the public-facing contact email to the owner's account email
+    // when the wizard didn't collect a separate one. Owners can still override
+    // in Edit Listing; this only affects the initial create.
+    if (!listing.listing_agent_email && user.email) {
+      listing.listing_agent_email = user.email;
+    }
+
     // Server-side geocoding (skip for drafts without address)
     if (!isDraft && listing.street_name && listing.city) {
       const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');

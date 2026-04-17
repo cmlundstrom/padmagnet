@@ -542,9 +542,9 @@ export default function EditListingScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.sectionHeader}>Contact Information</Text>
-          <Text style={styles.hint}>This is how tenants will reach you. Choose your preferred contact method.</Text>
+          <Text style={styles.hint}>This is how renters will reach you. Choose your preferred contact method.</Text>
           <Input
-            label="Your Name (as shown to tenants)"
+            label="Your Name (as shown to renters)"
             value={form.listing_agent_name}
             onChangeText={v => update('listing_agent_name', v)}
             placeholder="Your full name"
@@ -566,17 +566,18 @@ export default function EditListingScreen() {
             ))}
           </View>
           <Input
-            label="Email for Tenants"
+            label="Email for Renters"
             value={form.listing_agent_email}
             onChangeText={v => update('listing_agent_email', v)}
             onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
-            placeholder="your@email.com"
+            placeholder="Leave blank to use your account email"
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          <Text style={styles.hint}>Leave blank to use your account email, or override to route inquiries elsewhere (e.g. a property manager or specific agent).</Text>
           {(contactPref === 'phone' || contactPref === 'both') && (
             <Input
-              label="Phone Number for Tenants *"
+              label="Phone Number for Renters *"
               value={form.listing_agent_phone}
               onChangeText={v => update('listing_agent_phone', formatPhone(v))}
               placeholder="(555) 123-4567"
