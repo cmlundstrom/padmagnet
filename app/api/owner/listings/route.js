@@ -42,14 +42,12 @@ export async function GET(request) {
   try {
     const { user, error: authError, status } = await getAuthUser(request);
     if (authError) {
-      console.log('[DEBUG owner/listings GET] AUTH FAILED', { error: authError, status, hasAuthHeader: !!request.headers.get('Authorization') });
       return NextResponse.json({ error: authError }, { status });
     }
 
     const supabase = createServiceClient();
 
     if (!(await requireOwnerRole(supabase, user.id))) {
-      console.log('[DEBUG owner/listings GET] ROLE REJECTED', { userId: user.id, email: user.email });
       return NextResponse.json({ error: 'Owner role required' }, { status: 403 });
     }
     const { data, error } = await supabase
@@ -60,7 +58,6 @@ export async function GET(request) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.log('[DEBUG owner/listings GET] QUERY ERROR', { userId: user.id, email: user.email, error: error.message });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -71,7 +68,6 @@ export async function GET(request) {
       listing_views: undefined,
     }));
 
-    console.log('[DEBUG owner/listings GET] SUCCESS', { userId: user.id, email: user.email, count: listings.length });
     return NextResponse.json(listings);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
