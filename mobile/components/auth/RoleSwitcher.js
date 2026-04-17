@@ -45,6 +45,7 @@ export default function RoleSwitcher() {
       </View>
       <View style={styles.options}>
         <Pressable
+          testID="role-switcher-renter"
           style={[styles.option, isRenter && styles.optionActive]}
           onPress={() => handleSwitch('tenant')}
         >
@@ -53,6 +54,7 @@ export default function RoleSwitcher() {
           {isRenter && <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />}
         </Pressable>
         <Pressable
+          testID="role-switcher-owner"
           style={[styles.option, isOwner && styles.optionActive]}
           onPress={() => handleSwitch('owner')}
         >

@@ -4,3 +4,5 @@ appId: com.padmagnet.app
 - runScript: auth.js
 - runScript: listings.js
 - runScript: messages.js
+- runScript: profile.js
+- runScript: settings.js

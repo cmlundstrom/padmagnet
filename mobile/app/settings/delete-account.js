@@ -79,6 +79,7 @@ export default function DeleteAccountScreen() {
           </Text>
 
           <TextInput
+            testID="settings-delete-account-confirmation-input"
             style={styles.input}
             value={confirmation}
             onChangeText={setConfirmation}
@@ -89,6 +90,7 @@ export default function DeleteAccountScreen() {
           />
 
           <TouchableOpacity
+            testID="settings-delete-account-confirm-button"
             style={[styles.deleteBtn, !canDelete && styles.deleteBtnDisabled]}
             onPress={handleDelete}
             disabled={!canDelete || deleting}
@@ -100,7 +102,7 @@ export default function DeleteAccountScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
+          <TouchableOpacity testID="settings-delete-account-cancel-button" style={styles.cancelBtn} onPress={() => router.back()}>
             <Text style={styles.cancelBtnText}>Cancel — Keep My Account</Text>
           </TouchableOpacity>
         </ScrollView>

@@ -141,6 +141,7 @@ export default function TenantProfileScreen() {
 
         {/* Menu items with icons + chevrons */}
         <MenuItem
+          testID="profile-preferences-button"
           icon="options-outline"
           iconColor={COLORS.accent}
           label="Tune Your PadScore"
@@ -148,6 +149,7 @@ export default function TenantProfileScreen() {
           onPress={() => router.push('/settings/preferences')}
         />
         <MenuItem
+          testID="profile-notifications-button"
           icon="notifications-outline"
           iconColor={COLORS.brandOrange}
           label="Notifications"
@@ -155,6 +157,7 @@ export default function TenantProfileScreen() {
           onPress={() => router.push('/settings/notifications')}
         />
         <MenuItem
+          testID="profile-edit-button"
           icon="person-outline"
           iconColor={COLORS.accent}
           label="Edit Profile"
@@ -178,13 +181,13 @@ export default function TenantProfileScreen() {
         <RoleSwitcher />
 
         {/* Sign Out */}
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
+        <TouchableOpacity testID="profile-sign-out-button" style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
           <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
         {/* Delete account — small, tucked away */}
-        <TouchableOpacity style={styles.deleteLink} onPress={() => router.push('/settings/delete-account')}>
+        <TouchableOpacity testID="profile-delete-account-link" style={styles.deleteLink} onPress={() => router.push('/settings/delete-account')}>
           <Text style={styles.deleteLinkText}>Delete Account</Text>
         </TouchableOpacity>
 
@@ -244,9 +247,9 @@ export default function TenantProfileScreen() {
 }
 
 /** Reusable menu item with icon + chevron */
-function MenuItem({ icon, iconColor, label, hint, onPress, danger }) {
+function MenuItem({ icon, iconColor, label, hint, onPress, danger, testID }) {
   return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity testID={testID} style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.menuIconWrap, { backgroundColor: (iconColor || COLORS.accent) + '18' }]}>
         <Ionicons name={icon} size={18} color={iconColor || COLORS.accent} />
       </View>
