@@ -168,10 +168,12 @@ export default function AdminTable({
   tableName,
   onSave,
   onBulkDelete,
+  onBulkDeleteLabel = 'Delete',
   onBulkClose,
   onBulkSuppress,
   onBulkUnsuppress,
   onBulkHardDelete,
+  onBulkHardDeleteLabel = 'Permanently Remove',
   emptyMessage = 'No data',
   renderExpandedRow,
   storageKey,
@@ -346,12 +348,12 @@ export default function AdminTable({
           )}
           {onBulkDelete && (
             <button className="at-bulk-btn delete" onClick={() => onBulkDelete(selectedIds)}>
-              Delete
+              {onBulkDeleteLabel}
             </button>
           )}
           {onBulkHardDelete && (
             <button className="at-bulk-btn delete" style={{ background: '#7f1d1d' }} onClick={() => onBulkHardDelete(selectedIds)}>
-              Permanently Remove
+              {onBulkHardDeleteLabel}
             </button>
           )}
           <button className="at-bulk-btn clear" onClick={() => setRowSelection({})}>

@@ -247,7 +247,88 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE /api/admin/users — super_admin only
+// POST /api/admin/users — archive or unarchive users (archive-first primary action).
+// Archive preserves all data, hides the user from default admin views, and
+// archives any active listings so they leave the renter feed. Unarchive clears
+// the flag; listings stay de-listed and the owner relists them individually.
+// Available to any admin. Hard delete lives at DELETE (super_admin only).
+export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
+
+  try {
+    const body = await request.json();
+    const { action, ids } = body;
+
+    if (!['archive', 'unarchive'].includes(action)) {
+      return NextResponse.json({ error: 'action must be "archive" or "unarchive"' }, { status: 400 });
+    }
+    if (!ids?.length) {
+      return NextResponse.json({ error: 'ids[] is required' }, { status: 400 });
+    }
+
+    const requestor = await getRequestingUser();
+    if (!requestor) {
+      return NextResponse.json({ error: 'Could not verify admin profile' }, { status: 403 });
+    }
+
+    if (ids.includes(requestor.id)) {
+      return NextResponse.json({ error: `You cannot ${action} your own profile` }, { status: 403 });
+    }
+
+    const supabase = createServiceClient();
+    const archivedAt = action === 'archive' ? new Date().toISOString() : null;
+
+    const { data: oldRows, error: fetchErr } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', ids);
+    if (fetchErr) {
+      return NextResponse.json({ error: `Failed to load profiles: ${fetchErr.message}` }, { status: 500 });
+    }
+
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ archived_at: archivedAt })
+      .in('id', ids);
+    if (updateErr) {
+      return NextResponse.json({ error: `Failed to ${action}: ${updateErr.message}` }, { status: 500 });
+    }
+
+    if (action === 'archive') {
+      // Archive any listings the user still has in an active state so they
+      // leave the renter feed. Matches the self-delete flow semantics.
+      const { error: listingsErr } = await supabase
+        .from('listings')
+        .update({ status: 'archived', is_active: false })
+        .in('owner_user_id', ids)
+        .in('status', ['active', 'pending_review', 'draft']);
+      if (listingsErr) {
+        console.error('[archive] listings archive failed:', listingsErr.message);
+      }
+    }
+
+    const auditEntries = (oldRows || []).map(row => ({
+      tableName: 'profiles',
+      rowId: row.id,
+      action: action === 'archive' ? 'archive' : 'unarchive',
+      fieldChanged: 'archived_at',
+      oldValue: row.archived_at,
+      newValue: archivedAt,
+      adminUser: requestor?.email || 'admin',
+    }));
+    await writeAuditLogBatch(auditEntries);
+
+    return NextResponse.json({ [action === 'archive' ? 'archived' : 'unarchived']: ids.length });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// DELETE /api/admin/users — PERMANENT hard delete (super_admin only).
+// Archive via POST is the primary action. This path exists for testing cleanup
+// and (eventually) legal deletion requests. Cleans every FK-referencing row
+// before calling auth.admin.deleteUser, and names the specific step on failure.
 export async function DELETE(request) {
   const auth = await requireAdmin(request);
   if (auth instanceof NextResponse) return auth;
@@ -266,10 +347,10 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Could not verify admin profile' }, { status: 403 });
     }
 
-    // Only super_admins can delete profiles
+    // Only super_admins can hard-delete profiles
     if (requestor?.role !== 'super_admin') {
       return NextResponse.json(
-        { error: 'Only super admins can delete user profiles' },
+        { error: 'Only super admins can permanently delete user profiles' },
         { status: 403 }
       );
     }
@@ -300,27 +381,91 @@ export async function DELETE(request) {
         .send({ type: 'broadcast', event: 'session_killed', payload: {} });
     }
 
+    // Cleanup helper — throws on error with the specific step labelled.
+    const run = async (step, promise) => {
+      const { error } = await promise;
+      if (error) throw new Error(`${step}: ${error.message}`);
+    };
+
     // Clean up all referencing rows before deleting auth user
     for (const id of ids) {
-      // Nullify references in tables that reference user IDs
-      await supabase.from('messages').update({ sender_id: null }).eq('sender_id', id);
-      await supabase.from('webhook_logs').update({ conversation_id: null, message_id: null })
-        .or(`conversation_id.in.(${(await supabase.from('conversations').select('id').or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)).data?.map(c => c.id).join(',') || 'null'})`);
-      await supabase.from('message_delivery_queue').delete()
-        .in('message_id', (await supabase.from('messages').select('id').in('conversation_id',
-          (await supabase.from('conversations').select('id').or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)).data?.map(c => c.id) || []
-        )).data?.map(m => m.id) || []);
-      await supabase.from('messages').delete()
-        .in('conversation_id', (await supabase.from('conversations').select('id').or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)).data?.map(c => c.id) || []);
-      await supabase.from('conversations').delete().or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`);
-      await supabase.from('phone_mappings').delete().eq('user_id', id);
-      await supabase.from('swipes').delete().eq('user_id', id);
-      await supabase.from('listing_views').delete().eq('user_id', id);
-      await supabase.from('askpad_chats').delete().eq('user_id', id);
-      await supabase.from('tenant_preferences').delete().eq('user_id', id);
-      await supabase.from('listings').update({ owner_user_id: null }).eq('owner_user_id', id);
+      // Resolve conversation ids once up front — used by multiple cleanup steps.
+      const { data: convos, error: convoFetchErr } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`);
+      if (convoFetchErr) {
+        return NextResponse.json({ error: `conversations lookup: ${convoFetchErr.message}` }, { status: 500 });
+      }
+      const convoIds = (convos || []).map(c => c.id);
 
-      // Now delete auth user (cascades to profiles)
+      // Resolve message ids in those conversations for delivery queue cleanup.
+      let messageIds = [];
+      if (convoIds.length) {
+        const { data: msgs, error: msgFetchErr } = await supabase
+          .from('messages')
+          .select('id')
+          .in('conversation_id', convoIds);
+        if (msgFetchErr) {
+          return NextResponse.json({ error: `messages lookup: ${msgFetchErr.message}` }, { status: 500 });
+        }
+        messageIds = (msgs || []).map(m => m.id);
+      }
+
+      try {
+        // phone_mappings can reference conversations via conversation_id regardless
+        // of whose user_id is on the mapping row — clean both paths BEFORE touching
+        // conversations. This was the FK chain that blocked previous attempts.
+        if (convoIds.length) {
+          await run(
+            'phone_mappings by conversation',
+            supabase.from('phone_mappings').delete().in('conversation_id', convoIds)
+          );
+        }
+        await run('phone_mappings by user', supabase.from('phone_mappings').delete().eq('user_id', id));
+
+        // Nullify sender_id on any orphan message rows owned by this user.
+        await run('messages.sender_id nullify', supabase.from('messages').update({ sender_id: null }).eq('sender_id', id));
+
+        if (convoIds.length) {
+          await run(
+            'webhook_logs nullify',
+            supabase.from('webhook_logs')
+              .update({ conversation_id: null, message_id: null })
+              .in('conversation_id', convoIds)
+          );
+        }
+        if (messageIds.length) {
+          await run(
+            'message_delivery_queue delete',
+            supabase.from('message_delivery_queue').delete().in('message_id', messageIds)
+          );
+        }
+        if (convoIds.length) {
+          await run('messages delete', supabase.from('messages').delete().in('conversation_id', convoIds));
+        }
+        await run(
+          'conversations delete',
+          supabase.from('conversations').delete().or(`tenant_user_id.eq.${id},owner_user_id.eq.${id}`)
+        );
+
+        await run('swipes delete', supabase.from('swipes').delete().eq('user_id', id));
+        await run('listing_views delete', supabase.from('listing_views').delete().eq('user_id', id));
+        await run('askpad_chats delete', supabase.from('askpad_chats').delete().eq('user_id', id));
+        await run('tenant_preferences delete', supabase.from('tenant_preferences').delete().eq('user_id', id));
+
+        // Archive listings (leave feed) and null owner_user_id (detach FK).
+        await run(
+          'listings detach',
+          supabase.from('listings')
+            .update({ status: 'archived', is_active: false, owner_user_id: null })
+            .eq('owner_user_id', id)
+        );
+      } catch (cleanupErr) {
+        return NextResponse.json({ error: `Pre-delete cleanup failed — ${cleanupErr.message}` }, { status: 500 });
+      }
+
+      // Now delete auth user (cascades to profiles via the ON DELETE CASCADE in migration 004)
       const { error: authErr } = await supabase.auth.admin.deleteUser(id);
       if (authErr) {
         return NextResponse.json({ error: `Failed to delete auth user: ${authErr.message}` }, { status: 500 });
