@@ -1,0 +1,110 @@
+# Smoke test: owner entry flow
+# Verifies the anon owner experience: role gate → L1 manila card → dismiss
+# to L2 → grid with "Enter My Listing" and "Market Research" buttons.
+# Also seeds an owner, signs in through L1 CTA, and verifies the
+# create listing wizard loads after auth.
+appId: com.padmagnet.app
+---
+
+# ── Load element selectors ──
+- runFlow: ../../elements/loadElements.yaml
+
+# ── 1. Fresh launch → role gate → owner ──
+- runFlow: ../_shared/launch_fresh.yaml
+# Dismiss Samsung Pass if it lingered from a prior run
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# ── 2. L1 manila card should be visible (first-time anon owner) ──
+- assertVisible: "List Your Rental\nfor Free"
+
+# ── 3. Scroll to expose L1 CTAs (below fold) ──
+- swipe:
+    direction: UP
+    duration: 400
+- waitForAnimationToEnd
+- assertVisible:
+    id: ${output.auth.manilaL1.primaryCta}
+- assertVisible:
+    id: ${output.auth.manilaL1.dismiss}
+
+# ── 4. Dismiss L1 → grid should be accessible ──
+- tapOn:
+    id: ${output.auth.manilaL1.dismiss}
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── 5. Verify grid buttons loaded ──
+- assertVisible: "Enter My Listing"
+- assertVisible: "Market Research"
+
+# ── 6. Sign in via L1 CTA path ──
+# Relaunch to get L1 back, then sign in through it
+- launchApp:
+    clearState: true
+- assertVisible: "List My Property"
+- tapOn: "List My Property"
+- waitForAnimationToEnd:
+    timeout: 8000
+- swipe:
+    direction: UP
+    duration: 400
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.manilaL1.primaryCta}
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Auth sheet should appear (anon can't create listings)
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+# Seed owner + sign in
+- runScript: ../../helpers/seed_test_owner.js
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${output.seed.owner.email}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${output.seed.owner.password}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Dismiss Samsung Pass save-password prompt if it appears
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# ── 7. After auth: still on owner home with L1. Tap CTA again (now authenticated). ──
+- swipe:
+    direction: UP
+    duration: 400
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.manilaL1.primaryCta}
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# Create wizard should load
+- assertVisible: "Welcome to the Listing Studio"
+- tapOn: "Got it"
+- waitForAnimationToEnd
+- assertVisible:
+    id: ${output.listings.ownerCreate.addressInput}
+- assertVisible:
+    id: ${output.listings.ownerCreate.submitCta}
+
+# ── 8. Cleanup ──
+- runScript: ../../helpers/cleanup_test_users.js

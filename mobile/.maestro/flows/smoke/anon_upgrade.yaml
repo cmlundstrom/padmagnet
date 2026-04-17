@@ -59,6 +59,11 @@ appId: com.padmagnet.app
     id: ${output.auth.bottomSheet.signInCta}
 - waitForAnimationToEnd:
     timeout: 10000
+# Dismiss Samsung Pass save-password prompt if it appears
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
 
 # ── 5. Post-auth: verify swipe deck still has cards ──
 # Auth sheet auto-dismisses after sign-in. We land on listing detail.
