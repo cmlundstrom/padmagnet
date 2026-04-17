@@ -274,6 +274,10 @@ export default function AdminTable({
     });
   }, [colOrderKey]);
 
+  // Track row selection by stable row id (UUID) instead of array index.
+  // Without this, deleting/archiving a row leaves the selection state pointed
+  // at whatever row now occupies the deleted index — looks like other rows
+  // are still checked after a destructive action. Dangerous on bulk delete.
   const table = useReactTable({
     data,
     columns,
@@ -289,6 +293,7 @@ export default function AdminTable({
     getFilteredRowModel: getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: () => true,
+    getRowId: row => row.id,
     enableRowSelection: true,
     enableColumnResizing: true,
     columnResizeMode: 'onChange',
@@ -296,6 +301,20 @@ export default function AdminTable({
       pagination: { pageSize: 25 },
     },
   });
+
+  // Defensive: when the underlying data changes, drop any rowSelection keys
+  // whose row id is no longer present. Catches the bulk-delete + refetch flow
+  // even if a future change reverts getRowId or selection survives a re-mount.
+  useEffect(() => {
+    setRowSelection(prev => {
+      const ids = new Set((data || []).map(r => r?.id));
+      const next = {};
+      for (const [k, v] of Object.entries(prev)) {
+        if (v && ids.has(k)) next[k] = true;
+      }
+      return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+    });
+  }, [data]);
 
   const selectedCount = Object.keys(rowSelection).length;
   const selectedIds = table.getSelectedRowModel().rows.map(r => r.original.id);
