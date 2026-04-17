@@ -1,0 +1,100 @@
+# Smoke test: tenant sign-out returns to role gate.
+# Exercises profile-sign-out-button testID (added in commit 0eb5809) on the
+# (tenant)/profile.js screen. Guard against accidental changes to the sign-out
+# handler or the post-sign-out router.replace destination.
+#
+# Flow:
+#   1. Launch fresh, choose renter (anon)
+#   2. Tap a card → listing detail → contact owner → auth sheet
+#   3. Seed a test renter, sign in
+#   4. Back out to swipe deck, navigate to Profile tab
+#   5. Tap sign-out button, assert we land on the role gate
+#   6. Cleanup the seeded user
+appId: com.padmagnet.app
+---
+
+- runFlow: ../../elements/loadElements.yaml
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# Verify we reached the swipe deck as an anon renter
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+
+# Navigate into a listing + trigger the auth sheet via Contact Owner (same
+# path anon_upgrade uses — reliable across devices, doesn't depend on
+# messages-tab point coordinates that drift per screen size)
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.detail.contactOwner}
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+# Seed + sign in
+- runScript: ../../helpers/seed_test_renter.js
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 10000
+# Dismiss Samsung Pass "save password?" prompt if it appears
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# Sheet auto-dismisses after sign-in; we land on listing detail. Back out to
+# expose the bottom tabs, then navigate to Profile.
+- assertVisible:
+    id: ${output.listings.detail.backButton}
+- tapOn:
+    id: ${output.listings.detail.backButton}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Profile screen loaded. Sign-out lives below PadScore + TierCard + ProfileCard
+# + 4 MenuItems + RoleSwitcher, so it's well below the fold on most phones.
+# scrollUntilVisible on the outer ScrollView + a generous timeout.
+- scrollUntilVisible:
+    element:
+      id: ${output.profile.signOutButton}
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 50
+- tapOn:
+    id: ${output.profile.signOutButton}
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# handleSignOut calls router.replace('/welcome') — role gate should reappear
+- assertVisible: "Find a Rental"
+- assertVisible: "List My Property"
+
+# Cleanup the seeded user (admin API delete)
+- runScript: ../../helpers/cleanup_test_users.js
