@@ -578,11 +578,12 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
     l2Ref.current?.dismiss();
   }, []);
 
-  // L1: auth-gated create listing
+  // L1: auth-gated. If owner already has listings, route to My Listings, not Studio.
   const handleCreateListing = useCallback(() => {
-    if (isAnon) onShowAuth?.();
-    else onNavigateCreate?.();
-  }, [isAnon, onShowAuth, onNavigateCreate]);
+    if (isAnon) return onShowAuth?.();
+    if (ownerHasListings) return onNavigateListings?.();
+    onNavigateCreate?.();
+  }, [isAnon, ownerHasListings, onShowAuth, onNavigateListings, onNavigateCreate]);
 
   // L1: "Browse Nearby Rentals" — dismiss L1 to expose L2
   const handleBrowseNearby = useCallback(() => {

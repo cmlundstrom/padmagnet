@@ -42,16 +42,20 @@ export default function OwnerListingsTab() {
     ).start();
   }, []);
 
-  // ── Auto-dissolve into Listing Studio after auth ──
+  // Auto-dissolve into Listing Studio after auth.
   const wasAnon = useRef(isAnon);
   const dissolveOpacity = useRef(new Animated.Value(1)).current;
+  const justAuthFetchPending = useRef(false);
 
   useEffect(() => {
-    // Detect transition: was anonymous → now authenticated, no listings, AND loading is done
-    // Must wait for listings fetch to complete before deciding — otherwise we dissolve
-    // into the studio even when the user has existing listings (still loading)
-    if (wasAnon.current && !isAnon && !loading && listings.length === 0) {
-      // Wait for the green auth banner to register (1.5s), then dissolve + navigate
+    if (wasAnon.current && !isAnon && !justAuthFetchPending.current) {
+      justAuthFetchPending.current = true;
+      setLoading(true);
+      fetchListings();
+      return;
+    }
+
+    if (wasAnon.current && !isAnon && justAuthFetchPending.current && !loading && listings.length === 0) {
       const timer = setTimeout(() => {
         Animated.timing(dissolveOpacity, {
           toValue: 0,
@@ -63,10 +67,20 @@ export default function OwnerListingsTab() {
         });
       }, 1500);
       wasAnon.current = isAnon;
+      justAuthFetchPending.current = false;
       return () => clearTimeout(timer);
     }
-    wasAnon.current = isAnon;
-  }, [isAnon, listings.length, loading]);
+
+    if (wasAnon.current && !isAnon && justAuthFetchPending.current && !loading && listings.length > 0) {
+      wasAnon.current = isAnon;
+      justAuthFetchPending.current = false;
+    }
+
+    if (!wasAnon.current && isAnon) {
+      wasAnon.current = isAnon;
+      justAuthFetchPending.current = false;
+    }
+  }, [isAnon, listings.length, loading, fetchListings]);
 
   const fetchListings = useCallback(async () => {
     try {

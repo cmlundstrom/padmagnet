@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
 import { subscribeMagicLinkRelay } from '../../hooks/useMagicLinkRelay';
+import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -23,12 +24,12 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_THRESHOLD = 120;
 
 export default function AuthBottomSheet({ visible, onClose, context, padpoints }) {
+  const alert = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
   const [showMagicPrompt, setShowMagicPrompt] = useState(false);
   const [loading, setLoading] = useState(null);
-  const [error, setError] = useState(null);
   const [magicSent, setMagicSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -116,42 +117,39 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
   async function handleGoogle() {
     setLoading('google');
-    setError(null);
     try {
       await signInWithGoogle();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       resetState();
       onClose?.();
     } catch (err) {
-      if (!err.message?.includes('cancelled')) setError(err.message);
+      if (!err.message?.includes('cancelled')) alert('Sign In Failed', err.message);
     }
     setLoading(null);
   }
 
   async function handleFacebook() {
     setLoading('facebook');
-    setError(null);
     try {
       await signInWithFacebook();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       resetState();
       onClose?.();
     } catch (err) {
-      if (!err.message?.includes('cancelled')) setError(err.message);
+      if (!err.message?.includes('cancelled')) alert('Sign In Failed', err.message);
     }
     setLoading(null);
   }
 
   async function handleApple() {
     setLoading('apple');
-    setError(null);
     try {
       await signInWithApple();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       resetState();
       onClose?.();
     } catch (err) {
-      if (!err.message?.includes('cancelled')) setError(err.message);
+      if (!err.message?.includes('cancelled')) alert('Sign In Failed', err.message);
     }
     setLoading(null);
   }
@@ -176,7 +174,6 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
   async function sendMagicLink() {
     if (!magicEmail) return;
     setLoading('magic');
-    setError(null);
     try {
       // Generate nonce for cross-device relay (desktop email → mobile app)
       const nonce = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -207,15 +204,14 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       });
       return;
     } catch (err) {
-      setError(err.message);
+      alert("Couldn't Send Link", err.message);
     }
     setLoading(null);
   }
 
   async function handlePassword() {
-    if (!email || !password) { setError('Enter email and password'); return; }
+    if (!email || !password) { alert('Missing Information', 'Please enter your email and password.'); return; }
     setLoading('password');
-    setError(null);
     try {
       try {
         await signIn(email, password);
@@ -230,7 +226,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       resetState();
       onClose?.();
     } catch (err) {
-      setError(err.message);
+      alert('Sign In Failed', err.message);
     }
     setLoading(null);
   }
@@ -241,7 +237,6 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     setMagicEmail('');
     setShowMagicPrompt(false);
     setShowPassword(false);
-    setError(null);
     setMagicSent(false);
     setLoading(null);
     relayCleanup.current?.();
@@ -271,12 +266,6 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                 keyboardShouldPersistTaps="handled"
               >
                 <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
-
-                {error && (
-                  <View style={styles.errorBox}>
-                    <Text style={styles.errorText}>{error}</Text>
-                  </View>
-                )}
 
                 {!magicSent ? (
                   <>
@@ -385,7 +374,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                     <Text style={styles.sentText}>
                       We sent a sign-in link to {email}. Tap it to continue.
                     </Text>
-                    <TouchableOpacity onPress={() => { setMagicSent(false); setError(null); }} style={styles.resendLink}>
+                    <TouchableOpacity onPress={() => setMagicSent(false)} style={styles.resendLink}>
                       <Text style={styles.resendText}>Resend link</Text>
                     </TouchableOpacity>
                   </View>
@@ -421,15 +410,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
             <Ionicons name="mail" size={28} color={COLORS.accent} style={{ marginBottom: 8 }} />
             <Text style={styles.promptTitle}>Send Magic Link</Text>
             <Text style={styles.promptSubtitle}>We'll email you a sign-in link — no password needed.</Text>
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
             <TextInput
               style={styles.promptInput}
               value={magicEmail}
-              onChangeText={(v) => { setMagicEmail(v); setError(null); }}
+              onChangeText={setMagicEmail}
               placeholder="Your email address"
               placeholderTextColor={COLORS.slate}
               keyboardType="email-address"
@@ -623,20 +607,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: LAYOUT.padding.lg,
     lineHeight: 22,
-  },
-
-  // ── Error ─────────────────────────────────────────
-  errorBox: {
-    backgroundColor: COLORS.danger + '22',
-    borderRadius: LAYOUT.radius.sm,
-    padding: LAYOUT.padding.sm,
-    marginBottom: LAYOUT.padding.sm,
-  },
-  errorText: {
-    fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.danger,
-    textAlign: 'center',
   },
 
   // ── Social buttons ────────────────────────────────
