@@ -1,0 +1,34 @@
+# Smoke test: Android hardware back button on listing detail.
+# Pre-fix bug: pressing system back from a listing detail exited the app.
+# Post-fix: should pop the navigation stack back to the swipe deck.
+# Chris reported the fix landed but it has not been verified — this is the gate.
+appId: com.padmagnet.app
+---
+
+- runFlow: ../../elements/loadElements.yaml
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+
+# Open a listing detail
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.detail.backButton}
+
+# Hardware back — should return to swipe deck, NOT exit the app.
+# If the app exits, the assertions below fail because the swipe deck won't be visible.
+- pressKey: "back"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- assertVisible:
+    id: ${output.listings.swipeDeck.card}

@@ -317,6 +317,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
                         autoCapitalize="none"
                       />
                       <TouchableOpacity
+                        testID="auth-sheet-eye-toggle"
                         onPress={() => setShowPassword(!showPassword)}
                         style={styles.eyeToggle}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

@@ -5,6 +5,7 @@ output.auth = {
     emailInput: 'auth-sheet-email-input',
     passwordInput: 'auth-sheet-password-input',
     signInCta: 'auth-sheet-sign-in-cta',
+    eyeToggle: 'auth-sheet-eye-toggle',
     // No discrete create-account link: sign-up is implicit fallback in handlePassword().
     createAccountLink: null,
     // No forgot-password link: replaced by Magic Link flow.
