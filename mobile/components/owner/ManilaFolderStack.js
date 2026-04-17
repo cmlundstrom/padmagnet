@@ -772,9 +772,11 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
             </View>
           </View>
 
-          {/* Primary CTA — label mirrors the destination handleCreateListing resolves to */}
+          {/* Primary CTA — label communicates dual capability before auth, exact destination after.
+              Anon users may be new (create) OR returning (edit) — "Create or Edit" covers both
+              without revealing the auth gate. Once auth'd with listings, label gets specific. */}
           <Pressable testID="manila-l1-primary-cta" style={styles.l1Cta} onPress={handleCreateListing}>
-            <Text style={styles.l1CtaText}>{ownerHasListings ? 'Open My Listings' : 'Create Your First Listing'}</Text>
+            <Text style={styles.l1CtaText}>{ownerHasListings ? 'Open My Listings' : 'Create or Edit Your Listing'}</Text>
           </Pressable>
 
           {/* Secondary CTA — dismiss L1 to expose L2 GPS ask */}
