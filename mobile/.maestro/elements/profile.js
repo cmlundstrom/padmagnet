@@ -14,6 +14,7 @@ output.profile = {
   notificationsButton: 'profile-notifications-button',
   preferencesButton: 'profile-preferences-button',   // tenant-only
   subscriptionButton: 'profile-subscription-button', // owner-only
+  addRoleButton: 'profile-add-role-button',          // visible when roles.length === 1
   roleSwitcher: {
     renter: 'role-switcher-renter',
     owner: 'role-switcher-owner',

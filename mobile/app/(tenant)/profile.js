@@ -21,8 +21,9 @@ import { LAYOUT } from '../../constants/layout';
 import { EqualHousingBadge } from '../../components/ui';
 
 export default function TenantProfileScreen() {
-  const { user, role } = useAuth();
+  const { user, role, roles } = useAuth();
   const alert = useAlert();
+  const hasOwnerRole = (roles || []).includes('owner');
   const [profile, setProfile] = useState({});
   const padPoints = usePadPoints();
   const renterTier = useRenterTier();
@@ -164,6 +165,19 @@ export default function TenantProfileScreen() {
           hint="Name, email, phone"
           onPress={() => router.push('/settings/edit-profile')}
         />
+
+        {/* Self-service role acquisition — only visible when user has a
+            single role. Multi-role users use the RoleSwitcher below. */}
+        {!hasOwnerRole && user && (
+          <MenuItem
+            testID="profile-add-role-button"
+            icon="key-outline"
+            iconColor={COLORS.brandOrange}
+            label="Become an Owner too"
+            hint="Add the owner role to list your own property"
+            onPress={() => router.push('/settings/add-role')}
+          />
+        )}
 
         {/* Danger zone */}
         <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ACCOUNT</Text>

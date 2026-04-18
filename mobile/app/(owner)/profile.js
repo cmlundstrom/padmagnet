@@ -18,8 +18,9 @@ import { LAYOUT } from '../../constants/layout';
 import { EqualHousingBadge } from '../../components/ui';
 
 export default function OwnerProfileScreen() {
-  const { session, user, role, isAnon } = useAuth();
+  const { session, user, role, roles, isAnon } = useAuth();
   const { tier } = useSubscription();
+  const hasTenantRole = (roles || []).includes('tenant');
   const [profile, setProfile] = useState({});
   const [showAuth, setShowAuth] = useState(false);
 
@@ -135,6 +136,18 @@ export default function OwnerProfileScreen() {
               hint="Name, email, phone"
               onPress={() => router.push('/settings/edit-profile')}
             />
+
+            {/* Self-service role acquisition — only when user has a single role. */}
+            {!hasTenantRole && (
+              <MenuItem
+                testID="profile-add-role-button"
+                icon="home-outline"
+                iconColor={COLORS.logoOrange}
+                label="Browse Rentals as a Renter too"
+                hint="Add the renter role to swipe and save homes"
+                onPress={() => router.push('/settings/add-role')}
+              />
+            )}
 
             <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ACCOUNT</Text>
 
