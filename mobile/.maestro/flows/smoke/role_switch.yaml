@@ -1,20 +1,18 @@
-# Smoke test: dual-role user switches from renter to owner view via the
-# Profile-tab RoleSwitcher (added in commit 0eb5809).
+# Smoke test: dual-role user round-trips between renter and owner views via
+# the Profile-tab RoleSwitcher (added in commit 0eb5809). Switch-back was
+# broken until commit 7843bb5 — see task #22 for the bug + fix.
 #
 # RoleSwitcher only renders for users with roles.length > 1, so we use a
 # dedicated dual-role seed helper instead of the single-role tenant/owner ones.
-#
-# NOTE: the reverse direction (owner→renter) is currently broken — see task
-# #22. AuthProvider's role state isn't updated by router.replace, so
-# handleSwitch's targetRole === role bail fires when the user tries to switch
-# back. We only verify tenant→owner here until that's fixed.
 #
 # Flow:
 #   1. Seed a dual-role user (tenant + owner)
 #   2. Anon launch → choose renter → trigger auth via Contact Owner → sign in
 #   3. From tenant Profile, scroll to RoleSwitcher → tap "Owner"
 #   4. Assert we land on owner home (manila L1 tab "List For Free" visible)
-#   5. Cleanup the seeded user
+#   5. From owner Profile, scroll to RoleSwitcher → tap "Renter"
+#   6. Assert we land back on tenant swipe deck
+#   7. Cleanup the seeded user
 appId: com.padmagnet.app
 ---
 
@@ -92,5 +90,22 @@ appId: com.padmagnet.app
 # Confirm we're really on owner side (bottom tabs include owner-only "Listings")
 - assertVisible: "Listings"
 
-# Reverse direction (owner→renter) skipped — see task #22. Cleanup the seed.
+# Reverse direction: owner Profile → tap Renter switcher → tenant swipe deck
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: ${output.profile.roleSwitcher.renter}
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 50
+- tapOn:
+    id: ${output.profile.roleSwitcher.renter}
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+
 - runScript: ../../helpers/cleanup_test_users.js
