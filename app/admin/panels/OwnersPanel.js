@@ -206,6 +206,26 @@ export default function OwnersPanel() {
       size: 120,
     },
     {
+      accessorKey: "signup_role",
+      header: "Origin",
+      cell: ({ getValue }) => {
+        const origin = getValue();
+        if (!origin) return <span style={{ fontSize: "11px", color: COLORS.textDim }}>—</span>;
+        const color = origin === 'owner' ? '#3B82F6'
+          : (origin === 'admin' || origin === 'super_admin') ? '#7C3AED'
+          : '#22C55E';
+        const label = origin === 'tenant' ? 'RENTER' : origin === 'super_admin' ? 'SUPER' : origin.toUpperCase();
+        return (
+          <span style={{
+            display: "inline-block", padding: "2px 7px", borderRadius: 4,
+            fontSize: "10px", fontWeight: 700, letterSpacing: "0.03em",
+            background: color + "22", color, border: `1px solid ${color}44`,
+          }}>{label}</span>
+        );
+      },
+      size: 80,
+    },
+    {
       id: "stripe",
       header: "Stripe",
       accessorFn: (row) => row.stripe_customer_id,
