@@ -52,7 +52,9 @@ export async function GET(request) {
     await supabase.from('cron_logs').insert({ job_name: 'expire_listings', status: 'success', duration_ms: Date.now() - startTime, result: { expired: count } });
     return NextResponse.json({ expired: count });
   } catch (err) {
-    await supabase.from('cron_logs').insert({ job_name: 'expire_listings', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message }).catch(() => {});
+    try {
+      await supabase.from('cron_logs').insert({ job_name: 'expire_listings', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message });
+    } catch {}
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

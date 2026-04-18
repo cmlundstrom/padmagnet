@@ -119,7 +119,9 @@ export async function GET(request) {
     await supabase.from('cron_logs').insert({ job_name: 'expiry_emails', status: 'success', duration_ms: Date.now() - startTime, result: { sent } });
     return NextResponse.json({ sent });
   } catch (err) {
-    await supabase.from('cron_logs').insert({ job_name: 'expiry_emails', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message }).catch(() => {});
+    try {
+      await supabase.from('cron_logs').insert({ job_name: 'expiry_emails', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message });
+    } catch {}
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -127,7 +127,9 @@ export async function GET(request) {
     return NextResponse.json({ processed, succeeded, failed });
   } catch (err) {
     console.error('Delivery retry cron error:', err);
-    await supabase.from('cron_logs').insert({ job_name: 'delivery_retry', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message }).catch(() => {});
+    try {
+      await supabase.from('cron_logs').insert({ job_name: 'delivery_retry', status: 'failed', duration_ms: Date.now() - startTime, error_message: err.message });
+    } catch {}
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

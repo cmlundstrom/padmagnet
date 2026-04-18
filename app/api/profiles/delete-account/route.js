@@ -113,12 +113,17 @@ export async function DELETE(request) {
       console.error('Storage cleanup error (continuing):', storageErr.message);
     }
 
-    // 9. Log deletion to audit_log before deleting the user
-    await supabase.from('audit_log').insert({
-      action: 'account_deleted',
-      admin_user: 'self',
-      details: { user_id: user.id, role: profile.role, email: user.email },
-    }).catch(() => {});
+    // 9. Log deletion to audit_log before deleting the user.
+    // Wrap in try/catch — supabase-js .insert() returns a PromiseLike, not a
+    // real Promise, so .catch() throws TypeError. (Discovered via the
+    // delete_account Maestro flow; the in-app self-delete was actually broken.)
+    try {
+      await supabase.from('audit_log').insert({
+        action: 'account_deleted',
+        admin_user: 'self',
+        details: { user_id: user.id, role: profile.role, email: user.email },
+      });
+    } catch {}
 
     // 10. Delete auth user — cascades to profiles, preferences, search_zones, swipes, listing_views
     const { error: deleteErr } = await supabase.auth.admin.deleteUser(user.id);
