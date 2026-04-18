@@ -130,10 +130,10 @@ export default function OverviewPanel({ openTicketCount = 0 }) {
         </div>
       )}
 
-      {/* Tenant Funnel */}
+      {/* Renter Funnel */}
       {!metricsLoading && !metricsError && metrics?.tenantFunnel && (
         <div style={{ marginBottom: 28 }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Tenant Funnel</h3>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Renter Funnel</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <StatCard label="Registered" value={metrics.tenantFunnel.registered} accent={COLORS.brand} />
             <StatCard label="Preferences Set" value={metrics.tenantFunnel.preferencesSet} accent={COLORS.purple} />

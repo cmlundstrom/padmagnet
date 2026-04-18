@@ -169,7 +169,7 @@ export default function ProductsPanel() {
 
   const addFormFields = useMemo(() => [
     { key: "name", label: "Product Name", type: "text", required: true, placeholder: "e.g. Premium 30-Day Listing" },
-    { key: "audience", label: "Audience", type: "select", required: true, options: [{ value: "owner", label: "Owner" }, { value: "tenant", label: "Tenant" }], defaultValue: "owner" },
+    { key: "audience", label: "Audience", type: "select", required: true, options: [{ value: "owner", label: "Owner" }, { value: "tenant", label: "Renter" }], defaultValue: "owner" },
     { key: "description", label: "Description (200 char max)", type: "textarea", placeholder: "Public-facing description. Use \\n for line breaks.", maxLength: 200 },
     { key: "app_path", label: "In-App Path", type: "text", placeholder: "e.g. /my-listings" },
     { key: "price", label: "Price ($)", type: "text", required: true, placeholder: "e.g. 29.99" },
@@ -578,7 +578,7 @@ export default function ProductsPanel() {
         onBulkUnsuppress={handleBulkUnsuppress}
         onBulkDelete={handleBulkDelete}
         onBulkHardDelete={handleBulkHardDelete}
-        emptyMessage="No tenant products match your filters"
+        emptyMessage="No renter products match your filters"
         renderExpandedRow={renderExpandedRow}
       />
 

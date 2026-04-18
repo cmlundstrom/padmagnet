@@ -220,7 +220,7 @@ export default function TenantsPanel() {
                 fontSize: "10px", fontWeight: 600, letterSpacing: "0.03em",
                 background: r === "admin" ? "#7C3AED22" : r === "owner" ? "#3B82F622" : "#22C55E22",
                 color: r === "admin" ? "#7C3AED" : r === "owner" ? "#3B82F6" : "#22C55E",
-              }}>{r}</span>
+              }}>{r === "tenant" ? "renter" : r}</span>
             ))}
           </div>
         );

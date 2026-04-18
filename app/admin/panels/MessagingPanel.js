@@ -314,7 +314,7 @@ function ConversationDetail({ convo, detail, loading, onClose, onStatusChange, o
         alignItems: 'center',
       }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <InfoRow label="Tenant" value={conversation.tenant_name || '—'} />
+          <InfoRow label="Renter" value={conversation.tenant_name || '—'} />
           <InfoRow label={conversation.conversation_type === 'external_agent' ? 'Agent' : 'Owner'} value={conversation.owner_name || '—'} />
           {conversation.external_agent_email && (
             <InfoRow label="Agent Email" value={conversation.external_agent_email} />

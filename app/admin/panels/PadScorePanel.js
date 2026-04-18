@@ -9,8 +9,8 @@ const DEMO_LISTINGS = [
 ];
 
 const DEFAULT_PADSCORE = {
-  budget_over: { enabled: true, weight: 35, label: "Over Budget", desc: "Penalty when rent exceeds tenant max" },
-  property_type: { enabled: true, weight: 25, label: "Wrong Type", desc: "Wrong property type for tenant" },
+  budget_over: { enabled: true, weight: 35, label: "Over Budget", desc: "Penalty when rent exceeds renter max" },
+  property_type: { enabled: true, weight: 25, label: "Wrong Type", desc: "Wrong property type for renter" },
   beds_short: { enabled: true, weight: 18, label: "Too Few Beds", desc: "Fewer bedrooms than minimum" },
   baths_short: { enabled: true, weight: 12, label: "Too Few Baths", desc: "Fewer bathrooms than minimum" },
   location_inside_radius: { enabled: true, weight: 14, label: "Distance (in radius)", desc: "Gentle falloff within search area" },

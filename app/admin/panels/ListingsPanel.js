@@ -140,7 +140,7 @@ export default function ListingsPanel() {
     setConfirmAction({
       type: "suppress",
       ids,
-      message: `Suppress ${ids.length} listing${ids.length > 1 ? "s" : ""}? They will be hidden from tenants.`,
+      message: `Suppress ${ids.length} listing${ids.length > 1 ? "s" : ""}? They will be hidden from renters.`,
     });
   }, []);
 
@@ -411,7 +411,7 @@ export default function ListingsPanel() {
         <StatCard label="Active" value={activeCount} sub={totalCount > 0 ? `${Math.round(activeCount / totalCount * 100)}% of total` : "\u2014"} accent={COLORS.green} />
         <StatCard label="Pending Review" value={pendingReviewCount} accent={pendingReviewCount > 0 ? COLORS.purple : COLORS.green} />
         <StatCard label="Drafts" value={draftCount} accent={COLORS.amber} />
-        <StatCard label="Suppressed" value={suppressedCount} sub="Hidden from tenants" accent={COLORS.red} />
+        <StatCard label="Suppressed" value={suppressedCount} sub="Hidden from renters" accent={COLORS.red} />
       </div>
 
       {/* Pending Review Alert Banner */}

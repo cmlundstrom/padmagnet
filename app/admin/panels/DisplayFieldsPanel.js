@@ -279,7 +279,7 @@ export default function DisplayFieldsPanel() {
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Total Fields" value={fields.length} sub="Display field configs" accent={COLORS.brand} />
-        <StatCard label="Tenant Visible" value={tenantVisibleCount} sub="Shown to tenants" accent={COLORS.green} />
+        <StatCard label="Renter Visible" value={tenantVisibleCount} sub="Shown to renters" accent={COLORS.green} />
         <StatCard label="Owner Visible" value={ownerVisibleCount} sub="Shown to owners" accent={COLORS.blue} />
       </div>
 
@@ -288,7 +288,7 @@ export default function DisplayFieldsPanel() {
         background: "#1e293b", border: "1px solid #334155", borderRadius: 8,
         padding: "12px 16px", marginBottom: 20, fontSize: "13px", color: COLORS.textMuted, lineHeight: 1.5,
       }}>
-        Controls which fields appear on the tenant listing detail page. Toggle visibility, reorder with sort_order,
+        Controls which fields appear on the renter listing detail page. Toggle visibility, reorder with sort_order,
         or change labels. <code style={{ background: "#0f172a", padding: "1px 5px", borderRadius: 4, fontSize: "12px", color: COLORS.brand }}>format_options</code> are
         managed via SQL (seeded data covers all current needs).
       </div>
