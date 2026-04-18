@@ -181,7 +181,14 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
         return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
       });
 
-      await signInWithMagicLink(magicEmail, nonce);
+      // Derive role intent from the current AuthBottomSheet context. Passed
+      // into signInWithMagicLink so it lands in user_metadata.role and the
+      // handle_new_user trigger sets profiles.role + roles correctly on signup.
+      // Owner-intent contexts imply the user wants to act as an owner.
+      const OWNER_INTENT_CONTEXTS = ['create_listing', 'owner_messages', 'owner_profile', 'owner_upgrade'];
+      const roleIntent = OWNER_INTENT_CONTEXTS.includes(context) ? 'owner' : 'tenant';
+
+      await signInWithMagicLink(magicEmail, nonce, roleIntent);
 
       // Email sent successfully — transition UI immediately
       setEmail(magicEmail);

@@ -32,30 +32,15 @@ export default function AuthCallbackScreen() {
         dest = role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe';
       }
 
-      // If returning to an owner path, update the new user's profile role
-      // BEFORE setSession so the profile has the right role when resolveRole queries it
-      if (dest.startsWith('/(owner)')) {
-        await saveUserRole('owner');
-        // Update profile via direct REST — bypasses the hung Supabase client
-        try {
-          const userId = JSON.parse(atob(accessToken.split('.')[1])).sub;
-          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-          const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-          console.log('[AuthCallback] Setting profile role=owner for', userId);
-          await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': supabaseKey,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({ role: 'owner' }),
-          });
-        } catch (e) {
-          console.error('[AuthCallback] Profile role update failed:', e.message);
-        }
-      }
+      // Role assignment now happens upstream:
+      //   - New signups: handle_new_user trigger reads user_metadata.role that
+      //     signInWithMagicLink sets from the AuthBottomSheet context
+      //   - Existing users changing role: RoleSwitcher.handleSwitch (commit 7843bb5)
+      //
+      // The previous unconditional PATCH here was corrupting profiles by
+      // mutating `role` without touching `roles[]`, producing states like
+      // role='owner' with roles=['tenant']. Removed 2026-04-18 as Phase 1 of
+      // the dual-role foundational correction (task #23).
 
       // Set session (may hang — don't block on it)
       try {

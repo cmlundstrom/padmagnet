@@ -43,17 +43,24 @@ export async function getSession() {
   return session;
 }
 
-export async function signInWithMagicLink(email, nonce) {
+export async function signInWithMagicLink(email, nonce, role) {
   // Use web intermediary page that deep-links back to the app.
   // This works in both Expo Go and standalone builds, unlike padmagnet:// direct.
   // When nonce is provided, the desktop callback page can relay tokens back
   // to the mobile app via Supabase Realtime (cross-device magic link support).
+  // When role is provided (from the AuthBottomSheet context — e.g. 'owner' for
+  // create_listing / owner_profile / owner_messages), it's stored as
+  // user_metadata so the handle_new_user DB trigger sets profiles.role + roles
+  // correctly on first signup. Replaces the auth-callback.js PATCH band-aid
+  // that was corrupting profile state.
   const redirectUrl = nonce
     ? `https://padmagnet.com/auth/mobile-callback?nonce=${nonce}`
     : 'https://padmagnet.com/auth/mobile-callback';
+  const options = { emailRedirectTo: redirectUrl };
+  if (role) options.data = { role };
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: redirectUrl },
+    options,
   });
   if (error) throw error;
 }
