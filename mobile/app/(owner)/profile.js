@@ -78,6 +78,12 @@ export default function OwnerProfileScreen() {
           <Text style={styles.heroRole}>{isAnon ? 'Browsing as guest' : 'Property Owner'}</Text>
         </View>
 
+        {/* Role switcher — renders null for single-role / anon users, so it
+            only appears for dual-role authenticated accounts. Above the fold
+            so an owner can flip to renter (or back) without scrolling past
+            Settings menu items. */}
+        <RoleSwitcher />
+
         {/* Anonymous value pitch */}
         {isAnon && (
           <TouchableOpacity testID="profile-sign-in-card-button" style={styles.signInCard} onPress={() => setShowAuth(true)} activeOpacity={0.7}>
@@ -150,9 +156,6 @@ export default function OwnerProfileScreen() {
             )}
 
             <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ACCOUNT</Text>
-
-            {/* Role switcher — only visible for multi-role users */}
-            <RoleSwitcher />
 
             {/* Sign Out */}
             <TouchableOpacity testID="profile-sign-out-button" style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>

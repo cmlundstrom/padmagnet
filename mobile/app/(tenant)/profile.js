@@ -106,6 +106,11 @@ export default function TenantProfileScreen() {
           <Text style={styles.heroRole}>Renter</Text>
         </View>
 
+        {/* Role switcher — renders null for single-role users, so it only
+            appears for dual-role accounts. Above the fold so a renter can
+            flip to owner (or back) without scrolling past PadScore + tier. */}
+        <RoleSwitcher />
+
         {/* PadScore Dashboard — the hero of the profile */}
         <PadScoreDashboard
           padpoints={padPoints.padpoints}
@@ -190,9 +195,6 @@ export default function TenantProfileScreen() {
           onPress={handleResetSwipes}
           danger
         />
-
-        {/* Role switcher — only visible for multi-role users */}
-        <RoleSwitcher />
 
         {/* Sign Out */}
         <TouchableOpacity testID="profile-sign-out-button" style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
