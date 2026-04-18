@@ -1,0 +1,106 @@
+# Smoke test: in-app self-delete from tenant Profile.
+# Exercises profile-delete-account-link + settings-delete-account-* testIDs
+# (commit 0eb5809) AND the actual /api/profiles/delete-account DELETE handler
+# end-to-end. Acts as a regression gate for the auth.users delete chain
+# from the user side — if our admin-side phone_mappings FK fix breaks for
+# tenant deletions, this smoke flow catches it.
+#
+# Flow:
+#   1. Anon launch → choose renter → trigger auth via Contact Owner
+#   2. Seed throwaway test renter → sign in
+#   3. Back to swipe deck → Profile tab
+#   4. Scroll to delete-account link → tap → land on /settings/delete-account
+#   5. Type DELETE in the confirmation input → tap confirm button
+#   6. Assert we're routed back to the role gate (user successfully deleted)
+#   7. Cleanup safety net (no-op if delete already succeeded)
+appId: com.padmagnet.app
+---
+
+- runFlow: ../../elements/loadElements.yaml
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# Get to the auth sheet via the same Contact Owner path other flows use
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+- runScript: ../../helpers/seed_test_renter.js
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 10000
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# Back out to swipe deck → Profile tab
+- assertVisible:
+    id: ${output.listings.detail.backButton}
+- tapOn:
+    id: ${output.listings.detail.backButton}
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Delete-account link sits below Sign Out — bottom of the long Profile scroll
+- scrollUntilVisible:
+    element:
+      id: ${output.profile.deleteAccountLink}
+    direction: DOWN
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 50
+- tapOn:
+    id: ${output.profile.deleteAccountLink}
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Land on /settings/delete-account — confirmation input must be present
+- assertVisible:
+    id: ${output.settings.deleteAccount.confirmationInput}
+- tapOn:
+    id: ${output.settings.deleteAccount.confirmationInput}
+- inputText: "DELETE"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Tap the now-enabled confirm button
+- tapOn:
+    id: ${output.settings.deleteAccount.confirmButton}
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Server runs the full delete + signOut, then router.replace('/welcome')
+- assertVisible: "Find a Rental"
+- assertVisible: "List My Property"
+
+# Safety net — user should already be deleted by the in-app flow.
+# cleanup_test_users.js logs and continues on a missing user, so a no-op
+# here means the in-app delete succeeded as expected.
+- runScript: ../../helpers/cleanup_test_users.js
