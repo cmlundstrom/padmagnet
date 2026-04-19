@@ -165,6 +165,8 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       case 'owner_messages': return '/(owner)/messages';
       case 'owner_profile': return '/(owner)/profile';
       case 'owner_upgrade': return '/(owner)/profile';
+      case 'tenant_profile': return '/(tenant)/profile';
+      case 'profile_email_change': return '/settings/change-email';
       case 'messages_tab': return '/(tenant)/messages';
       case 'message': return '/(tenant)/swipe';
       default: return null;
@@ -186,7 +188,12 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
       // handle_new_user trigger sets profiles.role + roles correctly on signup.
       // Owner-intent contexts imply the user wants to act as an owner.
       const OWNER_INTENT_CONTEXTS = ['create_listing', 'owner_messages', 'owner_profile', 'owner_upgrade'];
-      const roleIntent = OWNER_INTENT_CONTEXTS.includes(context) ? 'owner' : 'tenant';
+      // profile_email_change preserves whatever role the user is currently in,
+      // so it doesn't force a roleIntent — leave undefined so the trigger
+      // doesn't overwrite their existing role/roles.
+      const roleIntent = context === 'profile_email_change'
+        ? undefined
+        : (OWNER_INTENT_CONTEXTS.includes(context) ? 'owner' : 'tenant');
 
       await signInWithMagicLink(magicEmail, nonce, roleIntent);
 
@@ -516,6 +523,20 @@ function getContextCopy(context, padpoints) {
         title: '\u{2B06}\u{FE0F} Upgrade Your Plan',
         subtitle: 'Sign in to access premium features, analytics, and more listing slots.',
         dismissible: false,
+      };
+    case 'tenant_profile':
+      return {
+        tabLabel: 'Account',
+        title: '\u{1F464} Your Account',
+        subtitle: 'Sign in to save matches, message owners, and personalize your search.',
+        dismissible: true,
+      };
+    case 'profile_email_change':
+      return {
+        tabLabel: 'Re-Auth',
+        title: '\u{1F510} Confirm Your Identity',
+        subtitle: 'For your security, sign in again before changing your email.',
+        dismissible: true,
       };
     default:
       return {

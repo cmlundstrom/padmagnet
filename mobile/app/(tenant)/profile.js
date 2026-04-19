@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from '../../lib/auth';
 import RoleSwitcher from '../../components/auth/RoleSwitcher';
+import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import usePadPoints from '../../hooks/usePadPoints';
@@ -21,13 +22,14 @@ import { LAYOUT } from '../../constants/layout';
 import { EqualHousingBadge } from '../../components/ui';
 
 export default function TenantProfileScreen() {
-  const { user, role, roles } = useAuth();
+  const { user, role, roles, isAnon } = useAuth();
   const alert = useAlert();
   const hasOwnerRole = (roles || []).includes('owner');
   const [profile, setProfile] = useState({});
   const padPoints = usePadPoints();
   const renterTier = useRenterTier();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   const fetchProfile = useCallback(() => {
     if (!user) return;
@@ -134,18 +136,33 @@ export default function TenantProfileScreen() {
           onUpgrade={() => setShowUpgrade(true)}
         />
 
-        {/* Profile card (name/email/phone) */}
-        <ProfileCard
-          role={role}
-          displayName={profile.display_name}
-          email={profile.email}
-          phone={profile.phone}
-        />
+        {/* Anonymous value pitch — mirrors owner profile pattern. Anon users
+            don't see Contact Info or any account-editing UI; they see a
+            single Sign In CTA card that opens AuthBottomSheet. */}
+        {isAnon && (
+          <TouchableOpacity testID="profile-sign-in-card-button" style={styles.signInCard} onPress={() => setShowAuth(true)} activeOpacity={0.7}>
+            <Ionicons name="lock-open-outline" size={20} color={COLORS.accent} />
+            <Text style={styles.signInCardText}>
+              Sign in to save matches, message owners, and personalize your search.
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+          </TouchableOpacity>
+        )}
 
-        {/* Section header */}
+        {/* Profile card — only for authenticated users. Read-only display. */}
+        {!isAnon && (
+          <ProfileCard
+            displayName={profile.display_name}
+            email={profile.email}
+            phone={profile.phone}
+          />
+        )}
+
+        {/* Settings — preferences/notifications stay visible for anon to
+            give them a sense of what authenticated experience looks like.
+            Account-editing items are gated behind !isAnon. */}
         <Text style={styles.sectionLabel}>SETTINGS</Text>
 
-        {/* Menu items with icons + chevrons */}
         <MenuItem
           testID="profile-preferences-button"
           icon="options-outline"
@@ -162,18 +179,32 @@ export default function TenantProfileScreen() {
           hint="Push alerts, email, new listing matches"
           onPress={() => router.push('/settings/notifications')}
         />
-        <MenuItem
-          testID="profile-edit-button"
-          icon="person-outline"
-          iconColor={COLORS.accent}
-          label="Edit Profile"
-          hint="Name, email, phone"
-          onPress={() => router.push('/settings/edit-profile')}
-        />
 
-        {/* Self-service role acquisition — only visible when user has a
-            single role. Multi-role users use the RoleSwitcher below. */}
-        {!hasOwnerRole && user && (
+        {/* Account-editing items — authed only. Anon users would crash trying
+            to edit fields keyed on user.id. */}
+        {!isAnon && (
+          <>
+            <MenuItem
+              testID="profile-edit-button"
+              icon="person-outline"
+              iconColor={COLORS.accent}
+              label="Edit Profile"
+              hint="Display name and phone"
+              onPress={() => router.push('/settings/edit-profile')}
+            />
+            <MenuItem
+              testID="profile-change-email-button"
+              icon="mail-outline"
+              iconColor={COLORS.brandOrange}
+              label="Change Email"
+              hint="Update the email address used to sign in"
+              onPress={() => router.push('/settings/change-email')}
+            />
+          </>
+        )}
+
+        {/* Self-service role acquisition — authed single-role users only. */}
+        {!hasOwnerRole && !isAnon && (
           <MenuItem
             testID="profile-add-role-button"
             icon="key-outline"
@@ -184,7 +215,7 @@ export default function TenantProfileScreen() {
           />
         )}
 
-        {/* Danger zone */}
+        {/* Account section */}
         <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ACCOUNT</Text>
 
         <MenuItem
@@ -196,19 +227,28 @@ export default function TenantProfileScreen() {
           danger
         />
 
-        {/* Sign Out */}
+        {/* Sign Out — visible always (anon can sign out of anon session) */}
         <TouchableOpacity testID="profile-sign-out-button" style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
           <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
-        {/* Delete account — small, tucked away */}
-        <TouchableOpacity testID="profile-delete-account-link" style={styles.deleteLink} onPress={() => router.push('/settings/delete-account')}>
-          <Text style={styles.deleteLinkText}>Delete Account</Text>
-        </TouchableOpacity>
+        {/* Delete account — authed only */}
+        {!isAnon && (
+          <TouchableOpacity testID="profile-delete-account-link" style={styles.deleteLink} onPress={() => router.push('/settings/delete-account')}>
+            <Text style={styles.deleteLinkText}>Delete Account</Text>
+          </TouchableOpacity>
+        )}
 
         <EqualHousingBadge style={{ marginTop: 16, marginBottom: 10 }} />
       </ScrollView>
+
+      <AuthBottomSheet
+        visible={showAuth}
+        onClose={() => setShowAuth(false)}
+        context="tenant_profile"
+        padpoints={padPoints.padpoints}
+      />
 
       {/* Tier Upgrade Sheet */}
       <TierUpgradeSheet
@@ -328,6 +368,25 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.slate,
+  },
+  // ── Sign in card (anon) ──────────────────
+  signInCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.accent + '12',
+    borderRadius: LAYOUT.radius.lg,
+    padding: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.md,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
+  },
+  signInCardText: {
+    flex: 1,
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
   },
   // ── Section labels ───────────────────────
   sectionLabel: {

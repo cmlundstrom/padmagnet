@@ -6,7 +6,8 @@ export default function SettingsLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="preferences" />
       <Stack.Screen name="notifications" />
-<Stack.Screen name="edit-profile" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="change-email" />
       <Stack.Screen name="subscription" />
       <Stack.Screen name="delete-account" />
     </Stack>

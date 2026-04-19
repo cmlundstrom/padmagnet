@@ -1,26 +1,22 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
-import { ROLE_LABELS } from '../../constants/roles';
 
-export default function ProfileCard({ role, displayName, email, phone }) {
-  const roleLabel = ROLE_LABELS[role] || role || '';
-
+/**
+ * ProfileCard — read-only display of contact info.
+ *
+ * Editing affordances live in the Settings menu items below this card on
+ * the profile screens (Edit Profile for name+phone; Change Email for email).
+ * The previous "Edit" pill on this card was a duplicate entry point that
+ * routed to the same Edit Profile screen — removed to eliminate confusion.
+ */
+export default function ProfileCard({ displayName, email, phone }) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.cardTitle}>Contact Info</Text>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => router.push('/settings/edit-profile')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="pencil-outline" size={13} color={COLORS.accent} />
-          <Text style={styles.editText}>Edit</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.infoRow}>
@@ -76,31 +72,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 14,
   },
   cardTitle: {
     fontFamily: FONTS.heading.semiBold,
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: LAYOUT.radius.full,
-    backgroundColor: COLORS.accent + '18',
-    borderWidth: 1,
-    borderColor: COLORS.accent + '44',
-  },
-  editText: {
-    fontFamily: FONTS.body.semiBold,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.accent,
   },
   infoRow: {
     flexDirection: 'row',

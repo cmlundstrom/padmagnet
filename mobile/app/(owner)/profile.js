@@ -103,10 +103,9 @@ export default function OwnerProfileScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Profile card — only for authenticated */}
+        {/* Profile card — only for authenticated. Read-only display. */}
         {!isAnon && (
           <ProfileCard
-            role={role}
             displayName={profile.display_name}
             email={profile.email}
             phone={profile.phone}
@@ -139,8 +138,16 @@ export default function OwnerProfileScreen() {
               icon="person-outline"
               iconColor={COLORS.accent}
               label="Edit Profile"
-              hint="Name, email, phone"
+              hint="Display name and phone"
               onPress={() => router.push('/settings/edit-profile')}
+            />
+            <MenuItem
+              testID="profile-change-email-button"
+              icon="mail-outline"
+              iconColor={COLORS.brandOrange}
+              label="Change Email"
+              hint="Update the email address used to sign in"
+              onPress={() => router.push('/settings/change-email')}
             />
 
             {/* Self-service role acquisition — only when user has a single role. */}

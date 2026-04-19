@@ -1,5 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import useAndroidBack from '../../hooks/useAndroidBack';
+/**
+ * Edit Profile — display name + phone only.
+ *
+ * Email editing was removed from this screen and moved to a dedicated
+ * /settings/change-email re-auth flow. Email is auth identity, not a
+ * profile attribute, so free-text editing it from a generic profile form
+ * created two failure modes (anon-user crash, silent collision with
+ * existing accounts). This screen now only edits the two fields that are
+ * truly profile attributes.
+ */
+
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Pressable,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet,
@@ -8,10 +18,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../providers/AlertProvider';
 import { supabase } from '../../lib/supabase';
-import { signOut } from '../../lib/auth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -23,58 +33,47 @@ function formatPhone(raw) {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
-const EMAIL_CHANGE_HINT = 'Changing your email will send a confirmation link to your new address. You must tap that link to complete the change.';
-
 export default function EditProfileScreen() {
   useAndroidBack();
-  const { user } = useAuth();
+  const { user, isAnon } = useAuth();
   const alert = useAlert();
 
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const originalEmail = useRef('');
+  // Hard guard — anon users have no profile to edit. Bounce immediately.
+  useEffect(() => {
+    if (isAnon || !user) {
+      router.replace('/welcome');
+    }
+  }, [isAnon, user]);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, email, phone')
+        .select('display_name, phone')
         .eq('id', user.id)
         .single();
-      // Source-of-truth for "current email" is auth.users (user.email). profiles.email
-      // can be empty/stale (e.g. fresh anon signups) — falling back to it would let a
-      // user "change" to their own email and collide on auth.updateUser.
-      const authEmail = (user.email || '').toLowerCase();
-      const profileEmail = (data?.email || '').toLowerCase();
-      const initialEmail = profileEmail || authEmail;
       if (data) {
         setDisplayName(data.display_name || '');
         setPhone(data.phone || '');
       }
-      setEmail(initialEmail);
-      originalEmail.current = authEmail || profileEmail;
       setLoading(false);
     })();
   }, [user]);
 
-  const emailChanged = email.trim().toLowerCase() !== originalEmail.current;
-
   async function handleSave() {
+    if (!user) return;
+
     const trimmedName = displayName.trim();
-    const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone.trim();
 
     if (!trimmedName) {
       alert('Missing Name', 'Please enter your display name.');
-      return;
-    }
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
 
@@ -87,38 +86,9 @@ export default function EditProfileScreen() {
 
       if (profileErr) throw new Error(profileErr.message);
 
-      if (trimmedEmail !== originalEmail.current) {
-        const { error: authErr } = await supabase.auth.updateUser({ email: trimmedEmail });
-        if (authErr) {
-          if (/already.*registered|already.*exist/i.test(authErr.message)) {
-            alert(
-              'Email Already In Use',
-              `An account with ${trimmedEmail} already exists. If it's yours, sign out and sign back in with that email instead.`,
-              [
-                { text: 'Cancel' },
-                {
-                  text: 'Sign Out & Switch',
-                  onPress: async () => {
-                    try { await signOut(); } catch {}
-                  },
-                },
-              ]
-            );
-            return;
-          }
-          throw new Error(authErr.message);
-        }
-
-        alert(
-          'Confirmation Required',
-          `${EMAIL_CHANGE_HINT}\n\nA confirmation link has been sent to ${trimmedEmail}. Open that email and tap the link to complete the change.`,
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
-      } else {
-        alert('Saved', 'Your profile has been updated.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
-      }
+      alert('Saved', 'Your profile has been updated.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     } catch (err) {
       alert('Error', err.message);
     } finally {
@@ -126,7 +96,7 @@ export default function EditProfileScreen() {
     }
   }
 
-  if (loading) {
+  if (isAnon || !user || loading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator color={COLORS.accent} size="large" />
@@ -144,7 +114,7 @@ export default function EditProfileScreen() {
               <Ionicons name="close" size={22} color={COLORS.text} />
             </TouchableOpacity>
             <Text style={styles.title}>Edit Profile</Text>
-            <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.headerBtn}>
+            <TouchableOpacity testID="edit-profile-save-header" onPress={handleSave} disabled={saving} style={styles.headerBtn}>
               <Text style={[styles.saveText, saving && { color: COLORS.slate }]}>
                 {saving ? 'Saving...' : 'Save'}
               </Text>
@@ -152,7 +122,8 @@ export default function EditProfileScreen() {
           </View>
 
           <Text style={styles.introText}>
-            Keep your contact info up to date so property owners can reach you.
+            Update your display name and phone. To change your account email,
+            use Change Email in Settings.
           </Text>
 
           {/* Display Name */}
@@ -164,6 +135,7 @@ export default function EditProfileScreen() {
               <Text style={styles.fieldLabel}>Display Name</Text>
             </View>
             <TextInput
+              testID="edit-profile-name-input"
               style={styles.input}
               value={displayName}
               onChangeText={setDisplayName}
@@ -172,32 +144,6 @@ export default function EditProfileScreen() {
               autoCapitalize="words"
               returnKeyType="next"
             />
-          </View>
-
-          {/* Email */}
-          <View style={styles.fieldCard}>
-            <View style={styles.fieldHeader}>
-              <View style={[styles.fieldIcon, { backgroundColor: COLORS.brandOrange + '18' }]}>
-                <Ionicons name="mail-outline" size={16} color={COLORS.brandOrange} />
-              </View>
-              <Text style={styles.fieldLabel}>Email Address</Text>
-            </View>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={COLORS.slate}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="next"
-            />
-            {emailChanged && (
-              <Text style={[styles.hint, styles.hintActive]}>
-                {EMAIL_CHANGE_HINT}
-              </Text>
-            )}
           </View>
 
           {/* Phone */}
@@ -209,6 +155,7 @@ export default function EditProfileScreen() {
               <Text style={styles.fieldLabel}>Phone Number</Text>
             </View>
             <TextInput
+              testID="edit-profile-phone-input"
               style={styles.input}
               value={phone}
               onChangeText={v => setPhone(formatPhone(v))}
@@ -223,7 +170,7 @@ export default function EditProfileScreen() {
           </View>
 
           {/* Bottom Save Button */}
-          <Pressable onPress={handleSave} disabled={saving} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
+          <Pressable testID="edit-profile-save-bottom" onPress={handleSave} disabled={saving} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
             <LinearGradient
               colors={[COLORS.logoOrange, '#D14E2F']}
               start={{ x: 0, y: 0 }}
@@ -234,6 +181,18 @@ export default function EditProfileScreen() {
               <Text style={styles.bottomSaveText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
             </LinearGradient>
           </Pressable>
+
+          {/* Email-change link — moved from this screen to its own re-auth flow */}
+          <TouchableOpacity
+            testID="edit-profile-change-email-link"
+            style={styles.changeEmailLink}
+            onPress={() => router.replace('/settings/change-email')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="mail-open-outline" size={16} color={COLORS.accent} />
+            <Text style={styles.changeEmailLinkText}>Need to change your email instead?</Text>
+            <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -253,7 +212,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: LAYOUT.padding.md,
-    paddingBottom: 300,
+    paddingBottom: 360,
   },
   header: {
     flexDirection: 'row',
@@ -332,9 +291,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     lineHeight: 16,
   },
-  hintActive: {
-    color: COLORS.warning,
-  },
   bottomSaveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -353,5 +309,23 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
+  },
+  changeEmailLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: LAYOUT.radius.md,
+    backgroundColor: COLORS.accent + '10',
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33',
+  },
+  changeEmailLinkText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
   },
 });
