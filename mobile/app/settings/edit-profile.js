@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../providers/AlertProvider';
 import { supabase } from '../../lib/supabase';
+import { signOut } from '../../lib/auth';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -45,12 +46,18 @@ export default function EditProfileScreen() {
         .select('display_name, email, phone')
         .eq('id', user.id)
         .single();
+      // Source-of-truth for "current email" is auth.users (user.email). profiles.email
+      // can be empty/stale (e.g. fresh anon signups) — falling back to it would let a
+      // user "change" to their own email and collide on auth.updateUser.
+      const authEmail = (user.email || '').toLowerCase();
+      const profileEmail = (data?.email || '').toLowerCase();
+      const initialEmail = profileEmail || authEmail;
       if (data) {
         setDisplayName(data.display_name || '');
-        setEmail(data.email || '');
         setPhone(data.phone || '');
-        originalEmail.current = (data.email || '').toLowerCase();
       }
+      setEmail(initialEmail);
+      originalEmail.current = authEmail || profileEmail;
       setLoading(false);
     })();
   }, [user]);
@@ -82,11 +89,29 @@ export default function EditProfileScreen() {
 
       if (trimmedEmail !== originalEmail.current) {
         const { error: authErr } = await supabase.auth.updateUser({ email: trimmedEmail });
-        if (authErr) throw new Error(authErr.message);
+        if (authErr) {
+          if (/already.*registered|already.*exist/i.test(authErr.message)) {
+            alert(
+              'Email Already In Use',
+              `An account with ${trimmedEmail} already exists. If it's yours, sign out and sign back in with that email instead.`,
+              [
+                { text: 'Cancel' },
+                {
+                  text: 'Sign Out & Switch',
+                  onPress: async () => {
+                    try { await signOut(); } catch {}
+                  },
+                },
+              ]
+            );
+            return;
+          }
+          throw new Error(authErr.message);
+        }
 
         alert(
           'Confirmation Required',
-          EMAIL_CHANGE_HINT + '\n\nA confirmation link has been sent to ' + trimmedEmail + '. Open that email and tap the link to complete the change.',
+          `${EMAIL_CHANGE_HINT}\n\nA confirmation link has been sent to ${trimmedEmail}. Open that email and tap the link to complete the change.`,
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
@@ -168,9 +193,11 @@ export default function EditProfileScreen() {
               autoCorrect={false}
               returnKeyType="next"
             />
-            <Text style={[styles.hint, emailChanged && styles.hintActive]}>
-              {EMAIL_CHANGE_HINT}
-            </Text>
+            {emailChanged && (
+              <Text style={[styles.hint, styles.hintActive]}>
+                {EMAIL_CHANGE_HINT}
+              </Text>
+            )}
           </View>
 
           {/* Phone */}
