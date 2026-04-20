@@ -1,0 +1,90 @@
+# Smoke: L1 Manila Folder auto-dismisses (+ auto-nav) after an owner with
+# an existing listing signs in through the L1 CTA.
+#
+# Code under test:
+#  - ManilaFolderStack.js:561-566  (auto-dismiss when ownerHasListings flips true)
+#  - (owner)/home.js:40-54         (auto-navigate to /(owner)/listings post-auth)
+#  - ManilaFolderStack.js:779      (CTA label flip to "Open My Listings")
+#
+# Uses a real account (info@floridapm.net) because this flow needs an owner
+# that *already has* an active listing — something the seed_test_owner.js
+# helper doesn't produce. Credentials pulled from .env.local via run.sh:
+#   MAESTRO_OWNER_TEST_EMAIL=info@floridapm.net
+#   MAESTRO_OWNER_TEST_PASSWORD=<set locally, never commit>
+#
+# Run via:
+#   cd mobile/.maestro && ./run.sh flows/smoke/owner_l1_autodismiss.yaml
+appId: com.padmagnet.app
+---
+- runFlow: ../../elements/loadElements.yaml
+
+# 1. Cold start (clears AsyncStorage, so L1 hasn't been "seen" this session)
+- runFlow: ../_shared/launch_fresh.yaml
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# 2. Role gate → owner (anon)
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 3. L1 manila card should be visible (anon + no listings yet in AsyncStorage)
+- assertVisible: "List Your Rental\nfor Free"
+
+# 4. Scroll into the L1 CTAs (they sit below the fold on smaller devices)
+- swipe:
+    direction: UP
+    duration: 400
+- waitForAnimationToEnd
+- assertVisible:
+    id: ${output.auth.manilaL1.primaryCta}
+
+# 5. Tap L1 primary CTA → AuthBottomSheet opens (anon path)
+- tapOn:
+    id: ${output.auth.manilaL1.primaryCta}
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+# 6. Sign in with the real owner account (owns ≥1 active listing)
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${MAESTRO_OWNER_TEST_EMAIL}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${MAESTRO_OWNER_TEST_PASSWORD}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 12000
+# Dismiss Samsung Pass "save password?" prompt if it appears
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 7. Post-auth effect #1: we must land on /(owner)/listings, NOT back on Home
+#    with L1 still in front. The screen header is "My Listings".
+- assertVisible: "My Listings"
+
+# 8. Post-auth effect #2: tab back to Home → L1 must NOT reappear.
+#    Both the ownerHasListings auto-dismiss AND the AsyncStorage
+#    owner_folder_l1_seen flag should keep it hidden.
+- tapOn: "Home"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertNotVisible: "List Your Rental\nfor Free"
+
+# The test ends here — the two key behaviors (auto-nav on sign-in, L1
+# stays hidden on tab back) are both verified. The device is left signed
+# in as info@floridapm.net; no cleanup helper runs because this is a
+# real account. Sign out manually if needed, or run sign_out.yaml with a
+# fresh seeded user.
