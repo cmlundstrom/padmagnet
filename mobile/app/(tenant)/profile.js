@@ -113,6 +113,19 @@ export default function TenantProfileScreen() {
             flip to owner (or back) without scrolling past PadScore + tier. */}
         <RoleSwitcher />
 
+        {/* Anonymous value pitch — mirrors owner profile pattern. For anon
+            users this is the hero CTA, above PadScore so it's the first
+            thing they see. Authed users skip straight to PadScore. */}
+        {isAnon && (
+          <TouchableOpacity testID="profile-sign-in-card-button" style={styles.signInCard} onPress={() => setShowAuth(true)} activeOpacity={0.7}>
+            <Ionicons name="lock-open-outline" size={20} color={COLORS.accent} />
+            <Text style={styles.signInCardText}>
+              Sign in to save matches, message owners, and personalize your search.
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+          </TouchableOpacity>
+        )}
+
         {/* PadScore Dashboard — the hero of the profile */}
         <PadScoreDashboard
           padpoints={padPoints.padpoints}
@@ -135,19 +148,6 @@ export default function TenantProfileScreen() {
           maxZones={renterTier.maxZones}
           onUpgrade={() => setShowUpgrade(true)}
         />
-
-        {/* Anonymous value pitch — mirrors owner profile pattern. Anon users
-            don't see Contact Info or any account-editing UI; they see a
-            single Sign In CTA card that opens AuthBottomSheet. */}
-        {isAnon && (
-          <TouchableOpacity testID="profile-sign-in-card-button" style={styles.signInCard} onPress={() => setShowAuth(true)} activeOpacity={0.7}>
-            <Ionicons name="lock-open-outline" size={20} color={COLORS.accent} />
-            <Text style={styles.signInCardText}>
-              Sign in to save matches, message owners, and personalize your search.
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
-          </TouchableOpacity>
-        )}
 
         {/* Profile card — only for authenticated users. Read-only display. */}
         {!isAnon && (

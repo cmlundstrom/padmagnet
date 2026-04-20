@@ -1,0 +1,113 @@
+# Smoke: /settings/edit-profile no longer renders an Email field, and the
+# new dedicated /settings/change-email screen is reachable.
+#
+# After the auth simplification (Depth 3 — see docs/auth-simplification-plan.md),
+# edit-profile.js edits only display_name + phone. Email editing was moved to
+# /settings/change-email behind a re-auth gate. This flow needs an authed
+# test renter — same seed-then-sign-in pattern as sign_out.yaml.
+appId: com.padmagnet.app
+---
+- runFlow: ../../elements/loadElements.yaml
+
+# 1. Cold start → renter (anon) → swipe deck
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+
+# 2. Open auth sheet via Contact Owner path
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.detail.contactOwner}
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.auth.bottomSheet.emailInput}
+
+# 3. Seed test renter + sign in
+- runScript: ../../helpers/seed_test_renter.js
+- tapOn:
+    id: ${output.auth.bottomSheet.emailInput}
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.passwordInput}
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.auth.bottomSheet.signInCta}
+- waitForAnimationToEnd:
+    timeout: 10000
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# 4. Back out to swipe deck → Profile tab
+- assertVisible:
+    id: ${output.listings.detail.backButton}
+- tapOn:
+    id: ${output.listings.detail.backButton}
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 5. Edit Profile menu item must be visible (authed UX). Renter profile
+#    stacks PadScore + AskPad tier + Contact Info above SETTINGS so we
+#    need two swipes to reach the menu items. We don't separately assert
+#    changeEmailButton here because the changeEmailLink at the bottom of
+#    Edit Profile (verified below) is the real entry point under test.
+- swipe:
+    direction: UP
+    duration: 600
+- swipe:
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1500
+- assertVisible:
+    id: ${output.profile.editButton}
+
+# 6. Tap "Edit Profile" → form should have Name + Phone but NO Email
+- tapOn:
+    id: ${output.profile.editButton}
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: ${output.settings.editProfile.nameInput}
+- assertVisible:
+    id: ${output.settings.editProfile.phoneInput}
+- assertNotVisible: "Email Address"
+
+# 7. Change Email link routes to /settings/change-email
+- scrollUntilVisible:
+    element:
+      id: ${output.settings.editProfile.changeEmailLink}
+    direction: DOWN
+    timeout: 4000
+    visibilityPercentage: 50
+- tapOn:
+    id: ${output.settings.editProfile.changeEmailLink}
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Change Email"
+- assertVisible: "Current Email"
+- assertVisible:
+    id: ${output.settings.changeEmail.input}
+
+# 8. Cleanup
+- runScript: ../../helpers/cleanup_test_users.js

@@ -11,6 +11,7 @@ output.profile = {
   // MenuItem destinations exposed via testID prop on the local MenuItem component.
   // Each appears on either tenant or owner profile, never both.
   editButton: 'profile-edit-button',
+  changeEmailButton: 'profile-change-email-button',
   notificationsButton: 'profile-notifications-button',
   preferencesButton: 'profile-preferences-button',   // tenant-only
   subscriptionButton: 'profile-subscription-button', // owner-only

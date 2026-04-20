@@ -1,0 +1,72 @@
+# Smoke: anon renter profile shows the simplified anon UX.
+#
+# After the auth simplification (Depth 3 — see docs/auth-simplification-plan.md):
+#  - Anon users see a single "Sign In" CTA card on Profile (instead of broken
+#    Contact Info / Edit Profile entry points)
+#  - Account-editing menu items (Edit Profile, Change Email, Delete Account,
+#    Become an Owner too) are hidden for anon
+#  - Tapping the Sign In card opens AuthBottomSheet with tenant_profile context
+#  - The "Sign Out" button is still visible (anon can exit anon session)
+#
+# Layout note: on renter profile the Sign In card lives below PadScore/Tier
+# (one swipe-up from default scroll position) and Sign Out lives even further
+# down in the ACCOUNT section (another swipe). Owner profile stacks them
+# tighter near the top — this flow targets renter, the more demanding case.
+appId: com.padmagnet.app
+---
+- runFlow: ../../elements/loadElements.yaml
+
+# 1. Cold start → role gate → renter (anonymous)
+- runFlow: ../_shared/launch_fresh.yaml
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 2. Tap Profile tab
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 3. Negative assertions first — these don't need the element to be on
+#    screen since assertNotVisible passes when the element is absent
+#    from the entire hierarchy. Anon users should NEVER see these.
+- assertNotVisible:
+    id: ${output.profile.editButton}
+- assertNotVisible:
+    id: ${output.profile.changeEmailButton}
+- assertNotVisible:
+    id: ${output.profile.deleteAccountLink}
+
+# 4. Scroll to Sign In card → assert visible → tap → AuthBottomSheet opens.
+#    Doing the tap right after asserting visible avoids relying on Maestro
+#    auto-scrolling to find the element after we've scrolled past it.
+- swipe:
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1500
+- assertVisible:
+    id: ${output.profile.signInCardButton}
+- tapOn:
+    id: ${output.profile.signInCardButton}
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Continue with Google"
+- assertVisible: "Continue with Facebook"
+- assertVisible: "Sign In"
+
+# 5. Dismiss AuthBottomSheet by tapping outside / pressing back, then
+#    verify Sign Out button is still reachable.
+- pressKey: BACK
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    direction: UP
+    duration: 600
+- swipe:
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1500
+- assertVisible:
+    id: ${output.profile.signOutButton}

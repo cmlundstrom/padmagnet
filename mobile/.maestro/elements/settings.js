@@ -12,4 +12,15 @@ output.settings = {
     confirmButton: 'settings-add-role-confirm-button',
     cancelButton: 'settings-add-role-cancel-button',
   },
+  editProfile: {
+    nameInput: 'edit-profile-name-input',
+    phoneInput: 'edit-profile-phone-input',
+    saveHeader: 'edit-profile-save-header',
+    saveBottom: 'edit-profile-save-bottom',
+    changeEmailLink: 'edit-profile-change-email-link',
+  },
+  changeEmail: {
+    input: 'change-email-input',
+    submit: 'change-email-submit',
+  },
 };
