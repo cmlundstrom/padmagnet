@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import useAndroidBack from '../../hooks/useAndroidBack';
 import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -636,16 +636,36 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
   );
 }
 
-/** Map view for nearby listings with subject property marker */
+/** Map view for nearby listings with subject property marker.
+ *  Mirrors the behavior of components/map/MapView.js for owner/renter
+ *  parity — same justPressedMarker guard, same map controls, same card
+ *  layout. The owner-specific bits (subject marker, owner_browse routing
+ *  context) keep this as a separate inline component for now. */
 function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, onDismiss }) {
   const router = useRouter();
   const mappable = listings.filter(l => l.latitude && l.longitude);
   const [markersReady, setMarkersReady] = useState(false);
+  // See MapView.js: parent map onPress fires immediately after a marker
+  // onPress on Android, which would clear the selection we just set.
+  const justPressedMarker = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setMarkersReady(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleMarkerPress = useCallback((listing) => {
+    justPressedMarker.current = true;
+    onMarkerPress(listing);
+  }, [onMarkerPress]);
+
+  const handleMapPress = useCallback(() => {
+    if (justPressedMarker.current) {
+      justPressedMarker.current = false;
+      return;
+    }
+    onDismiss();
+  }, [onDismiss]);
 
   // Use subject coords (listing mode) or GPS/address coords (location mode)
   const centerLat = subject?.latitude || coords?.latitude || 26.7;
@@ -660,13 +680,16 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
         showsBuildings={true}
         showsPointsOfInterest={false}
         showsTraffic={false}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
         initialRegion={{
           latitude: centerLat,
           longitude: centerLng,
           latitudeDelta: 0.08,
           longitudeDelta: 0.08,
         }}
-        onPress={onDismiss}
+        onPress={handleMapPress}
       >
         {/* Subject property marker (listing mode) */}
         {subject?.latitude && subject?.longitude && (
@@ -713,7 +736,7 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
             <Marker
               key={listing.id}
               coordinate={{ latitude: listing.latitude, longitude: listing.longitude }}
-              onPress={() => onMarkerPress(listing)}
+              onPress={() => handleMarkerPress(listing)}
               anchor={{ x: 0.5, y: 1 }}
               tracksViewChanges={!markersReady}
             >
@@ -749,11 +772,13 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
               colors={['transparent', 'rgba(0,0,0,0.4)']}
               style={styles.mapPreviewPhotoGrad}
             />
-            <View style={styles.mapPreviewPriceBadge}>
-              <Text style={styles.mapPreviewPriceText}>
-                {formatCurrency(selectedListing.list_price)}
-                <Text style={styles.mapPreviewPerMonth}>/mo</Text>
-              </Text>
+            <View style={styles.mapPreviewPriceBadgeWrap}>
+              <View style={styles.mapPreviewPriceBadge}>
+                <Text style={styles.mapPreviewPriceText} numberOfLines={1}>
+                  {formatCurrency(selectedListing.list_price)}
+                  <Text style={styles.mapPreviewPerMonth}>/mo</Text>
+                </Text>
+              </View>
             </View>
           </View>
           <View style={styles.mapPreviewInfo}>
@@ -1386,15 +1411,17 @@ const styles = StyleSheet.create({
   },
 
   // ── Map preview card ─────────────────────────────
+  // Mirrors components/map/MapView.js previewCard styling 1:1 for parity
+  // between renter swipe map, owner home map, and owner nearby-rentals.
   mapPreview: {
     position: 'absolute',
-    bottom: 20,
+    top: 60,
     left: 16,
     right: 16,
     flexDirection: 'row',
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: 'visible',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     shadowColor: '#000',
@@ -1407,35 +1434,44 @@ const styles = StyleSheet.create({
     width: 120,
     height: 110,
     position: 'relative',
+    paddingTop: 6,
+    paddingLeft: 6,
   },
   mapPreviewImage: {
     flex: 1,
+    borderTopLeftRadius: 10,
   },
   mapPreviewPhotoGrad: {
     position: 'absolute',
-    left: 0,
+    left: 6,
     right: 0,
     bottom: 0,
-    height: 40,
+    height: 32,
+  },
+  mapPreviewPriceBadgeWrap: {
+    position: 'absolute',
+    bottom: -11,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   mapPreviewPriceBadge: {
-    position: 'absolute',
-    bottom: 6,
-    left: 6,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(26, 51, 88, 0.65)',
+    borderWidth: 1.5,
+    borderColor: COLORS.logoOrange,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   mapPreviewPriceText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.white,
   },
   mapPreviewPerMonth: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xxs,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.75)',
   },
   mapPreviewInfo: {
     flex: 1,

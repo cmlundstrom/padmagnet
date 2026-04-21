@@ -157,12 +157,16 @@ export default function MapView({ listings = [], loading, initialCoords }) {
               colors={['transparent', 'rgba(0,0,0,0.4)']}
               style={styles.previewPhotoGradient}
             />
-            {/* Price badge on photo */}
-            <View style={styles.previewPriceBadge}>
-              <Text style={styles.previewPriceText}>
-                {formatCurrency(selectedListing.list_price)}
-                <Text style={styles.previewPerMonth}>/mo</Text>
-              </Text>
+            {/* Price badge — centered horizontally over the photo's bottom
+                edge via a full-width wrap with alignItems:center. The badge
+                child sizes to its content. */}
+            <View style={styles.previewPriceBadgeWrap}>
+              <View style={styles.previewPriceBadge}>
+                <Text style={styles.previewPriceText} numberOfLines={1}>
+                  {formatCurrency(selectedListing.list_price)}
+                  <Text style={styles.previewPerMonth}>/mo</Text>
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -329,29 +333,36 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: 32,
   },
-  previewPriceBadge: {
+  // Outer wrap spans the photo width so its alignItems:center centers the
+  // badge child horizontally over the photo. Sits below the photo edge so
+  // the badge straddles it as a visual bottom border.
+  previewPriceBadgeWrap: {
     position: 'absolute',
-    // Anchored at the bottom of the photo so it visually acts as the
-    // photo's bottom border — overlapping the lower ~15px of the image
-    // but leaving the rest fully visible.
-    bottom: -8,
-    left: 12,
-    backgroundColor: 'rgba(26, 51, 88, 0.95)',
+    bottom: -11,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  previewPriceBadge: {
+    backgroundColor: 'rgba(26, 51, 88, 0.65)',
     borderWidth: 1.5,
     borderColor: COLORS.logoOrange,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
   },
+  // Smaller font so prices like "$25,000/mo" fit on a single line at the
+  // 120px photo width. numberOfLines on the Text guards against multi-line
+  // wrapping if a price ever exceeds the available width.
   previewPriceText: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.white,
   },
   previewPerMonth: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xxs,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.75)',
   },
   noPhoto: {
     backgroundColor: COLORS.surface,
