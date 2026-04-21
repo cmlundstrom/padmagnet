@@ -1,5 +1,5 @@
 import { useEffect, useContext } from 'react';
-import { AppState, Platform, LogBox } from 'react-native';
+import { LogBox } from 'react-native';
 import { Stack, useSegments, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 
@@ -37,12 +37,11 @@ SplashScreen.preventAutoHideAsync();
 
 /**
  * Route guard — runs inside AuthProvider so it can read auth context.
- * Redirects users to the correct tab group when:
- *   - App resumes from background (AppState change)
- *   - Auth state changes (login/logout)
+ * Only bounces users out of the app tab groups when they're signed out.
+ * Role-based tab-group switching is explicit (Profile CTAs / RoleSwitcher).
  */
 function RouteGuard({ children }) {
-  const { session, user, role, roles, loading } = useContext(AuthContext);
+  const { session, user, loading } = useContext(AuthContext);
   const segments = useSegments();
   const router = useRouter();
 
@@ -71,45 +70,15 @@ function RouteGuard({ children }) {
     const inOwner = segments[0] === '(owner)';
     const inApp = inTenant || inOwner;
 
-    // Multi-role users (including admins) can access any tab group — no redirect
-    const isMultiRole = roles.length > 1;
-    const isAdmin = roles.includes('admin') || role === 'admin' || role === 'super_admin';
-
+    // Signed out while still on an app screen → go to welcome.
+    // Role-based redirects between (tenant) and (owner) were removed
+    // deliberately: tab-group context is the user's current choice, not a
+    // function of profiles.role. Switching is explicit via the Profile
+    // screen's "Switch to Owner/Renter view" CTAs or the RoleSwitcher.
     if (!session && inApp) {
-      // Logged out but still on an app screen → go to welcome
       router.replace('/welcome');
-    } else if (session && !isMultiRole && !isAdmin && role === 'owner' && inTenant) {
-      // Single-role owner stuck in tenant tab group → redirect
-      router.replace('/(owner)/home');
-    } else if (session && !isMultiRole && !isAdmin && role && role !== 'owner' && inOwner) {
-      // Single-role tenant stuck in owner tab group → redirect
-      router.replace('/(tenant)/swipe');
     }
-  }, [session, role, loading, segments]);
-
-  // Also re-check when app returns from background
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active' || loading || !session) return;
-      if (segments[0] === 'auth-callback') return;
-
-      // Multi-role users and admins — no auto-redirect
-      const isMultiRole = roles.length > 1;
-      const isAdmin = roles.includes('admin') || role === 'admin' || role === 'super_admin';
-      if (isMultiRole || isAdmin) return;
-
-      const inTenant = segments[0] === '(tenant)';
-      const inOwner = segments[0] === '(owner)';
-
-      if (role === 'owner' && inTenant) {
-        router.replace('/(owner)/home');
-      } else if (role && role !== 'owner' && inOwner) {
-        router.replace('/(tenant)/swipe');
-      }
-    });
-
-    return () => sub.remove();
-  }, [session, role, roles, loading, segments]);
+  }, [session, loading, segments]);
 
   return children;
 }

@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from '../../lib/auth';
 import RoleSwitcher from '../../components/auth/RoleSwitcher';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
+import { performRoleSwitch } from '../../lib/role-switch';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import usePadPoints from '../../hooks/usePadPoints';
@@ -22,7 +23,7 @@ import { LAYOUT } from '../../constants/layout';
 import { EqualHousingBadge } from '../../components/ui';
 
 export default function TenantProfileScreen() {
-  const { user, role, roles, isAnon } = useAuth();
+  const { user, session, role, roles, isAnon, switchRole } = useAuth();
   const alert = useAlert();
   const hasOwnerRole = (roles || []).includes('owner');
   const [profile, setProfile] = useState({});
@@ -113,16 +114,49 @@ export default function TenantProfileScreen() {
             flip to owner (or back) without scrolling past PadScore + tier. */}
         <RoleSwitcher />
 
-        {/* Anonymous value pitch — mirrors owner profile pattern. For anon
-            users this is the hero CTA, above PadScore so it's the first
-            thing they see. Authed users skip straight to PadScore. */}
+        {/* Anonymous value pitch — hero CTA above PadScore. Full art treatment
+            (5-stop orange gradient + shine + inner glow + warm shadow) matches
+            the Enable Location L2 button; this is the primary conversion
+            moment and should read as the hottest element on the screen. */}
         {isAnon && (
-          <TouchableOpacity testID="profile-sign-in-card-button" style={styles.signInCard} onPress={() => setShowAuth(true)} activeOpacity={0.7}>
-            <Ionicons name="lock-open-outline" size={20} color={COLORS.accent} />
-            <Text style={styles.signInCardText}>
-              Sign in to save matches, message owners, and personalize your search.
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+          <TouchableOpacity testID="profile-sign-in-card-button" style={styles.signInCard} onPress={() => setShowAuth(true)} activeOpacity={0.85}>
+            <LinearGradient
+              colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.signInGradient}
+            >
+              <LinearGradient
+                colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.signInShine}
+              />
+              <LinearGradient
+                colors={['rgba(255,200,100,0.25)', 'transparent']}
+                start={{ x: 0.5, y: 0.3 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.signInInnerGlow}
+              />
+              <View style={styles.signInContent}>
+                <View style={styles.signInIconWrap}>
+                  <Ionicons name="lock-open-outline" size={20} color={COLORS.white} />
+                </View>
+                <View style={styles.signInTextWrap}>
+                  <Text style={styles.signInHeadline}>Save Your Matches</Text>
+                  <Text style={styles.signInCaption}>
+                    Message owners, sync across devices, personalize your search.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.85)" />
+              </View>
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.15)']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.signInBottomEdge}
+              />
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -203,8 +237,20 @@ export default function TenantProfileScreen() {
           </>
         )}
 
-        {/* Self-service role acquisition — authed single-role users only. */}
-        {!hasOwnerRole && !isAnon && (
+        {/* Role access — show "Switch to Owner view" when the user already
+            holds the owner role, or "Become an Owner too" when they don't.
+            Signed-in users only (anon users sign in first). */}
+        {!isAnon && hasOwnerRole && (
+          <MenuItem
+            testID="profile-switch-to-owner-button"
+            icon="key-outline"
+            iconColor={COLORS.accent}
+            label="Switch to Owner view"
+            hint="Manage your listings and renter inquiries"
+            onPress={() => performRoleSwitch({ targetRole: 'owner', session, switchRole, router })}
+          />
+        )}
+        {!isAnon && !hasOwnerRole && (
           <MenuItem
             testID="profile-add-role-button"
             icon="key-outline"
@@ -369,24 +415,72 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.slate,
   },
-  // ── Sign in card (anon) ──────────────────
+  // ── Sign in card (anon) — full art treatment, primary conversion moment ──
   signInCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginBottom: LAYOUT.padding.md,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 20,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,180,80,0.4)',
+  },
+  signInGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  signInShine: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: '50%',
+  },
+  signInInnerGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  signInBottomEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 6,
+  },
+  signInContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: COLORS.accent + '12',
-    borderRadius: LAYOUT.radius.lg,
-    padding: LAYOUT.padding.md,
-    marginBottom: LAYOUT.padding.md,
-    borderWidth: 1,
-    borderColor: COLORS.accent + '33',
   },
-  signInCardText: {
+  signInIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  signInTextWrap: {
     flex: 1,
+  },
+  signInHeadline: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    marginBottom: 2,
+  },
+  signInCaption: {
     fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+    fontSize: FONT_SIZES.xs,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 16,
   },
   // ── Section labels ───────────────────────
   sectionLabel: {

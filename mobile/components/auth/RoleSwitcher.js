@@ -8,6 +8,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
+import { performRoleSwitch } from '../../lib/role-switch';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -24,39 +25,7 @@ export default function RoleSwitcher() {
 
   const handleSwitch = async (targetRole) => {
     if (targetRole === role) return;
-
-    // 1. Update local AuthProvider state + AsyncStorage so the next render
-    //    of RoleSwitcher reflects the new role and a future switch-back works.
-    await switchRole(targetRole);
-
-    // 2. Persist to profiles.role via direct REST so the choice survives
-    //    sign-out + sign-in (resolveRole reads profiles.role on mount and
-    //    overrides AsyncStorage). Same direct-PATCH pattern as auth-callback.js.
-    if (session?.access_token && session?.user?.id) {
-      try {
-        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-        await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${session.user.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': supabaseKey,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify({ role: targetRole }),
-        });
-      } catch (err) {
-        console.error('[RoleSwitcher] persist role failed:', err.message);
-      }
-    }
-
-    // 3. Navigate to the target tab group
-    if (targetRole === 'owner') {
-      router.replace('/(owner)/home');
-    } else {
-      router.replace('/(tenant)/swipe');
-    }
+    await performRoleSwitch({ targetRole, session, switchRole, router });
   };
 
   return (

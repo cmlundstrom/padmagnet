@@ -128,12 +128,14 @@ export function AuthProvider({ children }) {
     return () => supabase.removeChannel(channel);
   }, [session?.user?.id]);
 
-  // Imperative role switch for multi-role users (RoleSwitcher).
-  // resolveRole only re-runs on auth state changes, so router.replace alone
-  // doesn't update local role state — without this, switching tenant→owner
-  // leaves role='tenant' and the next switch back is a no-op.
-  const switchRole = useCallback(async (newRole) => {
+  // Imperative role switch. Callers pass newRoles when the set has changed
+  // (e.g. /settings/add-role just grew roles[] server-side — without updating
+  // the context here, any consumer reading roles[] will see stale data until
+  // the next auth state change fires resolveRole). RoleSwitcher/Profile CTAs
+  // that only change active role can omit newRoles.
+  const switchRole = useCallback(async (newRole, newRoles) => {
     setRole(newRole);
+    if (newRoles) setRoles(newRoles);
     await saveUserRole(newRole);
   }, []);
 

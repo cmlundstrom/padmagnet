@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from '../../lib/auth';
 import RoleSwitcher from '../../components/auth/RoleSwitcher';
+import { performRoleSwitch } from '../../lib/role-switch';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
@@ -18,7 +19,7 @@ import { LAYOUT } from '../../constants/layout';
 import { EqualHousingBadge } from '../../components/ui';
 
 export default function OwnerProfileScreen() {
-  const { session, user, role, roles, isAnon } = useAuth();
+  const { session, user, role, roles, isAnon, switchRole } = useAuth();
   const { tier } = useSubscription();
   const hasTenantRole = (roles || []).includes('tenant');
   const [profile, setProfile] = useState({});
@@ -150,7 +151,19 @@ export default function OwnerProfileScreen() {
               onPress={() => router.push('/settings/change-email')}
             />
 
-            {/* Self-service role acquisition — only when user has a single role. */}
+            {/* Role access — show "Switch to Renter view" when the user
+                already holds the renter role, or "Become a Renter too"
+                when they don't. */}
+            {hasTenantRole && (
+              <MenuItem
+                testID="profile-switch-to-renter-button"
+                icon="home-outline"
+                iconColor={COLORS.logoOrange}
+                label="Switch to Renter view"
+                hint="Swipe rentals and message owners"
+                onPress={() => performRoleSwitch({ targetRole: 'tenant', session, switchRole, router })}
+              />
+            )}
             {!hasTenantRole && (
               <MenuItem
                 testID="profile-add-role-button"

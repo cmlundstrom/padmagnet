@@ -23,11 +23,19 @@ export default function AddRoleScreen() {
   const alert = useAlert();
   const [adding, setAdding] = useState(false);
 
-  const currentRole = role === 'super_admin' ? 'admin' : (role || 'tenant');
-  const targetRole = currentRole === 'owner' ? 'tenant' : 'owner';
+  // Target the role the user is MISSING from roles[], not the inverse of
+  // their active role. Otherwise, a user whose active role doesn't match
+  // their actual assigned roles (e.g. just switched active role before
+  // acquiring the new role) sees the wrong target.
+  const heldRoles = roles || [];
+  const hasOwner = heldRoles.includes('owner');
+  const hasTenant = heldRoles.includes('tenant');
+  const targetRole = hasOwner && !hasTenant ? 'tenant'
+    : hasTenant && !hasOwner ? 'owner'
+    : (role === 'owner' ? 'tenant' : 'owner');
+  const currentLabel = hasOwner && !hasTenant ? 'Owner' : 'Renter';
   const targetLabel = targetRole === 'owner' ? 'Owner' : 'Renter';
-  const currentLabel = currentRole === 'owner' ? 'Owner' : 'Renter';
-  const alreadyHasRole = (roles || []).includes(targetRole);
+  const alreadyHasRole = heldRoles.includes(targetRole);
 
   const targetIcon = targetRole === 'owner' ? 'key' : 'home';
   const targetColor = targetRole === 'owner' ? COLORS.accent : COLORS.logoOrange;
@@ -41,8 +49,12 @@ export default function AddRoleScreen() {
         body: JSON.stringify({ targetRole }),
       });
 
-      // 2. Flip local active role state + AsyncStorage
-      await switchRole(targetRole);
+      // 2. Flip local active role + roles[] in AuthProvider. Passing the
+      //    freshly-grown roles array is critical — otherwise the context
+      //    still advertises the old single-role set until next sign-in,
+      //    which would break any downstream role check.
+      const newRoles = Array.from(new Set([...heldRoles, targetRole]));
+      await switchRole(targetRole, newRoles);
 
       // 3. Persist active role to profiles.role — same direct REST pattern
       //    RoleSwitcher uses so next sign-in lands in the new role

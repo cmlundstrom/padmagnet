@@ -225,11 +225,12 @@ const styles = StyleSheet.create({
   },
   streakIcon: {
     fontSize: 16,
+    opacity: 0.75,
   },
   streakText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.brandOrange,
+    color: COLORS.textSecondary,
     flex: 1,
   },
   boostBadge: {
