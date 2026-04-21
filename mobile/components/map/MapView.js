@@ -70,6 +70,7 @@ export default function MapView({ listings = [], loading, initialCoords }) {
         showsBuildings={true}
         showsPointsOfInterest={false}
         showsTraffic={false}
+        showsUserLocation={true}
         showsMyLocationButton={true}
         showsCompass={true}
         initialRegion={{
@@ -289,13 +290,17 @@ const styles = StyleSheet.create({
   // ── Preview card ─────────────────────────────────
   previewCard: {
     position: 'absolute',
-    bottom: 20,
+    // Sits in the top third so the my-location button + compass at
+    // bottom-right stay reachable while the card is visible.
+    top: 60,
     left: 16,
     right: 16,
     flexDirection: 'row',
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    overflow: 'hidden',
+    // overflow visible so the price badge can hang past the photo's
+    // bottom edge as a "bottom border" overlay.
+    overflow: 'visible',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     shadowColor: '#000',
@@ -308,25 +313,35 @@ const styles = StyleSheet.create({
     width: 120,
     height: 110,
     position: 'relative',
+    // 6px image border on top + left so the photo doesn't bleed flush
+    // to the card edges. Right + bottom stay flush.
+    paddingTop: 6,
+    paddingLeft: 6,
   },
   previewImage: {
     flex: 1,
+    borderTopLeftRadius: 10,
   },
   previewPhotoGradient: {
     position: 'absolute',
-    left: 0,
+    left: 6,
     right: 0,
     bottom: 0,
-    height: 40,
+    height: 32,
   },
   previewPriceBadge: {
     position: 'absolute',
-    bottom: 6,
-    left: 6,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    // Anchored at the bottom of the photo so it visually acts as the
+    // photo's bottom border — overlapping the lower ~15px of the image
+    // but leaving the rest fully visible.
+    bottom: -8,
+    left: 12,
+    backgroundColor: 'rgba(26, 51, 88, 0.95)',
+    borderWidth: 1.5,
+    borderColor: COLORS.logoOrange,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   previewPriceText: {
     fontFamily: FONTS.heading.bold,

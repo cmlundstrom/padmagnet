@@ -511,6 +511,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
   // Check persisted state + location permission on mount
   // GPS is non-blocking — grid renders immediately with Miami fallback
   useEffect(() => {
+    let hadCachedCoords = false;
     (async () => {
       try {
         const [l1Seen, l2Seen, cachedCoords] = await Promise.all([
@@ -527,7 +528,10 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
         if (cachedCoords) {
           try {
             const parsed = JSON.parse(cachedCoords);
-            if (parsed.latitude && parsed.longitude) setCoords(parsed);
+            if (parsed.latitude && parsed.longitude) {
+              setCoords(parsed);
+              hadCachedCoords = true;
+            }
           } catch {}
         }
 
@@ -544,18 +548,27 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
       setReady(true);
     })();
 
-    // Background GPS update — non-blocking, updates grid when ready
-    (async () => {
-      try {
-        const { status } = await Location.getForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-          const newCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-          setCoords(newCoords);
-          AsyncStorage.setItem('owner_cached_coords', JSON.stringify(newCoords));
-        }
-      } catch {}
-    })();
+    // Background GPS update — non-blocking. Skipped if cached coords were
+    // already loaded above, because updating coords here forces dataKey
+    // (and therefore NearbyDataLayer + MapView) to remount, wiping any
+    // marker-tap state the user has already accumulated. Stale coords are
+    // fine for the initial map render — user can recenter via the my-
+    // location button. First-mount-without-cache is the only case that
+    // pays the remount cost.
+    setTimeout(() => {
+      if (hadCachedCoords) return;
+      (async () => {
+        try {
+          const { status } = await Location.getForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+            const newCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+            setCoords(newCoords);
+            AsyncStorage.setItem('owner_cached_coords', JSON.stringify(newCoords));
+          }
+        } catch {}
+      })();
+    }, 0);
   }, []);
 
   // Auto-dismiss L1 if user gains listings (e.g. after sign-in resolves)
