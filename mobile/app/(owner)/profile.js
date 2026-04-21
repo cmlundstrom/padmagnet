@@ -151,10 +151,10 @@ export default function OwnerProfileScreen() {
               onPress={() => router.push('/settings/change-email')}
             />
 
-            {/* Role access — show "Switch to Renter view" when the user
-                already holds the renter role, or "Become a Renter too"
-                when they don't. */}
-            {hasTenantRole && (
+            {/* Role access — single-role users see a one-tap action.
+                Multi-role users have RoleSwitcher above, so these MenuItems
+                are hidden to avoid redundancy. */}
+            {(roles?.length || 0) <= 1 && hasTenantRole && (
               <MenuItem
                 testID="profile-switch-to-renter-button"
                 icon="home-outline"

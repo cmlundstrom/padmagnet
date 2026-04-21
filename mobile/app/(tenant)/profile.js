@@ -237,10 +237,10 @@ export default function TenantProfileScreen() {
           </>
         )}
 
-        {/* Role access — show "Switch to Owner view" when the user already
-            holds the owner role, or "Become an Owner too" when they don't.
-            Signed-in users only (anon users sign in first). */}
-        {!isAnon && hasOwnerRole && (
+        {/* Role access — single-role users see a one-tap action.
+            Multi-role users have RoleSwitcher above, so these MenuItems
+            are hidden to avoid redundancy. */}
+        {!isAnon && (roles?.length || 0) <= 1 && hasOwnerRole && (
           <MenuItem
             testID="profile-switch-to-owner-button"
             icon="key-outline"

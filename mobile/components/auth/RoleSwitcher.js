@@ -4,7 +4,8 @@
  * Admins always see it (they have all roles).
  */
 
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
@@ -16,16 +17,26 @@ import { LAYOUT } from '../../constants/layout';
 export default function RoleSwitcher() {
   const { session, role, roles, switchRole } = useAuth();
   const router = useRouter();
+  const [switching, setSwitching] = useState(null);
 
   // Only show if user has multiple roles
   if (!roles || roles.length <= 1) return null;
 
   const isRenter = role === 'tenant' || role === 'super_admin';
   const isOwner = role === 'owner';
+  const busy = !!switching;
 
   const handleSwitch = async (targetRole) => {
-    if (targetRole === role) return;
-    await performRoleSwitch({ targetRole, session, switchRole, router });
+    if (busy || targetRole === role) return;
+    setSwitching(targetRole);
+    try {
+      await performRoleSwitch({ targetRole, session, switchRole, router });
+    } finally {
+      // Navigation has already fired by now; clearing state just releases
+      // the visual busy lock in case the component is still mounted
+      // (e.g. user switches back quickly).
+      setSwitching(null);
+    }
   };
 
   return (
@@ -37,21 +48,35 @@ export default function RoleSwitcher() {
       <View style={styles.options}>
         <Pressable
           testID="role-switcher-renter"
-          style={[styles.option, isRenter && styles.optionActive]}
+          style={[styles.option, isRenter && styles.optionActive, busy && styles.optionBusy]}
           onPress={() => handleSwitch('tenant')}
+          disabled={busy}
         >
-          <Ionicons name="home-outline" size={18} color={isRenter ? COLORS.white : COLORS.textSecondary} />
-          <Text style={[styles.optionLabel, isRenter && styles.optionLabelActive]}>Renter</Text>
-          {isRenter && <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />}
+          {switching === 'tenant' ? (
+            <ActivityIndicator size="small" color={COLORS.accent} />
+          ) : (
+            <>
+              <Ionicons name="home-outline" size={18} color={isRenter ? COLORS.white : COLORS.textSecondary} />
+              <Text style={[styles.optionLabel, isRenter && styles.optionLabelActive]}>Renter</Text>
+              {isRenter && <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />}
+            </>
+          )}
         </Pressable>
         <Pressable
           testID="role-switcher-owner"
-          style={[styles.option, isOwner && styles.optionActive]}
+          style={[styles.option, isOwner && styles.optionActive, busy && styles.optionBusy]}
           onPress={() => handleSwitch('owner')}
+          disabled={busy}
         >
-          <Ionicons name="key-outline" size={18} color={isOwner ? COLORS.white : COLORS.textSecondary} />
-          <Text style={[styles.optionLabel, isOwner && styles.optionLabelActive]}>Owner</Text>
-          {isOwner && <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />}
+          {switching === 'owner' ? (
+            <ActivityIndicator size="small" color={COLORS.accent} />
+          ) : (
+            <>
+              <Ionicons name="key-outline" size={18} color={isOwner ? COLORS.white : COLORS.textSecondary} />
+              <Text style={[styles.optionLabel, isOwner && styles.optionLabelActive]}>Owner</Text>
+              {isOwner && <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />}
+            </>
+          )}
         </Pressable>
       </View>
     </View>
@@ -97,6 +122,9 @@ const styles = StyleSheet.create({
   optionActive: {
     backgroundColor: COLORS.accent + '22',
     borderColor: COLORS.accent + '55',
+  },
+  optionBusy: {
+    opacity: 0.6,
   },
   optionLabel: {
     fontFamily: FONTS.body.medium,
