@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import RNMapView from 'react-native-map-clustering';
+import { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -80,6 +81,15 @@ export default function MapView({ listings = [], loading, initialCoords }) {
           longitudeDelta: 0.12,
         }}
         onPress={handleMapPress}
+        // Clustering — collapses overlapping price markers (and YOU) into
+        // a "+N" bubble at the current zoom; tap zooms in to spread them.
+        // Without this, near-coincident markers steal each other's taps.
+        radius={45}
+        clusterColor={COLORS.logoOrange}
+        clusterTextColor={COLORS.white}
+        clusterFontFamily={FONTS.body.bold}
+        spiralEnabled={true}
+        spiderLineColor={COLORS.logoOrange}
       >
         {/* "YOU" marker at user's GPS location. Renders only once the
             location hook resolves real coords (not the Miami fallback) so

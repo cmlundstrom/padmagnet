@@ -27,7 +27,12 @@ export const COLORS = {
   // ── Brand accent ─────────────────────────────────────────
   brandOrange: '#F59E0B',
   deepOrange: '#F95E0C',
-  logoOrange: '#E8603C',   // Primary CTA buttons — matches logo icon background
+  logoOrange: '#E8603C',        // Primary CTA buttons — matches logo icon background
+  // 60% opacity logoOrange — semantic "muted/inactive orange" token used
+  // for inactive-state icons in toggle controls (view-mode toggles in
+  // owner home, nearby-rentals, renter swipe). Update here once instead
+  // of hunting rgba() strings across screens.
+  brandOrangeMuted: 'rgba(232,96,60,0.6)',
 
   // ── Tier badges (freemium plan) ──────────────────────────
   gold: '#FFD700',

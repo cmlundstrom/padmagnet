@@ -73,7 +73,7 @@ export default function OwnerHeader({ viewMode, onViewModeChange, onRefresh, min
                 <FontAwesome
                   name={VIEW_ICONS[mode]}
                   size={14}
-                  color={viewMode === mode ? COLORS.accent : COLORS.textSecondary}
+                  color={viewMode === mode ? COLORS.logoOrange : COLORS.brandOrangeMuted}
                 />
               </Pressable>
             ))}

@@ -577,10 +577,10 @@ const styles = StyleSheet.create({
   },
   toggleIcon: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
+    color: COLORS.brandOrangeMuted,
   },
   toggleIconActive: {
-    color: COLORS.accent,
+    color: COLORS.logoOrange,
   },
   cardArea: {
     flex: 1,

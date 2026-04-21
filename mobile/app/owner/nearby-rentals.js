@@ -4,7 +4,8 @@ import { View, Text, FlatList, Pressable, ActivityIndicator, Linking, AppState, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import RNMapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import RNMapView from 'react-native-map-clustering';
+import { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
@@ -438,7 +439,7 @@ export default function NearbyRentalsScreen() {
                 <FontAwesome
                   name={mode === 'grid' ? 'th-large' : 'map-o'}
                   size={14}
-                  color={viewMode === mode ? COLORS.accent : COLORS.textSecondary}
+                  color={viewMode === mode ? COLORS.logoOrange : COLORS.brandOrangeMuted}
                 />
               </Pressable>
             ))}
@@ -690,6 +691,14 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
           longitudeDelta: 0.08,
         }}
         onPress={handleMapPress}
+        // Clustering: collapses overlapping markers into a "+N" bubble so
+        // the YOU marker and nearby comp listings don't fight for taps.
+        radius={45}
+        clusterColor={COLORS.logoOrange}
+        clusterTextColor={COLORS.white}
+        clusterFontFamily={FONTS.body.bold}
+        spiralEnabled={true}
+        spiderLineColor={COLORS.logoOrange}
       >
         {/* Subject property marker (listing mode) */}
         {subject?.latitude && subject?.longitude && (

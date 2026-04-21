@@ -192,7 +192,7 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
                 />
                 <View style={styles.gridActionContent}>
                   <View style={styles.gridActionIconWrap}>
-                    <MaterialIcons name="assessment" size={15} color={COLORS.white} />
+                    <MaterialIcons name="assessment" size={12} color={COLORS.white} />
                   </View>
                   <Text style={styles.gridActionText}>Market Research</Text>
                 </View>
@@ -227,7 +227,7 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
                 />
                 <View style={styles.gridActionContent}>
                   <View style={styles.gridActionIconWrap}>
-                    <FontAwesome name={ownerHasListings ? 'list-ul' : 'plus'} size={13} color={COLORS.white} />
+                    <FontAwesome name={ownerHasListings ? 'list-ul' : 'plus'} size={11} color={COLORS.white} />
                   </View>
                   <Text style={styles.gridActionText}>{ownerHasListings ? 'My Listings' : 'Enter My Listing'}</Text>
                 </View>
@@ -1148,7 +1148,7 @@ const styles = StyleSheet.create({
   },
   gridActionGradient: {
     paddingVertical: 13,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -1167,12 +1167,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 4,
   },
   gridActionIconWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
