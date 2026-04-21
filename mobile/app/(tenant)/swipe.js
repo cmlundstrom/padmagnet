@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState, useRef } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -150,13 +150,17 @@ export default function SwipeScreen() {
     );
   }, [alert, refresh]);
 
-  // Attach PadScore to each listing
-  const scoredListings = listings.map(listing => {
+  // Attach PadScore to each listing. Memoized on the listings reference so
+  // downstream consumers (especially MapView's marker cache on Android)
+  // don't re-mount on every parent render — the array identity stayed
+  // stable before this fix only by accident, and a fresh `.map()` each
+  // render was breaking the marker tracksViewChanges cache.
+  const scoredListings = useMemo(() => listings.map(listing => {
     if (!listing.padScore) {
       listing.padScore = calculatePadScore(preferences, listing);
     }
     return listing;
-  });
+  }), [listings, preferences]);
 
   const handleSwipe = useCallback(async (listing, direction) => {
     const score = listing.padScore?.score ?? 50;

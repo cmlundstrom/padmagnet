@@ -16,19 +16,39 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MapView({ listings = [], loading, initialCoords }) {
   const router = useRouter();
-  const { locationOrDefault: location } = useLocation();
-  const center = initialCoords || location;
+  const { location, locationOrDefault } = useLocation();
+  const center = initialCoords || locationOrDefault;
   const mapRef = useRef(null);
   const [selectedListing, setSelectedListing] = useState(null);
-  // Android needs tracksViewChanges=true for first render, then false for perf
+  // Suppresses the next map onPress after a marker tap. react-native-maps
+  // on Android fires the parent map onPress immediately after the marker's
+  // onPress, which would clear the selection we just set.
+  const justPressedMarker = useRef(false);
+
+  // Android needs tracksViewChanges=true for first render, then false for perf.
+  // We re-arm whenever the listings array identity changes so re-mounted
+  // markers cache the FULLY laid-out view (pill + stem + dot), not just the
+  // pill that loaded sync. Without this, marker churn from a parent that
+  // re-derives listings each render (e.g. swipe.js scoredListings) leaves
+  // the cache holding a stem-less snapshot.
   const [markersReady, setMarkersReady] = useState(false);
   useEffect(() => {
+    setMarkersReady(false);
     const timer = setTimeout(() => setMarkersReady(true), 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [listings]);
 
   const handleMarkerPress = useCallback((listing) => {
+    justPressedMarker.current = true;
     setSelectedListing(listing);
+  }, []);
+
+  const handleMapPress = useCallback(() => {
+    if (justPressedMarker.current) {
+      justPressedMarker.current = false;
+      return;
+    }
+    setSelectedListing(null);
   }, []);
 
   const handleCardPress = useCallback(() => {
@@ -50,14 +70,39 @@ export default function MapView({ listings = [], loading, initialCoords }) {
         showsBuildings={true}
         showsPointsOfInterest={false}
         showsTraffic={false}
+        showsMyLocationButton={true}
+        showsCompass={true}
         initialRegion={{
           latitude: center.latitude,
           longitude: center.longitude,
           latitudeDelta: 0.12,
           longitudeDelta: 0.12,
         }}
-        onPress={() => setSelectedListing(null)}
+        onPress={handleMapPress}
       >
+        {/* "YOU" marker at user's GPS location. Renders only once the
+            location hook resolves real coords (not the Miami fallback) so
+            the renter doesn't see a "YOU" pin pointing at downtown Miami
+            while standing in Stuart. */}
+        {location && (
+          <Marker
+            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+            anchor={{ x: 0.5, y: 1 }}
+            tracksViewChanges={!markersReady}
+            zIndex={1000}
+          >
+            <View style={styles.markerOuter}>
+              <View style={styles.youMarker}>
+                <Text style={styles.youMarkerText}>YOU</Text>
+              </View>
+              <View style={styles.markerStem} />
+              <View style={styles.markerDot}>
+                <View style={styles.markerDotInner} />
+              </View>
+            </View>
+          </Marker>
+        )}
+
         {mappableListings.map(listing => {
           const isSelected = selectedListing?.id === listing.id;
           return (
@@ -219,6 +264,26 @@ const styles = StyleSheet.create({
   },
   markerDotInnerSelected: {
     backgroundColor: COLORS.logoOrange,
+  },
+
+  // ── "YOU" marker — user GPS location ─────────────
+  youMarker: {
+    backgroundColor: COLORS.brandOrange,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  youMarkerText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.xxs,
+    color: COLORS.white,
   },
 
   // ── Preview card ─────────────────────────────────
