@@ -16,8 +16,6 @@ export default function TenantsPanel() {
   const [error, setError] = useState(null);
   const [confirmArchive, setConfirmArchive] = useState(null);
   const [confirmUnarchive, setConfirmUnarchive] = useState(null);
-  const [confirmPermanent, setConfirmPermanent] = useState(null);
-  const [permanentConfirmText, setPermanentConfirmText] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [actionModal, setActionModal] = useState(null); // { type, user }
   const [actionValue, setActionValue] = useState('');
@@ -65,11 +63,6 @@ export default function TenantsPanel() {
     setConfirmUnarchive({ ids, names: nameFor(ids) });
   }, [nameFor]);
 
-  const handleBulkPermanentDelete = useCallback((ids) => {
-    setConfirmPermanent({ ids, names: nameFor(ids) });
-    setPermanentConfirmText("");
-  }, [nameFor]);
-
   const executeArchive = useCallback(async () => {
     if (!confirmArchive) return;
     const res = await fetch("/api/admin/users", {
@@ -99,22 +92,6 @@ export default function TenantsPanel() {
     setConfirmUnarchive(null);
     fetchTenants();
   }, [confirmUnarchive, fetchTenants]);
-
-  const executePermanentDelete = useCallback(async () => {
-    if (!confirmPermanent || permanentConfirmText !== "DELETE") return;
-    const res = await fetch("/api/admin/users", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: confirmPermanent.ids }),
-    });
-    if (!res.ok) {
-      const result = await res.json();
-      alert(`Permanent delete failed: ${result.error}`);
-    }
-    setConfirmPermanent(null);
-    setPermanentConfirmText("");
-    fetchTenants();
-  }, [confirmPermanent, permanentConfirmText, fetchTenants]);
 
   // ── Renter Actions ────────────────────────────────────
   const executeAction = useCallback(async (actionBody) => {
@@ -489,8 +466,6 @@ export default function TenantsPanel() {
         onSave={handleSave}
         onBulkDelete={showArchived ? handleBulkUnarchive : handleBulkArchive}
         onBulkDeleteLabel={showArchived ? "Unarchive" : "Archive"}
-        onBulkHardDelete={handleBulkPermanentDelete}
-        onBulkHardDeleteLabel="Permanent Delete"
         emptyMessage={showArchived ? "No archived renters" : "No renter accounts yet"}
         renderExpandedRow={renderExpandedRow}
       />
@@ -676,65 +651,6 @@ export default function TenantsPanel() {
         </div>
       )}
 
-      {/* Permanent Delete Confirmation — type DELETE to confirm */}
-      {confirmPermanent && (
-        <div className="confirm-overlay" onClick={() => { setConfirmPermanent(null); setPermanentConfirmText(""); }}>
-          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
-            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px", color: "#f87171" }}>
-              ⚠️ Permanently delete {confirmPermanent.ids.length} renter{confirmPermanent.ids.length > 1 ? "s" : ""}?
-            </p>
-            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>{confirmPermanent.names}</p>
-            <div style={{
-              padding: "10px 14px", marginTop: 12, marginBottom: 12, borderRadius: 8,
-              background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)",
-              fontSize: "12px", color: "#f87171", lineHeight: 1.5,
-            }}>
-              DANGER: Removes the renter account, their Supabase auth, all swipes, saved listings,
-              PadPoints, conversations, and messages. **This cannot be undone.** Archive is almost
-              always what you want instead.
-            </div>
-            <button
-              onClick={() => {
-                setConfirmArchive({ ids: confirmPermanent.ids, names: confirmPermanent.names });
-                setConfirmPermanent(null);
-                setPermanentConfirmText("");
-              }}
-              style={{
-                ...baseButton, width: "100%", marginBottom: 12, background: COLORS.amber + "22",
-                color: COLORS.amber, border: `1px solid ${COLORS.amber}55`, fontSize: "13px", fontWeight: 600,
-              }}
-            >
-              ← Archive instead
-            </button>
-            <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 6 }}>
-              Type <span style={{ color: "#f87171", fontWeight: 700 }}>DELETE</span> to confirm permanent removal:
-            </label>
-            <input
-              type="text"
-              value={permanentConfirmText}
-              onChange={e => setPermanentConfirmText(e.target.value)}
-              placeholder="DELETE"
-              autoFocus
-              style={{
-                width: "100%", padding: "10px 12px", marginBottom: 16, borderRadius: 6,
-                background: COLORS.bg, border: `1px solid ${COLORS.border}`, color: COLORS.text,
-                fontSize: "14px", letterSpacing: "2px", fontFamily: "monospace",
-              }}
-            />
-            <div className="confirm-actions">
-              <button className="confirm-btn cancel" onClick={() => { setConfirmPermanent(null); setPermanentConfirmText(""); }}>Cancel</button>
-              <button
-                className="confirm-btn confirm"
-                style={{ background: "#dc2626", opacity: permanentConfirmText === "DELETE" ? 1 : 0.4 }}
-                disabled={permanentConfirmText !== "DELETE"}
-                onClick={executePermanentDelete}
-              >
-                Delete Permanently
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

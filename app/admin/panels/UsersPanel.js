@@ -10,7 +10,6 @@ export default function UsersPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showInviteForm, setShowInviteForm] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -51,29 +50,6 @@ export default function UsersPanel() {
     setShowInviteForm(false);
     fetchUsers();
   }, [fetchUsers]);
-
-  const handleBulkDelete = useCallback((ids) => {
-    const names = ids.map(id => {
-      const u = users.find(u => u.id === id);
-      return u ? `${u.display_name || u.email}` : id;
-    }).join(", ");
-    setConfirmDelete({ ids, names });
-  }, [users]);
-
-  const executeDelete = useCallback(async () => {
-    if (!confirmDelete) return;
-    const res = await fetch("/api/admin/users", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: confirmDelete.ids }),
-    });
-    if (!res.ok) {
-      const result = await res.json();
-      alert(`Delete failed: ${result.error}`);
-    }
-    setConfirmDelete(null);
-    fetchUsers();
-  }, [confirmDelete, fetchUsers]);
 
   const inviteFormFields = useMemo(() => [
     { key: "display_name", label: "First Name", type: "text", required: true, placeholder: "e.g. Sarah" },
@@ -231,41 +207,8 @@ export default function UsersPanel() {
         tableName="profiles"
         storageKey="users"
         onSave={handleSave}
-        onBulkDelete={handleBulkDelete}
         emptyMessage="No user profiles yet"
       />
-
-      {/* Delete Confirmation Dialog */}
-      {confirmDelete && (
-        <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
-            <p className="confirm-message" style={{ fontWeight: 700, fontSize: "15px" }}>
-              Delete {confirmDelete.ids.length} user{confirmDelete.ids.length > 1 ? "s" : ""}?
-            </p>
-            <p style={{ fontSize: "13px", color: "#94a3b8", margin: "8px 0 4px" }}>
-              {confirmDelete.names}
-            </p>
-            <div style={{
-              padding: "10px 14px", marginTop: 12, marginBottom: 16, borderRadius: 8,
-              background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)",
-              fontSize: "12px", color: "#f87171", lineHeight: 1.5,
-            }}>
-              DANGER: This permanently deletes the user profile AND their Supabase auth account.
-              They will lose all access and cannot log in. This action cannot be undone.
-            </div>
-            <div className="confirm-actions">
-              <button className="confirm-btn cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button
-                className="confirm-btn confirm"
-                style={{ background: "#dc2626" }}
-                onClick={executeDelete}
-              >
-                Delete Permanently
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
