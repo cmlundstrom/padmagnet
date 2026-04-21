@@ -8,10 +8,10 @@
 #  - Tapping the Sign In card opens AuthBottomSheet with tenant_profile context
 #  - The "Sign Out" button is still visible (anon can exit anon session)
 #
-# Layout note: on renter profile the Sign In card lives below PadScore/Tier
-# (one swipe-up from default scroll position) and Sign Out lives even further
-# down in the ACCOUNT section (another swipe). Owner profile stacks them
-# tighter near the top — this flow targets renter, the more demanding case.
+# Layout note: as of commit dccdefc the Sign In card sits ABOVE PadScore on
+# the renter profile (it's the hero CTA for anon), so it's visible from the
+# default scroll position — no swipe needed. Sign Out lives at the bottom of
+# the ACCOUNT section so reaching it still requires two swipes down.
 appId: com.padmagnet.app
 ---
 - runFlow: ../../elements/loadElements.yaml
@@ -37,14 +37,7 @@ appId: com.padmagnet.app
 - assertNotVisible:
     id: ${output.profile.deleteAccountLink}
 
-# 4. Scroll to Sign In card → assert visible → tap → AuthBottomSheet opens.
-#    Doing the tap right after asserting visible avoids relying on Maestro
-#    auto-scrolling to find the element after we've scrolled past it.
-- swipe:
-    direction: UP
-    duration: 600
-- waitForAnimationToEnd:
-    timeout: 1500
+# 4. Sign In card is above the fold for anon — assert + tap directly.
 - assertVisible:
     id: ${output.profile.signInCardButton}
 - tapOn:
