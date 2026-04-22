@@ -181,14 +181,20 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 998,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
   },
   blur: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+    // Top-anchored so the card keeps its current TOP position as it
+    // grows (e.g. when the divider orb doubles in size). Previously
+    // center-aligned, which meant every added px of content shifted
+    // the top upward by half that amount.
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: LAYOUT.padding.lg,
+    paddingTop: '18%',
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingBottom: LAYOUT.padding.lg,
   },
   cardWrap: {
     alignItems: 'center',
@@ -362,9 +368,9 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginVertical: 8,
-    width: '76%',
+    gap: 12,
+    marginVertical: 10,
+    width: '86%',
     justifyContent: 'center',
   },
   dividerLine: {
@@ -373,17 +379,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(60,40,10,0.28)',
   },
   dividerOrb: {
-    width: 30,
-    height: 30,
+    width: 60,
+    height: 60,
     zIndex: 1,
   },
   dividerOrbHalo: {
     position: 'absolute',
     alignSelf: 'center',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,210,130,0.45)',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(255,210,130,0.4)',
   },
 
   // ── Tips ─────────────────────────────────────
