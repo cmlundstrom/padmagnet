@@ -49,9 +49,25 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
+    // Resolve the keyboard height reliably. On Android with adjustResize
+    // (default for Expo), keyboardDidShow's endCoordinates.height sometimes
+    // reports 0 because the window was already resized before the event
+    // fires. Fall back to the screen/window dimensions diff, which is a
+    // rock-solid way to detect the visible keyboard area.
+    const resolveKeyboardHeight = (evt) => {
+      const reported = evt?.endCoordinates?.height || 0;
+      if (reported > 0) return reported;
+      const screenH = Dimensions.get('screen').height;
+      const windowH = Dimensions.get('window').height;
+      const diff = Math.max(0, screenH - windowH);
+      // Conservative fallback for devices where both reads fail
+      return diff > 0 ? diff : 320;
+    };
+
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      keyboardOffset.value = withTiming(-e.endCoordinates.height * 0.78, { duration: 250 });
-      promptLiftY.value = withTiming(-e.endCoordinates.height * 0.78, { duration: 250 });
+      const kbHeight = resolveKeyboardHeight(e);
+      keyboardOffset.value = withTiming(-kbHeight, { duration: 250 });
+      promptLiftY.value = withTiming(-kbHeight, { duration: 250 });
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       keyboardOffset.value = withTiming(0, { duration: 200 });
