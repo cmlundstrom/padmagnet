@@ -543,6 +543,7 @@ export default function NearbyRentalsScreen() {
           listings={listings}
           subject={subject}
           coords={isLocationMode ? coords : null}
+          radius={radius}
           selectedListing={selectedMapListing}
           onMarkerPress={setSelectedMapListing}
           onDismiss={() => setSelectedMapListing(null)}
@@ -642,18 +643,51 @@ function NearbyListingCard({ listing, isSubject, ownerTier }) {
  *  parity — same justPressedMarker guard, same map controls, same card
  *  layout. The owner-specific bits (subject marker, owner_browse routing
  *  context) keep this as a separate inline component for now. */
-function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, onDismiss }) {
+function NearbyMap({ listings, subject, coords, radius, selectedListing, onMarkerPress, onDismiss }) {
   const router = useRouter();
   const mappable = listings.filter(l => l.latitude && l.longitude);
   const [markersReady, setMarkersReady] = useState(false);
   // See MapView.js: parent map onPress fires immediately after a marker
   // onPress on Android, which would clear the selection we just set.
   const justPressedMarker = useRef(false);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setMarkersReady(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Re-frame the map whenever the search params change so the user sees the
+  // effect of their radius / filter selection. Frames to origin + visible
+  // listings when any are present; falls back to a radius-based bounding box
+  // when zero listings match so the user still sees the search area.
+  useEffect(() => {
+    if (!markersReady || !mapRef.current) return;
+    const origin = subject?.latitude && subject?.longitude
+      ? { latitude: subject.latitude, longitude: subject.longitude }
+      : coords
+        ? { latitude: coords.latitude, longitude: coords.longitude }
+        : null;
+    if (!origin) return;
+
+    const points = [origin, ...mappable.map(l => ({ latitude: l.latitude, longitude: l.longitude }))];
+
+    if (points.length >= 2) {
+      mapRef.current.fitToCoordinates(points, {
+        edgePadding: { top: 80, right: 40, bottom: 140, left: 40 },
+        animated: true,
+      });
+    } else {
+      // 1° lat ≈ 69 mi. Show ~2× radius to give the circle some breathing room.
+      const delta = (radius * 2) / 30;
+      mapRef.current.animateToRegion({
+        latitude: origin.latitude,
+        longitude: origin.longitude,
+        latitudeDelta: delta,
+        longitudeDelta: delta,
+      }, 400);
+    }
+  }, [listings, radius, markersReady, subject?.latitude, subject?.longitude, coords?.latitude, coords?.longitude]);
 
   const handleMarkerPress = useCallback((listing) => {
     justPressedMarker.current = true;
@@ -675,6 +709,7 @@ function NearbyMap({ listings, subject, coords, selectedListing, onMarkerPress, 
   return (
     <View style={{ flex: 1 }}>
       <RNMapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={{ flex: 1 }}
         mapType="hybrid"
