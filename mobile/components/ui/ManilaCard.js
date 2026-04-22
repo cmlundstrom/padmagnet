@@ -16,6 +16,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Path, Line, Rect, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import DragHandle from './DragHandle';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -72,6 +73,22 @@ function buildFolderPath(width, bodyHeight, tabWidth, tabAlign) {
   `;
 }
 
+/** Brass corner pin — pressed rivet accent rendered on top of the folder. */
+function BrassPin({ style }) {
+  return (
+    <View style={[styles.pinBase, style]} pointerEvents="none">
+      <LinearGradient
+        colors={['#D4B66A', '#8B7035', '#5C4A1E']}
+        start={{ x: 0.3, y: 0.3 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.pinGradient}
+      >
+        <View style={styles.pinHighlight} />
+      </LinearGradient>
+    </View>
+  );
+}
+
 export default function ManilaCard({
   label,
   tabAlign = 'right',
@@ -79,6 +96,7 @@ export default function ManilaCard({
   children,
   style,
   minBodyHeight = 200,
+  showPins = true,
 }) {
   const [measuredHeight, setMeasuredHeight] = useState(0);
   const cardWidth = DEFAULT_WIDTH;
@@ -218,6 +236,18 @@ export default function ManilaCard({
       >
         {children}
       </View>
+
+      {/* Brass corner pins — pressed rivets at body corners. Ported from
+          StudioOnboardingTooltip so every manila surface shares the same
+          steampunk accent. Skippable via showPins={false}. */}
+      {showPins && (
+        <>
+          <BrassPin style={[styles.pinAt, { top: TAB_HEIGHT + 11, left: 11 }]} />
+          <BrassPin style={[styles.pinAt, { top: TAB_HEIGHT + 11, right: 11 }]} />
+          <BrassPin style={[styles.pinAt, { bottom: 11, left: 11 }]} />
+          <BrassPin style={[styles.pinAt, { bottom: 11, right: 11 }]} />
+        </>
+      )}
     </View>
   );
 }
@@ -263,5 +293,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.padding.md,
     paddingTop: 0,
     paddingBottom: LAYOUT.padding.md,
+  },
+
+  // ── Brass corner pins (shared with StudioOnboardingTooltip) ──
+  pinAt: {
+    position: 'absolute',
+  },
+  pinBase: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowColor: '#1a0e00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.65,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  pinGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
+    borderWidth: 0.75,
+    borderColor: 'rgba(40,25,5,0.55)',
+  },
+  pinHighlight: {
+    position: 'absolute',
+    top: 2,
+    left: 2.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,250,225,0.9)',
   },
 });
