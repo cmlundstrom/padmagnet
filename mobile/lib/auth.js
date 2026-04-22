@@ -44,31 +44,24 @@ export async function getSession() {
 }
 
 export async function signInWithMagicLink(email, nonce, role) {
-  // Direct deep link — tapping the magic link opens the app straight to
-  // auth-callback.js, which processes the tokens in-process. Replaces the
-  // previous `https://padmagnet.com/auth/mobile-callback` web intermediary
-  // (3-10s lag from the browser round-trip). Same scheme the OAuth flows
-  // below already use via makeRedirectUri, so padmagnet:// is already on
-  // the Supabase allowed-redirect list.
+  // Use web intermediary page that deep-links back to the app. This works
+  // reliably because the Supabase Site URL is padmagnet.com, which is on
+  // the emailRedirectTo allowlist. A padmagnet:// direct scheme was tried
+  // (commit 962d6ae, reverted) — Supabase's email-auth allowlist is
+  // separate from the OAuth allowlist that Google/Facebook use, and the
+  // custom scheme was getting silently stripped, breaking auth entirely.
   //
-  // Trade-off: breaks cross-device flow (tapping the email link on desktop
-  // now does nothing). Cross-device was previously handled by the web page
-  // broadcasting tokens to the mobile app via Supabase Realtime using the
-  // nonce. The relay subscription in AuthBottomSheet still runs but won't
-  // fire until/unless we reintroduce a web fallback. This is a mobile-first
-  // app — the same-device speedup is worth it.
+  // When nonce is provided, the callback page can relay tokens back to
+  // the mobile app via Supabase Realtime (cross-device magic link support).
   //
-  // When role is provided (from the AuthBottomSheet context — e.g. 'owner'
-  // for create_listing / owner_profile / owner_messages), it's stored as
-  // user_metadata so the handle_new_user DB trigger sets profiles.role +
-  // roles correctly on first signup.
-  const redirectUrl = makeRedirectUri({ scheme: 'padmagnet', path: 'auth-callback' });
+  // When role is provided (from the AuthBottomSheet context), it's stored
+  // as user_metadata so the handle_new_user DB trigger sets profiles.role
+  // + roles correctly on first signup.
+  const redirectUrl = nonce
+    ? `https://padmagnet.com/auth/mobile-callback?nonce=${nonce}`
+    : 'https://padmagnet.com/auth/mobile-callback';
   const options = { emailRedirectTo: redirectUrl };
   if (role) options.data = { role };
-  // nonce currently unused — kept in the signature so subscribeMagicLinkRelay
-  // callers don't break. If we restore a cross-device fallback later, it
-  // can reuse this param.
-  void nonce;
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options,
