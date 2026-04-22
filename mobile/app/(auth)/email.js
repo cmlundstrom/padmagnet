@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Input, Button, AuthHeader } from '../../components/ui';
-import { signInWithGoogle } from '../../lib/auth';
+import { signInWithGoogle, signInWithMagicLink } from '../../lib/auth';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -15,6 +15,7 @@ export default function EmailScreen() {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
 
   const subtitleText = role === 'owner'
     ? 'Manage your Rental Listings'
@@ -27,6 +28,28 @@ export default function EmailScreen() {
       return;
     }
     router.push({ pathname: '/(auth)/password', params: { email: trimmed, role } });
+  }
+
+  async function handleMagicLink() {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes('@')) {
+      alert('Invalid email', 'Please enter a valid email address first.');
+      return;
+    }
+    setMagicLoading(true);
+    try {
+      // Pass role so the handle_new_user trigger sets profiles.role + roles
+      // correctly on first signup via magic link (matches AuthBottomSheet).
+      await signInWithMagicLink(trimmed, undefined, role);
+      alert(
+        'Check your email',
+        `We sent a sign-in link to ${trimmed}. Tap it to continue.`
+      );
+    } catch (err) {
+      alert("Couldn't send link", err.message);
+    } finally {
+      setMagicLoading(false);
+    }
   }
 
   async function handleGoogle() {
@@ -72,6 +95,15 @@ export default function EmailScreen() {
             size="lg"
             onPress={handleEmailContinue}
             style={styles.mainButton}
+          />
+
+          <Button
+            title="Use Magic Link with Email"
+            variant="secondary"
+            size="lg"
+            onPress={handleMagicLink}
+            loading={magicLoading}
+            style={styles.magicButton}
           />
 
           {/* Divider */}
@@ -133,6 +165,10 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   mainButton: {
+    width: '100%',
+    marginTop: 8,
+  },
+  magicButton: {
     width: '100%',
     marginTop: 8,
   },
