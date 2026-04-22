@@ -179,24 +179,9 @@ export default function ManilaCard({
           clipPath="url(#manilaClip)"
         />
 
-        {/* Fold line — subtle horizontal crease for realism */}
-        <Line
-          x1={16}
-          y1={TAB_HEIGHT + totalHeight * 0.35}
-          x2={cardWidth - 16}
-          y2={TAB_HEIGHT + totalHeight * 0.35}
-          stroke="rgba(120,100,60,0.12)"
-          strokeWidth="1"
-        />
-        {/* Fold highlight — bright line just above the crease */}
-        <Line
-          x1={16}
-          y1={TAB_HEIGHT + totalHeight * 0.35 - 1}
-          x2={cardWidth - 16}
-          y2={TAB_HEIGHT + totalHeight * 0.35 - 1}
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth="1"
-        />
+        {/* Fold line removed — the fixed 35% crease position looked wrong
+            on scrolling cards (auth sheet, nearby rentals) whose body
+            height grows with content. Cleaner without it. */}
 
         {/* Top-left edge highlight — light catching the edge */}
         <Path
