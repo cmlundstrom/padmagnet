@@ -460,10 +460,33 @@ export default function useListingStudio(draftIdParam) {
   }, [form]);
 
   // ── Onboarding check ──
+  // Tooltip fires once per device on the user's very first Studio visit.
+  // Existing owners (≥1 listing on the server) are implicitly onboarded —
+  // they've been here before, even if this install is fresh. Belt-and-
+  // suspenders: the local AsyncStorage flag AND a server listings check.
   useEffect(() => {
-    AsyncStorage.getItem(STUDIO_ONBOARDED_KEY).then(v => {
-      setHasOnboarded(v === 'true');
-    });
+    let cancelled = false;
+    (async () => {
+      const localFlag = await AsyncStorage.getItem(STUDIO_ONBOARDED_KEY);
+      if (localFlag === 'true') {
+        if (!cancelled) setHasOnboarded(true);
+        return;
+      }
+      try {
+        const listings = await apiFetch('/api/owner/listings');
+        if (cancelled) return;
+        if (Array.isArray(listings) && listings.length > 0) {
+          // Returning owner — silently mark onboarded, skip the tooltip.
+          setHasOnboarded(true);
+          AsyncStorage.setItem(STUDIO_ONBOARDED_KEY, 'true').catch(() => {});
+          return;
+        }
+        setHasOnboarded(false);
+      } catch {
+        if (!cancelled) setHasOnboarded(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const markOnboarded = useCallback(async () => {

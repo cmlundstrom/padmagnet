@@ -57,6 +57,41 @@ export default function AuthCallbackScreen() {
         console.error('[AuthCallback] setSession error:', err);
       }
 
+      // Post-auth correction for the L1 "Create or Edit Your Listing" flow.
+      // AuthBottomSheet.getReturnPath computes auth_return_to at magic-link
+      // SEND time, when we don't yet know if this email has listings on the
+      // server. For a returning owner (info@...) it routes them to the
+      // Studio (/owner/create) as if they were a first-time user. Now that
+      // the session is set we can check listings and correct the hop —
+      // send existing owners to /(owner)/listings to manage their property.
+      if (dest === '/owner/create') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+            const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+            const res = await fetch(
+              `${supabaseUrl}/rest/v1/listings?owner_user_id=eq.${session.user.id}&select=id&limit=1`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'apikey': supabaseKey,
+                },
+              }
+            );
+            if (res.ok) {
+              const rows = await res.json();
+              if (Array.isArray(rows) && rows.length > 0) {
+                console.log('[AuthCallback] Returning owner has listings — redirecting to Listings tab');
+                dest = '/(owner)/listings';
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[AuthCallback] Listings re-check failed, using original dest:', err.message);
+        }
+      }
+
       console.log('[AuthCallback] Navigating to:', dest);
       router.replace(dest);
     }
