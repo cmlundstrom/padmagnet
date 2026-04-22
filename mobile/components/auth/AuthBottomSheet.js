@@ -65,8 +65,8 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     };
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      // 25px peek below the sheet so it doesn't kiss the keyboard edge
-      const kbHeight = resolveKeyboardHeight(e) - 25;
+      // 45px peek below the sheet so it doesn't over-lift above the keyboard
+      const kbHeight = resolveKeyboardHeight(e) - 45;
       keyboardOffset.value = withTiming(-kbHeight, { duration: 250 });
       promptLiftY.value = withTiming(-kbHeight, { duration: 250 });
     });
