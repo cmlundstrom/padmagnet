@@ -32,3 +32,6 @@ credentials*.json
 
 # supabase cli
 supabase/.temp/
+
+# local EAS build artifacts (downloaded APKs)
+mobile/builds/
