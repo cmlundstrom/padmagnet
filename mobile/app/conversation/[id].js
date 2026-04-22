@@ -137,18 +137,11 @@ export default function ConversationScreen() {
           }
         }
 
-        // Fetch renter name (for owner's view of inbound messages)
+        // Renter name (for owner's view of inbound messages). API already
+        // flattens tenant_display_name onto the convo — no RLS-blocked
+        // client-side profile fetch needed.
         if (convo.tenant_user_id && !isViewerRenter) {
-          try {
-            const { data: renterProfile } = await supabase
-              .from('profiles')
-              .select('display_name')
-              .eq('id', convo.tenant_user_id)
-              .single();
-            setRenterName(renterProfile?.display_name || 'Renter');
-          } catch {
-            setRenterName('Renter');
-          }
+          setRenterName(convo.tenant_display_name || 'Renter');
         }
       } catch {
         // title stays as 'Chat'

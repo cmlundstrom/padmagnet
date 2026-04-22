@@ -27,15 +27,21 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Fetch owner display names for internal conversations
-    const ownerIds = [...new Set((data || []).filter(c => c.owner_user_id).map(c => c.owner_user_id))];
-    let ownerNames = {};
-    if (ownerIds.length > 0) {
+    // Fetch owner + tenant display names in a single profiles query.
+    // Mobile can't read other users' profiles directly (RLS), so we
+    // flatten both sides onto the conversation response.
+    const profileIds = [...new Set(
+      (data || [])
+        .flatMap(c => [c.owner_user_id, c.tenant_user_id])
+        .filter(Boolean)
+    )];
+    let profileInfo = {};
+    if (profileIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, email, phone')
-        .in('id', ownerIds);
-      ownerNames = Object.fromEntries((profiles || []).map(p => [p.id, {
+        .in('id', profileIds);
+      profileInfo = Object.fromEntries((profiles || []).map(p => [p.id, {
         display_name: p.display_name,
         email: p.email,
         phone: p.phone,
@@ -43,12 +49,16 @@ export async function GET(request) {
     }
 
     const flattened = (data || []).map(c => {
-      const ownerInfo = c.owner_user_id ? (ownerNames[c.owner_user_id] || {}) : {};
+      const ownerInfo = c.owner_user_id ? (profileInfo[c.owner_user_id] || {}) : {};
+      const tenantInfo = c.tenant_user_id ? (profileInfo[c.tenant_user_id] || {}) : {};
       return {
         ...c,
         owner_display_name: ownerInfo.display_name || null,
         owner_email: ownerInfo.email || null,
         owner_phone: ownerInfo.phone || null,
+        tenant_display_name: tenantInfo.display_name || null,
+        tenant_email: tenantInfo.email || null,
+        tenant_phone: tenantInfo.phone || null,
       };
     });
 
