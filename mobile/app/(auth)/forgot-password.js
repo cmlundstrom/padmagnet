@@ -5,11 +5,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Input, Button, AuthHeader } from '../../components/ui';
 import { resetPassword } from '../../lib/auth';
 import { useAlert } from '../../providers/AlertProvider';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function ForgotPasswordScreen() {
+  useAndroidBack();
   const { email: prefillEmail } = useLocalSearchParams();
   const alert = useAlert();
   const [email, setEmail] = useState(prefillEmail || '');

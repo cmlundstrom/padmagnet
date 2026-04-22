@@ -6,6 +6,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Input, Button, AuthHeader } from '../../components/ui';
 import { signInWithGoogle, signInWithMagicLink } from '../../lib/auth';
 import { useAlert } from '../../providers/AlertProvider';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -16,6 +17,9 @@ export default function EmailScreen() {
   const [email, setEmail] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
   const [magicLoading, setMagicLoading] = useState(false);
+
+  // Hardware back → match AuthHeader chevron (return to welcome / role picker).
+  useAndroidBack(() => router.replace('/welcome'));
 
   const subtitleText = role === 'owner'
     ? 'Manage your Rental Listings'

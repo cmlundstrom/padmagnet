@@ -6,6 +6,7 @@ import { Input, Button, AuthHeader } from '../../components/ui';
 import { signUp } from '../../lib/auth';
 import { saveUserRole } from '../../lib/storage';
 import { useAlert } from '../../providers/AlertProvider';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -17,6 +18,10 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Reached via router.replace from password, so canGoBack is false —
+  // fall back to the email step instead of minimizing the app.
+  useAndroidBack(() => router.replace({ pathname: '/(auth)/email', params: { role } }));
 
   const subtitleText = role === 'owner'
     ? 'List your first property in minutes'

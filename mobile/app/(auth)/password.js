@@ -7,11 +7,13 @@ import { signIn } from '../../lib/auth';
 import { saveUserRole } from '../../lib/storage';
 import { resolvePostLoginDestination } from '../../lib/routing';
 import { useAlert } from '../../providers/AlertProvider';
+import useAndroidBack from '../../hooks/useAndroidBack';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
 export default function PasswordScreen() {
+  useAndroidBack();
   const { email, role } = useLocalSearchParams();
   const alert = useAlert();
   const [password, setPassword] = useState('');
