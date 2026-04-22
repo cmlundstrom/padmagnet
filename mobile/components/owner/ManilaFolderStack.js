@@ -273,6 +273,55 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
   );
 }
 
+// ─── Brass corner pin — shared ornamental accent ─────────
+// Matches the pins on the global ManilaCard and StudioOnboardingTooltip.
+// Pressed-rivet look: 12px disc, warm-black drop shadow, dark border,
+// cream highlight dot. Sits on top of the SVG folder at body corners.
+function BrassPin({ style }) {
+  return (
+    <View style={[pinStyles.base, style]} pointerEvents="none">
+      <LinearGradient
+        colors={['#D4B66A', '#8B7035', '#5C4A1E']}
+        start={{ x: 0.3, y: 0.3 }}
+        end={{ x: 0.8, y: 1 }}
+        style={pinStyles.gradient}
+      >
+        <View style={pinStyles.highlight} />
+      </LinearGradient>
+    </View>
+  );
+}
+
+const pinStyles = StyleSheet.create({
+  base: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowColor: '#1a0e00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.65,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  gradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
+    borderWidth: 0.75,
+    borderColor: 'rgba(40,25,5,0.55)',
+  },
+  highlight: {
+    position: 'absolute',
+    top: 2,
+    left: 2.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,250,225,0.9)',
+  },
+});
+
 // ─── Manila folder with slide-to-corner dismiss (SVG 3.0) ─────────
 const ManilaFolder = forwardRef(function ManilaFolder(
   { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, opaque, offsetTop, onTabPress, onDismissComplete, children },
@@ -462,6 +511,18 @@ const ManilaFolder = forwardRef(function ManilaFolder(
             {/* Definition stroke — strong outline for stacked card separation */}
             <Path d={path} fill="none" stroke="rgba(80,60,25,0.7)" strokeWidth="1.8" />
           </Svg>
+        )}
+
+        {/* Brass corner pins — four pressed rivets framing the folder body.
+            Positioned inside the card, 11px from each corner. pointerEvents
+            is off via BrassPin so they never interfere with tab/swipe/tap. */}
+        {cw > 0 && (
+          <>
+            <BrassPin style={{ top: TAB_H + 11, left: 11 }} />
+            <BrassPin style={{ top: TAB_H + 11, right: 11 }} />
+            <BrassPin style={{ bottom: 11, left: 11 }} />
+            <BrassPin style={{ bottom: 11, right: 11 }} />
+          </>
         )}
 
         {/* Tab + drag handle — gesture target for swipe-to-dismiss */}
