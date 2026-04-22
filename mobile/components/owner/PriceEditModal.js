@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Modal, View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import DragHandle from '../ui/DragHandle';
 import { apiFetch } from '../../lib/api';
 import { formatCurrency } from '../../utils/format';
+import useKeyboardLift from '../../hooks/useKeyboardLift';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -18,6 +20,7 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
   const [price, setPrice] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const { style: liftStyle } = useKeyboardLift('popup');
 
   const currentPrice = listing?.list_price;
 
@@ -68,11 +71,8 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
       animationType="fade"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.backdrop}
-      >
-        <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Animated.View style={liftStyle}>
           <Pressable style={styles.card} onPress={() => {}}>
             <DragHandle light />
             <Text style={styles.title}>Edit My Price</Text>
@@ -113,8 +113,8 @@ export default function PriceEditModal({ visible, onClose, listing, onPriceUpdat
               </Pressable>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </Animated.View>
+      </Pressable>
     </Modal>
   );
 }

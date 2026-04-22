@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView, BackHandler,
+  Pressable, ActivityIndicator, Platform, Dimensions, ScrollView, BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
 import { subscribeMagicLinkRelay } from '../../hooks/useMagicLinkRelay';
+import useKeyboardLift from '../../hooks/useKeyboardLift';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -40,52 +41,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     return () => relayCleanup.current?.();
   }, []);
 
-  // Keyboard-aware lift for the main sheet
-  const keyboardOffset = useSharedValue(0);
-  // Keyboard-aware lift for the magic link prompt card
-  const promptLiftY = useSharedValue(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    // Resolve the keyboard height reliably. On Android with adjustResize
-    // (default for Expo), keyboardDidShow's endCoordinates.height sometimes
-    // reports 0 because the window was already resized before the event
-    // fires. Fall back to the screen/window dimensions diff, which is a
-    // rock-solid way to detect the visible keyboard area.
-    const resolveKeyboardHeight = (evt) => {
-      const reported = evt?.endCoordinates?.height || 0;
-      if (reported > 0) return reported;
-      const screenH = Dimensions.get('screen').height;
-      const windowH = Dimensions.get('window').height;
-      const diff = Math.max(0, screenH - windowH);
-      // Conservative fallback for devices where both reads fail
-      return diff > 0 ? diff : 320;
-    };
-
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      const rawKb = resolveKeyboardHeight(e);
-      // Sheet: lift to keyboard edge with a 45px peek breathing gap
-      keyboardOffset.value = withTiming(-(rawKb - 45), { duration: 250 });
-      // Prompt card: natural position is screen-center (justifyContent:center
-      // on its overlay). Shift upward by half the keyboard height minus a
-      // 35px nudge-down so the prompt sits slightly below the pure-center
-      // of the visible area — reads better with the "Send Link" button
-      // falling closer to the eye line instead of the prompt header.
-      promptLiftY.value = withTiming(-(rawKb / 2 - 35), { duration: 250 });
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      keyboardOffset.value = withTiming(0, { duration: 200 });
-      promptLiftY.value = withTiming(0, { duration: 200 });
-    });
-
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
-
-  const promptLiftStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: promptLiftY.value }],
-  }));
+  // Keyboard lift — delegates to the global hook so all overlays share the
+  // same tuning. See hooks/useKeyboardLift.js + feedback_keyboard_lift_modal.md.
+  const { offset: keyboardOffset } = useKeyboardLift('sheet');
+  const { style: promptLiftStyle } = useKeyboardLift('popup');
 
   // Entrance + swipe-to-dismiss
   const enterY = useSharedValue(SCREEN_HEIGHT);
