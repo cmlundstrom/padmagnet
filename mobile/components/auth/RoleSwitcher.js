@@ -4,9 +4,12 @@
  * Admins always see it (they have all roles).
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, cancelAnimation,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,6 +17,8 @@ import { performRoleSwitch } from '../../lib/role-switch';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+
+const LED_GREEN = '#22C55E';
 
 export default function RoleSwitcher() {
   const { session, role, roles, switchRole } = useAuth();
@@ -45,8 +50,9 @@ export default function RoleSwitcher() {
       </View>
 
       {/* Orange gradient pill — matches the Enable Location / sign-in CTA
-          treatment. Buttons sit on top in blue (active) or translucent-dark
-          (inactive). Shine + inner glow + bottom edge give it 3D depth. */}
+          treatment. Buttons sit on top: active = solid blue with green LED
+          breathing + "ACTIVE" tag, inactive = deep translucent-dark recess.
+          Shine + inner glow + bottom edge give it 3D depth. */}
       <View style={styles.pillWrap}>
         <LinearGradient
           colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
@@ -115,13 +121,42 @@ function RoleOption({ testID, icon, label, active, busy, loading, onPress }) {
       {loading ? (
         <ActivityIndicator size="small" color={COLORS.white} />
       ) : (
-        <>
-          <Ionicons name={icon} size={18} color={COLORS.white} />
-          <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{label}</Text>
-          {active && <Ionicons name="checkmark-circle" size={14} color={COLORS.white} />}
-        </>
+        <View style={styles.optionContent}>
+          <View style={styles.iconRow}>
+            <Ionicons name={icon} size={18} color={COLORS.white} />
+            <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{label}</Text>
+            {active && <PulsingLED />}
+          </View>
+          {active && <Text style={styles.activeTag}>ACTIVE</Text>}
+        </View>
       )}
     </Pressable>
+  );
+}
+
+// Bright green status dot that breathes 0.75 ↔ 1.0 opacity on ~1.8s.
+// Drives one reanimated sharedValue, one absolute-positioned View. Cheap.
+function PulsingLED() {
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(0.75, { duration: 900 }),
+        withTiming(1, { duration: 900 })
+      ),
+      -1,
+      false
+    );
+    return () => cancelAnimation(pulse);
+  }, []);
+  const ledStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  return (
+    <View style={styles.ledWrap}>
+      <Animated.View style={[styles.ledGlow, ledStyle]} />
+      <View style={styles.ledCore}>
+        <View style={styles.ledHighlight} />
+      </View>
+    </View>
   );
 }
 
@@ -188,23 +223,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
     paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 10,
     borderWidth: 1,
   },
+  optionContent: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   optionInactive: {
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    borderColor: 'rgba(0,0,0,0.35)',
   },
   optionActive: {
     backgroundColor: COLORS.accent,
-    borderColor: 'rgba(255,255,255,0.35)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 4,
+    borderColor: 'rgba(34,197,94,0.55)',
+    shadowColor: LED_GREEN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+    elevation: 6,
   },
   optionBusy: {
     opacity: 0.6,
@@ -220,5 +264,53 @@ const styles = StyleSheet.create({
   },
   optionLabelActive: {
     fontFamily: FONTS.body.bold,
+  },
+  activeTag: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: 8,
+    color: LED_GREEN,
+    letterSpacing: 1.2,
+    marginTop: 1,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+
+  // Green LED status dot
+  ledWrap: {
+    width: 14,
+    height: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ledGlow: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: LED_GREEN,
+    opacity: 0.55,
+  },
+  ledCore: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: LED_GREEN,
+    borderWidth: 0.75,
+    borderColor: 'rgba(255,255,255,0.4)',
+    shadowColor: LED_GREEN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  ledHighlight: {
+    position: 'absolute',
+    top: 1.5,
+    left: 2,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.75)',
   },
 });
