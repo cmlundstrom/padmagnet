@@ -488,23 +488,9 @@ const ManilaFolder = forwardRef(function ManilaFolder(
               fill={`url(#ts_${gid})`}
             />
 
-            {/* Fold line */}
-            <Line
-              x1={16}
-              y1={TAB_H + ch * 0.35}
-              x2={cw - 16}
-              y2={TAB_H + ch * 0.35}
-              stroke="rgba(120,100,60,0.12)"
-              strokeWidth="1"
-            />
-            <Line
-              x1={16}
-              y1={TAB_H + ch * 0.35 - 1}
-              x2={cw - 16}
-              y2={TAB_H + ch * 0.35 - 1}
-              stroke="rgba(255,255,255,0.08)"
-              strokeWidth="1"
-            />
+            {/* Fold line removed — the fixed 35% position looked wrong on
+                scrolling folders (L1/L2) whose body height varies with
+                content. Keeping the card cleaner without it. */}
 
             {/* Edge highlight — warm light catching the top-left edge */}
             <Path d={path} fill="none" stroke="rgba(255,245,220,0.65)" strokeWidth="2" />
