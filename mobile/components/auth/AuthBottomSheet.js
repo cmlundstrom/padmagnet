@@ -65,10 +65,14 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
     };
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      // 45px peek below the sheet so it doesn't over-lift above the keyboard
-      const kbHeight = resolveKeyboardHeight(e) - 45;
-      keyboardOffset.value = withTiming(-kbHeight, { duration: 250 });
-      promptLiftY.value = withTiming(-kbHeight, { duration: 250 });
+      const rawKb = resolveKeyboardHeight(e);
+      // Sheet: lift to keyboard edge with a 45px peek breathing gap
+      keyboardOffset.value = withTiming(-(rawKb - 45), { duration: 250 });
+      // Prompt card: natural position is screen-center (justifyContent:center
+      // on its overlay). To center it between screen top and keyboard top,
+      // shift by half the keyboard height — that moves its center from
+      // screenH/2 to (screenH - kbH)/2, i.e. the middle of the visible area.
+      promptLiftY.value = withTiming(-rawKb / 2, { duration: 250 });
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       keyboardOffset.value = withTiming(0, { duration: 200 });
