@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Pressable, ActivityIndicator, Platform, Dimensions, ScrollView, BackHandler,
+  Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView, BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +15,6 @@ import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
 import { subscribeMagicLinkRelay } from '../../hooks/useMagicLinkRelay';
-import useKeyboardLift from '../../hooks/useKeyboardLift';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -41,10 +40,43 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     return () => relayCleanup.current?.();
   }, []);
 
-  // Keyboard lift — delegates to the global hook so all overlays share the
-  // same tuning. See hooks/useKeyboardLift.js + feedback_keyboard_lift_modal.md.
-  const { offset: keyboardOffset } = useKeyboardLift('sheet');
-  const { style: promptLiftStyle } = useKeyboardLift('popup');
+  // Keyboard lift — inline listeners are the known-good pattern for this
+  // component. The two-lift structure (sheet body + magic-link prompt)
+  // needed separate shared values, and calling the shared hook twice was
+  // regressing the sheet lift in production. Other components (e.g.
+  // PriceEditModal) use the single-call hook fine.
+  // Rule A (sheet): translateY = -(kbH - 45). Rule B (popup): -(kbH/2 - 35).
+  // Memory: feedback_keyboard_lift_modal.md.
+  const keyboardOffset = useSharedValue(0);
+  const promptLiftY = useSharedValue(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const resolveKeyboardHeight = (evt) => {
+      const reported = evt?.endCoordinates?.height || 0;
+      if (reported > 0) return reported;
+      const diff = Dimensions.get('screen').height - Dimensions.get('window').height;
+      return diff > 0 ? diff : 320;
+    };
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const kb = resolveKeyboardHeight(e);
+      keyboardOffset.value = withTiming(-(kb - 45), { duration: 250 });
+      promptLiftY.value = withTiming(-(kb / 2 - 35), { duration: 250 });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      keyboardOffset.value = withTiming(0, { duration: 200 });
+      promptLiftY.value = withTiming(0, { duration: 200 });
+    });
+
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+  const promptLiftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: promptLiftY.value }],
+  }));
 
   // Entrance + swipe-to-dismiss
   const enterY = useSharedValue(SCREEN_HEIGHT);

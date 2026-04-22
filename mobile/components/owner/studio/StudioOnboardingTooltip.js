@@ -93,26 +93,22 @@ export default function StudioOnboardingTooltip({ visible, onDismiss }) {
 
             <DragHandle />
 
-            {/* Hero AskPad orb — warm radial halo behind */}
-            <View style={styles.heroWrap}>
-              <View style={styles.heroHalo} pointerEvents="none" />
-              <View style={styles.heroHaloInner} pointerEvents="none" />
-              <Image
-                source={require('../../../assets/images/askpad-orb.png')}
-                style={styles.heroOrb}
-                contentFit="contain"
-              />
-            </View>
-
             <Text style={styles.title}>Your Property, Your Story</Text>
             <Text style={styles.subtitle}>
               Let <Text style={styles.askWord}>Ask</Text><Text style={styles.padWord}>Pad</Text> help you tell it.
             </Text>
 
-            {/* Ornamental divider — small brass filigree */}
+            {/* Divider — AskPad orb as the central brand accent, replacing
+                the diamond. Flanked by brass filigree lines. Orb becomes
+                the visual anchor without the heavy top-hero real estate. */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerDot}>{'✦'}</Text>
+              <View style={styles.dividerOrbHalo} pointerEvents="none" />
+              <Image
+                source={require('../../../assets/images/askpad-orb.png')}
+                style={styles.dividerOrb}
+                contentFit="contain"
+              />
               <View style={styles.dividerLine} />
             </View>
 
@@ -126,7 +122,7 @@ export default function StudioOnboardingTooltip({ visible, onDismiss }) {
             </View>
             <View style={styles.tipRow}>
               <Text style={styles.bullet}>{'✦'}</Text>
-              <Text style={styles.tipText}>Preview anytime to see your listing through a renter's eyes.</Text>
+              <Text style={styles.tipText}>Preview your listing to see it through a renter's eyes.</Text>
             </View>
             <View style={styles.tipRow}>
               <Text style={styles.bullet}>{'✦'}</Text>
@@ -197,7 +193,7 @@ const styles = StyleSheet.create({
   cardWrap: {
     alignItems: 'center',
     width: '100%',
-    maxWidth: 370,
+    maxWidth: 390,
   },
 
   // ── Tab sticker ──────────────────────────────
@@ -239,8 +235,9 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     borderRadius: LAYOUT.radius.lg,
-    padding: LAYOUT.padding.lg,
-    paddingTop: 20,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 18,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(60,40,10,0.25)',
@@ -341,39 +338,52 @@ const styles = StyleSheet.create({
   // ── Headline + subtitle ──────────────────────
   title: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.xl,
+    fontSize: FONT_SIZES.lg,
     color: '#3A2810',
     textAlign: 'center',
-    letterSpacing: 0.3,
-    textShadowColor: 'rgba(255,248,220,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-    marginBottom: 4,
+    letterSpacing: -0.2,
+    // Two-tone shadow: light cream above (paper glow) + dark stamp below
+    // (depth). The dark one is the pop; the cream softens it into the
+    // manila gradient instead of making it read as cheap drop-shadow.
+    textShadowColor: 'rgba(60,40,10,0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+    marginBottom: 2,
   },
   subtitle: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: '#5C4A1E',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 2,
   },
 
-  // ── Ornamental divider ───────────────────────
+  // ── Ornamental divider (hosts the AskPad orb) ───
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginVertical: 12,
-    width: '72%',
+    marginVertical: 8,
+    width: '76%',
+    justifyContent: 'center',
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(60,40,10,0.25)',
+    backgroundColor: 'rgba(60,40,10,0.28)',
   },
-  dividerDot: {
-    fontSize: 14,
-    color: COLORS.logoOrange,
+  dividerOrb: {
+    width: 30,
+    height: 30,
+    zIndex: 1,
+  },
+  dividerOrbHalo: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,210,130,0.45)',
   },
 
   // ── Tips ─────────────────────────────────────
@@ -381,7 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 8,
     width: '100%',
     paddingRight: 4,
   },
