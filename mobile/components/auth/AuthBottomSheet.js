@@ -63,16 +63,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
       const kb = resolveKeyboardHeight(e);
-      console.log('[AuthSheet][kb-show]', {
-        reported: e?.endCoordinates?.height,
-        resolved: kb,
-        willLiftTo: -(kb - 45),
-      });
       keyboardOffset.value = withTiming(-(kb - 45), { duration: 250 });
       promptLiftY.value = withTiming(-(kb / 2 - 35), { duration: 250 });
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
-      console.log('[AuthSheet][kb-hide]');
       keyboardOffset.value = withTiming(0, { duration: 200 });
       promptLiftY.value = withTiming(0, { duration: 200 });
     });
