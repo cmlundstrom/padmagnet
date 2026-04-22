@@ -97,9 +97,11 @@ appId: com.padmagnet.app
 - waitForAnimationToEnd:
     timeout: 8000
 
-# Create wizard should load
-- assertVisible: "Welcome to the Listing Studio"
-- tapOn: "Got it"
+# Create wizard should load. Tooltip headline + CTA were rebranded in
+# commit 89672fb (studio tooltip art treatment). "Welcome to the Listing
+# Studio" → "Your Property, Your Story". "Got it" → "Let's Build It".
+- assertVisible: "Your Property, Your Story"
+- tapOn: "Let's Build It"
 - waitForAnimationToEnd
 - assertVisible:
     id: ${output.listings.ownerCreate.addressInput}
