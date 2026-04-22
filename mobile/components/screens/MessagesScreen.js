@@ -4,13 +4,14 @@ import {
   RefreshControl, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { RectButton } from 'react-native-gesture-handler';
 import { EmptyState } from '../ui';
 import { ConversationItem } from '../messaging';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
+import { useUnread } from '../../providers/UnreadProvider';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -30,7 +31,7 @@ export default function MessagesScreen({ emptySubtitle }) {
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
-  const [unreadBadge, setUnreadBadge] = useState(0);
+  const { unreadCount: unreadBadge, refresh: refreshUnread, setUnreadCount } = useUnread();
   const openSwipeableRef = useRef(null);
 
   useEffect(() => {
@@ -46,12 +47,13 @@ export default function MessagesScreen({ emptySubtitle }) {
       const data = await apiFetch(`/api/conversations?tab=${targetTab}`);
       setConversations(data || []);
 
-      // Also fetch unread count for badge
-      if (targetTab !== 'unread') {
-        const unreadData = await apiFetch('/api/conversations?tab=unread');
-        setUnreadBadge((unreadData || []).length);
+      // Keep the shared unread badge in sync with what we just observed.
+      // When viewing the Unread tab the result length IS the count; otherwise
+      // ask the provider to reconcile from the server.
+      if (targetTab === 'unread') {
+        setUnreadCount((data || []).length);
       } else {
-        setUnreadBadge((data || []).length);
+        refreshUnread();
       }
     } catch (err) {
       setError(err.message);
@@ -59,11 +61,19 @@ export default function MessagesScreen({ emptySubtitle }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTab]);
+  }, [activeTab, refreshUnread, setUnreadCount]);
 
   useEffect(() => {
     fetchConversations(activeTab);
   }, [activeTab]);
+
+  // Re-fetch whenever the screen regains focus — catches missed realtime
+  // events from mark-read / archive that happened on other surfaces.
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations();
+    }, [fetchConversations])
+  );
 
   // Realtime: re-fetch on new messages or conversation updates
   useEffect(() => {

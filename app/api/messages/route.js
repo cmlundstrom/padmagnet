@@ -128,14 +128,21 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Update conversation preview text (truncated for preview)
+    // Update conversation preview text + stamp sender's read cursor so
+    // their own just-sent message doesn't flag this thread as unread via
+    // the unread-filter's cursor-fallback (last_message_at > last_read_at).
+    const senderRole = convo.tenant_user_id === user.id ? 'tenant' : 'owner';
+    const senderCursorCol = senderRole === 'tenant' ? 'tenant_last_read_at' : 'owner_last_read_at';
     await supabase
       .from('conversations')
-      .update({ last_message_text: messageBody.slice(0, 200) })
+      .update({
+        last_message_text: messageBody.slice(0, 200),
+        [senderCursorCol]: new Date().toISOString(),
+      })
       .eq('id', conversation_id);
 
     // Atomic unread increment (replaces manual fetch-then-update)
-    const recipientRole = convo.tenant_user_id === user.id ? 'owner' : 'tenant';
+    const recipientRole = senderRole === 'tenant' ? 'owner' : 'tenant';
     // For external_agent convos, there's no owner — but tenant_unread
     // only gets incremented when the agent replies (via webhook), not here
     if (convo.conversation_type !== 'external_agent' || recipientRole !== 'owner') {

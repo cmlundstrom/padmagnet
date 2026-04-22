@@ -28,6 +28,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
+import { UnreadProvider } from '../providers/UnreadProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
 import AuthSuccessBanner from '../components/auth/AuthSuccessBanner';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -111,6 +112,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
     <ErrorBoundary>
       <AuthProvider>
+        <UnreadProvider>
         <AlertProvider>
         <RouteGuard>
         <StatusBar style="light" />
@@ -138,6 +140,7 @@ export default function RootLayout() {
         </Stack>
         </RouteGuard>
         </AlertProvider>
+        </UnreadProvider>
       </AuthProvider>
     </ErrorBoundary>
     </SafeAreaProvider>

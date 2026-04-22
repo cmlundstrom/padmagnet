@@ -1,13 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../hooks/useAuth';
-import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { useUnread } from '../../providers/UnreadProvider';
 import useTabBarStyle from '../../hooks/useTabBarStyle';
 import { COLORS } from '../../constants/colors';
 
 export default function TenantTabLayout() {
-  const { user } = useAuth();
-  const unreadCount = useUnreadCount(user?.id);
+  const { unreadCount } = useUnread();
   const tabBarStyle = useTabBarStyle();
 
   return (

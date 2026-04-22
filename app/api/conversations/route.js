@@ -142,10 +142,16 @@ export async function POST(request) {
         return NextResponse.json({ error: msgErr.message }, { status: 500 });
       }
 
-      // Update preview + atomic unread increment
+      // Update preview + stamp sender's read cursor. The tenant is the only
+      // sender on this endpoint (existing conversations are matched by
+      // tenant_user_id above), so their own just-sent message shouldn't flag
+      // their thread as unread via the unread-filter's cursor-fallback.
       await supabase
         .from('conversations')
-        .update({ last_message_text: initial_message })
+        .update({
+          last_message_text: initial_message,
+          tenant_last_read_at: new Date().toISOString(),
+        })
         .eq('id', existing.id);
 
       if (existing.conversation_type === 'external_agent') {
@@ -173,6 +179,7 @@ export async function POST(request) {
     const address = [listing.street_number, listing.street_name, listing.city].filter(Boolean).join(' ');
     const firstPhoto = listing.photos?.[0]?.url || null;
     const isExternalAgent = listing.source === 'mls';
+    const now = new Date().toISOString();
 
     const conversationData = {
       listing_id,
@@ -180,7 +187,11 @@ export async function POST(request) {
       listing_address: address,
       listing_photo_url: firstPhoto,
       last_message_text: initial_message,
-      last_message_at: new Date().toISOString(),
+      last_message_at: now,
+      // Tenant is the sender — stamp their read cursor so the unread-filter's
+      // cursor-fallback branch (last_message_at > last_read_at) doesn't flag
+      // their own just-sent message back at them.
+      tenant_last_read_at: now,
     };
 
     if (isExternalAgent) {
