@@ -24,7 +24,7 @@ import { LAYOUT } from '../../constants/layout';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_THRESHOLD = 120;
 
-export default function AuthBottomSheet({ visible, onClose, context, padpoints }) {
+export default function AuthBottomSheet({ visible, onClose, context, padpoints, ownerHasListings = false }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,7 +142,12 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints }
 
   function getReturnPath() {
     switch (context) {
-      case 'create_listing': return '/(owner)/listings';
+      // Owner auths from the L1 "Create or Edit Your Listing" CTA. Route to
+      // existing listings for returning owners; send first-time owners
+      // straight into the Studio so they can list their property in one
+      // less tap. Decision made 2026-04-21 after removing the duplicate
+      // auto-nav that used to live in (owner)/home.js.
+      case 'create_listing': return ownerHasListings ? '/(owner)/listings' : '/owner/create';
       case 'owner_messages': return '/(owner)/messages';
       case 'owner_profile': return '/(owner)/profile';
       case 'owner_upgrade': return '/(owner)/profile';

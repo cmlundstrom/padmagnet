@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -30,28 +30,12 @@ export default function OwnerHomeTab() {
       .catch(() => {});
   }, [isAnon, session?.user?.id]);
 
-  // Auto-navigate to My Listings after sign-in IF the owner already has a listing.
-  // Fires once per anon→auth transition, gated on the listings fetch resolving.
-  // If the user has no listings, we stay on Home (L1 dismisses naturally and the
-  // BaseGrid's "Enter My Listing" CTA still routes into the Studio).
-  const wasAnon = useRef(isAnon);
-  const navigatedPostAuth = useRef(false);
-
-  useEffect(() => {
-    const justAuthed = wasAnon.current && !isAnon;
-
-    if (justAuthed && ownerHasListings && !navigatedPostAuth.current) {
-      navigatedPostAuth.current = true;
-      wasAnon.current = isAnon;
-      router.push('/(owner)/listings');
-      return;
-    }
-
-    if (!wasAnon.current && isAnon) {
-      wasAnon.current = isAnon;
-      navigatedPostAuth.current = false;
-    }
-  }, [isAnon, ownerHasListings, router]);
+  // Post-auth routing is handled entirely by AuthBottomSheet.getReturnPath()
+  // via the auth_return_to AsyncStorage key read by auth-callback.js. The
+  // previous auto-nav effect here duplicated that logic and fired on every
+  // home.js mount, hijacking auths initiated from Profile/Messages/etc.
+  // Removed 2026-04-21. See context='create_listing' branch in
+  // AuthBottomSheet.getReturnPath for the post-auth destination.
 
   return (
     <SafeAreaView style={SCREEN.containerFlush} edges={['top']}>
@@ -84,6 +68,7 @@ export default function OwnerHomeTab() {
         visible={showAuth}
         onClose={() => setShowAuth(false)}
         context="create_listing"
+        ownerHasListings={ownerHasListings}
       />
     </SafeAreaView>
   );
