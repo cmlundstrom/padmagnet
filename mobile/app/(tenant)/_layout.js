@@ -2,11 +2,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import useTabBarStyle from '../../hooks/useTabBarStyle';
 import { COLORS } from '../../constants/colors';
 
 export default function TenantTabLayout() {
   const { user } = useAuth();
   const unreadCount = useUnreadCount(user?.id);
+  const tabBarStyle = useTabBarStyle();
 
   return (
     <Tabs
@@ -14,11 +16,7 @@ export default function TenantTabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#FFFFFF',
         tabBarInactiveTintColor: '#B0BEC5',
-        tabBarStyle: {
-          backgroundColor: '#0B1D3A',
-          borderTopWidth: 0,
-          elevation: 0,
-        },
+        tabBarStyle,
       }}
     >
       <Tabs.Screen
