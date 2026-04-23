@@ -11,25 +11,34 @@ export const maxDuration = 60; // 60s for sharp processing + upload
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_INPUT_SIZE = 10 * 1024 * 1024; // 10MB raw input (we compress server-side)
 const MAX_FILES = 15;
-const FULL_WIDTH = 1600;   // Max width for full-size photos
-const THUMB_WIDTH = 400;   // Thumbnail width for grid/card views
-const QUALITY = 80;        // WebP quality (visually indistinguishable from original)
+const FULL_WIDTH = 1600;
+const THUMB_WIDTH = 400;
+const ASPECT = 3 / 2;                  // Canonical card hero aspect — matches MLS modal
+const QUALITY = 80;
 
-/**
- * Process a raw image buffer through sharp:
- * 1. Strip EXIF/GPS metadata (privacy)
- * 2. Auto-rotate based on EXIF orientation
- * 3. Resize to max width (preserving aspect ratio)
- * 4. Convert to WebP (40-60% smaller than JPEG)
- */
+// Smart-crop to 3:2 using sharp's attention strategy. Auto-rotates from EXIF,
+// strips metadata, biases the crop window toward the salient subject (the house)
+// rather than blind-centering. Matches the dominant MLS aspect so owner uploads
+// render uniformly alongside MLS-sourced cards. Never upscales: picks the
+// largest 3:2 frame that fits within both the source and the maxWidth budget.
 async function processImage(buffer, maxWidth) {
+  const meta = await sharp(buffer).metadata();
+  const rotated = meta.orientation >= 5;
+  const srcW = rotated ? meta.height : meta.width;
+  const srcH = rotated ? meta.width : meta.height;
+
+  const w = Math.min(maxWidth, srcW, Math.floor(srcH * ASPECT));
+  const h = Math.round(w / ASPECT);
+
   return sharp(buffer)
-    .rotate()                          // Auto-rotate from EXIF orientation
-    .resize(maxWidth, null, {          // Resize width, auto-height
-      fit: 'inside',                   // Never upscale, preserve aspect ratio
-      withoutEnlargement: true,
+    .rotate()
+    .resize({
+      width: w,
+      height: h,
+      fit: 'cover',
+      position: sharp.strategy.attention,
     })
-    .webp({ quality: QUALITY })        // Convert to WebP
+    .webp({ quality: QUALITY })
     .toBuffer();
 }
 
