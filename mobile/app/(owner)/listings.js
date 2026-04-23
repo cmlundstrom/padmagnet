@@ -266,6 +266,12 @@ export default function OwnerListingsTab() {
           data={listings}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
+          // Disable subview clipping + small render window so cached row
+          // Y-offsets stay accurate when async image loads trigger re-layout.
+          removeClippedSubviews={false}
+          windowSize={5}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
