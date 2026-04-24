@@ -257,6 +257,9 @@ export default function useListingStudio(draftIdParam) {
   }, [draftId, buildPayload]);
 
   // ── Auto-populate contact info from profile ──
+  // Only fills fields that are empty — user-entered values are never
+  // overwritten. Sets contactPref to 'both' only if profile has a phone
+  // AND the user hasn't already made an explicit choice.
   const prefillContact = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -275,6 +278,23 @@ export default function useListingStudio(draftIdParam) {
       if (profile?.phone) setContactPref('both');
     } catch {}
   }, []);
+
+  // ── Auto-prefill contact fields on first render ──
+  // Fires once loading completes (new listing OR resumed draft). prefillContact
+  // is idempotent — it only fills blanks, so this never clobbers user edits
+  // or values saved into a resumed draft. Removes the need for a manual
+  // "Fill from profile" button and eliminates the empty-contact-fields
+  // confusion on the Contact card.
+  const prefillFired = useRef(false);
+  useEffect(() => {
+    if (loading) return;
+    if (prefillFired.current) return;
+    const anyEmpty = !form.listing_agent_email || !form.listing_agent_name || !form.listing_agent_phone;
+    if (anyEmpty) {
+      prefillFired.current = true;
+      prefillContact();
+    }
+  }, [loading, form.listing_agent_email, form.listing_agent_name, form.listing_agent_phone, prefillContact]);
 
   // ── Validation (at publish) ──
   const validate = useCallback(() => {

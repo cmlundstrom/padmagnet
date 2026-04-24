@@ -47,7 +47,7 @@ export default function MagicListingStudio() {
   const studio = useListingStudio(draft_id);
   const { form, update, updatePhone, updateMany, completionMap, completionPercent,
     contactPref, setContactPref, aiLoading, loading, submitting,
-    createDraft, prefillContact, generateDescription, generateFromPhotos,
+    createDraft, generateDescription, generateFromPhotos,
     suggestAmenities, publish, buildPayload, draftId, coords, setCoords } = studio;
 
   // ── Local UI state ──
@@ -471,14 +471,8 @@ export default function MagicListingStudio() {
             completion={completionMap.contact}
             cardRef={r => { cardRefs.current.contact = r; }}
           >
-            <Text style={styles.hint}>How renters will reach you.</Text>
+            <Text style={styles.hint}>How renters will reach you. We pre-filled from your profile — edit any field to change it.</Text>
             <Input label="Your Name" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Your full name" autoCapitalize="words" />
-            {!form.listing_agent_name && (
-              <Pressable style={styles.prefillBtn} onPress={prefillContact}>
-                <Ionicons name="person-circle" size={16} color={COLORS.accent} />
-                <Text style={styles.prefillBtnText}>Fill from profile</Text>
-              </Pressable>
-            )}
             <Text style={styles.chipLabel}>Preferred Contact Method *</Text>
             <View style={styles.chipRow}>
               {[{ key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'both', label: 'Both' }].map(opt => (
@@ -499,11 +493,11 @@ export default function MagicListingStudio() {
               value={form.listing_agent_email}
               onChangeText={v => update('listing_agent_email', v)}
               onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
-              placeholder="Leave blank to use your account email"
+              placeholder="your@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Text style={styles.hint}>Leave blank to use your account email, or override to route inquiries elsewhere (e.g. a property manager or specific agent).</Text>
+            <Text style={styles.hint}>Inquiries route here. Change it to send them to a property manager or different agent.</Text>
             {(contactPref === 'phone' || contactPref === 'both') && (
               <Input
                 label="Phone Number for Renters *"
