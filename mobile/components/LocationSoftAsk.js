@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, Pressable, InteractionManager, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import DragHandle from './ui/DragHandle';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -53,12 +53,14 @@ function BenefitRow({ icon, text }) {
 }
 
 export default function LocationSoftAsk({ onEnable, onSkip }) {
-  // Wrap callbacks with InteractionManager to let gesture system stabilize
+  // Defer to next tick so the press animation commits before the parent's
+  // callback swaps the screen. Previously used InteractionManager, now
+  // deprecated — setTimeout(..., 0) has equivalent scheduling semantics.
   const handleEnable = () => {
-    InteractionManager.runAfterInteractions(() => onEnable());
+    setTimeout(() => onEnable(), 0);
   };
   const handleSkip = () => {
-    InteractionManager.runAfterInteractions(() => onSkip());
+    setTimeout(() => onSkip(), 0);
   };
 
   return (
