@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,6 +83,17 @@ export default function EditListingScreen() {
 
   const [form, setForm] = useState(cached ? hydrateForm(cached) : {});
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Mutation queue — serializes photo side-effects (upload/delete/reorder)
+  // so concurrent user actions can't race. UI updates optimistically; server
+  // calls run one at a time in submission order. Last-write-wins on the
+  // server matches the last optimistic update the user saw locally.
+  const mutationQueue = useRef(Promise.resolve());
+  const enqueueMutation = useCallback((fn) => {
+    const next = mutationQueue.current.then(fn, fn);
+    mutationQueue.current = next;
+    return next;
+  }, []);
 
   // Load listing data. Stale-while-revalidate: if we seeded from cache, this
   // still fires to pull the latest from server, but the user sees the form
@@ -196,7 +207,8 @@ export default function EditListingScreen() {
   // Photo upload from phone.
   // Server atomically appends to listings.photos when listing_id is passed,
   // so one roundtrip covers both upload + persist. Client just adopts the
-  // authoritative photos array from the response.
+  // authoritative photos array from the response. Serialized via mutation
+  // queue so a rapid follow-up action (reorder, hero) can't race.
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -207,46 +219,46 @@ export default function EditListingScreen() {
     if (result.canceled || !result.assets?.length) return;
     setUploading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const formData = new FormData();
-      result.assets.forEach((asset) => {
-        const ext = asset.uri.split('.').pop() || 'jpg';
-        formData.append('photos', {
-          uri: asset.uri,
-          type: asset.mimeType || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-          name: `photo.${ext}`,
+      await enqueueMutation(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const formData = new FormData();
+        result.assets.forEach((asset) => {
+          const ext = asset.uri.split('.').pop() || 'jpg';
+          formData.append('photos', {
+            uri: asset.uri,
+            type: asset.mimeType || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+            name: `photo.${ext}`,
+          });
         });
-      });
-      formData.append('listing_id', id);
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(JSON.parse(text)?.error || 'Upload failed');
-      }
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        // Legacy server response (listing_id not yet supported by deployed API):
-        // server returned [{url, thumb_url, order}, ...]. Merge locally and PUT.
-        const newPhotos = [...(form.photos || []), ...data.map((u, i) => ({
-          url: u.url,
-          thumb_url: u.thumb_url,
-          caption: '',
-          order: (form.photos?.length || 0) + i,
-        }))];
-        update('photos', newPhotos);
-        await apiFetch(`/api/owner/listings/${id}`, {
-          method: 'PUT',
-          body: JSON.stringify({ photos: newPhotos }),
+        formData.append('listing_id', id);
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
         });
-      } else {
-        // New server mode: server did the atomic append, returned authoritative photos
-        update('photos', data.photos);
-      }
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(JSON.parse(text)?.error || 'Upload failed');
+        }
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          // Legacy server response (listing_id not yet supported by deployed API).
+          const newPhotos = [...(form.photos || []), ...data.map((u, i) => ({
+            url: u.url,
+            thumb_url: u.thumb_url,
+            caption: '',
+            order: (form.photos?.length || 0) + i,
+          }))];
+          update('photos', newPhotos);
+          await apiFetch(`/api/owner/listings/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ photos: newPhotos }),
+          });
+        } else {
+          update('photos', data.photos);
+        }
+      });
     } catch (err) {
       alert('Upload Error', err.message);
     } finally {
@@ -254,29 +266,31 @@ export default function EditListingScreen() {
     }
   };
 
-  // Delete photo
-  const deletePhoto = async (index) => {
+  // Delete photo — optimistic local update, queued server side-effects
+  const deletePhoto = (index) => {
     const photo = form.photos[index];
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ urls: [photo.url] }),
-      });
-    } catch { /* best effort */ }
     const newPhotos = form.photos.filter((_, i) => i !== index).map((p, i) => ({ ...p, order: i }));
     update('photos', newPhotos);
-    await apiFetch(`/api/owner/listings/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ photos: newPhotos }),
+    enqueueMutation(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ urls: [photo.url] }),
+        });
+      } catch { /* storage best-effort; listing PUT is the source of truth */ }
+      await apiFetch(`/api/owner/listings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ photos: newPhotos }),
+      });
     }).catch(() => {});
   };
 
-  // Set hero (move photo to position 0)
+  // Set hero (move photo to position 0) — optimistic, queued
   const setHero = (index) => {
     if (index === 0) return;
     const photos = [...form.photos];
@@ -284,23 +298,27 @@ export default function EditListingScreen() {
     photos.unshift(hero);
     const reordered = photos.map((p, i) => ({ ...p, order: i }));
     update('photos', reordered);
-    apiFetch(`/api/owner/listings/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ photos: reordered }),
-    }).catch(() => {});
+    enqueueMutation(() =>
+      apiFetch(`/api/owner/listings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ photos: reordered }),
+      })
+    ).catch(() => {});
   };
 
-  // Drag reorder
+  // Drag reorder — optimistic, queued
   const handleDragEnd = ({ data }) => {
     const reordered = data.map((p, i) => ({ ...p, order: i }));
     update('photos', reordered);
-    apiFetch(`/api/owner/listings/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ photos: reordered }),
-    }).catch(() => {});
+    enqueueMutation(() =>
+      apiFetch(`/api/owner/listings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ photos: reordered }),
+      })
+    ).catch(() => {});
   };
 
-  // Replace all photos
+  // Replace all photos — queued so the subsequent pickImages() can't race
   const handleReplaceAll = () => {
     alert('Replace All Photos', 'This will remove all current photos. Continue?', [
       { text: 'Cancel', style: 'cancel' },
@@ -308,27 +326,27 @@ export default function EditListingScreen() {
         text: 'Replace',
         style: 'destructive',
         onPress: async () => {
-          // Delete all from storage
           const urls = form.photos.map(p => p.url);
-          if (urls.length) {
-            try {
-              const { data: { session } } = await supabase.auth.getSession();
-              await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
-                method: 'DELETE',
-                headers: {
-                  Authorization: `Bearer ${session?.access_token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ urls }),
-              });
-            } catch { /* best effort */ }
-          }
           update('photos', []);
-          await apiFetch(`/api/owner/listings/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ photos: [] }),
+          await enqueueMutation(async () => {
+            if (urls.length) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ urls }),
+                });
+              } catch { /* storage best-effort */ }
+            }
+            await apiFetch(`/api/owner/listings/${id}`, {
+              method: 'PUT',
+              body: JSON.stringify({ photos: [] }),
+            });
           }).catch(() => {});
-          // Open picker right away
           pickImages();
         },
       },
