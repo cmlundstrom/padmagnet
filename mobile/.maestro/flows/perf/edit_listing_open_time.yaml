@@ -55,7 +55,9 @@ tags:
       text: "Property Details"
     timeout: 5000
 
-# 5. Photos tab — exercises lazy DraggableFlatList require path.
+# 5. Photos tab — confirm tab content paints fast. Photos tab now uses a
+#    plain FlatList + tap-arrow reorder (the lazy DraggableFlatList path
+#    was removed because long-press drag was unreliable on Android).
 - tapOn:
     text: "Photos"
 - extendedWaitUntil:

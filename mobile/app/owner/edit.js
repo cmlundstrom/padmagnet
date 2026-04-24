@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import useAndroidBack from '../../hooks/useAndroidBack';
-import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
+import { ScrollView, View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 // react-native-draggable-flatlist is loaded lazily inside the render body
@@ -45,37 +45,44 @@ function formatPhone(raw) {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
-// Memoized photo row used by the DraggableFlatList in the Photos tab.
-// Stable parent callbacks (setHero/confirmDeletePhoto) + memo() means the
-// only rows that re-render during a drag are the ones whose `index` or
-// `item` actually changed — keeping the JS thread free for drag frames.
-//
-// `ScaleDecorator` is passed in (not imported) because the library is
-// loaded lazily inside the parent's render body when tab === 1.
-const PhotoRow = memo(function PhotoRow({ ScaleDecorator, item, index, drag, isActive, onSetHero, onDelete }) {
+// Memoized photo row used by the FlatList in the Photos tab. Reorder is
+// driven by ↑ / ↓ tap arrows — the long-press drag pattern was unreliable
+// on Android (gesture timing fights JS-thread render work and scroll). All
+// callbacks come in pre-stabilized via useCallback; isFirst / isLast are
+// the only diff-drivers besides item/index.
+const PhotoRow = memo(function PhotoRow({ item, index, isFirst, isLast, onMoveUp, onMoveDown, onSetHero, onDelete }) {
   return (
-    <ScaleDecorator>
-      <Pressable
-        onLongPress={drag}
-        delayLongPress={200}
-        disabled={isActive}
-        style={[styles.photoRow, isActive && styles.photoItemDragging]}
-      >
-        <Image source={{ uri: item.thumb_url || item.url }} style={styles.photoRowImg} contentFit="cover" />
-        <View style={styles.photoRowInfo}>
-          <Text style={styles.photoRowLabel}>{index === 0 ? 'Hero Image' : `Photo ${index + 1}`}</Text>
-          <Text style={styles.photoRowHint}>Long-press to drag</Text>
-        </View>
-        <View style={styles.photoRowActions}>
-          <Pressable style={styles.heroBtn} onPress={() => onSetHero(index)} hitSlop={10}>
-            <FontAwesome name="star" size={18} color={index === 0 ? COLORS.warning : COLORS.slate} />
-          </Pressable>
-          <Pressable style={styles.deleteBtnRow} onPress={() => onDelete(index)} hitSlop={10}>
-            <FontAwesome name="trash-o" size={16} color={COLORS.danger} />
-          </Pressable>
-        </View>
-      </Pressable>
-    </ScaleDecorator>
+    <View style={styles.photoRow}>
+      <Image source={{ uri: item.thumb_url || item.url }} style={styles.photoRowImg} contentFit="cover" />
+      <View style={styles.photoRowInfo}>
+        <Text style={styles.photoRowLabel}>{index === 0 ? 'Hero Image' : `Photo ${index + 1}`}</Text>
+        <Text style={styles.photoRowHint}>Tap arrows to reorder</Text>
+      </View>
+      <View style={styles.photoRowActions}>
+        <Pressable
+          style={[styles.reorderBtn, isFirst && styles.reorderBtnDisabled]}
+          onPress={() => onMoveUp(index)}
+          disabled={isFirst}
+          hitSlop={8}
+        >
+          <FontAwesome name="chevron-up" size={14} color={isFirst ? COLORS.slate : COLORS.accent} />
+        </Pressable>
+        <Pressable
+          style={[styles.reorderBtn, isLast && styles.reorderBtnDisabled]}
+          onPress={() => onMoveDown(index)}
+          disabled={isLast}
+          hitSlop={8}
+        >
+          <FontAwesome name="chevron-down" size={14} color={isLast ? COLORS.slate : COLORS.accent} />
+        </Pressable>
+        <Pressable style={styles.heroBtn} onPress={() => onSetHero(index)} hitSlop={10}>
+          <FontAwesome name="star" size={18} color={index === 0 ? COLORS.warning : COLORS.slate} />
+        </Pressable>
+        <Pressable style={styles.deleteBtnRow} onPress={() => onDelete(index)} hitSlop={10}>
+          <FontAwesome name="trash-o" size={16} color={COLORS.danger} />
+        </Pressable>
+      </View>
+    </View>
   );
 });
 
@@ -437,17 +444,29 @@ export default function EditListingScreen() {
     });
   }, [id, enqueueMutation]);
 
-  // Drag reorder — optimistic, queued
-  const handleDragEnd = useCallback(({ data }) => {
-    const reordered = data.map((p, i) => ({ ...p, order: i }));
-    update('photos', reordered);
-    enqueueMutation(() =>
-      apiFetch(`/api/owner/listings/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ photos: reordered }),
-      }),
-    ).catch(() => {});
+  // Helper that swaps a photo with its neighbor and queues the PUT.
+  // Used by both moveUp / moveDown so the queue/optimistic logic is
+  // written once.
+  const swapPhotos = useCallback((from, to) => {
+    setForm(prev => {
+      if (!prev.photos || from < 0 || to < 0 || from >= prev.photos.length || to >= prev.photos.length) {
+        return prev;
+      }
+      const photos = [...prev.photos];
+      [photos[from], photos[to]] = [photos[to], photos[from]];
+      const reordered = photos.map((p, i) => ({ ...p, order: i }));
+      enqueueMutation(() =>
+        apiFetch(`/api/owner/listings/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ photos: reordered }),
+        }),
+      ).catch(() => {});
+      return { ...prev, photos: reordered };
+    });
   }, [id, enqueueMutation]);
+
+  const moveUp = useCallback((index) => swapPhotos(index, index - 1), [swapPhotos]);
+  const moveDown = useCallback((index) => swapPhotos(index, index + 1), [swapPhotos]);
 
   // Replace all photos — queued so the subsequent pickImages() can't race
   const handleReplaceAll = () => {
@@ -512,15 +531,10 @@ export default function EditListingScreen() {
   const fullAddress = [address, form.city, form.state_or_province, form.postal_code].filter(Boolean).join(', ');
   const descLen = form.public_remarks?.length || 0;
 
-  // Lazy-load the heavy draggable list module only when the Photos tab is
-  // first opened. Module is cached after first require, so tab-switching is
-  // instant after initial load.
-  let DraggableFlatList, ScaleDecorator;
-  if (tab === 1) {
-    const mod = require('react-native-draggable-flatlist');
-    DraggableFlatList = mod.default;
-    ScaleDecorator = mod.ScaleDecorator;
-  }
+  // (Photos tab uses a plain FlatList + tap-arrow reorder — the
+  // react-native-draggable-flatlist long-press path was removed because
+  // its gesture timing was unreliable and conflicted with vertical
+  // scroll on a list of up to 15 rows.)
 
   if (loading) {
     return (
@@ -668,19 +682,18 @@ export default function EditListingScreen() {
               <Text style={styles.photoActionBtnText}>{linkSent ? 'Resend Upload Link' : 'Upload Photos from Desktop/Laptop'}</Text>
             </Pressable>
           </View>
-          <Text style={styles.photoCount}>{form.photos?.length || 0} of 15 photos · Long-press to reorder · Tap <Text style={{ color: COLORS.warning }}>Star <FontAwesome name="star" size={11} color={COLORS.warning} /></Text> for Hero Image</Text>
+          <Text style={styles.photoCount}>{form.photos?.length || 0} of 15 photos · Tap <FontAwesome name="chevron-up" size={11} color={COLORS.accent} /> <FontAwesome name="chevron-down" size={11} color={COLORS.accent} /> to reorder · Tap <Text style={{ color: COLORS.warning }}>Star <FontAwesome name="star" size={11} color={COLORS.warning} /></Text> for Hero Image</Text>
           {uploading && (
             <View style={styles.uploadingRow}>
               <ActivityIndicator size="small" color={COLORS.accent} />
               <Text style={styles.uploadingText}>{uploadStatus || 'Uploading…'}</Text>
             </View>
           )}
-          <DraggableFlatList
+          <FlatList
             data={form.photos || []}
             keyExtractor={(item, index) => item.url || String(index)}
-            onDragEnd={handleDragEnd}
-            activationDistance={5}
             contentContainerStyle={styles.photoGrid}
+            removeClippedSubviews={false}
             ListFooterComponent={
               (form.photos?.length || 0) > 0 ? (
                 <Pressable style={styles.replaceAllBtn} onPress={handleReplaceAll}>
@@ -688,13 +701,14 @@ export default function EditListingScreen() {
                 </Pressable>
               ) : null
             }
-            renderItem={({ item, getIndex, drag, isActive }) => (
+            renderItem={({ item, index }) => (
               <PhotoRow
-                ScaleDecorator={ScaleDecorator}
                 item={item}
-                index={getIndex()}
-                drag={drag}
-                isActive={isActive}
+                index={index}
+                isFirst={index === 0}
+                isLast={index === (form.photos?.length || 0) - 1}
+                onMoveUp={moveUp}
+                onMoveDown={moveDown}
                 onSetHero={setHero}
                 onDelete={confirmDeletePhoto}
               />
@@ -891,8 +905,11 @@ const styles = StyleSheet.create({
   },
   // Photos tab
   photosContainer: {
+    // flex:1 lets the FlatList own the scrollable area. The Photos tab has
+    // no Save button, so no bottom margin is needed; the photoGrid's own
+    // paddingBottom (set on contentContainerStyle) provides the safe-area
+    // breathing room above the home gesture bar.
     flex: 1,
-    marginBottom: 90,
   },
   photoActionRow: {
     flexDirection: 'row',
@@ -965,11 +982,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
   },
-  photoItemDragging: {
-    opacity: 0.8,
-    borderColor: COLORS.accent,
-    transform: [{ scale: 1.02 }],
-  },
   photoRowImg: {
     width: 70,
     height: 70,
@@ -994,8 +1006,23 @@ const styles = StyleSheet.create({
   photoRowActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingRight: 14,
+    gap: 10,
+    paddingRight: 12,
+  },
+  reorderBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: LAYOUT.radius.sm,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '55',
+    backgroundColor: COLORS.accent + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderBtnDisabled: {
+    borderColor: COLORS.border,
+    backgroundColor: 'transparent',
+    opacity: 0.4,
   },
   heroBtn: {
     padding: 4,
