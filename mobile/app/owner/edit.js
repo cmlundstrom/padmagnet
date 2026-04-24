@@ -3,7 +3,9 @@ import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+// react-native-draggable-flatlist is loaded lazily inside the render body
+// when tab === 1 so its reanimated + gesture-handler init cost is deferred
+// until the user actually opens the Photos tab.
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
@@ -380,6 +382,16 @@ export default function EditListingScreen() {
   const address = [form.street_number, form.street_name].filter(Boolean).join(' ');
   const fullAddress = [address, form.city, form.state_or_province, form.postal_code].filter(Boolean).join(', ');
   const descLen = form.public_remarks?.length || 0;
+
+  // Lazy-load the heavy draggable list module only when the Photos tab is
+  // first opened. Module is cached after first require, so tab-switching is
+  // instant after initial load.
+  let DraggableFlatList, ScaleDecorator;
+  if (tab === 1) {
+    const mod = require('react-native-draggable-flatlist');
+    DraggableFlatList = mod.default;
+    ScaleDecorator = mod.ScaleDecorator;
+  }
 
   if (loading) {
     return (
