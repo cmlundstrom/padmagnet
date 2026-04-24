@@ -24,6 +24,13 @@ export function setCachedListings(listings) {
   }
 }
 
+// Returns every currently cached listing. Used by the Listings tab for
+// stale-while-revalidate rendering — show cached rows instantly on focus,
+// kick off a background refresh, and replace when the server reply lands.
+export function getAllCachedListings() {
+  return Array.from(cache.values());
+}
+
 export function invalidateListing(id) {
   if (id) cache.delete(id);
 }

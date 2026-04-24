@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated } from 'react-native';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
+import { FlatList, View, Text, Pressable, ActivityIndicator, RefreshControl, StyleSheet, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Line, Rect as SvgRect } from 'react-native-svg';
 import { EqualHousingBadge } from '../../components/ui';
 import PriceEditModal from '../../components/owner/PriceEditModal';
 import { apiFetch } from '../../lib/api';
-import { setCachedListings } from '../../lib/listingCache';
+import { setCachedListings, getAllCachedListings } from '../../lib/listingCache';
 import { formatCurrency } from '../../utils/format';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
@@ -21,14 +22,20 @@ import TierBadge from '../../components/owner/TierBadge';
 import OwnerHeader from '../../components/owner/OwnerHeader';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 
+// Module-scope to avoid recreating the Animated component (and re-running
+// require()) on every render of AnimatedBarChart.
+const AnimatedSvgRect = Animated.createAnimatedComponent(SvgRect);
+
 export default function OwnerListingsTab() {
   const router = useRouter();
   const alert = useAlert();
-  const { session, isAnon } = useAuth();
+  const { isAnon } = useAuth();
   const { tier: ownerTier } = useSubscription();
   const [showAuth, setShowAuth] = useState(false);
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Stale-while-revalidate: seed from the module-level cache so returning
+  // to this tab renders instantly. Background refresh still runs on focus.
+  const [listings, setListings] = useState(() => getAllCachedListings());
+  const [loading, setLoading] = useState(() => getAllCachedListings().length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [priceEditListing, setPriceEditListing] = useState(null);
 
@@ -109,7 +116,29 @@ export default function OwnerListingsTab() {
     fetchListings();
   }, [fetchListings]);
 
-  const handleDelist = (listing) => {
+  // Row-level callbacks — stabilized so the memoized OwnerListingRow only
+  // re-renders when its own `listing` prop actually changes.
+  const onViewListing = useCallback((id) => {
+    router.push(`/owner/preview?listing_id=${id}`);
+  }, [router]);
+
+  const onEditListing = useCallback((id) => {
+    router.push(`/owner/edit?id=${id}`);
+  }, [router]);
+
+  const onContinueDraft = useCallback((id) => {
+    router.push(`/owner/create?draft_id=${id}`);
+  }, [router]);
+
+  const onNearby = useCallback((id) => {
+    router.push(`/owner/nearby-rentals?listing_id=${id}`);
+  }, [router]);
+
+  const onEditPrice = useCallback((listing) => {
+    setPriceEditListing(listing);
+  }, []);
+
+  const onDelist = useCallback((listing) => {
     alert(
       'De-List Rental',
       `This will remove "${[listing.street_number, listing.street_name].filter(Boolean).join(' ')}" from the tenant feed. Your listing data and photos will be preserved for easy re-listing later.`,
@@ -128,9 +157,9 @@ export default function OwnerListingsTab() {
         },
       ]
     );
-  };
+  }, [alert, handleRefresh]);
 
-  const handleRelist = async (listing) => {
+  const onRelist = useCallback(async (listing) => {
     try {
       const result = await apiFetch(`/api/owner/listings/${listing.id}/relist`, { method: 'POST' });
       if (result.action === 'resumed') {
@@ -142,7 +171,7 @@ export default function OwnerListingsTab() {
     } catch (err) {
       alert('Error', err.message);
     }
-  };
+  }, [alert, handleRefresh, router]);
 
   if (loading) {
     return (
@@ -287,13 +316,13 @@ export default function OwnerListingsTab() {
             <OwnerListingRow
               listing={item}
               ownerTier={ownerTier}
-              onView={() => router.push(`/owner/preview?listing_id=${item.id}`)}
-              onEdit={() => router.push(`/owner/edit?id=${item.id}`)}
-              onDelist={() => handleDelist(item)}
-              onRelist={() => handleRelist(item)}
-              onContinueDraft={() => router.push(`/owner/create?draft_id=${item.id}`)}
-              onNearby={() => router.push(`/owner/nearby-rentals?listing_id=${item.id}`)}
-              onEditPrice={() => setPriceEditListing(item)}
+              onView={onViewListing}
+              onEdit={onEditListing}
+              onDelist={onDelist}
+              onRelist={onRelist}
+              onContinueDraft={onContinueDraft}
+              onNearby={onNearby}
+              onEditPrice={onEditPrice}
             />
           )}
         />
@@ -370,80 +399,92 @@ function PulsingText({ style, children }) {
   return <Animated.Text style={[style, { color }]}>{children}</Animated.Text>;
 }
 
-function AnimatedBarChart() {
-  const Svg = require('react-native-svg').default;
-  const { Line, Rect: SvgRect } = require('react-native-svg');
-  const { Easing } = require('react-native');
+// Bar geometry is static — hoisted to module scope so the render body only
+// does the animated interpolation wiring.
+const BAR_DEFS = [
+  { x: 9, maxH: 7 },
+  { x: 15, maxH: 11.5 },
+  { x: 21, maxH: 16 },
+  { x: 27, maxH: 21 },
+  { x: 33, maxH: 25.8 },
+];
+const BAR_WIDTH = 4.5;
+const BAR_BASELINE = 31;
 
-  // 5 bars — each animates from 0 to full height, staggered
-  const anims = [
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-  ];
+function AnimatedBarChart() {
+  // Lazy-init the 5 Animated.Values once and stash them in a single ref.
+  // Previously `useRef(new Animated.Value(0)).current` fired the constructor
+  // on every render (the result was discarded, but the allocation was real).
+  const animsRef = useRef(null);
+  if (animsRef.current === null) {
+    animsRef.current = [
+      new Animated.Value(0),
+      new Animated.Value(0),
+      new Animated.Value(0),
+      new Animated.Value(0),
+      new Animated.Value(0),
+    ];
+  }
+  const anims = animsRef.current;
 
   useEffect(() => {
-    // Initial staggered build-in
-    const buildIn = anims.map((anim, i) =>
-      Animated.delay(i * 200)
-    );
+    // Track every loop handle + running sequence so we can stop them on
+    // unmount. Previously the breathing loops ran forever, draining CPU in
+    // the background even after the user scrolled off or navigated away.
+    const loops = [];
+    const sequences = [];
     anims.forEach((anim, i) => {
-      Animated.sequence([
+      const seq = Animated.sequence([
         Animated.delay(i * 200),
         Animated.timing(anim, { toValue: 1, duration: 600, useNativeDriver: false, easing: Easing.out(Easing.back(1.2)) }),
-      ]).start(() => {
-        // After build-in, start gentle breathing loop
-        Animated.loop(
+      ]);
+      sequences.push(seq);
+      seq.start(({ finished }) => {
+        if (!finished) return;
+        const loop = Animated.loop(
           Animated.sequence([
             Animated.timing(anim, { toValue: 0.85, duration: 1800 + i * 400, useNativeDriver: false, easing: Easing.inOut(Easing.sin) }),
             Animated.timing(anim, { toValue: 1, duration: 1800 + i * 400, useNativeDriver: false, easing: Easing.inOut(Easing.sin) }),
-          ])
-        ).start();
+          ]),
+        );
+        loops.push(loop);
+        loop.start();
       });
     });
+    return () => {
+      sequences.forEach(s => s.stop());
+      loops.forEach(l => l.stop());
+      anims.forEach(a => a.stopAnimation());
+    };
   }, []);
-
-  // Bar definitions: [x, maxHeight] — ascending pattern
-  const bars = [
-    { x: 9, maxH: 7 },
-    { x: 15, maxH: 11.5 },
-    { x: 21, maxH: 16 },
-    { x: 27, maxH: 21 },
-    { x: 33, maxH: 25.8 },
-  ];
-  const barWidth = 4.5;
-  const baseline = 31;
 
   return (
     <View style={styles.animBarWrap}>
       <Svg width="38" height="38" viewBox="0 0 44 38">
         {/* Y axis */}
-        <Line x1="7" y1="4" x2="7" y2={baseline} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
+        <Line x1="7" y1="4" x2="7" y2={BAR_BASELINE} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
         {/* X axis */}
-        <Line x1="7" y1={baseline} x2="40" y2={baseline} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
+        <Line x1="7" y1={BAR_BASELINE} x2="40" y2={BAR_BASELINE} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
         {/* Tick marks */}
         <Line x1="5" y1="24" x2="7" y2="24" stroke="white" strokeWidth="0.8" opacity="0.4" />
         <Line x1="5" y1="17" x2="7" y2="17" stroke="white" strokeWidth="0.8" opacity="0.4" />
         <Line x1="5" y1="10" x2="7" y2="10" stroke="white" strokeWidth="0.8" opacity="0.4" />
         {/* Bars */}
-        {bars.map((bar, i) => {
+        {BAR_DEFS.map((bar, i) => {
           const height = anims[i].interpolate({
             inputRange: [0, 1],
             outputRange: [0, bar.maxH],
           });
           const y = anims[i].interpolate({
             inputRange: [0, 1],
-            outputRange: [baseline, baseline - bar.maxH],
+            outputRange: [BAR_BASELINE, BAR_BASELINE - bar.maxH],
           });
-          const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
           return (
-            <AnimatedRect
+            <AnimatedSvgRect
               key={i}
               x={bar.x}
               y={y}
-              width={barWidth}
+              width={BAR_WIDTH}
               height={height}
               rx="1.5"
               fill={COLORS.success}
@@ -456,7 +497,7 @@ function AnimatedBarChart() {
   );
 }
 
-function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelist, onContinueDraft, onNearby, onEditPrice }) {
+const OwnerListingRow = memo(function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelist, onContinueDraft, onNearby, onEditPrice }) {
   const address = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
   const cityLine = [listing.city, listing.state_or_province].filter(Boolean).join(', ');
   const firstPhoto = listing.photos?.[0]?.url;
@@ -464,9 +505,9 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
   const expiresLabel = listing.source === 'owner' ? getExpiresLabel(listing) : null;
 
   return (
-    <View style={styles.listingRow}>
+    <View style={styles.listingRow} testID={`owner-listing-row-${listing.id}`}>
       {/* Hero photo — full width with overlay */}
-      <Pressable onPress={onView}>
+      <Pressable onPress={() => onView(listing.id)}>
         <View style={styles.heroWrap}>
           {firstPhoto ? (
             <Image source={{ uri: firstPhoto }} style={styles.heroImage} contentFit="cover" />
@@ -550,7 +591,7 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
               Listing Input Progress: Draft Mode
             </Text>
           </View>
-          <Pressable style={styles.draftContinueBtn} onPress={onContinueDraft}>
+          <Pressable style={styles.draftContinueBtn} onPress={() => onContinueDraft(listing.id)}>
             <PulsingText style={styles.draftContinueBtnText}>Continue</PulsingText>
           </Pressable>
         </View>
@@ -558,15 +599,15 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
       <View style={[styles.listingActions, status === 'draft' && { display: 'none' }]}>
         {status === 'leased' || status === 'expired' ? (
           <View style={styles.actionGrid}>
-            <Pressable style={styles.actionGridBtn} onPress={onView}>
+            <Pressable style={styles.actionGridBtn} onPress={() => onView(listing.id)}>
               <Ionicons name="expand-outline" size={18} color={COLORS.white} />
               <Text style={[styles.actionGridText, { color: COLORS.white }]}>View Listing</Text>
             </Pressable>
-            <Pressable style={styles.actionGridBtn} onPress={onEdit}>
+            <Pressable style={styles.actionGridBtn} onPress={() => onEdit(listing.id)}>
               <Ionicons name="create-outline" size={18} color={COLORS.brandOrange} />
               <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Edit Listing</Text>
             </Pressable>
-            <Pressable style={[styles.actionGridBtn, { borderColor: COLORS.success, width: '97%' }]} onPress={onRelist}>
+            <Pressable style={[styles.actionGridBtn, { borderColor: COLORS.success, width: '97%' }]} onPress={() => onRelist(listing)}>
               <Ionicons name="refresh" size={18} color={COLORS.success} />
               <Text style={[styles.actionGridText, { color: COLORS.success }]}>
                 {status === 'leased' ? 'Re-List Rental' : 'Renew Listing'}
@@ -575,19 +616,19 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
           </View>
         ) : (
           <View style={styles.actionGrid}>
-            <Pressable style={styles.actionGridBtn} onPress={onView}>
+            <Pressable style={styles.actionGridBtn} onPress={() => onView(listing.id)}>
               <Ionicons name="expand-outline" size={18} color={COLORS.white} />
               <Text style={[styles.actionGridText, { color: COLORS.white }]}>View Listing</Text>
             </Pressable>
-            <Pressable style={styles.actionGridBtn} onPress={onEdit}>
+            <Pressable style={styles.actionGridBtn} onPress={() => onEdit(listing.id)}>
               <Ionicons name="create-outline" size={18} color={COLORS.brandOrange} />
               <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Edit Listing</Text>
             </Pressable>
-            <Pressable style={styles.actionGridBtn} onPress={onEditPrice}>
+            <Pressable style={styles.actionGridBtn} onPress={() => onEditPrice(listing)}>
               <Ionicons name="pricetag-outline" size={18} color={COLORS.brandOrange} />
               <Text style={[styles.actionGridText, { color: COLORS.brandOrange }]}>Adjust Price</Text>
             </Pressable>
-            <Pressable style={styles.actionGridBtn} onPress={onDelist}>
+            <Pressable style={styles.actionGridBtn} onPress={() => onDelist(listing)}>
               <Ionicons name="pause-circle-outline" size={18} color={COLORS.warning} />
               <Text style={[styles.actionGridText, { color: COLORS.warning }]}>De-List</Text>
             </Pressable>
@@ -595,7 +636,7 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
         )}
       </View>
       {status !== 'draft' && status !== 'expired' && status !== 'leased' && (
-        <Pressable style={styles.nearbyBtn} onPress={onNearby}>
+        <Pressable style={styles.nearbyBtn} onPress={() => onNearby(listing.id)}>
           <AnimatedBarChart />
           <View style={styles.nearbyText}>
             <Text style={styles.nearbyTitle}>Nearby Active Rentals</Text>
@@ -608,7 +649,7 @@ function OwnerListingRow({ listing, ownerTier, onView, onEdit, onDelist, onRelis
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   header: {

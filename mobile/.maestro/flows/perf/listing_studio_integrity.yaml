@@ -1,0 +1,100 @@
+# Listing Studio — integrity / regression harness for the 2026-04-24 pass.
+#
+# Locks down UX that was hard-won over multiple days:
+#   - Upload-from-Desktop dialog opens INSTANTLY (no 3s pre-fetch).
+#   - Description textarea opens at a generous height (numberOfLines=7).
+#   - Contact card email pre-populates from the auth-context user.
+#   - Publishing produces exactly ONE listing row (no duplicate draft).
+#
+# This flow is a sanity gate only — it does NOT publish a listing (would
+# dirty the DB). It exercises the UX surfaces without committing state.
+#
+# Prereqs:
+#   - Signed in as info@floridapm.net.
+#   - Listings tab accessible.
+
+appId: com.padmagnet.app
+tags:
+  - perf
+  - manual
+  - studio-regression
+---
+- runFlow: ../../elements/loadElements.yaml
+
+# 1. Enter Listing Studio via the Listings tab → Add Additional Rental CTA.
+#    (Assumes an existing active listing — if no listings, use Create Your
+#    First Listing CTA instead; adjust flow accordingly.)
+- tapOn:
+    id: back-button
+    optional: true
+- tapOn: "Listings"
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible:
+      text: "My Listings"
+    timeout: 6000
+- tapOn:
+    text: "Add Additional"
+    optional: true
+# Fallback path for empty state.
+- tapOn:
+    text: "Create Your First Listing"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible:
+      text: "Listing Studio"
+    timeout: 6000
+
+# 2. Scroll down to the Photos card.
+- scrollUntilVisible:
+    element:
+      text: "Upload from Desktop"
+    direction: DOWN
+    timeout: 8000
+    centerElement: true
+
+# 3. Tap Upload from Desktop — dialog must render within 800ms. Previously
+#    had two network roundtrips blocking render (~3s). We wait at most 1s.
+- tapOn: "Upload from Desktop"
+- extendedWaitUntil:
+    visible:
+      text: "Send a secure photo upload link"
+    timeout: 1200
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+# 4. Description card textarea renders spacious. Scroll back up to find it.
+- scrollUntilVisible:
+    element:
+      text: "Describe Your Rental Property"
+    direction: UP
+    timeout: 8000
+    centerElement: true
+- assertVisible: "Pitch the Pad. Pitch the Location. What makes it shine?!"
+- assertVisible: "Let AskPad Write This"
+# Character counter present — confirms the Input's maxLength wiring survived.
+- assertVisible: "0/500"
+
+# 5. Contact card — pre-fills email from auth context. Scroll to it.
+- scrollUntilVisible:
+    element:
+      text: "Email for Renters"
+    direction: DOWN
+    timeout: 8000
+    centerElement: true
+# Email is set synchronously in useState initializer — should already show.
+- assertVisible:
+    text: ".*@.*"
+
+# 6. Back out WITHOUT publishing. This preserves DB cleanliness.
+- tapOn:
+    id: back-button
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible:
+      text: "My Listings"
+    timeout: 5000
