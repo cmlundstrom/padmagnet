@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { toTitleCase, toSentenceCase } from '../utils/format';
+import { useAuth } from './useAuth';
 
 // ── Form shape (identical to old wizard — same API payload) ──
 const INITIAL_FORM = {
@@ -63,7 +64,15 @@ function formatPhone(raw) {
  * validation, draft CRUD, AI description, and publish.
  */
 export default function useListingStudio(draftIdParam) {
-  const [form, setForm] = useState(INITIAL_FORM);
+  const { user } = useAuth();
+  // Seed email synchronously from the auth context so the Contact card
+  // paints populated on first render — no 1–4s async flash. Name/phone
+  // still fill in async once the profiles-table fetch returns, since
+  // those aren't in auth.users.
+  const [form, setForm] = useState(() => ({
+    ...INITIAL_FORM,
+    listing_agent_email: user?.email || '',
+  }));
   const [draftId, setDraftId] = useState(draftIdParam || null);
   const [loading, setLoading] = useState(!!draftIdParam);
   const [submitting, setSubmitting] = useState(false);
@@ -260,10 +269,12 @@ export default function useListingStudio(draftIdParam) {
   // Only fills fields that are empty — user-entered values are never
   // overwritten. Sets contactPref to 'both' only if profile has a phone
   // AND the user hasn't already made an explicit choice.
+  // Uses the auth-context user (sync, in-memory) instead of
+  // supabase.auth.getUser() to skip that roundtrip — only the profiles
+  // fetch remains async.
   const prefillContact = useCallback(async () => {
+    if (!user) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name, email, phone')
@@ -277,7 +288,7 @@ export default function useListingStudio(draftIdParam) {
       }));
       if (profile?.phone) setContactPref('both');
     } catch {}
-  }, []);
+  }, [user]);
 
   // ── Auto-prefill contact fields on first render ──
   // Fires once loading completes (new listing OR resumed draft). prefillContact
