@@ -28,13 +28,15 @@ export default function PhotoGallery({ photos = [], tierBadge = null }) {
     }
   }, [photos.length, hintOpacity, hintTranslateX]);
 
-  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      setActiveIndex(viewableItems[0].index ?? 0);
-    }
-  }, []);
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  // onMomentumScrollEnd fires exactly once per paging snap — far more
+  // reliable than onViewableItemsChanged, which used a 50% coverage
+  // threshold and could take 3-4s after a swipe to report the new
+  // active item on Android. Scroll-offset → page index is trivial
+  // since each page is exactly SCREEN_WIDTH wide.
+  const onMomentumScrollEnd = useCallback((e) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    if (idx !== activeIndex) setActiveIndex(idx);
+  }, [activeIndex]);
 
   if (photos.length === 0) {
     return (
@@ -52,8 +54,7 @@ export default function PhotoGallery({ photos = [], tierBadge = null }) {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
+        onMomentumScrollEnd={onMomentumScrollEnd}
         keyExtractor={(item, index) => item.url || String(index)}
         renderItem={({ item }) => (
           <Image
