@@ -177,7 +177,10 @@ export default function EditListingScreen() {
     }
   };
 
-  // Photo upload from phone
+  // Photo upload from phone.
+  // Server atomically appends to listings.photos when listing_id is passed,
+  // so one roundtrip covers both upload + persist. Client just adopts the
+  // authoritative photos array from the response.
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -199,6 +202,7 @@ export default function EditListingScreen() {
           name: `photo.${ext}`,
         });
       });
+      formData.append('listing_id', id);
       const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -208,19 +212,25 @@ export default function EditListingScreen() {
         const text = await res.text();
         throw new Error(JSON.parse(text)?.error || 'Upload failed');
       }
-      const uploaded = await res.json();
-      const newPhotos = [...(form.photos || []), ...uploaded.map((u, i) => ({
-        url: u.url,
-        thumb_url: u.thumb_url,
-        caption: '',
-        order: (form.photos?.length || 0) + i,
-      }))];
-      update('photos', newPhotos);
-      // Save photos to listing immediately
-      await apiFetch(`/api/owner/listings/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ photos: newPhotos }),
-      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        // Legacy server response (listing_id not yet supported by deployed API):
+        // server returned [{url, thumb_url, order}, ...]. Merge locally and PUT.
+        const newPhotos = [...(form.photos || []), ...data.map((u, i) => ({
+          url: u.url,
+          thumb_url: u.thumb_url,
+          caption: '',
+          order: (form.photos?.length || 0) + i,
+        }))];
+        update('photos', newPhotos);
+        await apiFetch(`/api/owner/listings/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ photos: newPhotos }),
+        });
+      } else {
+        // New server mode: server did the atomic append, returned authoritative photos
+        update('photos', data.photos);
+      }
     } catch (err) {
       alert('Upload Error', err.message);
     } finally {
