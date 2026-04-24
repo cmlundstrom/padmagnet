@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { EqualHousingBadge } from '../../components/ui';
 import PriceEditModal from '../../components/owner/PriceEditModal';
 import { apiFetch } from '../../lib/api';
+import { setCachedListings } from '../../lib/listingCache';
 import { formatCurrency } from '../../utils/format';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
@@ -86,6 +87,9 @@ export default function OwnerListingsTab() {
     try {
       const data = await apiFetch('/api/owner/listings');
       setListings(data || []);
+      // Warm the listing cache so Edit Listing hydrates instantly on tap
+      // instead of waiting on its own GET roundtrip.
+      setCachedListings(data);
     } catch (err) {
       alert('Error', err.message);
     } finally {

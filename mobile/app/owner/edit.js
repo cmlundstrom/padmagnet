@@ -10,6 +10,7 @@ import { Image } from 'expo-image';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header, Button, Input, Toggle } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
+import { getCachedListing, setCachedListing } from '../../lib/listingCache';
 import { toTitleCase, toSentenceCase } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import { useAlert } from '../../providers/AlertProvider';
@@ -34,57 +35,72 @@ export default function EditListingScreen() {
   const { id } = useLocalSearchParams();
   const alert = useAlert();
 
-  const [loading, setLoading] = useState(true);
+  // Seed from cache synchronously so the form has real data on first render.
+  // Listings tab warms the cache on fetch/focus, so tapping Edit from there
+  // is a cache hit and the screen hydrates instantly. Cache miss (deep-link,
+  // stale navigation) falls back to the GET and blocks as before.
+  const cached = id ? getCachedListing(id) : null;
+  const hydrateForm = (data) => ({
+    street_number: data.street_number || '',
+    street_name: data.street_name || '',
+    city: data.city || '',
+    state_or_province: data.state_or_province || 'FL',
+    postal_code: data.postal_code || '',
+    property_sub_type: data.property_sub_type || '',
+    list_price: data.list_price ? String(data.list_price) : '',
+    bedrooms_total: data.bedrooms_total ? String(data.bedrooms_total) : '',
+    bathrooms_total: data.bathrooms_total ? String(data.bathrooms_total) : '',
+    living_area: data.living_area ? String(data.living_area) : '',
+    year_built: data.year_built ? String(data.year_built) : '',
+    public_remarks: data.public_remarks || '',
+    lease_term: data.lease_term || '',
+    available_date: data.available_date || '',
+    pets_allowed: data.pets_allowed,
+    fenced_yard: data.fenced_yard || false,
+    furnished: data.furnished || false,
+    hoa_fee: data.hoa_fee > 0 ? 'yes' : data.hoa_fee === 0 ? 'no' : '',
+    parking_spaces: data.parking_spaces ? String(data.parking_spaces) : '',
+    pool: data.pool || false,
+    photos: data.photos || [],
+    tenant_contact_instructions: data.tenant_contact_instructions || '',
+    listing_agent_name: data.listing_agent_name || '',
+    listing_agent_phone: data.listing_agent_phone || '',
+    listing_agent_email: data.listing_agent_email || '',
+  });
+  const inferContactPref = (data) => {
+    if (data.listing_agent_phone && data.listing_agent_email) return 'both';
+    if (data.listing_agent_phone) return 'phone';
+    return 'email';
+  };
+
+  const [loading, setLoading] = useState(!cached);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tab, setTab] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [contactPref, setContactPref] = useState('email');
+  const [contactPref, setContactPref] = useState(cached ? inferContactPref(cached) : 'email');
   const [linkSent, setLinkSent] = useState(false);
 
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState(cached ? hydrateForm(cached) : {});
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-  // Load listing data
+  // Load listing data. Stale-while-revalidate: if we seeded from cache, this
+  // still fires to pull the latest from server, but the user sees the form
+  // immediately and the refresh happens in the background.
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
         const data = await apiFetch(`/api/owner/listings/${id}`);
-        setForm({
-          street_number: data.street_number || '',
-          street_name: data.street_name || '',
-          city: data.city || '',
-          state_or_province: data.state_or_province || 'FL',
-          postal_code: data.postal_code || '',
-          property_sub_type: data.property_sub_type || '',
-          list_price: data.list_price ? String(data.list_price) : '',
-          bedrooms_total: data.bedrooms_total ? String(data.bedrooms_total) : '',
-          bathrooms_total: data.bathrooms_total ? String(data.bathrooms_total) : '',
-          living_area: data.living_area ? String(data.living_area) : '',
-          year_built: data.year_built ? String(data.year_built) : '',
-          public_remarks: data.public_remarks || '',
-          lease_term: data.lease_term || '',
-          available_date: data.available_date || '',
-          pets_allowed: data.pets_allowed,
-          fenced_yard: data.fenced_yard || false,
-          furnished: data.furnished || false,
-          hoa_fee: data.hoa_fee > 0 ? 'yes' : data.hoa_fee === 0 ? 'no' : '',
-          parking_spaces: data.parking_spaces ? String(data.parking_spaces) : '',
-          pool: data.pool || false,
-          photos: data.photos || [],
-          tenant_contact_instructions: data.tenant_contact_instructions || '',
-          listing_agent_name: data.listing_agent_name || '',
-          listing_agent_phone: data.listing_agent_phone || '',
-          listing_agent_email: data.listing_agent_email || '',
-        });
-        // Infer contact preference
-        if (data.listing_agent_phone && data.listing_agent_email) setContactPref('both');
-        else if (data.listing_agent_phone) setContactPref('phone');
-        else setContactPref('email');
+        setForm(hydrateForm(data));
+        setContactPref(inferContactPref(data));
+        setCachedListing(data);
       } catch (err) {
-        alert('Error', 'Could not load listing.');
-        router.back();
+        if (!cached) {
+          alert('Error', 'Could not load listing.');
+          router.back();
+        }
+        // If we had cached data, surface a silent failure — user keeps editing
       } finally {
         setLoading(false);
       }
