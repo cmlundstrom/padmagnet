@@ -177,10 +177,14 @@ export default function MagicListingStudio() {
 
   // ── Publish ──
   const handlePublish = async () => {
-    // Ensure draft exists
-    if (!draftId) await createDraft();
+    // Ensure a draft row exists, then pass its id explicitly into publish().
+    // createDraft()'s setDraftId has not flushed to the publish closure yet
+    // at this point, so relying on the hook's memoized draftId would POST a
+    // second row. See useListingStudio.publish idOverride comment.
+    let id = draftId;
+    if (!id) id = await createDraft();
 
-    const result = await publish(notifPrefsRef, alert, router.replace);
+    const result = await publish(id, notifPrefsRef, alert, router.replace);
     if (result.success) {
       setShowConfetti(true);
     } else if (result.firstErrorCard) {

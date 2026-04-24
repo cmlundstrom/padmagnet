@@ -346,7 +346,13 @@ export default function useListingStudio(draftIdParam) {
   }, [form, contactPref]);
 
   // ── Publish ──
-  const publish = useCallback(async (notifPrefsRef, alertFn, routerReplaceFn) => {
+  // Accepts an optional `idOverride` to sidestep a React state-closure race:
+  // when the caller creates the draft inline (`await createDraft()`) and then
+  // immediately calls publish(), the `draftId` captured in this callback's
+  // closure is still null. Without the override, publish would POST a second
+  // row instead of PUT-ing the freshly-created draft — producing two cards
+  // on My Listings. Callers that hold the id should pass it in.
+  const publish = useCallback(async (idOverride, notifPrefsRef, alertFn, routerReplaceFn) => {
     const { valid, errors } = validate();
     if (!valid) {
       const firstCard = Object.keys(errors)[0];
@@ -355,13 +361,14 @@ export default function useListingStudio(draftIdParam) {
       return { success: false, firstErrorCard: firstCard, errors };
     }
 
+    const id = idOverride || draftId;
     setSubmitting(true);
     try {
       await notifPrefsRef?.current?.save().catch(() => {});
       const payload = buildPayload('active');
 
-      if (draftId) {
-        await apiFetch(`/api/owner/listings/${draftId}`, {
+      if (id) {
+        await apiFetch(`/api/owner/listings/${id}`, {
           method: 'PUT',
           body: JSON.stringify(payload),
         });
@@ -373,8 +380,8 @@ export default function useListingStudio(draftIdParam) {
       }
 
       // Cleanup
-      if (draftId) {
-        await AsyncStorage.removeItem(DRAFT_FORM_KEY(draftId));
+      if (id) {
+        await AsyncStorage.removeItem(DRAFT_FORM_KEY(id));
       }
 
       return { success: true };
