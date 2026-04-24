@@ -22,6 +22,7 @@ import NearbyRentalsCard from '../../components/owner/studio/NearbyRentalsCard';
 import ConfettiOverlay from '../../components/owner/studio/ConfettiOverlay';
 import StudioOnboardingTooltip from '../../components/owner/studio/StudioOnboardingTooltip';
 import useListingStudio from '../../hooks/useListingStudio';
+import { useAuth } from '../../hooks/useAuth';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useAlert } from '../../providers/AlertProvider';
@@ -38,6 +39,7 @@ export default function MagicListingStudio() {
   const { draft_id } = useLocalSearchParams();
   const alert = useAlert();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const notifPrefsRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -140,18 +142,21 @@ export default function MagicListingStudio() {
   };
 
   // ── Desktop upload link ──
-  const handleSendUploadLink = async () => {
-    let id = draftId;
-    if (!id) id = await createDraft();
-    if (!id) { alert('Error', 'Please fill in an address first.'); return; }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    alert('Upload from Desktop', `Send a secure photo upload link to ${user.email}?`, [
+  // Show the confirm dialog immediately using the in-memory auth email.
+  // The draft creation + upload-link API call are deferred behind the
+  // user's tap on "Send Link" — previously both roundtrips ran on press,
+  // producing a 3s lag before the dialog even opened.
+  const handleSendUploadLink = () => {
+    const emailLabel = user?.email || 'your email';
+    alert('Upload from Desktop', `Send a secure photo upload link to ${emailLabel}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Send Link',
         onPress: async () => {
           try {
+            let id = draftId;
+            if (!id) id = await createDraft();
+            if (!id) { alert('Error', 'Please fill in an address first.'); return; }
             await apiFetch(`/api/owner/listings/${id}/upload-link`, { method: 'POST' });
             setLinkSent(true);
             alert('Link Sent!', 'Check your email. The link expires in 45 minutes.');
