@@ -15,6 +15,9 @@ export default function TenantTabLayout() {
         tabBarActiveTintColor: '#FFFFFF',
         tabBarInactiveTintColor: '#B0BEC5',
         tabBarStyle,
+        freezeOnBlur: true,
+        lazy: true,
+        sceneContainerStyle: { backgroundColor: COLORS.background },
       }}
     >
       <Tabs.Screen

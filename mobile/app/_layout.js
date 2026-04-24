@@ -25,6 +25,7 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { enableFreeze } from 'react-native-screens';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AuthProvider, AuthContext } from '../providers/AuthProvider';
 import { AlertProvider } from '../providers/AlertProvider';
@@ -33,6 +34,11 @@ import { ErrorBoundary, OfflineBanner } from '../components/ui';
 import AuthSuccessBanner from '../components/auth/AuthSuccessBanner';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { COLORS } from '../constants/colors';
+
+// Freeze inactive screens so sibling tabs can't paint through transparent
+// regions of the active screen during image-load / transition windows.
+// Must run at module scope before any navigator mounts.
+enableFreeze(true);
 
 SplashScreen.preventAutoHideAsync();
 

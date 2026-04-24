@@ -650,6 +650,7 @@ const styles = StyleSheet.create({
   heroWrap: {
     height: 180,
     position: 'relative',
+    backgroundColor: COLORS.surface,
   },
   heroImage: {
     width: '100%',
