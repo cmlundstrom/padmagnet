@@ -7,6 +7,7 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/ui';
 import { PhotoGallery, ListingInfo } from '../../components/listing';
 import { apiFetch } from '../../lib/api';
+import { getCachedListing } from '../../lib/listingCache';
 import { shareListing } from '../../lib/share-listing';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useAlert } from '../../providers/AlertProvider';
@@ -14,37 +15,50 @@ import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
 
+function buildMetrics(l) {
+  if (!l) return null;
+  const dom = l.created_at
+    ? Math.max(1, Math.floor((Date.now() - new Date(l.created_at).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  return {
+    days_on_market: dom,
+    unique_views: l.unique_view_count || 0,
+    contacts: l.inquiry_count || 0,
+    days_remaining: l.days_remaining_at_delist || 0,
+  };
+}
+
 export default function PreviewScreen() {
   useAndroidBack();
   const { listing_id } = useLocalSearchParams();
   const router = useRouter();
   const alert = useAlert();
   const { tier } = useSubscription();
-  const [listing, setListing] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState(null);
+
+  // Seed from the Listings-tab cache so the preview renders instantly when
+  // the user taps "View Listing". Previously this screen fetched ALL owner
+  // listings and filter-matched by id (3-4s on cold caches) even though the
+  // exact row was already in memory.
+  const [listing, setListing] = useState(() => getCachedListing(listing_id) || null);
+  const [loading, setLoading] = useState(() => !getCachedListing(listing_id));
+  const [metrics, setMetrics] = useState(() => buildMetrics(getCachedListing(listing_id)));
 
   useEffect(() => {
     if (!listing_id) return;
+    // Cache hit: no further network needed. The cached row was written by
+    // the Listings tab's GET /api/owner/listings within the same session.
+    if (getCachedListing(listing_id)) return;
+
+    // Cold path — cache miss (e.g. deep link, fresh launch into Preview).
     (async () => {
       try {
-        // Fetch from owner endpoint to get all fields including status
+        // Owner endpoint for full fields (status, view/inquiry counts).
         const ownerData = await apiFetch('/api/owner/listings');
         const match = (ownerData || []).find(l => l.id === listing_id);
         if (match) {
           setListing(match);
-          // Calculate metrics
-          const dom = match.created_at
-            ? Math.max(1, Math.floor((Date.now() - new Date(match.created_at).getTime()) / (1000 * 60 * 60 * 24)))
-            : 0;
-          setMetrics({
-            days_on_market: dom,
-            unique_views: match.unique_view_count || 0,
-            contacts: match.inquiry_count || 0,
-            days_remaining: match.days_remaining_at_delist || 0,
-          });
+          setMetrics(buildMetrics(match));
         } else {
-          // Fallback to public endpoint
           const data = await apiFetch(`/api/listings/${listing_id}`);
           setListing(data);
         }
@@ -100,7 +114,7 @@ export default function PreviewScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <Header
-          title="Preview as Tenant"
+          title="Preview as Renter"
           showBack
           rightAction={
             <Pressable onPress={handleShare} style={styles.shareBtn}>
@@ -110,7 +124,7 @@ export default function PreviewScreen() {
           }
         />
         <View style={styles.previewBanner}>
-          <Text style={styles.previewBannerText}>This is how tenants will see your listing</Text>
+          <Text style={styles.previewBannerText}>This is how renters will see your listing</Text>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 100 }}>
           {listing.photos?.length > 0 && (
@@ -149,7 +163,7 @@ export default function PreviewScreen() {
                 {isDelisted ? 'Property Status: De-Listed' : 'Property Status: Expired'}
               </Text>
               <Text style={styles.pausedSub}>
-                Not visible to tenants. Data & photos preserved. {isDelisted ? `De-listed ${delistDate}.` : 'Advertising period ended.'}
+                Not visible to renters. Data & photos preserved. {isDelisted ? `De-listed ${delistDate}.` : 'Advertising period ended.'}
               </Text>
             </View>
           </View>
@@ -197,7 +211,7 @@ export default function PreviewScreen() {
               <View style={styles.statsCard}>
                 <Ionicons name="mail-outline" size={20} color={COLORS.accent} />
                 <Text style={styles.statsCardValue}>{metrics.contacts}</Text>
-                <Text style={styles.statsCardLabel}>Tenant Contacts</Text>
+                <Text style={styles.statsCardLabel}>Renter Contacts</Text>
               </View>
               <View style={styles.statsCard}>
                 <Ionicons name="time-outline" size={20} color={metrics.days_remaining > 0 ? COLORS.success : COLORS.textSecondary} />
@@ -214,7 +228,7 @@ export default function PreviewScreen() {
                 <Text style={styles.insightText}>
                   {metrics.contacts > 0
                     ? `${Math.round((metrics.contacts / metrics.unique_views) * 100)}% of viewers contacted you`
-                    : `${metrics.unique_views} tenants viewed your listing`}
+                    : `${metrics.unique_views} renters viewed your listing`}
                 </Text>
               </View>
             )}

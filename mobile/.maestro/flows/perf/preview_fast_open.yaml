@@ -1,0 +1,71 @@
+# Preview-as-Renter — fast-open regression harness.
+#
+# Locks down the 2026-04-24 perf pass on app/owner/preview.js:
+#   - Cache-seed render (no ActivityIndicator) via listingCache hit
+#   - display-fields prefetch from _layout.js eliminates the second wave
+#   - "Preview as Tenant" → "Preview as Renter" copy unification
+#
+# Prereqs:
+#   - Signed in as info@floridapm.net with >=1 active listing.
+#   - Listings tab visited during this session so listingCache is warm.
+#
+# Run AFTER listings_perf_and_integrity.yaml (which implicitly warms the
+# cache). If run standalone, the cold path applies and timings relax.
+
+appId: com.padmagnet.app
+tags:
+  - perf
+  - manual
+  - preview-regression
+---
+- runFlow: ../../elements/loadElements.yaml
+
+# 1. Back out of any prior-run screen and land on Listings (also warms
+#    listingCache via the tab's fetch).
+- tapOn:
+    id: back-button
+    optional: true
+- tapOn: "Listings"
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible:
+      text: "My Listings"
+    timeout: 6000
+
+# 2. Tap View Listing — with a warm cache, Preview should paint full
+#    content within ~1s. We give 2.5s headroom for cold display-fields
+#    fetch on very first session.
+- tapOn: "View Listing"
+- extendedWaitUntil:
+    visible:
+      text: "Preview as Renter"
+    timeout: 2500
+
+# 3. Copy unification — "Renter" not "Tenant".
+- assertVisible: "This is how renters will see your listing"
+- assertNotVisible: "Preview as Tenant"
+- assertNotVisible: "This is how tenants will see your listing"
+
+# 4. Hero content visible (price/mo string over photo).
+- assertVisible:
+    text: ".*/mo"
+
+# 5. Body content visible WITHOUT a visible second-wave gap. Price &
+#    address render unconditionally, so they're a weak signal. The
+#    "Contact" section title only appears once display-fields hydrated
+#    AND the agent/contact rows filtered through — its visibility
+#    proves the second wave arrived. Tight timeout asserts the
+#    prefetch actually kicked in (previously 2-4s).
+- extendedWaitUntil:
+    visible:
+      text: "Contact"
+    timeout: 2500
+
+# 6. Back out cleanly.
+- tapOn:
+    id: back-button
+- extendedWaitUntil:
+    visible:
+      text: "My Listings"
+    timeout: 4000

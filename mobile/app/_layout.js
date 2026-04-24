@@ -33,6 +33,7 @@ import { UnreadProvider } from '../providers/UnreadProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
 import AuthSuccessBanner from '../components/auth/AuthSuccessBanner';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { prefetchDisplayFields } from '../hooks/useDisplayFields';
 import { COLORS } from '../constants/colors';
 
 // Freeze inactive screens so sibling tabs can't paint through transparent
@@ -108,6 +109,13 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // Pre-warm the display-fields config cache so the first Preview-as-Renter
+  // / Listing Detail render isn't gated on a network round-trip. Fires once
+  // per cold launch; the hook's module cache keeps it warm thereafter.
+  useEffect(() => {
+    prefetchDisplayFields('tenant');
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     return null;

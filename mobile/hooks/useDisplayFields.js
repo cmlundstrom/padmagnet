@@ -14,6 +14,23 @@ function groupBySection(fields) {
   return grouped;
 }
 
+// Imperative pre-warm. Call from app startup (e.g. _layout.js) so the first
+// Preview-as-Renter / Listing-Detail render isn't blocked on this network
+// trip. Idempotent: skips the fetch if the cache is already fresh.
+export async function prefetchDisplayFields(role = 'tenant') {
+  const cacheKey = role === 'owner' ? 'owner' : 'tenant';
+  const c = cache[cacheKey];
+  if (c.fields && Date.now() - c.ts < CACHE_TTL) return c.fields;
+  try {
+    const url = cacheKey === 'owner' ? '/api/display-fields?role=owner' : '/api/display-fields';
+    const data = await apiFetch(url);
+    cache[cacheKey] = { fields: data || [], ts: Date.now() };
+    return cache[cacheKey].fields;
+  } catch {
+    return c.fields || [];
+  }
+}
+
 export default function useDisplayFields(role = 'tenant') {
   const cacheKey = role === 'owner' ? 'owner' : 'tenant';
   const cached = cache[cacheKey];
