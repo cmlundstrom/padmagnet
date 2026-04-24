@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import useAndroidBack from '../../hooks/useAndroidBack';
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,6 +44,40 @@ function formatPhone(raw) {
   if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
+
+// Memoized photo row used by the DraggableFlatList in the Photos tab.
+// Stable parent callbacks (setHero/confirmDeletePhoto) + memo() means the
+// only rows that re-render during a drag are the ones whose `index` or
+// `item` actually changed — keeping the JS thread free for drag frames.
+//
+// `ScaleDecorator` is passed in (not imported) because the library is
+// loaded lazily inside the parent's render body when tab === 1.
+const PhotoRow = memo(function PhotoRow({ ScaleDecorator, item, index, drag, isActive, onSetHero, onDelete }) {
+  return (
+    <ScaleDecorator>
+      <Pressable
+        onLongPress={drag}
+        delayLongPress={200}
+        disabled={isActive}
+        style={[styles.photoRow, isActive && styles.photoItemDragging]}
+      >
+        <Image source={{ uri: item.thumb_url || item.url }} style={styles.photoRowImg} contentFit="cover" />
+        <View style={styles.photoRowInfo}>
+          <Text style={styles.photoRowLabel}>{index === 0 ? 'Hero Image' : `Photo ${index + 1}`}</Text>
+          <Text style={styles.photoRowHint}>Long-press to drag</Text>
+        </View>
+        <View style={styles.photoRowActions}>
+          <Pressable style={styles.heroBtn} onPress={() => onSetHero(index)} hitSlop={10}>
+            <FontAwesome name="star" size={18} color={index === 0 ? COLORS.warning : COLORS.slate} />
+          </Pressable>
+          <Pressable style={styles.deleteBtnRow} onPress={() => onDelete(index)} hitSlop={10}>
+            <FontAwesome name="trash-o" size={16} color={COLORS.danger} />
+          </Pressable>
+        </View>
+      </Pressable>
+    </ScaleDecorator>
+  );
+});
 
 export default function EditListingScreen() {
   useAndroidBack();
@@ -341,57 +375,79 @@ export default function EditListingScreen() {
     }
   };
 
-  // Delete photo — optimistic local update, queued server side-effects
-  const deletePhoto = (index) => {
-    const photo = form.photos[index];
-    const newPhotos = form.photos.filter((_, i) => i !== index).map((p, i) => ({ ...p, order: i }));
-    update('photos', newPhotos);
-    enqueueMutation(async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ urls: [photo.url] }),
+  // Delete photo — optimistic local update, queued server side-effects.
+  // useCallback-stable so the memoized PhotoRow keeps prop identity.
+  const deletePhoto = useCallback((index) => {
+    setForm(prev => {
+      if (!prev.photos) return prev;
+      const photo = prev.photos[index];
+      if (!photo) return prev;
+      const newPhotos = prev.photos.filter((_, i) => i !== index).map((p, i) => ({ ...p, order: i }));
+      enqueueMutation(async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ urls: [photo.url] }),
+          });
+        } catch { /* storage best-effort; listing PUT is the source of truth */ }
+        await apiFetch(`/api/owner/listings/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ photos: newPhotos }),
         });
-      } catch { /* storage best-effort; listing PUT is the source of truth */ }
-      await apiFetch(`/api/owner/listings/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ photos: newPhotos }),
-      });
-    }).catch(() => {});
-  };
+      }).catch(() => {});
+      return { ...prev, photos: newPhotos };
+    });
+  }, [id, enqueueMutation]);
 
-  // Set hero (move photo to position 0) — optimistic, queued
-  const setHero = (index) => {
-    if (index === 0) return;
-    const photos = [...form.photos];
-    const [hero] = photos.splice(index, 1);
-    photos.unshift(hero);
-    const reordered = photos.map((p, i) => ({ ...p, order: i }));
-    update('photos', reordered);
-    enqueueMutation(() =>
-      apiFetch(`/api/owner/listings/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ photos: reordered }),
-      })
-    ).catch(() => {});
-  };
+  // Stable delete-confirm callback so the memoized PhotoRow doesn't have
+  // to spawn a fresh closure for every render.
+  const confirmDeletePhoto = useCallback((index) => {
+    alert(
+      'Delete Photo',
+      'Did you want to Delete this Photo?',
+      [
+        { text: 'No', style: 'cancel' },
+        { text: 'Yes', style: 'destructive', onPress: () => deletePhoto(index) },
+      ],
+    );
+  }, [alert, deletePhoto]);
+
+  // Set hero (move photo to position 0) — optimistic, queued. Stabilized
+  // via useCallback so the memoized PhotoRow doesn't re-render every time
+  // the parent's form state ticks.
+  const setHero = useCallback((index) => {
+    setForm(prev => {
+      if (index === 0 || !prev.photos) return prev;
+      const photos = [...prev.photos];
+      const [hero] = photos.splice(index, 1);
+      photos.unshift(hero);
+      const reordered = photos.map((p, i) => ({ ...p, order: i }));
+      enqueueMutation(() =>
+        apiFetch(`/api/owner/listings/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ photos: reordered }),
+        }),
+      ).catch(() => {});
+      return { ...prev, photos: reordered };
+    });
+  }, [id, enqueueMutation]);
 
   // Drag reorder — optimistic, queued
-  const handleDragEnd = ({ data }) => {
+  const handleDragEnd = useCallback(({ data }) => {
     const reordered = data.map((p, i) => ({ ...p, order: i }));
     update('photos', reordered);
     enqueueMutation(() =>
       apiFetch(`/api/owner/listings/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ photos: reordered }),
-      })
+      }),
     ).catch(() => {});
-  };
+  }, [id, enqueueMutation]);
 
   // Replace all photos — queued so the subsequent pickImages() can't race
   const handleReplaceAll = () => {
@@ -623,6 +679,7 @@ export default function EditListingScreen() {
             data={form.photos || []}
             keyExtractor={(item, index) => item.url || String(index)}
             onDragEnd={handleDragEnd}
+            activationDistance={5}
             contentContainerStyle={styles.photoGrid}
             ListFooterComponent={
               (form.photos?.length || 0) > 0 ? (
@@ -631,37 +688,17 @@ export default function EditListingScreen() {
                 </Pressable>
               ) : null
             }
-            renderItem={({ item, getIndex, drag, isActive }) => {
-              const index = getIndex();
-              return (
-                <ScaleDecorator>
-                  <Pressable onLongPress={drag} disabled={isActive} style={[styles.photoRow, isActive && styles.photoItemDragging]}>
-                    <Image source={{ uri: item.thumb_url || item.url }} style={styles.photoRowImg} contentFit="cover" />
-                    <View style={styles.photoRowInfo}>
-                      <Text style={styles.photoRowLabel}>{index === 0 ? 'Hero Image' : `Photo ${index + 1}`}</Text>
-                      <Text style={styles.photoRowHint}>Long-press to drag</Text>
-                    </View>
-                    <View style={styles.photoRowActions}>
-                      <Pressable style={styles.heroBtn} onPress={() => setHero(index)}>
-                        <FontAwesome name="star" size={18} color={index === 0 ? COLORS.warning : COLORS.slate} />
-                      </Pressable>
-                      <Pressable style={styles.deleteBtnRow} onPress={() => {
-                        alert(
-                          'Delete Photo',
-                          'Did you want to Delete this Photo?',
-                          [
-                            { text: 'No', style: 'cancel' },
-                            { text: 'Yes', style: 'destructive', onPress: () => deletePhoto(index) },
-                          ]
-                        );
-                      }}>
-                        <FontAwesome name="trash-o" size={16} color={COLORS.danger} />
-                      </Pressable>
-                    </View>
-                  </Pressable>
-                </ScaleDecorator>
-              );
-            }}
+            renderItem={({ item, getIndex, drag, isActive }) => (
+              <PhotoRow
+                ScaleDecorator={ScaleDecorator}
+                item={item}
+                index={getIndex()}
+                drag={drag}
+                isActive={isActive}
+                onSetHero={setHero}
+                onDelete={confirmDeletePhoto}
+              />
+            )}
           />
         </View>
       )}
