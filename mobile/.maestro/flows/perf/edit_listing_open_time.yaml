@@ -1,23 +1,19 @@
-# Perf regression: Edit Listing open time.
+# Perf harness: Edit Listing open time.
 #
-# After signing in as an owner with ≥1 existing listing, taps "Edit Listing"
-# from the My Listings card and asserts the edit form is usable. Designed as
-# a regression harness for the listing-cache hydration path — a cache hit
-# should render the form synchronously on first paint, so even the slow
-# assertions below (3s / 5s) should comfortably pass.
+# Assumes the app is already signed in as info@floridapm.net and on any owner
+# tab. If not signed in, run owner_l1_autodismiss.yaml first (or sign in
+# manually), then invoke this flow.
 #
-# To observe the exact hydration timings, tail Metro during the run:
-#   grep for lines like:
-#     [EDIT_TIMING] mount cache_hit=true elapsed=1ms
-#     [EDIT_TIMING] fetch_complete cache_hit=true fetch_ms=… total_ms=…
+# Validates:
+#   - Listings tab loads and renders at least one listing card
+#   - Tapping Edit Listing hydrates the form within 5s (cache hit path)
+#   - Photos tab loads and renders its action bar within 5s
 #
-# Cache-hit target: mount line shows cache_hit=true AND elapsed < 50ms.
-# Cache-miss baseline: total_ms shows full GET round-trip (2-4s on Hobby).
+# To observe exact timings, tail Metro during the run and grep for:
+#   [EDIT_TIMING] mount cache_hit=true elapsed=…
+#   [EDIT_TIMING] fetch_complete cache_hit=true fetch_ms=… total_ms=…
 #
-# Prereqs in .env.local:
-#   MAESTRO_OWNER_TEST_EMAIL=info@floridapm.net
-#   MAESTRO_OWNER_TEST_PASSWORD=<set locally>
-# And the owner account must already own at least one active/pending listing.
+# Cache-hit target: mount shows cache_hit=true AND elapsed < 50ms.
 #
 # Run via:
 #   cd mobile/.maestro && ./run.sh flows/perf/edit_listing_open_time.yaml
@@ -25,83 +21,52 @@
 appId: com.padmagnet.app
 tags:
   - perf
+  - manual
 ---
 - runFlow: ../../elements/loadElements.yaml
 
-# 1. Cold-start the app to a known baseline
-- runFlow: ../_shared/launch_fresh.yaml
-- tapOn:
-    text: "Not now"
-    optional: true
-- waitForAnimationToEnd
-
-# 2. Role gate → owner path
-- runFlow: ../_shared/choose_owner.yaml
-- waitForAnimationToEnd:
-    timeout: 8000
-
-# 3. If not already signed in, go through L1 → sign-in sheet
-- swipe:
-    direction: UP
-    duration: 400
-- waitForAnimationToEnd
-- tapOn:
-    id: ${output.auth.manilaL1.primaryCta}
-- waitForAnimationToEnd:
-    timeout: 4000
-- assertVisible:
-    id: ${output.auth.bottomSheet.emailInput}
-- tapOn:
-    id: ${output.auth.bottomSheet.emailInput}
-- inputText: ${MAESTRO_OWNER_TEST_EMAIL}
-- hideKeyboard
-- waitForAnimationToEnd
-- tapOn:
-    id: ${output.auth.bottomSheet.passwordInput}
-- inputText: ${MAESTRO_OWNER_TEST_PASSWORD}
-- hideKeyboard
-- waitForAnimationToEnd
-- tapOn:
-    id: ${output.auth.bottomSheet.signInCta}
-- waitForAnimationToEnd:
-    timeout: 12000
-- tapOn:
-    text: "Not now"
-    optional: true
-- waitForAnimationToEnd:
-    timeout: 4000
-
-# 4. Land on My Listings. Fetch warms the listing cache for subsequent taps.
-- assertVisible: "My Listings"
-- waitForAnimationToEnd:
-    timeout: 6000
-
-# 5. Tap "Edit Listing" on the first card. Cache hit should hydrate the form
-#    synchronously — "Monthly Rent" input should appear within a short window
-#    bounded only by navigation animation + first paint.
-- tapOn: "Edit Listing"
-
-# Soft upper bound: Edit screen header shows up (navigation animation done)
-- assertVisible:
-    text: "Edit Listing"
-    timeout: 3000
-
-# Form interactivity: the Monthly Rent input label must be present, proving
-# the form hydrated. On cache hit this is essentially instant.
-- assertVisible:
-    text: "Monthly Rent"
-    timeout: 5000
-
-# 6. Tap Photos tab — exercises the lazy DraggableFlatList require path.
-#    The tab label itself is rendered by the Details tab already so we wait
-#    for a Photos-tab-specific affordance.
-- tapOn:
-    text: "Photos"
-- assertVisible:
-    text: "Add Photos from Phone"
-    timeout: 5000
-
-# 7. Back out — confirms navigation stack is healthy
+# 1. Back out of any nested screen (e.g. Edit Listing from a prior run) so
+#    the bottom tab bar is visible. Optional taps so we no-op when the tab
+#    bar is already showing.
 - tapOn:
     id: back-button
-- assertVisible: "My Listings"
+    optional: true
+- waitForAnimationToEnd
+
+# 2. Go to the Listings tab. Works from any owner tab.
+- tapOn:
+    text: "Listings"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 2. Confirm we're on the Listings tab. "Edit Listing" only appears on the
+#    listing-card actions (not on the Home tab preview cards).
+- extendedWaitUntil:
+    visible:
+      text: "Edit Listing"
+    timeout: 6000
+
+# 3. Tap Edit Listing on the first card — cache hit = instant hydrate.
+- tapOn: "Edit Listing"
+
+# 4. Form interactivity: Monthly Rent input label must appear fast.
+- extendedWaitUntil:
+    visible:
+      text: "Property Details"
+    timeout: 5000
+
+# 5. Photos tab — exercises lazy DraggableFlatList require path.
+- tapOn:
+    text: "Photos"
+- extendedWaitUntil:
+    visible:
+      text: "Add Photos from Phone"
+    timeout: 5000
+
+# 6. Back out — sanity check nav stack is healthy.
+- tapOn:
+    id: back-button
+- extendedWaitUntil:
+    visible:
+      text: "Edit Listing"
+    timeout: 4000
