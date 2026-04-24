@@ -75,6 +75,15 @@ export default function EditListingScreen() {
     return 'email';
   };
 
+  // Performance instrumentation — emits structured timing logs that a test
+  // harness (adb logcat | grep EDIT_TIMING) can scrape to validate the
+  // cache-hit path skips the blocking GET.
+  const mountTimeRef = useRef(performance.now());
+  useEffect(() => {
+    const t = Math.round(performance.now() - mountTimeRef.current);
+    console.log(`[EDIT_TIMING] mount cache_hit=${!!cached} elapsed=${t}ms`);
+  }, []);
+
   const [loading, setLoading] = useState(!cached);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -103,8 +112,12 @@ export default function EditListingScreen() {
   useEffect(() => {
     if (!id) return;
     (async () => {
+      const fetchStart = performance.now();
       try {
         const data = await apiFetch(`/api/owner/listings/${id}`);
+        const fetchElapsed = Math.round(performance.now() - fetchStart);
+        const totalElapsed = Math.round(performance.now() - mountTimeRef.current);
+        console.log(`[EDIT_TIMING] fetch_complete cache_hit=${!!cached} fetch_ms=${fetchElapsed} total_ms=${totalElapsed}`);
         setForm(hydrateForm(data));
         setContactPref(inferContactPref(data));
         setCachedListing(data);
@@ -113,7 +126,6 @@ export default function EditListingScreen() {
           alert('Error', 'Could not load listing.');
           router.back();
         }
-        // If we had cached data, surface a silent failure — user keeps editing
       } finally {
         setLoading(false);
       }
