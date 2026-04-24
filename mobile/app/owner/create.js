@@ -334,7 +334,7 @@ export default function MagicListingStudio() {
               autoCapitalize="sentences"
               placeholder="Spacious 3-bed home with updated kitchen..."
               multiline
-              numberOfLines={3}
+              numberOfLines={7}
               maxLength={500}
               scrollEnabled={false}
               style={styles.textAreaGrow}

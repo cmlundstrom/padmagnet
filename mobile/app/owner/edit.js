@@ -526,7 +526,7 @@ export default function EditListingScreen() {
             onChangeText={v => update('public_remarks', v.slice(0, 500))}
             placeholder="Pitch the pad. What cool features in your rental or nearby hot spots really make it shine?"
             multiline
-            numberOfLines={4}
+            numberOfLines={7}
             style={styles.textArea}
             maxLength={500}
           />
