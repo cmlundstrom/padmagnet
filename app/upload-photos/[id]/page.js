@@ -5,8 +5,51 @@ import { createSupabaseBrowser } from '../../../lib/supabase-browser';
 import styles from './upload-photos.module.css';
 
 const MAX_FILES = 15;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (server compresses)
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Browser-side downscale settings. 2400px max long-edge + JPEG q85 normalizes
+// any source (phone, DSLR, 20MB RAW export) to ~500KB–1.5MB before upload.
+// Server pipeline still smart-crops to 3:2 @ 1600px for final storage, so
+// 2400px is comfortable headroom.
+const CLIENT_MAX_DIMENSION = 2400;
+const CLIENT_JPEG_QUALITY = 0.85;
+// Absolute safety cap — catches someone dropping a 2GB video by mistake.
+// Normal photos (even 48MP DSLR RAW exports) land under this.
+const ABSOLUTE_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+// Parallel compression slots. Each concurrent compression peaks at ~source*4
+// bytes of RGBA in memory; 3 keeps browser responsive on modest laptops.
+const COMPRESS_CONCURRENCY = 3;
+
+// Resize + re-encode a File in the browser.
+// - Respects EXIF orientation (portrait phone photos render correctly)
+// - Preserves aspect ratio, never upscales
+// - Always outputs JPEG (server pipeline already converts to WebP)
+async function compressImage(file) {
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const { width, height } = bitmap;
+  const longEdge = Math.max(width, height);
+  const scale = Math.min(1, CLIENT_MAX_DIMENSION / longEdge);
+  const targetW = Math.round(width * scale);
+  const targetH = Math.round(height * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+  bitmap.close();
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('canvas toBlob returned null'))),
+      'image/jpeg',
+      CLIENT_JPEG_QUALITY,
+    );
+  });
+
+  // Rename to .jpg since we forced JPEG re-encoding
+  const newName = file.name.replace(/\.(heic|heif|png|webp|tiff?)$/i, '.jpg');
+  return new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() });
+}
 
 export default function UploadPhotosPage({ params }) {
   const { id: listingId } = params;
@@ -62,7 +105,11 @@ export default function UploadPhotosPage({ params }) {
     return session?.access_token;
   }, [supabase]);
 
-  // Upload files
+  // Upload files — two-stage pipeline:
+  //   1. "Preparing" — browser-side downscale to 2400px JPEG q85 (in parallel,
+  //      bounded by COMPRESS_CONCURRENCY). Any source size becomes ~1MB.
+  //   2. "Uploading" — one-at-a-time POST to server (avoids Vercel body limit).
+  // Per-file status lets the user see both phases on screen.
   const handleUpload = useCallback(async (files) => {
     const fileList = Array.from(files);
     const currentCount = photos.length;
@@ -75,29 +122,54 @@ export default function UploadPhotosPage({ params }) {
 
     const toUpload = fileList.slice(0, remaining);
 
-    // Validate
+    // Type check + absolute-max sanity guard. No per-file size rejection —
+    // the compress step handles arbitrary sizes up to the browser's own
+    // memory ceiling.
     for (const file of toUpload) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        alert(`Invalid file type: ${file.name}. Use JPEG, PNG, or WebP.`);
+        alert(`Unsupported file type: ${file.name}. Use JPEG, PNG, or WebP.`);
         return;
       }
-      if (file.size > MAX_FILE_SIZE) {
-        alert(`File too large: ${file.name} (max 10MB).`);
+      if (file.size > ABSOLUTE_MAX_FILE_SIZE) {
+        alert(`${file.name} is ${Math.round(file.size / 1024 / 1024)}MB — that's beyond the 100MB safety limit. Please re-export at a smaller size.`);
         return;
       }
     }
 
     setUploading(true);
-    setUploadProgress(toUpload.map(f => ({ name: f.name, progress: 0, done: false })));
+    setUploadProgress(toUpload.map(f => ({ name: f.name, stage: 'queued', done: false })));
 
+    // ── Stage 1: compress in parallel with bounded concurrency ──
+    const compressed = new Array(toUpload.length);
+    let nextIndex = 0;
+    const workers = Array(Math.min(COMPRESS_CONCURRENCY, toUpload.length))
+      .fill(0)
+      .map(async () => {
+        while (true) {
+          const i = nextIndex++;
+          if (i >= toUpload.length) return;
+          setUploadProgress(prev => prev.map((p, idx) => idx === i ? { ...p, stage: 'preparing' } : p));
+          try {
+            compressed[i] = await compressImage(toUpload[i]);
+          } catch (err) {
+            // Fall back to the original file — server pipeline still handles it,
+            // just may hit size/body limits. Better than failing the batch.
+            console.warn('[upload] compress failed for', toUpload[i].name, err.message);
+            compressed[i] = toUpload[i];
+          }
+        }
+      });
+    await Promise.all(workers);
+
+    // ── Stage 2: upload sequentially (Vercel body limit is per-request) ──
     const token = await getToken();
     const allUploaded = [];
-
     try {
-      // Upload one file at a time to avoid body size limits
-      for (let i = 0; i < toUpload.length; i++) {
+      for (let i = 0; i < compressed.length; i++) {
+        setUploadProgress(prev => prev.map((p, idx) => idx === i ? { ...p, stage: 'uploading' } : p));
+
         const formData = new FormData();
-        formData.append('photos', toUpload[i]);
+        formData.append('photos', compressed[i]);
 
         const res = await fetch('/api/owner/photos', {
           method: 'POST',
@@ -114,11 +186,7 @@ export default function UploadPhotosPage({ params }) {
 
         const uploaded = await res.json();
         allUploaded.push(...uploaded);
-
-        // Mark this file as done
-        setUploadProgress(prev => prev.map((p, idx) =>
-          idx <= i ? { ...p, progress: 100, done: true } : p
-        ));
+        setUploadProgress(prev => prev.map((p, idx) => idx === i ? { ...p, stage: 'done', done: true } : p));
       }
 
       // Append to photos array and update listing
@@ -269,8 +337,8 @@ export default function UploadPhotosPage({ params }) {
             onClick={() => fileInputRef.current?.click()}
           >
             <div className={styles.dropzoneIcon}>📁</div>
-            <p className={styles.dropzoneText}>Drop photos here or click to select</p>
-            <p className={styles.dropzoneHint}>JPEG, PNG, WebP · 10MB max per file</p>
+            <p className={styles.dropzoneText}>Drop your listing photos. We automatically prep them for mobile-fast display.</p>
+            <p className={styles.dropzoneHint}>Very large photos may take a few moments to process.</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -284,18 +352,30 @@ export default function UploadPhotosPage({ params }) {
           {/* Upload progress */}
           {uploadProgress.length > 0 && (
             <div className={styles.progressList}>
-              {uploadProgress.map((item, i) => (
-                <div key={i} className={styles.progressItem}>
-                  <span className={styles.progressName}>{item.name}</span>
-                  {item.done ? (
-                    <span className={styles.progressDone}>✓</span>
-                  ) : (
-                    <div className={styles.progressBar}>
-                      <div className={styles.progressFill} />
-                    </div>
-                  )}
-                </div>
-              ))}
+              {uploadProgress.map((item, i) => {
+                const label = item.stage === 'preparing'
+                  ? 'Preparing'
+                  : item.stage === 'uploading'
+                    ? 'Uploading'
+                    : item.stage === 'queued'
+                      ? 'Queued'
+                      : 'Done';
+                return (
+                  <div key={i} className={styles.progressItem}>
+                    <span className={styles.progressName}>
+                      {item.name}
+                      {!item.done && <span style={{ opacity: 0.6, fontSize: '0.85em', marginLeft: 8 }}>· {label}</span>}
+                    </span>
+                    {item.done ? (
+                      <span className={styles.progressDone}>✓</span>
+                    ) : (
+                      <div className={styles.progressBar}>
+                        <div className={styles.progressFill} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
