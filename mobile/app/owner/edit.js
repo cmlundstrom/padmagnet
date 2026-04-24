@@ -9,6 +9,20 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+
+// Optional native dep — graceful fallback if the dev client / standalone APK
+// wasn't rebuilt with expo-image-manipulator yet. Without it, uploads still
+// go through (now one-at-a-time, so Vercel body limit isn't hit), they just
+// skip the client-side resize.
+let ImageManipulator = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  ImageManipulator = require('expo-image-manipulator');
+  // Probe: on non-rebuilt builds the module loads but its methods are undefined
+  if (typeof ImageManipulator.manipulateAsync !== 'function') {
+    ImageManipulator = null;
+  }
+} catch { /* native module not present in this build */ }
 import { FontAwesome } from '@expo/vector-icons';
 import { Header, Button, Input, Toggle } from '../../components/ui';
 import { apiFetch } from '../../lib/api';
@@ -87,6 +101,7 @@ export default function EditListingScreen() {
   const [loading, setLoading] = useState(!cached);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [tab, setTab] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [contactPref, setContactPref] = useState(cached ? inferContactPref(cached) : 'email');
@@ -219,10 +234,14 @@ export default function EditListingScreen() {
   };
 
   // Photo upload from phone.
-  // Server atomically appends to listings.photos when listing_id is passed,
-  // so one roundtrip covers both upload + persist. Client just adopts the
-  // authoritative photos array from the response. Serialized via mutation
-  // queue so a rapid follow-up action (reorder, hero) can't race.
+  // Two-stage pipeline per file:
+  //   1. Prepare: native-side resize to 2400px long-edge + JPEG q85 via
+  //      expo-image-manipulator. Graceful fallback to the original asset
+  //      if the native module isn't in the current build.
+  //   2. Upload: POST one file at a time with listing_id, server atomically
+  //      appends to listings.photos and returns the full updated array.
+  // Per-file loop means one bad file (network blip, server 400) doesn't
+  // take down the whole batch.
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -231,52 +250,94 @@ export default function EditListingScreen() {
       selectionLimit: 15 - (form.photos?.length || 0),
     });
     if (result.canceled || !result.assets?.length) return;
+    const assets = result.assets;
     setUploading(true);
+    const failures = [];
     try {
       await enqueueMutation(async () => {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
-        const formData = new FormData();
-        result.assets.forEach((asset) => {
-          const ext = asset.uri.split('.').pop() || 'jpg';
-          formData.append('photos', {
-            uri: asset.uri,
-            type: asset.mimeType || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-            name: `photo.${ext}`,
-          });
-        });
-        formData.append('listing_id', id);
-        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com'}/api/owner/photos`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(JSON.parse(text)?.error || 'Upload failed');
-        }
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          // Legacy server response (listing_id not yet supported by deployed API).
-          const newPhotos = [...(form.photos || []), ...data.map((u, i) => ({
-            url: u.url,
-            thumb_url: u.thumb_url,
-            caption: '',
-            order: (form.photos?.length || 0) + i,
-          }))];
-          update('photos', newPhotos);
-          await apiFetch(`/api/owner/listings/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ photos: newPhotos }),
-          });
-        } else {
-          update('photos', data.photos);
+        const apiBase = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
+
+        for (let i = 0; i < assets.length; i++) {
+          const asset = assets[i];
+          const label = `photo ${i + 1} of ${assets.length}`;
+
+          // Stage 1: resize (if available)
+          let uri = asset.uri;
+          let mime = asset.mimeType || 'image/jpeg';
+          if (ImageManipulator) {
+            setUploadStatus(`Preparing ${label}…`);
+            try {
+              const resized = await ImageManipulator.manipulateAsync(
+                asset.uri,
+                [{ resize: { width: 2400 } }],
+                { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+              );
+              uri = resized.uri;
+              mime = 'image/jpeg';
+            } catch (err) {
+              // Non-fatal — continue with original asset
+              console.warn('[pickImages] resize failed, uploading original:', err?.message);
+            }
+          }
+
+          // Stage 2: upload this one file
+          setUploadStatus(`Uploading ${label}…`);
+          try {
+            const formData = new FormData();
+            const ext = (uri.split('.').pop() || 'jpg').toLowerCase();
+            formData.append('photos', { uri, type: mime, name: `photo.${ext}` });
+            formData.append('listing_id', id);
+
+            const res = await fetch(`${apiBase}/api/owner/photos`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
+
+            if (!res.ok) {
+              const text = await res.text().catch(() => '');
+              let msg = 'Upload failed';
+              try { msg = JSON.parse(text).error || msg; } catch { /* non-JSON body (e.g. Vercel 413 HTML) */ }
+              if (res.status === 413) msg = 'Photo is too large even after resizing. Try a smaller source.';
+              throw new Error(msg);
+            }
+
+            const data = await res.json();
+            // New server mode returns { uploaded, photos }. Adopt authoritative array.
+            if (data && !Array.isArray(data) && data.photos) {
+              update('photos', data.photos);
+            } else if (Array.isArray(data)) {
+              // Legacy fallback — shouldn't happen in prod after deploy is live,
+              // but keep this shim so the app doesn't break during deploy window.
+              const newPhotos = [...(form.photos || []), ...data.map((u) => ({
+                url: u.url,
+                thumb_url: u.thumb_url,
+                caption: '',
+                order: (form.photos?.length || 0),
+              }))];
+              update('photos', newPhotos);
+              await apiFetch(`/api/owner/listings/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ photos: newPhotos }),
+              });
+            }
+          } catch (err) {
+            failures.push({ name: asset.fileName || `photo ${i + 1}`, error: err.message });
+          }
         }
       });
-    } catch (err) {
-      alert('Upload Error', err.message);
     } finally {
       setUploading(false);
+      setUploadStatus('');
+    }
+
+    if (failures.length) {
+      const msg = failures.length === assets.length
+        ? `No photos uploaded. ${failures[0].error}`
+        : `${failures.length} of ${assets.length} photo${failures.length > 1 ? 's' : ''} couldn't upload. ${failures[0].name}: ${failures[0].error}`;
+      alert('Upload Incomplete', msg);
     }
   };
 
@@ -555,7 +616,7 @@ export default function EditListingScreen() {
           {uploading && (
             <View style={styles.uploadingRow}>
               <ActivityIndicator size="small" color={COLORS.accent} />
-              <Text style={styles.uploadingText}>Uploading...</Text>
+              <Text style={styles.uploadingText}>{uploadStatus || 'Uploading…'}</Text>
             </View>
           )}
           <DraggableFlatList
