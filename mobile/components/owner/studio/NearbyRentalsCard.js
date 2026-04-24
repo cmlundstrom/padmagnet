@@ -27,6 +27,10 @@ const GRID_GAP = 8;
 const THUMB_W = (CARD_W - LAYOUT.padding.md * 2 - GRID_GAP) / 2;
 const DISMISS_THRESHOLD = 120;
 const RADIUS_OPTIONS = [2, 5, 7, 10];
+// Bounded height for the listings grid so it scrolls internally when the
+// current radius returns more rows than fit in the card. Headers, chips,
+// summary and disclaimer consume ~270dp; the rest is the scrollable area.
+const LIST_MAX_H = Math.max(280, CARD_H - 270);
 
 /**
  * NearbyRentalsCard — manila folder overlay with MLS comp listings.
@@ -106,7 +110,12 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
     opacity.value = withTiming(0, { duration: 300 }, () => { runOnJS(onClose)(); });
   }, [onClose]);
 
+  // Only activate pan after a 20dp *downward* drag. Upward drags and short
+  // taps pass through to the FlatList so the grid scrolls natively when the
+  // radius returns more rows than fit.
   const panGesture = Gesture.Pan()
+    .activeOffsetY([-999, 20])
+    .failOffsetY([-5, 999])
     .onUpdate((e) => { swipeY.value = Math.max(0, e.translationY); })
     .onEnd((e) => {
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
@@ -211,7 +220,9 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
                   numColumns={2}
                   columnWrapperStyle={styles.gridRow}
                   contentContainerStyle={styles.gridContent}
-                  showsVerticalScrollIndicator={false}
+                  showsVerticalScrollIndicator
+                  indicatorStyle="black"
+                  style={{ maxHeight: LIST_MAX_H }}
                   renderItem={({ item }) => <CompCard listing={item} />}
                 />
               )}
@@ -232,6 +243,7 @@ export default function NearbyRentalsCard({ visible, onClose, form, coords }) {
 function CompCard({ listing }) {
   const photo = listing.photos?.[0]?.url;
   const street = [listing.street_number, listing.street_name].filter(Boolean).join(' ');
+  const cityLine = [listing.city, listing.postal_code].filter(Boolean).join(', ');
 
   return (
     <View style={styles.compCard}>
@@ -258,7 +270,8 @@ function CompCard({ listing }) {
         <Text style={styles.compPrice} numberOfLines={1}>
           {formatCurrency(listing.list_price)}<Text style={styles.compPriceMo}>/mo</Text>
         </Text>
-        <Text style={styles.compAddress} numberOfLines={1}>{street || listing.city || '—'}</Text>
+        <Text style={styles.compAddress} numberOfLines={1}>{street || '—'}</Text>
+        <Text style={styles.compCity} numberOfLines={1}>{cityLine || ' '}</Text>
         <Text style={styles.compDetails} numberOfLines={1}>
           {listing.bedrooms_total || '—'}bd · {listing.bathrooms_total || '—'}ba
           {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
@@ -516,9 +529,15 @@ const styles = StyleSheet.create({
     color: '#7A5C1E',
   },
   compAddress: {
-    fontFamily: FONTS.body.regular,
+    fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xxs,
     color: '#5C4A1E',
+    marginTop: 1,
+  },
+  compCity: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xxs,
+    color: '#7A5C1E',
     marginTop: 1,
   },
   compDetails: {
