@@ -23,11 +23,15 @@ tags:
   - perf
   - manual
 ---
+- launchApp
 - runFlow: ../../elements/loadElements.yaml
 
 # 1. Back out of any nested screen (e.g. Edit Listing from a prior run) so
 #    the bottom tab bar is visible. Optional taps so we no-op when the tab
-#    bar is already showing.
+#    bar is already showing. Two back taps catch sub-sub-screens.
+- tapOn:
+    id: back-button
+    optional: true
 - tapOn:
     id: back-button
     optional: true

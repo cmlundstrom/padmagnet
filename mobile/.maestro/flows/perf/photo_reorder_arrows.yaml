@@ -25,9 +25,14 @@ tags:
   - manual
   - photo-reorder-regression
 ---
+- launchApp
 - runFlow: ../../elements/loadElements.yaml
 
-# 1. Navigate to Listings → Edit Listing.
+# 1. Navigate to Listings → Edit Listing. Two back taps catch sub-sub
+#    screens left over from any previous failing flow.
+- tapOn:
+    id: back-button
+    optional: true
 - tapOn:
     id: back-button
     optional: true

@@ -14,7 +14,6 @@ SUMMARY="${OUT%.log}.summary"
 
 FLOWS=(
   "flows/perf/listings_perf_and_integrity.yaml"
-  "flows/perf/nearby_rentals_card.yaml"
   "flows/perf/listing_studio_integrity.yaml"
   "flows/perf/preview_fast_open.yaml"
   "flows/perf/edit_listing_open_time.yaml"

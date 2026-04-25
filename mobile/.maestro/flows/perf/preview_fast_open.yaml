@@ -18,10 +18,15 @@ tags:
   - manual
   - preview-regression
 ---
+- launchApp
 - runFlow: ../../elements/loadElements.yaml
 
 # 1. Back out of any prior-run screen and land on Listings (also warms
-#    listingCache via the tab's fetch).
+#    listingCache via the tab's fetch). Two back-button taps catches
+#    sub-sub-screens left behind by a previous failing flow.
+- tapOn:
+    id: back-button
+    optional: true
 - tapOn:
     id: back-button
     optional: true
