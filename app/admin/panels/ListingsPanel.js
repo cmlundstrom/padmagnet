@@ -85,38 +85,52 @@ export default function ListingsPanel() {
           l.source?.toLowerCase().includes(q)
         );
       }
-      // No search — apply filter
+      // No search — apply filter. Archived is intentionally excluded from
+      // every chip EXCEPT the dedicated "Archived" filter — it'd clutter
+      // the day-to-day admin view (per archive-first rule, archived rows
+      // are retained forever for owner re-list, but admins shouldn't see
+      // them unless they're explicitly auditing the archive).
       if (statusFilter === "suppressed") {
         if (l.is_active) return false;
+        if (l.status === "archived") return false;
       } else if (statusFilter === "pending_review") {
         if (l.status !== "pending_review") return false;
       } else if (statusFilter === "owner_all") {
         if (l.source !== "owner") return false;
+        if (l.status === "archived") return false;
       } else if (statusFilter === "archived" || statusFilter === "leased" || statusFilter === "expired" || statusFilter === "rejected") {
         // These statuses have is_active=false — don't filter by is_active
         if (l.status !== statusFilter) return false;
       } else if (statusFilter !== "all") {
         if (l.status !== statusFilter) return false;
         if (!l.is_active) return false;
+      } else {
+        // statusFilter === "all" — exclude archived
+        if (l.status === "archived") return false;
       }
       return true;
     });
   }, [enriched, statusFilter, search]);
 
-  // Stat counts
+  // Stat counts. Most counts now exclude archived rows so the chip badges
+  // match the row counts the table actually shows. Archived chip itself
+  // still surfaces the true archived count so admins can audit.
   const totalCount = listings.length;
   const mlsCount = listings.filter(l => l.source === "mls" || l.source === "bridge").length;
   const ownerCount = listings.filter(l => l.source === "owner").length;
   const activeCount = listings.filter(l => l.status === "active" && l.is_active).length;
   const draftCount = listings.filter(l => l.status === "draft").length;
-  const suppressedCount = listings.filter(l => !l.is_active).length;
+  // Suppressed = inactive but not archived (archived is its own bucket)
+  const suppressedCount = listings.filter(l => !l.is_active && l.status !== "archived").length;
+  const archivedCount = listings.filter(l => l.status === "archived").length;
 
   const statusCountFor = (s) => {
-    if (s === "all") return enriched.length;
+    if (s === "all") return enriched.filter(l => l.status !== "archived").length;
     if (s === "suppressed") return suppressedCount;
-    if (s === "owner_all") return ownerListings.length;
-    // Inactive statuses don't require is_active check
-    if (["archived", "leased", "expired", "rejected", "draft", "pending_review"].includes(s)) {
+    if (s === "owner_all") return ownerListings.filter(l => l.status !== "archived").length;
+    if (s === "archived") return archivedCount;
+    // Other inactive statuses don't require is_active check
+    if (["leased", "expired", "rejected", "draft", "pending_review"].includes(s)) {
       return enriched.filter(l => l.status === s).length;
     }
     return enriched.filter(l => l.status === s && l.is_active).length;
