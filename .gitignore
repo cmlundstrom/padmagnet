@@ -40,3 +40,9 @@ mobile/builds/
 tests-admin/.auth/
 playwright-report/
 test-results/
+playwright-run.live.log
+
+# Maestro runtime artifacts
+mobile/.maestro/perf-suite-*.log
+mobile/.maestro/perf-suite-*.summary
+mobile/.maestro/perf-run.live.log
