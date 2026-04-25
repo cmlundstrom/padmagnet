@@ -13,10 +13,13 @@
 
 import { useState } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
+
+const ASKPAD_ORB = require('../../assets/images/askpad-orb.png');
 
 const FEATURES = [
   {
@@ -32,9 +35,9 @@ const FEATURES = [
   },
   {
     key: 'ai',
-    icon: 'flash',
+    customIcon: ASKPAD_ORB, // AskPad orb — overrides Ionicon when present
     iconColor: COLORS.accent,
-    iconBg: COLORS.accent + '22',
+    iconBg: 'transparent', // orb is self-contained, skip the tinted disc
     title: 'AI-powered',
     subtitle: 'Smarter\nsearch',
     tooltipTitle: 'Smarter rental search',
@@ -68,7 +71,15 @@ export default function FeatureBar() {
               hitSlop={6}
             >
               <View style={[styles.iconCircle, { backgroundColor: f.iconBg }]}>
-                <Ionicons name={f.icon} size={20} color={f.iconColor} />
+                {f.customIcon ? (
+                  <Image
+                    source={f.customIcon}
+                    style={styles.iconOrb}
+                    contentFit="contain"
+                  />
+                ) : (
+                  <Ionicons name={f.icon} size={20} color={f.iconColor} />
+                )}
               </View>
               <Text style={styles.title}>{f.title}</Text>
               <Text style={styles.subtitle}>{f.subtitle}</Text>
@@ -94,11 +105,19 @@ export default function FeatureBar() {
             {openFeature && (
               <>
                 <View style={[styles.tooltipIcon, { backgroundColor: openFeature.iconBg }]}>
-                  <Ionicons
-                    name={openFeature.icon}
-                    size={28}
-                    color={openFeature.iconColor}
-                  />
+                  {openFeature.customIcon ? (
+                    <Image
+                      source={openFeature.customIcon}
+                      style={styles.tooltipOrb}
+                      contentFit="contain"
+                    />
+                  ) : (
+                    <Ionicons
+                      name={openFeature.icon}
+                      size={28}
+                      color={openFeature.iconColor}
+                    />
+                  )}
                 </View>
                 <Text style={styles.tooltipTitle}>{openFeature.tooltipTitle}</Text>
                 <Text style={styles.tooltipBody}>{openFeature.tooltipBody}</Text>
@@ -150,6 +169,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
+  iconOrb: {
+    width: 38,
+    height: 38,
+  },
   title: {
     fontFamily: FONTS.body.bold,
     fontSize: FONT_SIZES.xs,
@@ -200,6 +223,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: LAYOUT.padding.sm,
+  },
+  tooltipOrb: {
+    width: 56,
+    height: 56,
   },
   tooltipTitle: {
     fontFamily: FONTS.heading.bold,
