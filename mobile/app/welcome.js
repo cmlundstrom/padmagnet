@@ -313,7 +313,7 @@ export default function WelcomeScreen() {
                 {loadingOwner ? 'Loading…' : 'List Your Property'}
               </Text>
               <Text style={[styles.ctaSubtitle, { color: COLORS.textSecondary }]}>
-                Reach thousands of active renters.
+                Reach 1000s of active renters.
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={COLORS.textSecondary} />
