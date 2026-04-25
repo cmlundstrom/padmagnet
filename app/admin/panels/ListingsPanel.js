@@ -470,9 +470,28 @@ export default function ListingsPanel() {
           ))}
         </div>
 
-        {/* Action buttons — approve/reject is in the top Review Required bar only */}
+        {/* Action buttons for non-pending rows. Approve / Send Back / Reject
+            live in the Review Required bar above and only appear when
+            status === 'pending_review'. Active and suppressed rows still
+            need Full Render + Edit + the Suppress/Unsuppress toggle so an
+            admin can quality-check or polish a live listing without
+            leaving the dashboard. */}
         {!isPending && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            <button
+              onClick={() => window.open(`/listing/${row.id}?admin_preview=1`, "_blank")}
+              style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, fontSize: "12px" }}
+              title="Open the full in-app listing render in a new tab"
+            >
+              👁 Full Render
+            </button>
+            <button
+              onClick={() => window.open(`/admin/listings/${row.id}/edit`, "_blank")}
+              style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, fontSize: "12px" }}
+              title="Edit fields as admin. Use 'Save (keep status)' to polish without resetting the renewal clock or re-firing approval flows."
+            >
+              ✏️ Edit
+            </button>
             {row.is_active && (
               <button onClick={handleSuppress} style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "12px" }}>Suppress</button>
             )}
