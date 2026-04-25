@@ -173,10 +173,12 @@ export async function PUT(request, { params }) {
       if (ownerProfile?.email) {
         const address = [saved.street_number, saved.street_name].filter(Boolean).join(' ');
         const fullAddress = [address, saved.city, saved.state_or_province].filter(Boolean).join(', ');
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://padmagnet.com';
         sendTemplateEmail('listing_admin_edited', ownerProfile.email, {
           owner_name: ownerProfile.display_name || 'Property Owner',
           listing_address: fullAddress,
           edit_note: editNote || 'Minor adjustments to formatting / fields.',
+          listing_url: `${baseUrl}/listing/${saved.id}`,
         }).catch(() => {});
       }
     }

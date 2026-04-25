@@ -242,11 +242,13 @@ export async function PUT(request) {
       }]);
 
       if (ownerEmail) {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://padmagnet.com';
         sendTemplateEmail('listing_revision_requested', ownerEmail, {
           owner_name: ownerName,
           listing_address: fullAddress,
           review_reason: reasonLabel,
           review_note: note || '(no additional note)',
+          listing_url: `${baseUrl}/listing/${id}`,
         }).catch(() => {});
       }
 
