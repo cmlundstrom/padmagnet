@@ -5,15 +5,17 @@
 // Use "Save (keep status)" when polishing an already-active listing where
 // you don't want to reset the renewal clock or fire the approval email.
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { COLORS, baseButton } from '../../../shared';
 
 const PROPERTY_TYPES = ['Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home'];
 const LEASE_TERMS = [{ key: '3', label: '3 Months' }, { key: '6', label: '6 Months' }, { key: '12', label: '12 Months' }];
 
+// Next 14 + React 18 hands client-component `params` as a plain object.
+// (React 19 + Next 15 will deliver it as a Promise that needs `use()`.)
 export default function AdminEditListing({ params }) {
-  const { id } = use(params);
+  const { id } = params;
   const router = useRouter();
   const [listing, setListing] = useState(null);
   const [form, setForm] = useState({});
