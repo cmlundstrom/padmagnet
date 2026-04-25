@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   // ── Sub-tagline ────────────────────────────────────────────────
   subTagline: {
     fontFamily: FONTS.body.medium,
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 6,
