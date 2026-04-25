@@ -40,6 +40,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WelcomeHero from '../components/welcome/WelcomeHero';
 import FeatureBar from '../components/welcome/FeatureBar';
 import { saveUserRole, setRoleSelected } from '../lib/storage';
@@ -51,6 +52,7 @@ import { LAYOUT } from '../constants/layout';
 export default function WelcomeScreen() {
   const [loadingRenter, setLoadingRenter] = useState(false);
   const [loadingOwner, setLoadingOwner] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // ── Anon-session helpers (unchanged auth wiring) ──────────────────
   const ensureRenterSession = useCallback(async () => {
@@ -248,7 +250,12 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          // Lift FeatureBar above Android nav bar / iOS home indicator.
+          // Min 24 so phones reporting 0 inset still get breathing room.
+          { paddingBottom: Math.max(insets.bottom + 16, 24) },
+        ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
@@ -374,7 +381,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.navy,
   },
   scroll: {
-    paddingBottom: 32,
+    // paddingBottom is applied dynamically using safe-area insets at runtime
   },
 
   // ── Brand block ───────────────────────────────────────────────
