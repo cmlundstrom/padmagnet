@@ -64,7 +64,8 @@ tags:
 #    bring it into focus, then assert position swap by checking the
 #    "Hero Image" label is still visible (i.e., the swap completed
 #    without crashing the list).
-- tapOn: "Photo 2"
+- tapOn:
+    text: "Photo 2"
     optional: true
 - waitForAnimationToEnd
 
