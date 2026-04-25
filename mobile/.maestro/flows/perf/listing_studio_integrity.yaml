@@ -28,18 +28,13 @@ tags:
   - manual
   - studio-mount-regression
 ---
-- launchApp
+- launchApp:
+    stopApp: true   # cold launch — fresh nav stack, preserved auth state
 - runFlow: ../../elements/loadElements.yaml
 
-# 1. Recover from any prior-flow leftover sub-screen by tapping back a
-#    couple times (optional taps so the no-op case doesn't fail).
-- tapOn:
-    id: back-button
-    optional: true
-- tapOn:
-    id: back-button
-    optional: true
-- waitForAnimationToEnd
+# 1. Wait for cold-launch routing to settle.
+- waitForAnimationToEnd:
+    timeout: 8000
 
 # 2. Land on Listings tab.
 - tapOn: "Listings"

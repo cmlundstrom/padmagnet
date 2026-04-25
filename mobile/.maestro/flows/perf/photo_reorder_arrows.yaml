@@ -25,17 +25,13 @@ tags:
   - manual
   - photo-reorder-regression
 ---
-- launchApp
+- launchApp:
+    stopApp: true
 - runFlow: ../../elements/loadElements.yaml
 
-# 1. Navigate to Listings → Edit Listing. Two back taps catch sub-sub
-#    screens left over from any previous failing flow.
-- tapOn:
-    id: back-button
-    optional: true
-- tapOn:
-    id: back-button
-    optional: true
+# 1. Wait for cold-launch routing, then navigate Listings → Edit Listing.
+- waitForAnimationToEnd:
+    timeout: 8000
 - tapOn: "Listings"
 - waitForAnimationToEnd:
     timeout: 4000

@@ -18,7 +18,13 @@ export default function StudioHeader({ title = 'Listing Studio', completionPerce
 
   return (
     <View style={styles.header}>
-      <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
+      <Pressable
+        testID="back-button"
+        accessibilityLabel="Back"
+        style={styles.backBtn}
+        onPress={() => router.back()}
+        hitSlop={12}
+      >
         <Ionicons name="chevron-back" size={22} color={COLORS.text} />
       </Pressable>
       <Text style={styles.title}>{title}</Text>

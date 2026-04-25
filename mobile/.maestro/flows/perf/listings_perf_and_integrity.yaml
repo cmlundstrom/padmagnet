@@ -28,13 +28,14 @@ tags:
   - manual
   - listings-regression
 ---
+- launchApp:
+    stopApp: true   # cold launch — fresh nav stack, preserved auth state
 - runFlow: ../../elements/loadElements.yaml
 
-# 1. Back out of any nested screen from a prior run.
-- tapOn:
-    id: back-button
-    optional: true
-- waitForAnimationToEnd
+# 1. Wait for cold-launch routing to settle (auth check + role gate + land
+#    on the default owner tab, typically Home for info@floridapm.net).
+- waitForAnimationToEnd:
+    timeout: 8000
 
 # 2. Go to Listings tab.
 - tapOn:

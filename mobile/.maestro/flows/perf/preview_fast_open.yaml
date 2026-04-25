@@ -18,18 +18,14 @@ tags:
   - manual
   - preview-regression
 ---
-- launchApp
+- launchApp:
+    stopApp: true
 - runFlow: ../../elements/loadElements.yaml
 
-# 1. Back out of any prior-run screen and land on Listings (also warms
-#    listingCache via the tab's fetch). Two back-button taps catches
-#    sub-sub-screens left behind by a previous failing flow.
-- tapOn:
-    id: back-button
-    optional: true
-- tapOn:
-    id: back-button
-    optional: true
+# 1. Wait for cold-launch routing, then go to Listings (also warms
+#    listingCache via the tab's fetch).
+- waitForAnimationToEnd:
+    timeout: 8000
 - tapOn: "Listings"
 - waitForAnimationToEnd:
     timeout: 4000
@@ -56,16 +52,18 @@ tags:
 - assertVisible:
     text: ".*/mo"
 
-# 5. Body content visible WITHOUT a visible second-wave gap. Price &
-#    address render unconditionally, so they're a weak signal. The
-#    "Contact" section title only appears once display-fields hydrated
-#    AND the agent/contact rows filtered through — its visibility
-#    proves the second wave arrived. Tight timeout asserts the
-#    prefetch actually kicked in (previously 2-4s).
+# 5. Body content arrival. The hero (price + address) renders
+#    unconditionally, so it's a weak signal. We need something gated
+#    on display-fields hydration. "Read more" appears only when
+#    public_remarks is present AND ListingInfo's CollapsibleText
+#    rendered (config-driven). The owner Tioga listing has a real
+#    description, so this is a stable "second wave is here" probe.
+#    "Contact" section was tried first but it's filtered out for
+#    listings without contact_instructions — too brittle.
 - extendedWaitUntil:
     visible:
-      text: "Contact"
-    timeout: 2500
+      text: "Read more"
+    timeout: 4000
 
 # 6. Back out cleanly.
 - tapOn:
