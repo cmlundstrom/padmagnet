@@ -23,6 +23,10 @@ export default function AdminEditListing({ params }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [editNote, setEditNote] = useState('');
+  // Toast surface for save confirmation. Holds an ISO string of the last
+  // successful save; falsy = no toast. Auto-clears after 4s via a timer
+  // wired in the save() handler.
+  const [savedAt, setSavedAt] = useState(null);
 
   const fetchListing = useCallback(async () => {
     setLoading(true);
@@ -81,9 +85,18 @@ export default function AdminEditListing({ params }) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Save failed (${res.status})`);
       }
-      // Bounce back to admin listings panel — the new state will be reflected
-      // in the listings list on next focus.
-      router.push('/admin#listings');
+      // Stay on the page so the admin gets visual confirmation of their
+      // edit. Refresh local state from what the server actually persisted
+      // (status flip, admin_reviewed_at stamp, normalized fields, etc.)
+      // so the next save isn't operating on a stale snapshot.
+      const updated = await res.json().catch(() => null);
+      if (updated) setListing(updated);
+      // Edit note is one-shot — it goes into the email already sent for
+      // this save. Clear so it doesn't get re-attached to a follow-up edit.
+      setEditNote('');
+      setSavedAt(new Date().toISOString());
+      // Auto-dismiss the toast after 4s — admin can keep working.
+      setTimeout(() => setSavedAt(null), 4000);
     } catch (e) {
       alert(e.message);
     }
@@ -207,8 +220,17 @@ export default function AdminEditListing({ params }) {
         />
 
         <div style={styles.actionBar}>
+          {savedAt && (
+            <div style={styles.savedToast}>
+              ✓ Saved {new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+              {' · '}
+              <span style={{ color: COLORS.textMuted, fontWeight: 400 }}>
+                status now <strong style={{ color: COLORS.green }}>{listing?.status?.toUpperCase()}</strong>
+              </span>
+            </div>
+          )}
           <button onClick={() => router.push('/admin#listings')} style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted }}>
-            Cancel
+            Back to Listings
           </button>
           <button onClick={() => save(true)} disabled={saving} style={{ ...baseButton, background: COLORS.surface, color: COLORS.text, border: `1px solid ${COLORS.border}` }}>
             Save (keep status)
@@ -309,8 +331,22 @@ const styles = {
     width: 22, height: 22, fontSize: 12, cursor: 'pointer', pointerEvents: 'auto',
   },
   actionBar: {
-    display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 32,
+    display: 'flex', gap: 8, alignItems: 'center', marginTop: 32,
     paddingTop: 16, borderTop: `1px solid ${COLORS.border}`, position: 'sticky', bottom: 0,
     background: COLORS.bg,
+  },
+  // Inline confirmation pill — sits at the left of the action bar so the
+  // admin sees "✓ Saved …" without taking eyes off the form. Pushed away
+  // from the buttons by `marginRight: auto`, which absorbs all available
+  // horizontal space.
+  savedToast: {
+    background: '#22C55E22',
+    border: '1px solid #22C55E55',
+    color: '#86EFAC',
+    padding: '8px 14px',
+    borderRadius: 999,
+    fontSize: 13,
+    fontWeight: 700,
+    marginRight: 'auto',
   },
 };
