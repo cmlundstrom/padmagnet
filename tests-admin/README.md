@@ -19,9 +19,10 @@ against a staging environment.
 
 2. Set your admin password in `.env.local` (gitignored):
    ```
-   ADMIN_TEST_EMAIL=cmlundstrom@gmail.com   # optional, defaults to this
-   ADMIN_TEST_PASSWORD=your-real-admin-password
+   ADMIN_TEST_EMAIL=cmlundstrom@gmail.com           # optional, defaults to this
+   ADMIN_TEST_PASSWORD_PLAYWRIGHT=your-real-admin-password
    ```
+   (legacy `ADMIN_TEST_PASSWORD` also accepted as a fallback)
 
 3. (Optional) Point at a non-default base URL:
    ```

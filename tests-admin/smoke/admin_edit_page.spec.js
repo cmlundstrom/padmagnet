@@ -31,8 +31,10 @@ test('Admin edit page renders banner + form sections', async ({ page, request })
   await expect(page.getByRole('heading', { name: 'Description' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Contact' })).toBeVisible();
 
-  // Action bar.
-  await expect(page.getByRole('button', { name: /Cancel/ })).toBeVisible();
+  // Action bar. The page has two "Back to Listings" buttons (top status
+  // row uses "← Back to Listings", action bar uses bare "Back to Listings");
+  // pin to the action-bar one with exact match.
+  await expect(page.getByRole('button', { name: 'Back to Listings', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Save \(keep status\)/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Save & (Approve|Re-Activate)/ })).toBeVisible();
 

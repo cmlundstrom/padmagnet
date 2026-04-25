@@ -27,20 +27,26 @@ module.exports = defineConfig({
   workers: 1, // shared admin session
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
+    // Shared defaults for ALL projects. storageState is intentionally NOT
+    // here — the setup project must run without it (it's the producer of
+    // that file), and only the test project should consume it.
     baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    storageState: 'tests-admin/.auth/admin.json',
   },
   projects: [
     {
       name: 'admin-setup',
       testMatch: /global\.setup\.js/,
+      // No storageState — this project CREATES it.
     },
     {
       name: 'admin-chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests-admin/.auth/admin.json',
+      },
       dependencies: ['admin-setup'],
     },
   ],

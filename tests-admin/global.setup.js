@@ -3,8 +3,9 @@
 // storageState. Avoids re-authing per test (slow + lockout risk).
 //
 // Required env (read from .env.local):
-//   ADMIN_TEST_EMAIL     — defaults to cmlundstrom@gmail.com if unset
-//   ADMIN_TEST_PASSWORD  — must be set; never commit
+//   ADMIN_TEST_EMAIL              — defaults to cmlundstrom@gmail.com if unset
+//   ADMIN_TEST_PASSWORD_PLAYWRIGHT — must be set; never commit
+//                                   (legacy ADMIN_TEST_PASSWORD also accepted)
 //
 // Output:
 //   tests-admin/.auth/admin.json   — Playwright storageState (cookies)
@@ -17,12 +18,13 @@ const AUTH_FILE = path.join(__dirname, '.auth', 'admin.json');
 
 setup('authenticate as admin', async ({ page }) => {
   const email = process.env.ADMIN_TEST_EMAIL || 'cmlundstrom@gmail.com';
-  const password = process.env.ADMIN_TEST_PASSWORD;
+  const password = process.env.ADMIN_TEST_PASSWORD_PLAYWRIGHT || process.env.ADMIN_TEST_PASSWORD;
 
   if (!password) {
     throw new Error(
-      'ADMIN_TEST_PASSWORD env var is required. Add it to .env.local (gitignored) ' +
-        'or set in shell before running: export ADMIN_TEST_PASSWORD=…',
+      'ADMIN_TEST_PASSWORD_PLAYWRIGHT env var is required. Add it to .env.local ' +
+        '(gitignored) or set in shell before running: ' +
+        'export ADMIN_TEST_PASSWORD_PLAYWRIGHT=…',
     );
   }
 

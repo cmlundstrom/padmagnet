@@ -5,6 +5,17 @@
 
 const { test, expect } = require('@playwright/test');
 
+// Helper: returns true if there are zero pending_review listings on the
+// current admin Listings panel. Reads the live count via the admin
+// listings API (more reliable than scraping empty-state text, which can
+// race with React hydration).
+async function noPendingListings(request) {
+  const res = await request.get('/api/admin/listings');
+  if (!res.ok()) return false;
+  const listings = await res.json();
+  return !listings.some(l => l.status === 'pending_review');
+}
+
 test.describe('Admin review actions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin#listings');
@@ -14,16 +25,11 @@ test.describe('Admin review actions', () => {
     }
   });
 
-  test('Review Required bar shows all five actions', async ({ page }) => {
+  test('Review Required bar shows all five actions', async ({ page, request }) => {
     test.slow(); // expand-row may animate
 
-    // If there are no pending listings, skip — the test would be vacuous.
-    const noPending = await page
-      .getByText('No listings match your filters')
-      .isVisible()
-      .catch(() => false);
-    if (noPending) {
-      test.skip(true, 'No pending listings to review');
+    if (await noPendingListings(request)) {
+      test.skip(true, 'No pending listings to review (empty pending queue)');
     }
 
     // Click the first row to expand.
@@ -42,15 +48,11 @@ test.describe('Admin review actions', () => {
     await expect(page.getByRole('button', { name: /Approve/ })).toBeVisible();
   });
 
-  test('Send Back modal opens and cancels cleanly', async ({ page }) => {
+  test('Send Back modal opens and cancels cleanly', async ({ page, request }) => {
     test.slow();
 
-    const noPending = await page
-      .getByText('No listings match your filters')
-      .isVisible()
-      .catch(() => false);
-    if (noPending) {
-      test.skip(true, 'No pending listings to review');
+    if (await noPendingListings(request)) {
+      test.skip(true, 'No pending listings to review (empty pending queue)');
     }
 
     const firstRow = page.locator('table tbody tr').first();

@@ -1,0 +1,16 @@
+[dotenv@17.3.1] injecting env (29) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+Running 7 tests using 1 worker
+
+[dotenv@17.3.1] injecting env (0) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+  ok 1 [admin-setup] › tests-admin\global.setup.js:19:1 › authenticate as admin (1.9s)
+[dotenv@17.3.1] injecting env (0) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+  ok 2 [admin-chromium] › tests-admin\smoke\admin_edit_page.spec.js:7:1 › Admin edit page renders banner + form sections (3.5s)
+  ok 3 [admin-chromium] › tests-admin\smoke\admin_listings_panel.spec.js:18:3 › Admin Listings panel › renders stats cards (1.0s)
+  ok 4 [admin-chromium] › tests-admin\smoke\admin_listings_panel.spec.js:26:3 › Admin Listings panel › defaults to Pending Review filter (686ms)
+  ok 5 [admin-chromium] › tests-admin\smoke\admin_listings_panel.spec.js:33:3 › Admin Listings panel › search field accepts input (1.1s)
+  -  6 [admin-chromium] › tests-admin\smoke\admin_review_actions.spec.js:28:3 › Admin review actions › Review Required bar shows all five actions
+  -  7 [admin-chromium] › tests-admin\smoke\admin_review_actions.spec.js:51:3 › Admin review actions › Send Back modal opens and cancels cleanly
+
+  2 skipped
+  5 passed (16.7s)

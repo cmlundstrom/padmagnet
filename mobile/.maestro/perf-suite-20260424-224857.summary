@@ -1,0 +1,13 @@
+====================
+SUMMARY: 0/6 flows passed
+
+FAILING:
+  - listings_perf_and_integrity (rc=1, 64s)
+  - nearby_rentals_card (rc=1, 49s)
+  - listing_studio_integrity (rc=1, 50s)
+  - preview_fast_open (rc=1, 49s)
+  - edit_listing_open_time (rc=1, 63s)
+  - photo_reorder_arrows (rc=1, 2s)
+
+Full log: perf-suite-20260424-224857.log
+====================
