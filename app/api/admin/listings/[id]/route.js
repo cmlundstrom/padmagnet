@@ -65,6 +65,7 @@ export async function PUT(request, { params }) {
     const keepStatus = url.searchParams.get('keep_status') === '1';
     const body = await request.json();
     const editNote = (body.edit_note || '').trim();
+    const notifyOwner = !!body.notify_owner;
     const adminId = auth?.user?.id || null;
 
     const supabase = createServiceClient();
@@ -158,9 +159,12 @@ export async function PUT(request, { params }) {
       await writeAuditLogBatch(auditEntries);
     }
 
-    // Email owner when admin auto-approved a pending listing. Skip when
-    // keepStatus (admin just polished an active listing) to avoid noise.
-    if (!keepStatus && wasPending && saved.owner_user_id) {
+    // Email owner when the admin explicitly asked for it (notify_owner
+    // checkbox in the edit form). Default for pending_review edits is
+    // checked; default for already-active edits is unchecked, so admin
+    // can polish quietly. keepStatus saves are always silent because
+    // there's nothing material for the owner to know about.
+    if (!keepStatus && notifyOwner && saved.owner_user_id) {
       const { data: ownerProfile } = await supabase
         .from('profiles')
         .select('email, display_name')

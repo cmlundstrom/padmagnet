@@ -27,6 +27,12 @@ export default function AdminEditListing({ params }) {
   // successful save; falsy = no toast. Auto-clears after 4s via a timer
   // wired in the save() handler.
   const [savedAt, setSavedAt] = useState(null);
+  // Whether to fire the listing_admin_edited email to the owner on save.
+  // Defaults: true when the listing is pending_review (owner needs to know
+  // their submission was approved), false otherwise (admin polishing a
+  // live listing is silent by default — admin opts in if they want a
+  // heads-up email sent). Always editable.
+  const [notifyOwner, setNotifyOwner] = useState(false);
 
   const fetchListing = useCallback(async () => {
     setLoading(true);
@@ -35,6 +41,9 @@ export default function AdminEditListing({ params }) {
       if (!res.ok) throw new Error(await res.text() || 'Failed to load');
       const data = await res.json();
       setListing(data);
+      // Pending listings default to notify-on-save (owner deserves the
+      // approval ping). Anything else defaults to silent.
+      setNotifyOwner(data.status === 'pending_review');
       setForm({
         street_number: data.street_number || '',
         street_name: data.street_name || '',
@@ -79,7 +88,7 @@ export default function AdminEditListing({ params }) {
       const res = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, edit_note: editNote }),
+        body: JSON.stringify({ ...form, edit_note: editNote, notify_owner: notifyOwner }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -209,13 +218,32 @@ export default function AdminEditListing({ params }) {
           ))}
         </div>
 
-        <h2 style={styles.h2}>Edit Note (optional, for owner email)</h2>
+        <h2 style={styles.h2}>Owner Notification</h2>
+        <label style={styles.notifyRow}>
+          <input
+            type="checkbox"
+            checked={notifyOwner}
+            onChange={e => setNotifyOwner(e.target.checked)}
+          />
+          <span>
+            <strong style={{ color: COLORS.text }}>Email the owner about this edit</strong>
+            <span style={styles.notifyHint}>
+              {notifyOwner
+                ? "On save, the owner gets the listing_admin_edited email with the note below."
+                : "Silent edit — no email fires. Use for typo polish on a live listing."}
+            </span>
+          </span>
+        </label>
+
+        <h2 style={styles.h2}>Edit Note (optional)</h2>
         <textarea
           value={editNote}
           onChange={e => setEditNote(e.target.value.slice(0, 240))}
           rows={2}
           maxLength={240}
-          placeholder="What did you adjust? Goes into the owner's notification email."
+          placeholder={notifyOwner
+            ? "What did you adjust? Goes into the owner's notification email."
+            : "Note is captured in the audit log but won't be emailed (owner notification is off)."}
           style={{ ...styles.textarea, fontSize: 13 }}
         />
 
@@ -314,6 +342,15 @@ const styles = {
     resize: 'vertical',
   },
   charCount: { fontSize: 11, color: COLORS.textDim, textAlign: 'right', marginTop: 4 },
+  notifyRow: {
+    display: 'flex', alignItems: 'flex-start', gap: 10,
+    background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+    borderRadius: 8, padding: '12px 14px', cursor: 'pointer',
+    fontSize: 13, color: COLORS.textMuted, lineHeight: 1.5,
+  },
+  notifyHint: {
+    display: 'block', fontSize: 12, color: COLORS.textDim, marginTop: 2,
+  },
   help: { fontSize: 12, color: COLORS.textDim, marginBottom: 8 },
   photoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 },
   photoTile: { position: 'relative', borderRadius: 6, overflow: 'hidden', border: `1px solid ${COLORS.border}` },
