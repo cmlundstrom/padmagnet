@@ -80,6 +80,11 @@ export default function useListingStudio(draftIdParam) {
   const [aiLoading, setAiLoading] = useState(false);
   const [coords, setCoords] = useState(null); // { latitude, longitude } from address
   const [hasOnboarded, setHasOnboarded] = useState(true); // assume yes until checked
+  // Admin Send-Back feedback shown as a yellow revision banner. Cleared
+  // by the user via dismissReview() or naturally after a successful
+  // resubmit (status leaves 'draft').
+  const [review, setReview] = useState(null); // { reason, note, reviewedAt } | null
+  const dismissReview = useCallback(() => setReview(null), []);
 
   const saveTimer = useRef(null);
   const mounted = useRef(true);
@@ -226,6 +231,17 @@ export default function useListingStudio(draftIdParam) {
         // Capture coords from draft for nearby rentals search
         if (data.latitude && data.longitude) {
           setCoords({ latitude: data.latitude, longitude: data.longitude });
+        }
+        // Surface admin Send-Back review feedback so the Listing Studio
+        // can render a revision banner above the cards. Server clears
+        // these on next admin approve, but locally we hide the banner
+        // immediately on dismiss for snappier UX.
+        if (data.status === 'draft' && (data.admin_review_note || data.admin_review_reason)) {
+          setReview({
+            reason: data.admin_review_reason || null,
+            note: data.admin_review_note || null,
+            reviewedAt: data.admin_reviewed_at || null,
+          });
         }
       } catch {}
       if (!cancelled) setLoading(false);
@@ -557,6 +573,8 @@ export default function useListingStudio(draftIdParam) {
     setCoords,
     hasOnboarded,
     markOnboarded,
+    review,
+    dismissReview,
     formatPhone,
   };
 }

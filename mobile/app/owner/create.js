@@ -33,6 +33,18 @@ import { LAYOUT, CHIP_STYLES } from '../../constants/layout';
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://padmagnet.com';
 const PROPERTY_TYPES = ['Single Family', 'Apartment', 'Condo', 'Townhouse', 'Duplex', 'Villa', 'Mobile Home'];
 
+// Mirrors the admin Send-Back canned reasons (server side: SEND_BACK_REASONS
+// in app/api/admin/listings/route.js). Keep the keys in sync if either is
+// edited.
+const REVIEW_REASON_LABELS = {
+  photos_quality:    'Photos blurry or low quality',
+  address_invalid:   'Address incomplete or invalid',
+  description_thin:  'Description too short or missing key info',
+  price_unrealistic: 'Price seems unrealistic',
+  guidelines:        'Listing violates content guidelines',
+  other:             'Other (see note below)',
+};
+
 export default function MagicListingStudio() {
   useAndroidBack();
   const router = useRouter();
@@ -50,7 +62,8 @@ export default function MagicListingStudio() {
   const { form, update, updatePhone, updateMany, completionMap, completionPercent,
     contactPref, setContactPref, aiLoading, loading, submitting,
     createDraft, generateDescription, generateFromPhotos,
-    suggestAmenities, publish, buildPayload, draftId, coords, setCoords } = studio;
+    suggestAmenities, publish, buildPayload, draftId, coords, setCoords,
+    review, dismissReview } = studio;
 
   // ── Local UI state ──
   const [uploading, setUploading] = useState(false);
@@ -226,6 +239,27 @@ export default function MagicListingStudio() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Admin Send-Back banner — visible only when this draft was
+              returned by an admin with a revision request. ── */}
+          {review && (
+            <View style={styles.reviewBanner}>
+              <View style={styles.reviewBannerHeader}>
+                <FontAwesome name="exclamation-triangle" size={16} color={COLORS.warning} />
+                <Text style={styles.reviewBannerTitle}>Admin requested revisions</Text>
+                <Pressable onPress={dismissReview} hitSlop={10}>
+                  <Text style={styles.reviewBannerDismiss}>Dismiss</Text>
+                </Pressable>
+              </View>
+              {review.reason && (
+                <Text style={styles.reviewBannerReason}>{REVIEW_REASON_LABELS[review.reason] || review.reason}</Text>
+              )}
+              {review.note && (
+                <Text style={styles.reviewBannerNote}>{review.note}</Text>
+              )}
+              <Text style={styles.reviewBannerFooter}>Edit your listing below and tap Publish to resubmit.</Text>
+            </View>
+          )}
+
           {/* ── 1. Address Card ── */}
           <SmartCard
             title="Property Address"
@@ -620,6 +654,56 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: LAYOUT.padding.sm,
     paddingBottom: 130,
+  },
+  // ── Admin Send-Back revision banner ──
+  reviewBanner: {
+    backgroundColor: COLORS.warning + '15',
+    borderColor: COLORS.warning + '55',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.warning,
+    borderWidth: 1,
+    borderRadius: LAYOUT.radius.md,
+    padding: LAYOUT.padding.md,
+    marginHorizontal: LAYOUT.padding.md,
+    marginTop: LAYOUT.padding.sm,
+    marginBottom: LAYOUT.padding.md,
+  },
+  reviewBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  reviewBannerTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.warning,
+    flex: 1,
+  },
+  reviewBannerDismiss: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  reviewBannerReason: {
+    fontFamily: FONTS.body.semiBold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  reviewBannerNote: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  reviewBannerFooter: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
   },
   // ── Shared field styles ──
   row: {

@@ -13,8 +13,10 @@ export default function ListingsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [reviewAction, setReviewAction] = useState(null); // { id, action: 'approve'|'reject' }
+  const [reviewAction, setReviewAction] = useState(null); // { id, action: 'approve'|'reject'|'send_back' }
   const [rejectionReason, setRejectionReason] = useState("");
+  const [sendBackReason, setSendBackReason] = useState("photos_quality");
+  const [sendBackNote, setSendBackNote] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
 
   const fetchListings = useCallback(async () => {
@@ -34,6 +36,18 @@ export default function ListingsPanel() {
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
   const TYPE_ABBREV = { "Single Family Residence": "SFR", "Condominium": "Condo", "Townhouse": "TH", "Duplex": "Duplex", "Apartment": "Apt", "Mobile Home": "MH" };
+
+  // Send-Back canned reasons. Keys must match SEND_BACK_REASONS in the
+  // PUT /api/admin/listings handler — that's the source of truth for the
+  // human-readable label that goes into the email template.
+  const SEND_BACK_REASONS = [
+    { key: "photos_quality",    label: "Photos blurry or low quality" },
+    { key: "address_invalid",   label: "Address incomplete or invalid" },
+    { key: "description_thin",  label: "Description too short or missing key info" },
+    { key: "price_unrealistic", label: "Price seems unrealistic" },
+    { key: "guidelines",        label: "Listing violates content guidelines" },
+    { key: "other",             label: "Other (note required)" },
+  ];
 
   const STATUS_FILTERS = ["pending_review", "owner_all", "all", "active", "draft", "expired", "leased", "archived", "suppressed"];
   const pendingReviewCount = listings.filter(l => l.status === "pending_review").length;
@@ -148,13 +162,23 @@ export default function ListingsPanel() {
     handleSave(ids, { is_active: true, status: "active" });
   }, [handleSave]);
 
-  const handleReviewAction = useCallback(async (id, action, reason) => {
+  // Body shape mirrors the PUT /api/admin/listings handler:
+  //   approve    → { id, action: 'approve' }
+  //   reject     → { id, action: 'reject',    rejection_reason }
+  //   send_back  → { id, action: 'send_back', review_reason, review_note }
+  const handleReviewAction = useCallback(async (id, action, payload = {}) => {
     setReviewLoading(true);
     try {
+      const body = { id, action };
+      if (action === "reject") body.rejection_reason = payload.rejection_reason || "";
+      if (action === "send_back") {
+        body.review_reason = payload.review_reason || "other";
+        body.review_note = payload.review_note || "";
+      }
       const res = await fetch("/api/admin/listings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action, rejection_reason: reason }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -162,12 +186,12 @@ export default function ListingsPanel() {
       } else {
         setReviewAction(null);
         setRejectionReason("");
-        // Switch to the appropriate filter so the listing stays visible
-        if (action === 'approve') {
-          setStatusFilter('active');
-        } else if (action === 'reject') {
-          setStatusFilter('all');
-        }
+        setSendBackReason("photos_quality");
+        setSendBackNote("");
+        // Keep the listing visible so admin sees confirmation of their action.
+        if (action === "approve") setStatusFilter("active");
+        else if (action === "reject") setStatusFilter("all");
+        else if (action === "send_back") setStatusFilter("draft");
         fetchListings();
       }
     } catch (err) {
@@ -297,19 +321,47 @@ export default function ListingsPanel() {
 
     return (
       <div>
-        {/* Quick approve/reject at TOP for pending reviews */}
+        {/* Quick approve / send-back / reject for pending reviews */}
         {isPending && (
           <div style={{
-            display: "flex", gap: 10, alignItems: "center", padding: "12px 16px",
+            display: "flex", gap: 8, alignItems: "center", padding: "12px 16px",
             background: "#7C3AED15", border: "1px solid #7C3AED33", borderRadius: 8,
-            marginBottom: 16,
+            marginBottom: 16, flexWrap: "wrap",
           }}>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: "1 1 220px", minWidth: 0 }}>
               <div style={{ fontSize: "13px", fontWeight: 700, color: "#A78BFA" }}>Review Required</div>
-              <div style={{ fontSize: "12px", color: COLORS.textMuted }}>
+              <div style={{ fontSize: "12px", color: COLORS.textMuted, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {row.listing_agent_name || "—"} · {row.listing_agent_email || "(uses account email)"} · {photos.length} photo{photos.length !== 1 ? "s" : ""}
               </div>
             </div>
+            <button
+              onClick={() => window.open(`/listing/${row.id}?admin_preview=1`, "_blank")}
+              style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, fontSize: "12px", padding: "8px 12px" }}
+              title="Open the full in-app listing render in a new tab"
+            >
+              👁 Full Render
+            </button>
+            <button
+              onClick={() => window.open(`/admin/listings/${row.id}/edit`, "_blank")}
+              style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, fontSize: "12px", padding: "8px 12px" }}
+              title="Edit fields as admin and auto-approve on save"
+            >
+              ✏️ Edit
+            </button>
+            <button
+              onClick={() => setReviewAction({ id: row.id, action: "send_back" })}
+              style={{ ...baseButton, background: "#F59E0B22", color: "#F59E0B", border: "1px solid #F59E0B44", fontSize: "13px", padding: "8px 14px" }}
+              title="Send back to the owner with a revision note"
+            >
+              ↩ Send Back
+            </button>
+            <button
+              onClick={() => setReviewAction({ id: row.id, action: "reject" })}
+              style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "13px", padding: "8px 14px" }}
+              title="Hard-reject (terminal — owner cannot revise). Use Send Back for fixable issues."
+            >
+              ✕ Reject
+            </button>
             <button
               onClick={() => handleReviewAction(row.id, "approve")}
               disabled={reviewLoading}
@@ -317,12 +369,29 @@ export default function ListingsPanel() {
             >
               ✓ Approve
             </button>
-            <button
-              onClick={() => setReviewAction({ id: row.id, action: "reject" })}
-              style={{ ...baseButton, background: COLORS.redDim, color: COLORS.red, fontSize: "13px", padding: "8px 16px" }}
-            >
-              ✕ Reject
-            </button>
+          </div>
+        )}
+
+        {/* Revision banner for drafts that came back from Send Back */}
+        {row.status === "draft" && row.admin_review_note && (
+          <div style={{
+            display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 14px",
+            background: "#F59E0B11", border: "1px solid #F59E0B33", borderRadius: 8,
+            marginBottom: 16,
+          }}>
+            <span style={{ fontSize: 16, marginTop: 1 }}>↩</span>
+            <div style={{ flex: 1, fontSize: "12px", color: COLORS.textMuted }}>
+              <strong style={{ color: "#F59E0B", display: "block", marginBottom: 2 }}>
+                Sent back to owner
+                {row.admin_reviewed_at ? ` · ${formatDate(row.admin_reviewed_at)}` : ""}
+              </strong>
+              {row.admin_review_reason && (
+                <div><em>Reason:</em> {SEND_BACK_REASONS.find(r => r.key === row.admin_review_reason)?.label || row.admin_review_reason}</div>
+              )}
+              {row.admin_review_note && (
+                <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{row.admin_review_note}</div>
+              )}
+            </div>
           </div>
         )}
 
@@ -522,11 +591,88 @@ export default function ListingsPanel() {
                 Cancel
               </button>
               <button
-                onClick={() => handleReviewAction(reviewAction.id, "reject", rejectionReason)}
+                onClick={() => handleReviewAction(reviewAction.id, "reject", { rejection_reason: rejectionReason })}
                 disabled={reviewLoading}
                 style={{ ...baseButton, background: COLORS.red, color: "#fff", fontWeight: 700, opacity: reviewLoading ? 0.6 : 1 }}
               >
                 {reviewLoading ? "Rejecting..." : "Reject Listing"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Back modal — revisable. Sets status=draft and emails owner. */}
+      {reviewAction?.action === "send_back" && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999,
+        }} onClick={() => { setReviewAction(null); setSendBackNote(""); setSendBackReason("photos_quality"); }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: COLORS.surface, borderRadius: 12, padding: 24,
+              border: `1px solid ${COLORS.border}`, width: 480, maxWidth: "90vw",
+            }}
+          >
+            <h3 style={{ margin: "0 0 6px", color: COLORS.text, fontSize: 16, fontWeight: 700 }}>
+              Send Back to Owner
+            </h3>
+            <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "0 0 16px" }}>
+              The owner will get an email with the reason + your note. Listing reverts to draft so they can fix and resubmit.
+            </p>
+
+            <label style={{ display: "block", fontSize: 12, color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+              Reason
+            </label>
+            <select
+              value={sendBackReason}
+              onChange={e => setSendBackReason(e.target.value)}
+              style={{
+                width: "100%", background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+                borderRadius: 6, padding: "8px 12px", color: COLORS.text, fontSize: 13,
+                fontFamily: "'DM Sans', sans-serif", outline: "none", marginBottom: 14,
+                boxSizing: "border-box",
+              }}
+            >
+              {SEND_BACK_REASONS.map(r => (
+                <option key={r.key} value={r.key}>{r.label}</option>
+              ))}
+            </select>
+
+            <label style={{ display: "block", fontSize: 12, color: COLORS.textDim, fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+              Note {sendBackReason === "other" && <span style={{ color: COLORS.red }}>*</span>}
+              <span style={{ float: "right", fontWeight: 400, opacity: 0.7 }}>{sendBackNote.length}/500</span>
+            </label>
+            <textarea
+              value={sendBackNote}
+              onChange={e => setSendBackNote(e.target.value.slice(0, 500))}
+              placeholder={sendBackReason === "other" ? "Required — describe what needs to change" : "Optional — add any specifics for the owner"}
+              rows={4}
+              style={{
+                width: "100%", background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+                borderRadius: 6, padding: "8px 12px", color: COLORS.text, fontSize: 13,
+                fontFamily: "'DM Sans', sans-serif", outline: "none", resize: "vertical",
+                boxSizing: "border-box",
+              }}
+            />
+
+            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setReviewAction(null); setSendBackNote(""); setSendBackReason("photos_quality"); }}
+                style={{ ...baseButton, background: COLORS.border, color: COLORS.textMuted }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReviewAction(reviewAction.id, "send_back", { review_reason: sendBackReason, review_note: sendBackNote })}
+                disabled={reviewLoading || (sendBackReason === "other" && !sendBackNote.trim())}
+                style={{
+                  ...baseButton, background: "#F59E0B", color: "#000", fontWeight: 700,
+                  opacity: (reviewLoading || (sendBackReason === "other" && !sendBackNote.trim())) ? 0.5 : 1,
+                }}
+              >
+                {reviewLoading ? "Sending…" : "Send Back to Owner"}
               </button>
             </div>
           </div>

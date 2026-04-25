@@ -35,3 +35,8 @@ supabase/.temp/
 
 # local EAS build artifacts (downloaded APKs)
 mobile/builds/
+
+# Playwright runtime artifacts
+tests-admin/.auth/
+playwright-report/
+test-results/

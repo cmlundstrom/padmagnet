@@ -43,8 +43,10 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function ListingPage({ params }) {
+export default async function ListingPage({ params, searchParams }) {
   const { id } = await params;
+  const search = await searchParams;
+  const adminPreview = search?.admin_preview === '1';
   const supabase = createServiceClient();
   const { data: listing, error } = await supabase
     .from('listings')
@@ -68,6 +70,15 @@ export default async function ListingPage({ params }) {
 
   return (
     <div style={styles.page}>
+      {adminPreview && (
+        <div style={{
+          background: '#7C3AED', color: '#fff', padding: '8px 16px',
+          textAlign: 'center', fontSize: 13, fontWeight: 700,
+          letterSpacing: '0.05em', textTransform: 'uppercase',
+        }}>
+          🛠 Admin Preview · status: {listing.status?.toUpperCase()} · is_active: {String(listing.is_active)}
+        </div>
+      )}
       <div style={styles.container}>
         {/* Logo */}
         <div style={styles.logoRow}>
