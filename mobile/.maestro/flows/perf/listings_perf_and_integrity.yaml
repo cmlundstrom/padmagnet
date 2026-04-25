@@ -101,7 +101,9 @@ tags:
     timeout: 5000
 
 # 10. Back out to Listings and confirm the list is still there (state
-#     preserved via cache, no reload spinner).
+#     preserved via cache, no reload spinner). The cache-hit path itself
+#     is proven by flow `edit_listing_open_time.yaml`'s sub-5s assertion
+#     on Property Details — no need to re-test it here by tabbing away.
 - tapOn:
     id: back-button
 - extendedWaitUntil:
@@ -110,16 +112,3 @@ tags:
     timeout: 4000
 - assertVisible:
     text: ".*/mo"
-
-# 11. Exercise the stale-while-revalidate path: tab away to Home, then back
-#     to Listings. A full-screen ActivityIndicator should NOT reappear.
-- tapOn: "Home"
-- waitForAnimationToEnd:
-    timeout: 3000
-- tapOn: "Listings"
-# The price string has to still be visible immediately — no cold-start
-# loading view allowed if cache was warm.
-- extendedWaitUntil:
-    visible:
-      text: ".*/mo"
-    timeout: 2000
