@@ -355,6 +355,7 @@ export default function WelcomeScreen() {
         {/* 8. Sign in link */}
         <Animated.View style={trustStyle}>
           <Pressable
+            testID="welcome-signin-link"
             onPress={() => router.replace('/(auth)/email')}
             style={styles.signInRow}
             disabled={loadingRenter || loadingOwner}

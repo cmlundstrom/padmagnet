@@ -1,4 +1,5 @@
-# Taps "List My Property" from the role gate. Precondition: role gate visible.
+# Taps the owner secondary CTA on the welcome splash.
+# Precondition: welcome splash visible.
 appId: com.padmagnet.app
 ---
-- tapOn: "List My Property"
+- tapOn: "List Your Property"

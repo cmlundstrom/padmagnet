@@ -1,8 +1,10 @@
-# Cold-starts PadMagnet with cleared state and waits for the role gate.
+# Cold-starts PadMagnet with cleared state and waits for the welcome splash.
 # Every smoke flow should start with this subflow for a deterministic baseline.
+# Updated 2026-04-25 to assert the new welcome splash headline + dual CTAs.
 appId: com.padmagnet.app
 ---
 - launchApp:
     clearState: true
-- assertVisible: "Find a Rental"
-- assertVisible: "List My Property"
+- assertVisible: "Stop Searching."
+- assertVisible: "Start Swiping Rentals"
+- assertVisible: "List Your Property"

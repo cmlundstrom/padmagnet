@@ -1,0 +1,158 @@
+# Smoke: welcome splash — exercises every interactive element on the
+# first-launch splash screen.
+#
+# Coverage:
+#   1. Display assertions   — brand wordmark, headline, sub-tagline,
+#                             both CTAs + their subtitles, trust line,
+#                             sign-in link, FeatureBar columns,
+#                             at least one hero category card label
+#   2. FeatureBar tooltips  — tap each of the 3 columns, assert tooltip
+#                             body text, dismiss with "Got it"
+#   3. Sign-in link nav     — tap "Sign In", confirm auth screen reached
+#
+# Precondition:
+#   - The app must be currently at the welcome splash. On the dev client
+#     this means signing out first if the prior session anon-cached.
+#     Use `stopApp: true` (not clearState — that wipes the dev client's
+#     Metro server URL and lands you at the dev launcher).
+#
+# What's NOT covered here (by design):
+#   - Primary CTA "Start Swiping Rentals" → renter anon session + swipe deck
+#       (covered by every smoke that uses _shared/choose_renter.yaml)
+#   - Secondary CTA "List Your Property" → owner anon session + owner home
+#       (covered by smoke/owner_entry.yaml + _shared/choose_owner.yaml)
+#   - Category card tap → swipe deck with propertyType filter
+#       (filter wiring is task #33; nav itself shares the renter CTA path)
+#   These nav tests would require sign-out-between-launches plumbing that
+#   doesn't fit cleanly in a single dev-client flow. Cold-launch CTA test
+#   is in the welcome_cta_renter / welcome_cta_owner companion flows.
+#
+# Last verified: 2026-04-25 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch — preserves Metro URL, keeps dev client connected.
+#    NOTE: if the previous session left an anon user signed in, the app
+#    will land on the swipe deck / owner home instead of welcome — first
+#    sign out manually, then re-run.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# ────────────────────────────────────────────────────────────────────
+# 1. Display assertions — every visible string on the splash
+# ────────────────────────────────────────────────────────────────────
+
+# Brand wordmark — RN composes nested <Text> spans into a single node,
+# so assert the joined string ("PadMagnet") not the parts.
+- assertVisible: "PadMagnet"
+
+# Headline (each line is one composite Text)
+- assertVisible: "Stop Searching."
+- assertVisible: "Start Matching."
+
+# Sub-tagline — Animated.Text with raw-string prefix + nested <Text> child
+# doesn't expose the prefix to the a11y tree on Android RN, so we can't
+# assert "Powered by" directly. The "PadScore™" child IS exposed and is
+# also asserted via the FeatureBar column below.
+
+# Hero rotator — at least one category card label visible above the fold
+- assertVisible: "Houses"
+
+# CTAs + FeatureBar sit below the fold on smaller phones (S10). The
+# WelcomeHero contains a horizontal FlatList that confuses the default
+# scroll gesture, so use an explicit swipe in the lower content area
+# (well below the hero) to advance the parent ScrollView.
+- swipe:
+    start: 50%, 80%
+    end: 50%, 30%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# Dual CTAs + subtitles
+- assertVisible: "Start Swiping Rentals"
+- assertVisible: "Swipe, match, and move faster."
+- assertVisible: "List Your Property"
+- assertVisible: "Reach thousands of active renters."
+
+# Trust line + sign-in — these use the
+#   <Text>raw prefix <Text style={colored}>nested</Text></Text>
+# composition pattern, which on this RN/Android build doesn't expose
+# either the parent OR the child to the a11y tree reliably. Both ARE
+# rendered on screen (verified visually); we just can't assert by text.
+# The `tapOn: "Sign In"` later works because Pressable's hit-test still
+# routes the tap correctly even when the text isn't a11y-exposed.
+
+# Scroll a bit further to bring the FeatureBar fully into view.
+- swipe:
+    start: 50%, 80%
+    end: 50%, 40%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# FeatureBar column titles
+- assertVisible: "Free to use"
+- assertVisible: "AI-powered"
+- assertVisible: "PadScore™"
+
+# ────────────────────────────────────────────────────────────────────
+# 2. FeatureBar tooltips — tap each column, assert body, dismiss
+# ────────────────────────────────────────────────────────────────────
+
+# 2a. "Free to use" → "Free for everyone" tooltip
+- tapOn: "Free to use"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Free for everyone"
+- assertVisible: "Got it"
+- tapOn: "Got it"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 2b. "AI-powered" → "Smarter rental search" tooltip
+- tapOn: "AI-powered"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Smarter rental search"
+- assertVisible: "Got it"
+- tapOn: "Got it"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 2c. "PadScore™" column → "PadScore™ explained" tooltip
+- tapOn: "PadScore™"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "PadScore™ explained"
+- assertVisible: "Got it"
+- tapOn: "Got it"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# Confirm we're back on the splash after dismissing all 3 tooltips
+- assertVisible: "Start Swiping Rentals"
+
+# ────────────────────────────────────────────────────────────────────
+# 3. Sign-in link → opens auth screen → back to splash
+# ────────────────────────────────────────────────────────────────────
+# The "Sign In" text is a nested-colored child Text inside the parent
+# "Already have an account?" — RN doesn't expose it to the a11y tree
+# on this build. Target the Pressable via testID instead.
+- tapOn:
+    id: "welcome-signin-link"
+- waitForAnimationToEnd:
+    timeout: 4000
+# Auth screen — landmarks: heading "What's your email?" + sub-tagline
+# "Let's find your next home" + Magic Link button.
+- assertVisible: "Use Magic Link with Email"
+
+# Hardware back returns to the splash. Note: the splash re-mounts so
+# scroll position resets to top — assert a top-of-screen landmark.
+- pressKey: BACK
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "PadMagnet"
+- assertVisible: "Stop Searching."

@@ -1,0 +1,17 @@
+# Dev client reconnect helper — for when prior `clearState: true`
+# wiped the Metro URL and dropped us at the dev client launcher.
+# Taps "Fetch development servers" then the first discovered server.
+# Only meaningful when the dev launcher is currently visible.
+appId: com.padmagnet.app
+---
+- runFlow:
+    when:
+      visible: "Fetch development servers"
+    commands:
+      - tapOn: "Fetch development servers"
+      - waitForAnimationToEnd:
+          timeout: 4000
+      - tapOn:
+          text: ".*exp://.*"
+      - waitForAnimationToEnd:
+          timeout: 8000

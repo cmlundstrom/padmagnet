@@ -1,4 +1,5 @@
-# Taps "Find a Rental" from the role gate. Precondition: role gate visible.
+# Taps the renter primary CTA on the welcome splash.
+# Precondition: welcome splash visible.
 appId: com.padmagnet.app
 ---
-- tapOn: "Find a Rental"
+- tapOn: "Start Swiping Rentals"
