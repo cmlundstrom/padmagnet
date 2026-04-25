@@ -13,14 +13,15 @@
 // Sync: the same activeIndex drives the hero photo, the highlighted category
 // card, and the pagination dots — so the carousel reads as one cohesive scene.
 //
-// Tap a category card → calls onCategoryPick(propertyType). Parent owns the
-// auth/anon-session creation + route to swipe deck.
+// Category cards are intentionally non-interactive — they're a visual-only
+// reinforcement of "we have variety". Tapping a card from a role-agnostic
+// splash would foul the owner entry path (yanking them into renter mode),
+// so the only nav from this screen lives on the dual CTAs the parent owns.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   FlatList,
-  Pressable,
   Text,
   Dimensions,
   StyleSheet,
@@ -78,7 +79,7 @@ const SCENES = [
 
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
-export default function WelcomeHero({ onCategoryPick }) {
+export default function WelcomeHero() {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const autoRotateTimer = useRef(null);
@@ -191,15 +192,14 @@ export default function WelcomeHero({ onCategoryPick }) {
       />
 
       {/* Category cards — float at the hero's bottom, half-overlay onto
-          the photo, half onto the navy below (achieved via parent layout
-          padding compensation). */}
-      <View style={styles.categoryRow} pointerEvents="box-none">
+          the photo, half onto the navy below. Visual-only (no tap nav)
+          to keep the splash role-agnostic; the dual CTAs handle routing. */}
+      <View style={styles.categoryRow} pointerEvents="none">
         {SCENES.map((scene, i) => (
           <CategoryCard
             key={scene.key}
             scene={scene}
             isActive={i === activeIndex}
-            onPress={() => onCategoryPick(scene.propertyType)}
           />
         ))}
       </View>
@@ -215,17 +215,10 @@ export default function WelcomeHero({ onCategoryPick }) {
   );
 }
 
-// ── CategoryCard — small thumbnail + icon + label, pill shape ─────────
-function CategoryCard({ scene, isActive, onPress }) {
+// ── CategoryCard — visual-only thumbnail + icon + label, pill shape ────
+function CategoryCard({ scene, isActive }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        isActive && styles.cardActive,
-        pressed && { opacity: 0.85 },
-      ]}
-    >
+    <View style={[styles.card, isActive && styles.cardActive]}>
       <Image
         source={scene.image}
         style={styles.cardImage}
@@ -241,7 +234,7 @@ function CategoryCard({ scene, isActive, onPress }) {
         <Ionicons name={scene.icon} size={13} color={COLORS.white} />
         <Text style={styles.cardLabel} numberOfLines={1}>{scene.label}</Text>
       </View>
-    </Pressable>
+    </View>
   );
 }
 

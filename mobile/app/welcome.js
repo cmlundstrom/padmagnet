@@ -1,7 +1,7 @@
 // Welcome screen — first-launch surface for new users + sign-out fallback.
 //
 // Layout (top → bottom, all inside a ScrollView for smaller phones):
-//   1. WelcomeHero      — rotating photo + floating category cards + dots
+//   1. WelcomeHero      — rotating photo + visual-only category cards + dots
 //   2. Brand block       — logo + "PadMagnet" wordmark side-by-side
 //   3. Headline          — "Stop Searching. / Start Matching." (huge)
 //   4. Sub-tagline       — "Powered by PadScore™"
@@ -11,10 +11,10 @@
 //   8. Sign-in link      — "Already have an account? Sign In"
 //   9. FeatureBar        — 3 columns, tappable tooltips
 //
-// Auth flows (handleRenterRole, handleOwnerRole, handleCategoryPick) all
-// follow the existing anon-session-then-redirect pattern. handleCategoryPick
-// adds a propertyType query param to the swipe deck route — task #33 wires
-// the actual filter on the swipe.js side.
+// Auth flows (handleRenterRole, handleOwnerRole) follow the existing
+// anon-session-then-redirect pattern. The hero category cards are
+// visual-only — tapping them from a role-agnostic splash would foul the
+// owner entry path, so all routing lives on the dual CTAs below.
 //
 // Entry-animation choreography (~1.2s total) staggers Reanimated fade+slide
 // for each section — see the per-block useAnimatedStyle blocks below.
@@ -88,29 +88,6 @@ export default function WelcomeScreen() {
       router.replace('/(tenant)/swipe');
     } catch (err) {
       console.error('handleRenterRole error:', err);
-      router.replace('/(auth)/email');
-    } finally {
-      setLoadingRenter(false);
-    }
-  }, [ensureRenterSession]);
-
-  // Category card tap — same anon-session as renter, then route to swipe
-  // deck WITH a propertyType query param. Filter wiring on the swipe side
-  // is task #33; the param sits in the URL ready to consume.
-  const handleCategoryPick = useCallback(async (propertyType) => {
-    setLoadingRenter(true);
-    try {
-      const ok = await ensureRenterSession();
-      if (!ok) {
-        router.replace('/(auth)/email');
-        return;
-      }
-      router.replace({
-        pathname: '/(tenant)/swipe',
-        params: { propertyType },
-      });
-    } catch (err) {
-      console.error('handleCategoryPick error:', err);
       router.replace('/(auth)/email');
     } finally {
       setLoadingRenter(false);
@@ -259,8 +236,8 @@ export default function WelcomeScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* 1. Hero rotator + category cards + dots */}
-        <WelcomeHero onCategoryPick={handleCategoryPick} />
+        {/* 1. Hero rotator + visual-only category cards + dots */}
+        <WelcomeHero />
 
         {/* 2. Brand block — logo + wordmark side-by-side */}
         <Animated.View style={[styles.brandRow, brandStyle]}>
