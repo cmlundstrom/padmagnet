@@ -163,20 +163,41 @@ export default function TenantsPanel() {
     {
       accessorKey: "display_name",
       header: "Name",
-      cell: ({ getValue, row }) => (
-        <span style={{ fontWeight: 600 }}>
-          {getValue() || "\u2014"}
-          {row.original.is_anonymous && (
-            <span style={{
-              display: "inline-block", marginLeft: 6, padding: "1px 5px", borderRadius: 4,
-              fontSize: "9px", fontWeight: 700, letterSpacing: "0.03em",
-              background: COLORS.amber + "22", color: COLORS.amber, border: `1px solid ${COLORS.amber}44`,
-            }}>
-              ANON
-            </span>
-          )}
-        </span>
-      ),
+      cell: ({ getValue, row }) => {
+        // "Returned" = the user is archived but has signed in after the
+        // archive timestamp. Surfaced only as a badge \u2014 no auto-mutation
+        // of archived_at. Admin can choose to unarchive via the existing
+        // toggle. (Decision 2026-04-26: option ii \u2014 surface only.)
+        const r = row.original;
+        const lastSignIn = r.auth_status?.last_sign_in_at;
+        const returnedAfterArchive = !!(r.archived_at && lastSignIn && new Date(lastSignIn) > new Date(r.archived_at));
+        return (
+          <span style={{ fontWeight: 600 }}>
+            {getValue() || "\u2014"}
+            {r.is_anonymous && (
+              <span style={{
+                display: "inline-block", marginLeft: 6, padding: "1px 5px", borderRadius: 4,
+                fontSize: "9px", fontWeight: 700, letterSpacing: "0.03em",
+                background: COLORS.amber + "22", color: COLORS.amber, border: `1px solid ${COLORS.amber}44`,
+              }}>
+                ANON
+              </span>
+            )}
+            {returnedAfterArchive && (
+              <span
+                title={`Signed in on ${new Date(lastSignIn).toLocaleString()}, after archive on ${new Date(r.archived_at).toLocaleDateString()}`}
+                style={{
+                  display: "inline-block", marginLeft: 6, padding: "1px 5px", borderRadius: 4,
+                  fontSize: "9px", fontWeight: 700, letterSpacing: "0.03em",
+                  background: COLORS.green + "22", color: COLORS.green, border: `1px solid ${COLORS.green}55`,
+                }}
+              >
+                \ud83d\udfe2 RETURNED
+              </span>
+            )}
+          </span>
+        );
+      },
       meta: { editable: true },
     },
     {
@@ -453,6 +474,14 @@ export default function TenantsPanel() {
     [tenants, showArchived]
   );
   const archivedCount = tenants.filter(t => t.archived_at).length;
+  // "Returned" = archived users who have signed in AFTER their archive
+  // timestamp. Surfaced as a stat + a row badge so admins can spot users
+  // who came back without auto-unarchiving them. Admin chooses whether
+  // to unarchive via the existing bulk Unarchive control.
+  const returnedAfterArchiveCount = tenants.filter(t => {
+    const lsi = t.auth_status?.last_sign_in_at;
+    return t.archived_at && lsi && new Date(lsi) > new Date(t.archived_at);
+  }).length;
   const paidCount = tenants.filter(t => t.renter_tier && t.renter_tier !== 'free').length;
   const avgPoints = tenants.length > 0 ? Math.round(tenants.reduce((s, t) => s + (t.padpoints || 0), 0) / tenants.length) : 0;
   const activeStreaks = tenants.filter(t => (t.streak_days || 0) > 0).length;
@@ -469,6 +498,14 @@ export default function TenantsPanel() {
         <StatCard label="Active Streaks" value={activeStreaks} sub="Currently grinding" accent={COLORS.green} />
         <StatCard label="In Cooldown" value={inCooldown} sub="Rate-limited" accent={COLORS.red} />
         <StatCard label="Verified" value={verifiedCount} sub="Master tier" accent={COLORS.green} />
+        {returnedAfterArchiveCount > 0 && (
+          <StatCard
+            label="Returned"
+            value={returnedAfterArchiveCount}
+            sub="Archived but signed in"
+            accent={COLORS.green}
+          />
+        )}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
@@ -486,7 +523,11 @@ export default function TenantsPanel() {
             fontWeight: 600,
           }}
         >
-          {showArchived ? `← Active (${tenants.length - archivedCount})` : `Archived (${archivedCount}) →`}
+          {showArchived
+            ? `← Active (${tenants.length - archivedCount})`
+            : returnedAfterArchiveCount > 0
+              ? `Archived (${archivedCount}, 🟢 ${returnedAfterArchiveCount} returned) →`
+              : `Archived (${archivedCount}) →`}
         </button>
       </div>
 
