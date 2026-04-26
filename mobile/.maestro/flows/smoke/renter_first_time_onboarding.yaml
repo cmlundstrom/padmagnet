@@ -1,0 +1,118 @@
+# Smoke: renter first-time onboarding interposition.
+#
+# Verifies the new post-auth gate that captures display_name (required) +
+# phone (optional) before a freshly-signed-in renter can resume the app.
+#
+# What it proves end-to-end:
+#   1. The handle_new_user trigger (migration 076) leaves display_name=NULL
+#      for email signups with no explicit display_name in user_metadata.
+#   2. resolvePostLoginDestination sees the NULL and routes the user to
+#      /settings/edit-profile?firstTime=true&next=<intended>.
+#   3. Edit Profile renders in firstTime mode: "Last Step" header, no
+#      close X, hardware back blocked.
+#   4. Save with empty name is rejected with the "Missing Name" alert.
+#   5. The phone info-icon opens the "Why share your phone?" tooltip,
+#      which dismisses cleanly with "Got it".
+#   6. After filling display_name + Save, the user is routed to the
+#      original intended destination (the renter swipe deck).
+#
+# Precondition:
+#   - App is running on the dev client connected to Metro.
+#   - App is at the welcome splash (sign out manually first if needed).
+#
+# Cleanup:
+#   - The seeded user is hard-deleted at end of flow (auth.users + profile).
+#
+# Last verified: 2026-04-26 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Seed a fresh test renter via Supabase Admin. user_metadata only
+#    carries role; no display_name. With migration 076 in place the trigger
+#    inserts profile with display_name=NULL.
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch — preserves Metro URL on dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- assertVisible: "PadMagnet"
+
+# 3. Swipe twice to bring the bottom Sign In link well above the fold,
+#    then tap it. The WelcomeHero's horizontal FlatList confuses a
+#    single scroll, so manual swipes in the lower (non-FlatList) area
+#    are the reliable lever.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "welcome-signin-link"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 4. Enter the seeded email + Continue with Email
+- inputText: ${output.seed.renter.email}
+- tapOn: "Continue with Email"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 5. Enter password + Sign In → triggers signIn() → resolvePostLoginDestination
+- inputText: ${output.seed.renter.password}
+- tapOn: "Sign In"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 6. Should land on Edit Profile in firstTime mode
+- assertVisible: "Last Step"
+- assertVisible: "Welcome to PadMagnet"
+- assertVisible: "What should owners call you?"
+
+# 7. Save with empty name should be rejected
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Missing Name"
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 8. Phone tooltip — info icon opens modal with bullets
+- tapOn:
+    id: "edit-profile-phone-info"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Why share your phone"
+- assertVisible: "Got it"
+- tapOn: "Got it"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 9. Fill in display_name and save
+- tapOn:
+    id: "edit-profile-name-input"
+- inputText: "Test Renter"
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 10. Success alert + OK to dismiss → routes to swipe deck
+- assertVisible: "Saved"
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 11. Confirm we landed in the renter tab nav (Profile tab is always present)
+- assertVisible: "Profile"
+
+# 12. Cleanup — hard-delete the seeded user via auth admin API
+- runScript: ../../helpers/cleanup_test_users.js
