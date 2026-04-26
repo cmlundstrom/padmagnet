@@ -115,6 +115,29 @@ export default function TenantsPanel() {
     setActionLoading(false);
   }, [fetchTenants]);
 
+  // Hard reset — wipes the user + every row tied to them. Used to recycle
+  // test email addresses. Super-admin only (enforced server-side); user must
+  // already be archived (defensive — forces an archive review first).
+  const executeReset = useCallback(async (userId, confirmEmail) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: 'reset', ids: [userId], confirmEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionModal(null);
+      setActionValue('');
+      fetchTenants();
+      alert(`✅ Reset complete. Deleted: ${JSON.stringify(data.deleted)}`);
+    } catch (err) {
+      alert(`Reset failed: ${err.message}`);
+    }
+    setActionLoading(false);
+  }, [fetchTenants]);
+
   const openRefundModal = useCallback(async (user) => {
     setActionModal({ type: 'refund_renter', user });
     // Fetch this renter's payments
@@ -403,6 +426,18 @@ export default function TenantsPanel() {
               </button>
             </a>
           )}
+          {/* Hard reset — only shown for archived users. Server enforces
+              super-admin role and the typed-email confirmation. Designed
+              for recycling test accounts (e.g. support@padmagnet.com). */}
+          {row.archived_at && (
+            <button
+              style={{ ...baseButton, background: COLORS.red + "33", color: COLORS.red, border: `1px solid ${COLORS.red}`, fontSize: "12px", fontWeight: 700 }}
+              onClick={() => { setActionModal({ type: 'reset', user: row }); setActionValue(''); }}
+              title="Permanently delete this user + all their data. Recycles the email for re-registration."
+            >
+              🗑 Hard Reset
+            </button>
+          )}
         </div>
 
         <AskPadHistory userId={row.id} userName={row.display_name || row.email} />
@@ -470,8 +505,59 @@ export default function TenantsPanel() {
         renderExpandedRow={renderExpandedRow}
       />
 
-      {/* ── Action Modal ────────────────────────────────── */}
-      {actionModal && (
+      {/* ── Hard Reset Modal (type-checked separately — different endpoint) ── */}
+      {actionModal?.type === 'reset' && (
+        <div className="confirm-overlay" onClick={() => { setActionModal(null); setActionValue(''); }}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <p style={{ fontWeight: 700, fontSize: "15px", marginBottom: 4, color: COLORS.red }}>
+              🗑 PERMANENTLY DELETE {actionModal.user.email}
+            </p>
+            <div style={{
+              padding: "12px 14px", marginTop: 12, marginBottom: 16, borderRadius: 8,
+              background: "rgba(239, 68, 68, 0.10)", border: "1px solid rgba(239, 68, 68, 0.40)",
+              fontSize: "13px", color: "#fca5a5", lineHeight: 1.5,
+            }}>
+              <strong>This is irreversible.</strong> Hard-deletes the auth user, profile, and every row tied to them across listings, conversations, messages, swipes, prefs, billing, and more. The email becomes immediately reusable for fresh registration.
+              <br /><br />
+              Use this to recycle test accounts. Do <u>not</u> use on real users — there is no undo.
+            </div>
+            <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 4 }}>
+              Type the email exactly to confirm: <code style={{ color: COLORS.text, background: COLORS.bg, padding: "1px 6px", borderRadius: 3 }}>{actionModal.user.email}</code>
+            </label>
+            <input
+              type="text"
+              value={actionValue}
+              onChange={e => setActionValue(e.target.value)}
+              placeholder={actionModal.user.email}
+              autoFocus
+              style={{
+                width: "100%", padding: "8px 12px", background: COLORS.bg,
+                border: `1px solid ${COLORS.border}`, borderRadius: 6,
+                color: COLORS.text, fontSize: "14px",
+              }}
+            />
+            <div className="confirm-actions" style={{ marginTop: 16 }}>
+              <button
+                className="confirm-btn cancel"
+                onClick={() => { setActionModal(null); setActionValue(''); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-btn confirm"
+                disabled={actionLoading || actionValue.toLowerCase() !== (actionModal.user.email || '').toLowerCase()}
+                style={{ background: COLORS.red, opacity: actionLoading ? 0.6 : 1 }}
+                onClick={() => executeReset(actionModal.user.id, actionValue)}
+              >
+                {actionLoading ? 'Deleting...' : 'Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Action Modal (everything except reset) ────── */}
+      {actionModal && actionModal.type !== 'reset' && (
         <div className="confirm-overlay" onClick={() => { setActionModal(null); setActionValue(''); setActionReason(''); setRenterPayments([]); }}>
           <div className="confirm-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
             <p style={{ fontWeight: 700, fontSize: "15px", marginBottom: 4 }}>

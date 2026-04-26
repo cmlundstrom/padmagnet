@@ -260,8 +260,8 @@ export async function POST(request) {
     const body = await request.json();
     const { action, ids } = body;
 
-    if (!['archive', 'unarchive'].includes(action)) {
-      return NextResponse.json({ error: 'action must be "archive" or "unarchive"' }, { status: 400 });
+    if (!['archive', 'unarchive', 'reset'].includes(action)) {
+      return NextResponse.json({ error: 'action must be "archive", "unarchive", or "reset"' }, { status: 400 });
     }
     if (!ids?.length) {
       return NextResponse.json({ error: 'ids[] is required' }, { status: 400 });
@@ -274,6 +274,20 @@ export async function POST(request) {
 
     if (ids.includes(requestor.id)) {
       return NextResponse.json({ error: `You cannot ${action} your own profile` }, { status: 403 });
+    }
+
+    // Reset = hard delete the user + all owned data. Super-admin only,
+    // requires the user to already be archived (defensive — forces an
+    // archive review before nuke), and requires confirmEmail to match.
+    // Designed for recycling test accounts (e.g. support@padmagnet.com).
+    if (action === 'reset') {
+      if (requestor.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Only super admins can reset users' }, { status: 403 });
+      }
+      if (ids.length !== 1) {
+        return NextResponse.json({ error: 'reset only accepts one id at a time' }, { status: 400 });
+      }
+      return await resetUser(ids[0], body.confirmEmail, requestor);
     }
 
     const supabase = createServiceClient();
@@ -325,6 +339,110 @@ export async function POST(request) {
   }
 }
 
-// DELETE removed intentionally. Admin dashboard is archive-only.
-// Maestro test cleanup goes direct to Supabase auth.admin in
-// mobile/.maestro/helpers/cleanup_test_users.js.
+// Reset = hard-delete a user + every row tied to them. Used to recycle
+// test email addresses (e.g. support@padmagnet.com) so we can re-register
+// fresh from today forward.
+//
+// Why a custom function: Many user-FK tables (listings, conversations,
+// messages, billing, etc.) are NOT defined with ON DELETE CASCADE.
+// Calling auth.admin.deleteUser directly would hit FK violations for
+// any user with real activity. We delete user-owned rows in dependency
+// order, then auth.users (which cascades the few CASCADE-defined tables
+// like profiles, swipes, listing_views, tenant_preferences).
+async function resetUser(userId, confirmEmail, requestor) {
+  const supabase = createServiceClient();
+
+  // Fetch the target's email and verify confirmEmail matches (typo-protect)
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('id, email, archived_at, role')
+    .eq('id', userId)
+    .single();
+
+  if (!target) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+  if (!target.archived_at) {
+    return NextResponse.json(
+      { error: 'User must be archived before reset. Archive first, then reset.' },
+      { status: 400 }
+    );
+  }
+  if (!confirmEmail || confirmEmail.toLowerCase() !== (target.email || '').toLowerCase()) {
+    return NextResponse.json(
+      { error: 'confirmEmail must match the target user email exactly' },
+      { status: 400 }
+    );
+  }
+
+  // Delete in dependency order. Each step ignores not-found / no-rows;
+  // we only fail hard on actual SQL errors. Order: user-as-tenant rows,
+  // user-as-owner rows, then auth.users (cascades the rest).
+  const cleanupSteps = [
+    // Tenant-side activity (mostly already CASCADE, but list explicitly
+    // for tables that aren't or for clarity)
+    { table: 'messages', filters: [['sender_id', userId], ['recipient_id', userId]] },
+    { table: 'conversations', filters: [['tenant_user_id', userId], ['owner_user_id', userId]] },
+    { table: 'showing_requests', filters: [['tenant_user_id', userId]] },
+    { table: 'rent_range_reports', filters: [['created_by', userId]] },
+    { table: 'rent_range_shares', filters: [['sent_by', userId]] },
+    // Owner-side data
+    { table: 'documents', filters: [['owner_user_id', userId], ['sent_to_user_id', userId]] },
+    { table: 'availability_blocks', filters: [['owner_user_id', userId]] },
+    { table: 'invoices', filters: [['owner_user_id', userId]] },
+    { table: 'ledger_entries', filters: [['owner_user_id', userId]] },
+    { table: 'payments', filters: [['owner_user_id', userId]] },
+    { table: 'subscriptions', filters: [['user_id', userId], ['owner_user_id', userId]] },
+    { table: 'owner_purchases', filters: [['user_id', userId]] },
+    // Listings last so anything referencing them is already gone
+    { table: 'listings', filters: [['owner_user_id', userId]] },
+  ];
+
+  const deletedSummary = {};
+  for (const step of cleanupSteps) {
+    let totalDeleted = 0;
+    for (const [col, val] of step.filters) {
+      const { error, count } = await supabase
+        .from(step.table)
+        .delete({ count: 'exact' })
+        .eq(col, val);
+      // PostgREST returns 42P01 (undefined_table) or PGRST205 if the
+      // table/column doesn't exist on this deployment — treat as no-op.
+      if (error && !['42P01', '42703', 'PGRST205'].includes(error.code)) {
+        return NextResponse.json(
+          { error: `Cleanup failed at ${step.table}.${col}: ${error.message}` },
+          { status: 500 }
+        );
+      }
+      totalDeleted += count || 0;
+    }
+    if (totalDeleted > 0) deletedSummary[step.table] = totalDeleted;
+  }
+
+  // Now delete auth.users — cascades profiles, swipes, listing_views,
+  // tenant_preferences, tenant_search_zones, askpad_chats per migration FKs.
+  const { error: authErr } = await supabase.auth.admin.deleteUser(userId);
+  if (authErr) {
+    return NextResponse.json(
+      { error: `Auth user delete failed: ${authErr.message}`, partial: deletedSummary },
+      { status: 500 }
+    );
+  }
+
+  // Audit log — single entry recording the reset
+  await writeAuditLogBatch([{
+    tableName: 'profiles',
+    rowId: userId,
+    action: 'reset',
+    fieldChanged: '*',
+    oldValue: target.email,
+    newValue: null,
+    adminUser: requestor?.email || 'admin',
+  }]);
+
+  return NextResponse.json({
+    reset: true,
+    email: target.email,
+    deleted: { ...deletedSummary, auth_users: 1, profiles: 1 },
+  });
+}
