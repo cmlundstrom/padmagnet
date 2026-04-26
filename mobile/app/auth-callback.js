@@ -20,17 +20,15 @@ export default function AuthCallbackScreen() {
 
       console.log(`[AuthCallback] Tokens found via ${source}, setting session...`);
 
-      // Determine destination before anything else
-      let dest;
+      // Determine intended destination — auth_return_to is the intent buffer
+      // stashed by AuthBottomSheet. We pass it into resolvePostLoginDestination
+      // below (after setSession) so the resolver can interpose first-time
+      // Edit Profile for renters who lack a display_name.
+      let intendedDest;
       try {
-        dest = await AsyncStorage.getItem('auth_return_to');
-        if (dest) await AsyncStorage.removeItem('auth_return_to');
+        intendedDest = await AsyncStorage.getItem('auth_return_to');
+        if (intendedDest) await AsyncStorage.removeItem('auth_return_to');
       } catch {}
-
-      if (!dest) {
-        const role = await getUserRole();
-        dest = role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe';
-      }
 
       // Role assignment now happens upstream:
       //   - New signups: handle_new_user trigger reads user_metadata.role that
@@ -55,6 +53,20 @@ export default function AuthCallbackScreen() {
         }
       } catch (err) {
         console.error('[AuthCallback] setSession error:', err);
+      }
+
+      // Resolve final destination through the centralized router. For
+      // renters without a display_name this interposes Edit Profile with
+      // ?firstTime=true&next=<intendedDest>. Owners and renters with a
+      // name get the intendedDest directly (or the role's default tab).
+      let dest;
+      try {
+        const { data: { session: liveSession } } = await supabase.auth.getSession();
+        dest = await resolvePostLoginDestination(liveSession, undefined, intendedDest);
+      } catch (err) {
+        console.warn('[AuthCallback] resolvePostLoginDestination failed, using fallback:', err.message);
+        const role = await getUserRole();
+        dest = intendedDest || (role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe');
       }
 
       // Post-auth correction for the L1 "Create or Edit Your Listing" flow.
@@ -141,11 +153,13 @@ export default function AuthCallbackScreen() {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('[AuthCallback] Timeout session:', session?.user?.email || 'anonymous');
 
-        if (returnTo) {
-          router.replace(returnTo);
-        } else if (session && !session.user?.is_anonymous) {
-          const dest = await resolvePostLoginDestination(session);
+        if (session && !session.user?.is_anonymous) {
+          // Pass returnTo as intendedDest so the resolver can interpose
+          // first-time Edit Profile for renters with no display_name.
+          const dest = await resolvePostLoginDestination(session, undefined, returnTo);
           router.replace(dest);
+        } else if (returnTo) {
+          router.replace(returnTo);
         } else {
           const role = await getUserRole();
           router.replace(role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe');

@@ -11,11 +11,11 @@
 
 import { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, Pressable,
+  View, Text, TextInput, TouchableOpacity, Pressable, Modal,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAndroidBack from '../../hooks/useAndroidBack';
@@ -34,7 +34,16 @@ function formatPhone(raw) {
 }
 
 export default function EditProfileScreen() {
-  useAndroidBack();
+  // First-time mode (?firstTime=true): user just authed and we interposed
+  // this screen to capture display_name. They cannot back out via hardware
+  // back or the close X — only path forward is to fill the required field
+  // and Save, which routes to ?next=<intended-dest> from the auth flow.
+  const { firstTime, next } = useLocalSearchParams();
+  const isFirstTime = firstTime === 'true' || firstTime === '1';
+
+  // Block hardware back in firstTime mode — return true means handled.
+  useAndroidBack(isFirstTime ? () => true : undefined);
+
   const { user, isAnon } = useAuth();
   const alert = useAlert();
 
@@ -42,6 +51,7 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showPhoneTooltip, setShowPhoneTooltip] = useState(false);
 
   // Hard guard — anon users have no profile to edit. Bounce immediately.
   useEffect(() => {
@@ -86,8 +96,22 @@ export default function EditProfileScreen() {
 
       if (profileErr) throw new Error(profileErr.message);
 
-      alert('Saved', 'Your profile has been updated.', [
-        { text: 'OK', onPress: () => router.back() },
+      // Where do we go after Save?
+      //   - First-time onboarding: route to the deferred ?next= path
+      //     (e.g. the listing detail the user was about to message about)
+      //   - Normal edit: pop back to wherever they came from
+      const dest = isFirstTime && next ? decodeURIComponent(next) : null;
+      const successCopy = isFirstTime
+        ? 'You’re all set. Continuing…'
+        : 'Your profile has been updated.';
+      alert('Saved', successCopy, [
+        {
+          text: 'OK',
+          onPress: () => {
+            if (dest) router.replace(dest);
+            else router.back();
+          },
+        },
       ]);
     } catch (err) {
       alert('Error', err.message);
@@ -108,12 +132,19 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* Header */}
+          {/* Header — close button hidden in first-time mode so the user
+              can only proceed by completing the required field. */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-              <Ionicons name="close" size={22} color={COLORS.text} />
-            </TouchableOpacity>
-            <Text style={styles.title}>Edit Profile</Text>
+            {isFirstTime ? (
+              <View style={styles.headerBtn} />
+            ) : (
+              <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.title}>
+              {isFirstTime ? 'Last Step' : 'Edit Profile'}
+            </Text>
             <TouchableOpacity testID="edit-profile-save-header" onPress={handleSave} disabled={saving} style={styles.headerBtn}>
               <Text style={[styles.saveText, saving && { color: COLORS.slate }]}>
                 {saving ? 'Saving...' : 'Save'}
@@ -122,37 +153,54 @@ export default function EditProfileScreen() {
           </View>
 
           <Text style={styles.introText}>
-            Update your display name and phone. To change your account email,
-            use Change Email in Settings.
+            {isFirstTime
+              ? 'Welcome to PadMagnet. Tell owners what to call you, then we’ll continue.'
+              : 'Update your display name and phone. To change your account email, use Change Email in Settings.'}
           </Text>
 
-          {/* Display Name */}
+          {/* Display Name — required. The placeholder is the punchy hook
+              ("What should owners call you?") and the helper text below
+              explains why frivolous handles get ignored by owners. */}
           <View style={styles.fieldCard}>
             <View style={styles.fieldHeader}>
               <View style={[styles.fieldIcon, { backgroundColor: COLORS.accent + '18' }]}>
                 <Ionicons name="person-outline" size={16} color={COLORS.accent} />
               </View>
-              <Text style={styles.fieldLabel}>Display Name</Text>
+              <Text style={styles.fieldLabel}>
+                Display Name <Text style={styles.required}>*</Text>
+              </Text>
             </View>
             <TextInput
               testID="edit-profile-name-input"
               style={styles.input}
               value={displayName}
               onChangeText={setDisplayName}
-              placeholder="Your name"
+              placeholder="What should owners call you?"
               placeholderTextColor={COLORS.slate}
               autoCapitalize="words"
               returnKeyType="next"
             />
+            <Text style={styles.hint}>
+              Owners see this on every message. Use a real first name — most owners decline messages from handles like “User123”.
+            </Text>
           </View>
 
-          {/* Phone */}
+          {/* Phone — optional. Info icon in the label opens a tooltip
+              modal explaining why providing it unlocks more value. */}
           <View style={styles.fieldCard}>
             <View style={styles.fieldHeader}>
               <View style={[styles.fieldIcon, { backgroundColor: COLORS.success + '18' }]}>
                 <Ionicons name="call-outline" size={16} color={COLORS.success} />
               </View>
-              <Text style={styles.fieldLabel}>Phone Number</Text>
+              <Text style={styles.fieldLabel}>Phone Number (optional)</Text>
+              <TouchableOpacity
+                onPress={() => setShowPhoneTooltip(true)}
+                hitSlop={10}
+                style={styles.infoIcon}
+                testID="edit-profile-phone-info"
+              >
+                <Ionicons name="information-circle-outline" size={18} color={COLORS.accent} />
+              </TouchableOpacity>
             </View>
             <TextInput
               testID="edit-profile-phone-input"
@@ -165,7 +213,7 @@ export default function EditProfileScreen() {
               returnKeyType="done"
             />
             <Text style={styles.hint}>
-              Optional. Used for contact preferences or account recovery.
+              Tap the info icon to see why owners prefer renters who share a number.
             </Text>
           </View>
 
@@ -182,19 +230,65 @@ export default function EditProfileScreen() {
             </LinearGradient>
           </Pressable>
 
-          {/* Email-change link — moved from this screen to its own re-auth flow */}
-          <TouchableOpacity
-            testID="edit-profile-change-email-link"
-            style={styles.changeEmailLink}
-            onPress={() => router.replace('/settings/change-email')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="mail-open-outline" size={16} color={COLORS.accent} />
-            <Text style={styles.changeEmailLinkText}>Need to change your email instead?</Text>
-            <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
-          </TouchableOpacity>
+          {/* Email-change link — only shown in normal edit mode. In first-time
+              onboarding the user just signed in, so prompting "change email"
+              is confusing UX. */}
+          {!isFirstTime && (
+            <TouchableOpacity
+              testID="edit-profile-change-email-link"
+              style={styles.changeEmailLink}
+              onPress={() => router.replace('/settings/change-email')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="mail-open-outline" size={16} color={COLORS.accent} />
+              <Text style={styles.changeEmailLinkText}>Need to change your email instead?</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Phone tooltip — opens from the info icon next to the Phone label.
+          Stateless: every tap re-opens fresh. */}
+      <Modal
+        visible={showPhoneTooltip}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPhoneTooltip(false)}
+      >
+        <Pressable style={styles.tooltipBackdrop} onPress={() => setShowPhoneTooltip(false)}>
+          <Pressable style={styles.tooltipCard} onPress={(e) => e.stopPropagation()}>
+            <View style={[styles.tooltipIcon, { backgroundColor: COLORS.success + '22' }]}>
+              <Ionicons name="call" size={26} color={COLORS.success} />
+            </View>
+            <Text style={styles.tooltipTitle}>Why share your phone?</Text>
+            <View style={styles.tooltipBullets}>
+              <View style={styles.tooltipBulletRow}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.tooltipBulletText}>Owners can text you back directly when they’re interested.</Text>
+              </View>
+              <View style={styles.tooltipBulletRow}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.tooltipBulletText}>Get SMS alerts when new listings hit your saved zone.</Text>
+              </View>
+              <View style={styles.tooltipBulletRow}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.tooltipBulletText}>Required if you enable SMS notifications later.</Text>
+              </View>
+              <View style={styles.tooltipBulletRow}>
+                <Ionicons name="lock-closed" size={16} color={COLORS.accent} />
+                <Text style={styles.tooltipBulletText}>We never share your number publicly or sell it.</Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={() => setShowPhoneTooltip(false)}
+              style={({ pressed }) => [styles.tooltipGotIt, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.tooltipGotItText}>Got it</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -273,6 +367,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
     color: COLORS.text,
+    flex: 1,
+  },
+  required: {
+    color: COLORS.logoOrange,
+    fontFamily: FONTS.body.bold,
+  },
+  infoIcon: {
+    marginLeft: 4,
   },
   input: {
     backgroundColor: COLORS.background,
@@ -327,5 +429,73 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: COLORS.accent,
+  },
+
+  // ── Phone tooltip modal ───────────────────────────────────────
+  tooltipBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: LAYOUT.padding.lg,
+  },
+  tooltipCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: LAYOUT.padding.lg,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  tooltipIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: LAYOUT.padding.sm,
+  },
+  tooltipTitle: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  tooltipBullets: {
+    alignSelf: 'stretch',
+    marginBottom: LAYOUT.padding.md,
+    gap: 10,
+  },
+  tooltipBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  tooltipBulletText: {
+    flex: 1,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  tooltipGotIt: {
+    backgroundColor: COLORS.logoOrange,
+    paddingVertical: 12,
+    paddingHorizontal: 36,
+    borderRadius: LAYOUT.radius.full,
+  },
+  tooltipGotItText: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.white,
+    letterSpacing: 0.4,
   },
 });

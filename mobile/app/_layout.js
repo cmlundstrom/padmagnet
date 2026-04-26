@@ -148,7 +148,6 @@ export default function RootLayout() {
           <Stack.Screen name="conversation/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
-          <Stack.Screen name="about-you" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="auth-callback" options={{ animation: 'none' }} />
         </Stack>
