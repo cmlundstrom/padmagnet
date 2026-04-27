@@ -26,11 +26,13 @@
 appId: com.padmagnet.app
 ---
 
-# 1. Seed an archived test user (auth + profile) directly via REST so the
-#    smoke is deterministic. Stashes credentials in output.archivedUser.
-- runScript: ../../helpers/seed_archived_user.js
+# Seed happens in the wrapper (run_welcome_back_reactivation.sh) since
+# Maestro's GraalJS http shim has no PATCH and PostgREST needs PATCH to
+# set archived_at on the existing profile row. Wrapper passes the
+# resulting credentials in as -e flags:
+#   ARCHIVED_USER_EMAIL, ARCHIVED_USER_PASSWORD, ARCHIVED_USER_ID
 
-# 2. Cold launch — wrapper has wiped app data + bound the dev client.
+# 1. Cold launch — wrapper has wiped app data + bound the dev client.
 - launchApp:
     stopApp: true
 - waitForAnimationToEnd:
@@ -71,13 +73,16 @@ appId: com.padmagnet.app
 # Sign in as the seeded archived user
 # ────────────────────────────────────────────────────────────────────
 
-# 5. Type the seeded credentials and submit.
+# 5. Type the seeded credentials (wrapper-injected). hideKeyboard between
+#    fields because the seeded email is long ("maestro-archived-{ts}@...")
+#    and the keyboard pushes the password input below the fold otherwise.
 - tapOn:
     id: "auth-sheet-email-input"
-- inputText: ${output.archivedUser.email}
+- inputText: ${ARCHIVED_USER_EMAIL}
+- hideKeyboard
 - tapOn:
     id: "auth-sheet-password-input"
-- inputText: ${output.archivedUser.password}
+- inputText: ${ARCHIVED_USER_PASSWORD}
 - hideKeyboard
 
 - tapOn:
