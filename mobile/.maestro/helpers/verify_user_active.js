@@ -1,0 +1,32 @@
+// Reads back the seeded user's profile and asserts archived_at IS NULL.
+// Proves /api/account/reactivate actually wrote to the DB — without this,
+// the smoke would only verify that the modal dismissed client-side.
+
+if (!output.archivedUser || !output.archivedUser.userId) {
+  throw new Error('verify_user_active: output.archivedUser not set — was seed_archived_user.js run?');
+}
+
+const adminHeaders = {
+  'apikey': SUPABASE_SERVICE_ROLE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
+};
+
+const resp = http.get(
+  SUPABASE_URL + '/rest/v1/profiles?id=eq.' + output.archivedUser.userId + '&select=id,archived_at',
+  { headers: adminHeaders }
+);
+
+if (!resp.ok) {
+  throw new Error('verify_user_active: HTTP ' + resp.status + ' — ' + resp.body);
+}
+
+const rows = json(resp.body);
+if (!Array.isArray(rows) || rows.length === 0) {
+  throw new Error('verify_user_active: profile row missing for ' + output.archivedUser.userId);
+}
+
+if (rows[0].archived_at !== null) {
+  throw new Error('verify_user_active: archived_at still set (' + rows[0].archived_at + ') — reactivate did not persist');
+}
+
+console.log('verify_user_active: archived_at IS NULL — reactivation persisted to DB');

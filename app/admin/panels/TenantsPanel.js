@@ -560,6 +560,8 @@ export default function TenantsPanel() {
             }}>
               <strong>This is irreversible.</strong> Hard-deletes the auth user, profile, and every row tied to them across listings, conversations, messages, swipes, prefs, billing, and more. The email becomes immediately reusable for fresh registration.
               <br /><br />
+              <strong>Returning users lose their account.</strong> If this person ever comes back, they sign up fresh — old matches, points, listings, and conversations are gone forever. The Welcome-Back reactivation flow only works on <em>archived</em> accounts (which this still is until you click below). Prefer leaving them archived unless you're recycling a test email.
+              <br /><br />
               Use this to recycle test accounts. Do <u>not</u> use on real users — there is no undo.
             </div>
             <label style={{ fontSize: "12px", color: COLORS.textMuted, display: "block", marginBottom: 4 }}>

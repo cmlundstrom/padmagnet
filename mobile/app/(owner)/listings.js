@@ -299,6 +299,25 @@ export default function OwnerListingsTab() {
           data={listings}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={(() => {
+            // Returning-user nudge: if any of this owner's listings are
+            // status='archived' (auto-set when their profile was archived),
+            // surface a one-liner so they know how to bring each one back.
+            // The per-row Re-list button does the actual work; this banner
+            // just makes the path obvious right after reactivation.
+            const archivedCount = listings.filter(l => l.status === 'archived').length;
+            if (archivedCount === 0) return null;
+            return (
+              <View style={styles.archivedBanner} testID="owner-archived-listings-banner">
+                <Ionicons name="archive-outline" size={16} color="#5A4420" />
+                <Text style={styles.archivedBannerText}>
+                  {archivedCount === 1
+                    ? '1 paused listing below — tap Re-list to publish it again.'
+                    : `${archivedCount} paused listings below — tap Re-list on each to publish them again.`}
+                </Text>
+              </View>
+            );
+          })()}
           // Disable subview clipping + small render window so cached row
           // Y-offsets stay accurate when async image loads trigger re-layout.
           removeClippedSubviews={false}
@@ -681,6 +700,25 @@ const styles = StyleSheet.create({
   listContent: {
     padding: LAYOUT.padding.md,
     paddingBottom: 80,
+  },
+  archivedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F4E4B8',
+    borderColor: '#A08040',
+    borderWidth: 1,
+    borderRadius: LAYOUT.radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: LAYOUT.padding.md,
+  },
+  archivedBannerText: {
+    flex: 1,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: '#3A2810',
+    lineHeight: 18,
   },
   listingRow: {
     backgroundColor: COLORS.surface,

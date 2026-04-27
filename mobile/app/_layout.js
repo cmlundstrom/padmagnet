@@ -32,6 +32,7 @@ import { AlertProvider } from '../providers/AlertProvider';
 import { UnreadProvider } from '../providers/UnreadProvider';
 import { ErrorBoundary, OfflineBanner } from '../components/ui';
 import AuthSuccessBanner from '../components/auth/AuthSuccessBanner';
+import WelcomeBackModal from '../components/auth/WelcomeBackModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { prefetchDisplayFields } from '../hooks/useDisplayFields';
 import { COLORS } from '../constants/colors';
@@ -49,7 +50,10 @@ SplashScreen.preventAutoHideAsync();
  * Role-based tab-group switching is explicit (Profile CTAs / RoleSwitcher).
  */
 function RouteGuard({ children }) {
-  const { session, user, loading } = useContext(AuthContext);
+  const {
+    session, user, loading, archivedAt, displayName,
+    reactivateAccount, dismissReactivation,
+  } = useContext(AuthContext);
   const segments = useSegments();
   const router = useRouter();
 
@@ -88,7 +92,21 @@ function RouteGuard({ children }) {
     }
   }, [session, loading, segments]);
 
-  return children;
+  // Welcome-Back gate. Renders for any signed-in user whose profile is
+  // archived. The modal blocks dismissal so the user must explicitly
+  // reactivate or sign out — no silent ghost-state in the app.
+  return (
+    <>
+      {children}
+      <WelcomeBackModal
+        visible={!!session && !!archivedAt}
+        displayName={displayName}
+        archivedAt={archivedAt}
+        onReactivate={reactivateAccount}
+        onDismiss={dismissReactivation}
+      />
+    </>
+  );
 }
 
 export default function RootLayout() {

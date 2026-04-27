@@ -1,0 +1,118 @@
+# Smoke: Welcome-Back reactivation gate for returning archived users.
+#
+# Verifies the new returning-user flow (built 2026-04-27):
+#   1. AuthProvider.resolveRole reads profiles.archived_at on sign-in
+#   2. The Welcome-Back modal blocks tab-group entry for archived users
+#   3. POST /api/account/reactivate nulls archived_at server-side
+#   4. The modal dismisses and the user lands in the renter tab group
+#
+# Bug being prevented: previously, an archived user who signed in would
+# enter the app fully signed-in but with their listings hidden (status=
+# 'archived' from the admin archive sweep). Nothing offered reactivation,
+# nothing told them why the app looked empty.
+#
+# Fix model: archive-first preserves auth.users so the user can sign in;
+# the in-app gate handles reactivation without admin involvement.
+#
+# Precondition:
+#   - Use the wrapper run_welcome_back_reactivation.sh which wipes app
+#     data + re-binds the dev client to Metro before invoking maestro.
+#     Bare `bash run.sh` will fail on auth state from any prior smoke.
+#
+# Cleanup:
+#   - The seeded user is hard-deleted via Supabase admin API at the end.
+#
+# Last verified: 2026-04-27 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Seed an archived test user (auth + profile) directly via REST so the
+#    smoke is deterministic. Stashes credentials in output.archivedUser.
+- runScript: ../../helpers/seed_archived_user.js
+
+# 2. Cold launch — wrapper has wiped app data + bound the dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 2a. Fallback for the dev-menu Continue dialog (uiautomator dump hangs
+#     on this Compose surface, so we can't poll). Maestro can still see
+#     "Continue" via a11y. No-op if already gone.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter session → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Navigate to Messages tab → L1 sheet appears for the anon session.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# ────────────────────────────────────────────────────────────────────
+# Sign in as the seeded archived user
+# ────────────────────────────────────────────────────────────────────
+
+# 5. Type the seeded credentials and submit.
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.archivedUser.email}
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.archivedUser.password}
+- hideKeyboard
+
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# ────────────────────────────────────────────────────────────────────
+# Welcome-Back modal must appear, blocking entry to tab group
+# ────────────────────────────────────────────────────────────────────
+
+# 6. The modal renders via _layout.js whenever session && archivedAt.
+#    AuthProvider.resolveRole picked archived_at off the profile row.
+- assertVisible:
+    id: "welcome-back-reactivate"
+- assertVisible:
+    id: "welcome-back-dismiss"
+
+# 7. Tap Reactivate → calls POST /api/account/reactivate. On 200 the
+#    AuthProvider sets archivedAt=null locally so the gate dismisses
+#    immediately (no second resolveRole round-trip needed).
+- tapOn:
+    id: "welcome-back-reactivate"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 8. Modal must be gone and the user is now sitting on the Messages
+#    tab inside the (tenant) group — Messages tab label is the proof
+#    of "we're in the tab group, gate dismissed."
+- assertNotVisible:
+    id: "welcome-back-reactivate"
+- assertVisible: "Messages"
+
+# 9. Verify the DB write actually landed (not just the UI dismissed).
+- runScript: ../../helpers/verify_user_active.js
+
+# 10. Cleanup — hard-delete the seeded user.
+- runScript: ../../helpers/cleanup_archived_user.js
