@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
+import { resolvePostLoginDestination } from '../../lib/routing';
 import { subscribeMagicLinkRelay } from '../../hooks/useMagicLinkRelay';
 import { useAlert } from '../../providers/AlertProvider';
 import { COLORS } from '../../constants/colors';
@@ -140,6 +141,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       resetState();
       onClose?.();
+      await routeAfterSignIn();
     } catch (err) {
       if (!err.message?.includes('cancelled')) alert('Sign In Failed', err.message);
     }
@@ -153,6 +155,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       resetState();
       onClose?.();
+      await routeAfterSignIn();
     } catch (err) {
       if (!err.message?.includes('cancelled')) alert('Sign In Failed', err.message);
     }
@@ -166,6 +169,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       resetState();
       onClose?.();
+      await routeAfterSignIn();
     } catch (err) {
       if (!err.message?.includes('cancelled')) alert('Sign In Failed', err.message);
     }
@@ -193,6 +197,26 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
       case 'messages_tab': return '/(tenant)/messages';
       case 'message': return '/(tenant)/swipe';
       default: return null;
+    }
+  }
+
+  // Shared post-signin nav. The L1 sheet previously just closed itself
+  // and let the user land back on whatever surface triggered it — which
+  // skipped the renter firstTime Edit Profile interposition that was
+  // already wired into auth-callback.js (magic link) and index.js
+  // (cold launch). Calling resolvePostLoginDestination here gives every
+  // L1 entry point parity: users with display_name return to their
+  // intended surface (no flicker — the resolver returns the same path),
+  // users without get sent to /settings/edit-profile?firstTime=true&next=...
+  // so they fill in name/phone before resuming.
+  async function routeAfterSignIn() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const dest = await resolvePostLoginDestination(session, undefined, getReturnPath());
+      if (dest) router.replace(dest);
+    } catch (err) {
+      console.warn('[AuthBottomSheet] routeAfterSignIn failed:', err.message);
     }
   }
 
@@ -280,6 +304,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         resetState();
         onClose?.();
+        await routeAfterSignIn();
       } else {
         // mode === 'signup' — explicit account creation
         let signUpResult;
@@ -319,6 +344,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         resetState();
         onClose?.();
+        await routeAfterSignIn();
       }
     } catch (err) {
       alert('Something went wrong', err.message);

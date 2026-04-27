@@ -1,0 +1,97 @@
+# Smoke: L1 password sign-in routes a no-name renter to firstTime
+# Edit Profile, NOT to the L1 surface they came from.
+#
+# Verifies the fix wired into AuthBottomSheet.routeAfterSignIn (2026-04-27):
+# every L1 sign-in path (handlePassword + handleGoogle/Facebook/Apple)
+# now calls resolvePostLoginDestination + router.replace, matching the
+# behavior previously only present in auth-callback.js (magic link) and
+# index.js (cold launch).
+#
+# Pre-fix bug: a renter with NULL display_name who signed in via
+# Messages-tab L1 stayed on Messages with no name — confusing for owners
+# who saw blank display_name in their inbox.
+#
+# What this smoke proves end-to-end:
+#   1. Anon renter → Messages tab → L1 sheet visible
+#   2. Sign in as the seeded no-name user → sheet closes
+#   3. Resolver interposes /settings/edit-profile?firstTime=true
+#      → "Last Step" header is the proof of firstTime mode
+#   4. The user is NOT on Messages tab (firstTime header replaces it)
+#
+# Precondition:
+#   - Use the wrapper run_l1_firsttime_interposition.sh which seeds a
+#     fresh email-signup user (handle_new_user trigger leaves
+#     display_name NULL for email signups per migration 076).
+#
+# Cleanup:
+#   - The seeded user is hard-deleted via Supabase admin API.
+#
+# Last verified: 2026-04-27 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch — wrapper has wiped app data + bound the dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 1a. Fallback for the dev-menu Continue dialog if the wrapper missed.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter session → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 3. Navigate to Messages tab → L1 sheet for anon session.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# 4. Type the seeded no-name credentials and submit. hideKeyboard
+#    between fields because the seeded email is long.
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${NONAME_USER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${NONAME_USER_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Proof of interposition: "Last Step" is the firstTime header on
+#    edit-profile. The header is "Edit Profile" in normal mode, so
+#    "Last Step" being visible proves ?firstTime=true was honored.
+- assertVisible: "Last Step"
+
+# 6. The required-name input testID is present, confirming we're on
+#    the right screen. Together these two assertions are sufficient
+#    proof: the introductory copy ("Welcome to PadMagnet") would be a
+#    nice third check but Android RN doesn't always expose nested
+#    <Text> nodes to the a11y tree, so we skip it.
+- assertVisible:
+    id: "edit-profile-name-input"
+
+# 7. Cleanup — hard-delete the seeded user.
+- runScript: ../../helpers/cleanup_noname_user.js
