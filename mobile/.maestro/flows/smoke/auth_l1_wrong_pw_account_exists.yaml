@@ -1,0 +1,98 @@
+# Smoke: L1 password flow — existing email + wrong PW → JIT signup
+# attempt → "Account exists" alert (proves B3 enumeration-fix).
+#
+# Bug being prevented: Supabase's email-enumeration protection silently
+# returns no-session when signUp is called with an existing email. The
+# old L1 code interpreted this as "signup pending" and lied to the user
+# with "Check your email" — but no email is ever actually sent.
+#
+# The fix: in runSignUp(), detect signUpResult.user.identities.length === 0
+# (Supabase's signal that the email already exists) and surface
+# "Account exists, but the password didn't match. Try a different
+# password, or use Magic Link to sign in without one."
+#
+# What this smoke proves end-to-end:
+#   1. Signing in with an existing email + wrong PW triggers the
+#      "Couldn't sign you in" JIT alert
+#   2. Tapping "Create new account" in the alert calls signUp on the
+#      existing email
+#   3. The "Account exists" alert appears (NOT "Check your email")
+#
+# Precondition:
+#   - Use the wrapper run_l1_wrong_pw_account_exists.sh which seeds an
+#     existing email-confirmed user via REST and passes credentials in
+#     as Maestro env vars.
+#
+# Cleanup:
+#   - The seeded user is hard-deleted via Supabase admin API.
+#
+# Last verified: 2026-04-27 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch — wrapper has wiped app data + bound the dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 3. Messages tab → L1 sheet for anon session.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# 4. Type the EXISTING email + the WRONG password (both injected by
+#    wrapper via -e flags).
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${EXISTING_USER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${EXISTING_USER_WRONG_PW}
+- hideKeyboard
+
+# 5. Tap Continue → signIn fails (wrong PW for existing email) → JIT alert.
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Couldn't sign you in"
+- assertVisible: "Create new account"
+
+# 6. Tap "Create new account" → runSignUp fires → enumeration silent
+#    (existing email) → "Account exists" alert (the new fix).
+- tapOn: "Create new account"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 7. Proof: "Account exists" alert visible, NOT "Check your email"
+#    (which would mean the bug regressed).
+- assertVisible: "Account exists"
+- assertNotVisible: "auth-sheet-sent-box"
+
+# 8. Cleanup — hard-delete the seeded user.
+- runScript: ../../helpers/cleanup_existing_user.js

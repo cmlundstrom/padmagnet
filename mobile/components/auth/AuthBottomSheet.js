@@ -24,6 +24,28 @@ import { LAYOUT } from '../../constants/layout';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_THRESHOLD = 120;
 
+// Owner-context contexts. Drives roleIntent for both magic-link and
+// password-signup paths so the handle_new_user trigger sets the right
+// role on profile creation. profile_email_change preserves whatever
+// role the user already has — leave roleIntent undefined.
+const OWNER_INTENT_CONTEXTS = ['create_listing', 'owner_messages', 'owner_profile', 'owner_upgrade'];
+
+function deriveRoleIntent(context) {
+  if (context === 'profile_email_change') return undefined;
+  return OWNER_INTENT_CONTEXTS.includes(context) ? 'owner' : 'tenant';
+}
+
+// UUID-v4 nonce generator. Used by both the magic-link and password-signup
+// flows to identify their entry in the magic_link_relay table so the
+// running app can pick up tokens via Supabase Realtime when the user
+// taps the email link.
+function generateRelayNonce() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export default function AuthBottomSheet({ visible, onClose, context, padpoints, ownerHasListings = false }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
@@ -31,13 +53,18 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
   const [magicEmail, setMagicEmail] = useState('');
   const [showMagicPrompt, setShowMagicPrompt] = useState(false);
   const [loading, setLoading] = useState(null);
-  const [magicSent, setMagicSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // 'signin' (default) or 'signup' — controls the password-CTA dispatch.
-  // Previously the handler auto-fell-through from signIn → signUp on
-  // "Invalid login", which silently created accounts behind the user's
-  // back AND landed them in a confirm-email limbo with no UI feedback.
-  const [mode, setMode] = useState('signin');
+  // Single state replaces the prior magicSent boolean. Drives the sentBox
+  // panel's copy + Resend behavior so password-signup confirmations and
+  // magic-link sends share the same waiting UI without colliding.
+  //   null     → form mode (default)
+  //   'magic'  → magic link sent, waiting for tap
+  //   'signup' → password signup confirmation sent, waiting for tap
+  const [pendingState, setPendingState] = useState(null);
+  // Nonce we used for the current pending email — needed for the Resend
+  // button so we can re-fire the relay subscription. Set alongside
+  // pendingState whenever we transition into the sentBox panel.
+  const [pendingNonce, setPendingNonce] = useState(null);
 
   // Cross-device magic link relay cleanup
   const relayCleanup = useRef(null);
@@ -224,30 +251,16 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     if (!magicEmail) return;
     setLoading('magic');
     try {
-      // Generate nonce for cross-device relay (desktop email → mobile app)
-      const nonce = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-      });
-
-      // Derive role intent from the current AuthBottomSheet context. Passed
-      // into signInWithMagicLink so it lands in user_metadata.role and the
-      // handle_new_user trigger sets profiles.role + roles correctly on signup.
-      // Owner-intent contexts imply the user wants to act as an owner.
-      const OWNER_INTENT_CONTEXTS = ['create_listing', 'owner_messages', 'owner_profile', 'owner_upgrade'];
-      // profile_email_change preserves whatever role the user is currently in,
-      // so it doesn't force a roleIntent — leave undefined so the trigger
-      // doesn't overwrite their existing role/roles.
-      const roleIntent = context === 'profile_email_change'
-        ? undefined
-        : (OWNER_INTENT_CONTEXTS.includes(context) ? 'owner' : 'tenant');
+      const nonce = generateRelayNonce();
+      const roleIntent = deriveRoleIntent(context);
 
       await signInWithMagicLink(magicEmail, nonce, roleIntent);
 
       // Email sent successfully — transition UI immediately
       setEmail(magicEmail);
       setShowMagicPrompt(false);
-      setMagicSent(true);
+      setPendingNonce(nonce);
+      setPendingState('magic');
       setLoading(null);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -270,6 +283,17 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     setLoading(null);
   }
 
+  // Implicit signin-first + JIT signup CTA. The L1 sheet has a single
+  // primary "Continue" button; we always try signIn first because most
+  // users hitting L1 from a new device want to sign back in. Three
+  // failure paths:
+  //   - Invalid login           → two-button alert: Try again | Create new account
+  //   - Email not confirmed     → call supabase.auth.resend(), surface honestly
+  //   - Anything else           → show the raw error
+  //
+  // The toggle UX is gone. The JIT signup path is gated by an explicit
+  // user tap inside the failure alert, so we never silent-create an
+  // account behind the user's back.
   async function handlePassword() {
     if (!email || !password) {
       alert('Missing Information', 'Please enter your email and password.');
@@ -277,77 +301,153 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     }
     setLoading('password');
     try {
-      if (mode === 'signin') {
-        // Sign-in only. NEVER auto-create an account here — that pattern
-        // silently registered users with the wrong password and dumped
-        // them in confirm-email limbo with no UI feedback.
-        try {
-          await signIn(email, password);
-        } catch (signInErr) {
-          const msg = signInErr.message || '';
-          if (msg.includes('Invalid login')) {
-            alert(
-              "Couldn't sign you in",
-              "That email and password didn't match an existing account. If you signed up with Magic Link, tap Magic Link below. New here? Tap “Create an account” below the form."
-            );
-          } else if (msg.toLowerCase().includes('email not confirmed')) {
-            alert(
-              'Confirm your email',
-              `We sent a confirmation link to ${email}. Tap it to finish setting up your account, then come back to sign in.`
-            );
-          } else {
-            alert('Sign In Failed', msg);
+      try {
+        await signIn(email, password);
+      } catch (signInErr) {
+        const msg = signInErr.message || '';
+
+        if (msg.toLowerCase().includes('email not confirmed')) {
+          // Account exists but the user never tapped the original
+          // confirmation email. Resend it for real this time and tell
+          // the user honestly that we just sent one (the prior copy
+          // claimed a send without actually doing it).
+          try {
+            await supabase.auth.resend({ type: 'signup', email });
+          } catch (resendErr) {
+            console.warn('[AuthBottomSheet] Resend confirm failed:', resendErr.message);
           }
-          setLoading(null);
-          return;
-        }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        resetState();
-        onClose?.();
-        await routeAfterSignIn();
-      } else {
-        // mode === 'signup' — explicit account creation
-        let signUpResult;
-        try {
-          signUpResult = await signUp(email, password);
-        } catch (signUpErr) {
-          const msg = signUpErr.message || '';
-          if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
-            alert(
-              'Account exists',
-              'An account with that email already exists. Switch to “Sign in” above to log in, or use Magic Link if you forgot your password.'
-            );
-          } else {
-            alert("Couldn't create account", msg);
-          }
-          setLoading(null);
-          return;
-        }
-        // Supabase signUp returns no session when email confirmation is
-        // required (the production setting). Surface this clearly so the
-        // user knows to check their inbox.
-        if (!signUpResult?.session) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           alert(
-            'Check your email',
-            `We sent a confirmation link to ${email}. Tap it to finish creating your account, then come back here to sign in.`
+            'Almost there',
+            `We just resent your confirmation link to ${email}. Tap it to verify your email, then come back to sign in.`
           );
-          // Pre-fill email for the return trip; reset password + flip back
-          // to signin mode so the user can sign in once they confirm.
-          setPassword('');
-          setMode('signin');
           setLoading(null);
           return;
         }
-        // Auto-confirm enabled or session returned synchronously — same
-        // success path as sign-in.
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        resetState();
-        onClose?.();
-        await routeAfterSignIn();
+
+        if (!msg.includes('Invalid login')) {
+          alert('Sign In Failed', msg);
+          setLoading(null);
+          return;
+        }
+
+        // Invalid login → JIT signup CTA. Two-button alert:
+        //   Try again        → dismiss, user retypes their password
+        //   Create account   → explicit signup tap → runSignUp()
+        // The two-button form prevents the prior silent-signup bug
+        // because the user must consciously opt into account creation.
+        alert(
+          "Couldn't sign you in",
+          `We didn't find an existing account for ${email} with that password.`,
+          [
+            { text: 'Try again', style: 'cancel', onPress: () => setLoading(null) },
+            {
+              text: 'Create new account',
+              onPress: () => { runSignUp(); },
+            },
+          ]
+        );
+        return;
       }
+
+      // signIn succeeded — route through the resolver (firstTime Edit
+      // Profile interposition fires here for renters with no name).
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetState();
+      onClose?.();
+      await routeAfterSignIn();
+      setLoading(null);
     } catch (err) {
       alert('Something went wrong', err.message);
+      setLoading(null);
+    }
+  }
+
+  // JIT signup, fired from the "Create new account" button in the
+  // Couldn't-sign-you-in alert. Mirrors sendMagicLink's relay machinery
+  // so the confirmation email link round-trips back to the running app
+  // via Supabase Realtime instead of dead-ending on a web page.
+  async function runSignUp() {
+    setLoading('password');
+    const nonce = generateRelayNonce();
+    const roleIntent = deriveRoleIntent(context);
+    const metadata = roleIntent ? { role: roleIntent } : {};
+
+    let signUpResult;
+    try {
+      signUpResult = await signUp(email, password, metadata, nonce);
+    } catch (signUpErr) {
+      alert("Couldn't create account", signUpErr.message);
+      setLoading(null);
+      return;
+    }
+
+    // Supabase email-enumeration protection: when the email already
+    // exists, signUp returns no error AND no session AND empty
+    // identities. Detect that and tell the user honestly that the
+    // account already exists — don't pretend to send an email.
+    const identitiesLen = signUpResult?.user?.identities?.length ?? 0;
+    if (!signUpResult?.session && identitiesLen === 0) {
+      alert(
+        'Account exists',
+        `That email is already registered, but the password didn’t match. Try a different password, or use Magic Link to sign in without one.`
+      );
+      setLoading(null);
+      return;
+    }
+
+    // Auto-confirm enabled (rare, dev-only) — same success path as signIn.
+    if (signUpResult?.session) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetState();
+      onClose?.();
+      await routeAfterSignIn();
+      setLoading(null);
+      return;
+    }
+
+    // Real new-user pending confirmation. Stash the nonce + return-path
+    // and subscribe to the relay channel so the user's email-link tap
+    // delivers tokens to the running app. Keep the sheet mounted in the
+    // sentBox panel — closing it would kill the subscription.
+    AsyncStorage.setItem('pending_signup_nonce', nonce).catch(() => {});
+    const returnTo = getReturnPath();
+    if (returnTo) AsyncStorage.setItem('auth_return_to', returnTo).catch(() => {});
+
+    relayCleanup.current?.();
+    relayCleanup.current = subscribeMagicLinkRelay(nonce, (dest) => {
+      resetState();
+      onClose?.();
+      router.replace(dest);
+    });
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPendingNonce(nonce);
+    setPendingState('signup');
+    setLoading(null);
+  }
+
+  // Re-send the email for whichever pending flow is active. Magic-link
+  // goes through signInWithMagicLink (re-creates the relay nonce server-
+  // side); password-signup goes through supabase.auth.resend with the
+  // existing nonce so the link still routes back to the same channel.
+  async function handleResend() {
+    if (!email && !magicEmail) return;
+    setLoading('resend');
+    try {
+      if (pendingState === 'magic') {
+        // Magic-link resend uses the same nonce so the existing relay
+        // subscription stays valid for the new email.
+        const roleIntent = deriveRoleIntent(context);
+        await signInWithMagicLink(magicEmail || email, pendingNonce, roleIntent);
+      } else if (pendingState === 'signup') {
+        // Password-signup resend doesn't generate a new token — Supabase's
+        // resend re-sends the existing confirmation. The relay nonce
+        // baked into the original emailRedirectTo URL stays valid.
+        await supabase.auth.resend({ type: 'signup', email });
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      alert("Couldn't resend", err.message);
     }
     setLoading(null);
   }
@@ -358,9 +458,9 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     setMagicEmail('');
     setShowMagicPrompt(false);
     setShowPassword(false);
-    setMagicSent(false);
+    setPendingState(null);
+    setPendingNonce(null);
     setLoading(null);
-    setMode('signin');
     relayCleanup.current?.();
     relayCleanup.current = null;
   }
@@ -389,32 +489,13 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
               >
                 <Text style={styles.subtitle}>{contextCopy.subtitle}</Text>
 
-                {!magicSent ? (
+                {pendingState === null ? (
                   <>
-                    {/* ── Social buttons ──────────────── */}
-                    <TouchableOpacity style={styles.googleButton} onPress={handleGoogle} disabled={!!loading} activeOpacity={0.8}>
-                      {loading === 'google' ? <ActivityIndicator color={COLORS.socialGoogle} size="small" /> : <Ionicons name="logo-google" size={18} color={COLORS.socialGoogle} />}
-                      <Text style={styles.googleText}>Continue with Google</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.facebookButton} onPress={handleFacebook} disabled={!!loading} activeOpacity={0.8}>
-                      {loading === 'facebook' ? <ActivityIndicator color={COLORS.white} size="small" /> : <Ionicons name="logo-facebook" size={18} color={COLORS.white} />}
-                      <Text style={styles.facebookText}>Continue with Facebook</Text>
-                    </TouchableOpacity>
-
-                    {Platform.OS === 'ios' && (
-                      <TouchableOpacity style={styles.appleButton} onPress={handleApple} disabled={!!loading} activeOpacity={0.8}>
-                        {loading === 'apple' ? <ActivityIndicator color={COLORS.white} size="small" /> : <Ionicons name="logo-apple" size={18} color={COLORS.white} />}
-                        <Text style={styles.appleText}>Continue with Apple</Text>
-                      </TouchableOpacity>
-                    )}
-
-                    {/* ── Divider ─────────────────────── */}
-                    <View style={styles.divider}>
-                      <View style={styles.dividerLine} />
-                      <Text style={styles.dividerText}>or sign in with email</Text>
-                      <View style={styles.dividerLine} />
-                    </View>
+                    {/* OAuth (Google / Facebook / Apple) buttons removed
+                        2026-04-27 alongside the L1 redesign. They will
+                        come back post-launch once the providers are
+                        wired in Supabase. Until then the form-only flow
+                        is the canonical entry. */}
 
                     {/* ── Email + Password fields ─────── */}
                     <TextInput
@@ -433,7 +514,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
                         style={styles.passwordInput}
                         value={password}
                         onChangeText={setPassword}
-                        placeholder="Password (or Magic Link)"
+                        placeholder="Password (or use Magic Link)"
                         placeholderTextColor={COLORS.slate}
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
@@ -452,7 +533,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
                       </TouchableOpacity>
                     </View>
 
-                    {/* ── Dual action buttons ────────── */}
+                    {/* ── Dual action buttons: Continue + Magic Link ─── */}
                     <View style={styles.dualButtons}>
                       <TouchableOpacity
                         testID="auth-sheet-sign-in-cta"
@@ -465,10 +546,8 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
                           <ActivityIndicator color={COLORS.white} size="small" />
                         ) : (
                           <>
-                            <Ionicons name={mode === 'signin' ? 'key' : 'person-add'} size={14} color={COLORS.white} />
-                            <Text style={styles.passwordText}>
-                              {mode === 'signin' ? 'Sign In' : 'Create Account'}
-                            </Text>
+                            <Ionicons name="arrow-forward-circle" size={16} color={COLORS.white} />
+                            <Text style={styles.passwordText}>Continue</Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -491,44 +570,39 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
                         )}
                       </TouchableOpacity>
                     </View>
-
-                    {/* Sign-in / Create-account mode toggle. Lives just below the
-                        password buttons so it's discoverable without competing
-                        with the primary CTA. */}
-                    <TouchableOpacity
-                      testID="auth-sheet-mode-toggle"
-                      onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-                      style={styles.modeToggle}
-                      hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.modeToggleText}>
-                        {mode === 'signin' ? 'New here? ' : 'Have an account? '}
-                        <Text style={styles.modeToggleLink}>
-                          {mode === 'signin' ? 'Create an account' : 'Sign in'}
-                        </Text>
-                      </Text>
-                    </TouchableOpacity>
                   </>
                 ) : (
-                  <View style={styles.sentBox}>
+                  // sentBox: shown after either a magic-link send OR a
+                  // password-signup confirmation send. Sheet stays mounted
+                  // here so the relay subscription stays alive — closing
+                  // the sheet prematurely strands the user on a dead-end
+                  // web page when their email link tap can't reach the
+                  // running app.
+                  <View style={styles.sentBox} testID="auth-sheet-sent-box">
                     <Ionicons name="checkmark-circle" size={44} color={COLORS.success} />
                     <Text style={styles.sentTitle}>Check your email</Text>
                     <Text style={styles.sentText}>
-                      We sent a sign-in link to {email}. Tap it to continue.
+                      {pendingState === 'signup'
+                        ? `We sent a confirmation link to ${email}. Tap it to finish creating your account.`
+                        : `We sent a sign-in link to ${email}. Tap it to continue.`}
                     </Text>
-                    <TouchableOpacity onPress={() => setMagicSent(false)} style={styles.resendLink}>
-                      <Text style={styles.resendText}>Resend link</Text>
+                    <TouchableOpacity
+                      onPress={handleResend}
+                      style={styles.resendLink}
+                      disabled={loading === 'resend'}
+                      testID="auth-sheet-resend"
+                    >
+                      <Text style={styles.resendText}>
+                        {loading === 'resend' ? 'Resending…' : 'Resend link'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
-                {/* Transfer message */}
-                {padpoints > 0 && (
-                  <Text style={styles.transferText}>
-                    Your {padpoints} PadPoints & saved homes transfer automatically.
-                  </Text>
-                )}
+                {/* Anon-to-authenticated PadPoints/saved-homes transfer copy
+                    removed 2026-04-27: the actual transfer mechanism was
+                    never built, so the promise was a lie. Filed as a
+                    follow-up task. Restore copy once transfer ships. */}
 
                 {/* Skip */}
                 {contextCopy.dismissible && (

@@ -1,38 +1,37 @@
-# Smoke: L1 auth bottom sheet — sign-in vs create-account split
+# Smoke: L1 password flow — implicit signin-first + JIT signup CTA.
 #
-# Verifies the fix for the silent-signup bug: previously, tapping "Sign In"
-# in the L1 sheet with a non-existent email would silently call signUp(),
-# create a confirm-pending account behind the user's back, clear the form
-# fields, and leave the sheet visible with no feedback. The fix:
-#   1. handlePassword no longer auto-falls-through to signUp on Invalid login
-#   2. A "New here? Create an account" toggle exposes explicit signup
-#   3. Successful signup with confirmation pending fires a "Check your
-#      email" alert and pre-flips back to signin mode
+# This file replaced the prior toggle-based smoke when the L1 sheet was
+# rebuilt 2026-04-27 to drop the signin/signup mode toggle entirely.
+# The new flow:
+#   1. User types email + password, taps Continue
+#   2. App calls signIn(email, password) first
+#   3a. Success → routeAfterSignIn → resolver → done
+#   3b. Invalid login → 2-button alert: "Try again" | "Create new account"
+#   3c. Email not confirmed → real supabase.auth.resend() + honest alert
+#   4. User taps "Create new account" → runSignUp() → sheet transitions
+#      into the sentBox panel (testID auth-sheet-sent-box) with mode-aware
+#      "Check your email" copy. Sheet stays mounted so the relay
+#      subscription survives the user's email-link tap.
 #
 # What this smoke proves end-to-end:
-#   1. Mode toggle is visible and switches the primary CTA label between
-#      "Sign In" and "Create Account"
-#   2. Sign In with a never-registered email fires "Couldn't sign you in"
-#      alert (NOT silent close, NOT auto-signup)
-#   3. Toggling to Create Account changes the primary CTA to "Create
-#      Account"
-#   4. Create Account with a fresh email fires the "Check your email"
-#      alert AND creates the user in Supabase auth (verified via REST
-#      lookup before cleanup)
-#   5. After dismissing the "Check your email" alert, mode auto-flips
-#      back to signin and the password field is cleared
+#   1. No mode toggle in the L1 sheet (auth-sheet-mode-toggle gone)
+#   2. No OAuth buttons in the L1 sheet (Google/Facebook/Apple hidden)
+#   3. Continue with a never-registered email triggers the
+#      "Couldn't sign you in" alert with the JIT signup CTA visible
+#   4. Tapping "Create new account" in the alert calls signUp and the
+#      sheet transitions into the sentBox panel (auth-sheet-sent-box)
+#   5. Supabase auth actually creates the user (verified via REST lookup)
 #
 # Precondition:
 #   - Use the wrapper script run_l1_signin_signup_split.sh which wipes
 #     app data + re-binds the dev client to Metro before invoking
 #     maestro. Bare `bash run.sh` will fail on auth state from any
-#     prior smoke (same lesson learned for renter_first_time_onboarding).
+#     prior smoke.
 #
 # Cleanup:
-#   - The seeded sign-in email is fully fictitious (test+nope@test...)
 #   - The created sign-up email is hard-deleted via Supabase admin
 #
-# Last verified: 2026-04-26 against dev client on S10 (RF8R51L94GR).
+# Last verified: 2026-04-27 against dev client on S10 (RF8R51L94GR).
 appId: com.padmagnet.app
 ---
 
@@ -40,17 +39,13 @@ appId: com.padmagnet.app
 #    in output.signupEmail so cleanup at the end can find + delete it.
 - runScript: ../../helpers/seed_signup_email.js
 
-# 2. Cold launch — the wrapper has already wiped app data and re-bound
-#    the dev client; we just need the app to render the welcome splash.
+# 2. Cold launch — wrapper has wiped app data + re-bound the dev client.
 - launchApp:
     stopApp: true
 - waitForAnimationToEnd:
     timeout: 6000
 
-# 2a. Fallback for the dev-menu Continue dialog — if the wrapper's blind
-#     fixed-coord tap missed (uiautomator dump hangs on this Compose
-#     surface so we can't poll), Maestro can still see "Continue" via
-#     a11y and dismiss it. No-op if the dialog is already gone.
+# 2a. Fallback for the dev-menu Continue dialog if the wrapper missed.
 - runFlow:
     when:
       visible: "Continue"
@@ -61,8 +56,7 @@ appId: com.padmagnet.app
 
 - assertVisible: "PadMagnet"
 
-# 3. Tap "Start Swiping Rentals" → anon renter session → swipe deck.
-#    The CTA might be below the fold; one swipe brings it up.
+# 3. Anon renter → swipe deck.
 - swipe:
     start: 50%, 75%
     end: 50%, 25%
@@ -73,7 +67,7 @@ appId: com.padmagnet.app
 - waitForAnimationToEnd:
     timeout: 6000
 
-# 4. Navigate to Messages tab → L1 sheet appears for anon users.
+# 4. Messages tab → L1 sheet for anon session.
 - tapOn: "Messages"
 - waitForAnimationToEnd:
     timeout: 3000
@@ -81,88 +75,65 @@ appId: com.padmagnet.app
     id: "auth-sheet-sign-in-cta"
 
 # ────────────────────────────────────────────────────────────────────
-# Test 1: Sign In with non-existent email → "Couldn't sign you in"
+# Structural assertions: toggle + OAuth removed
 # ────────────────────────────────────────────────────────────────────
 
-# 5. Verify mode toggle is visible and starts in signin mode (CTA label
-#    not directly assertable — RN nests the icon + Text — so we use
-#    the toggle's prompt text "New here?" as proof of signin mode.
-- assertVisible:
+# 5. Mode toggle MUST NOT be present anymore (was auth-sheet-mode-toggle).
+#    If this assertion fails, someone reintroduced the toggle.
+- assertNotVisible:
     id: "auth-sheet-mode-toggle"
 
-# 6. Type a never-registered email + a random password
+# 6. OAuth buttons MUST NOT be present (Google/Facebook/Apple hidden
+#    until post-launch wiring). Asserting on label text since those
+#    buttons don't have testIDs today.
+- assertNotVisible: "Continue with Google"
+- assertNotVisible: "Continue with Facebook"
+
+# ────────────────────────────────────────────────────────────────────
+# JIT signup path: signIn fails → alert → tap Create new account →
+# signUp runs → sentBox panel takes over the sheet
+# ────────────────────────────────────────────────────────────────────
+
+# 7. Type the seeded credentials. hideKeyboard between because the
+#    seeded email is long enough to push the password input below
+#    the keyboard fold on S10.
 - tapOn:
     id: "auth-sheet-email-input"
-- inputText: "test-nope-${output.signupEmail.timestamp}@test.padmagnet.com"
+- inputText: ${output.signupEmail.email}
+- hideKeyboard
 - tapOn:
     id: "auth-sheet-password-input"
-- inputText: "WrongPassword123!"
+- inputText: ${output.signupEmail.password}
 - hideKeyboard
 
-# 7. Tap Sign In — must NOT silently close. Must show alert.
+# 8. Tap Continue → signIn fails (no account yet) → JIT alert.
 - tapOn:
     id: "auth-sheet-sign-in-cta"
 - waitForAnimationToEnd:
     timeout: 4000
+
+# 9. The "Couldn't sign you in" alert must show with both action labels
+#    visible (Try again + Create new account). Asserting the alert
+#    title + the two button labels.
 - assertVisible: "Couldn't sign you in"
-- tapOn: "OK"
-- waitForAnimationToEnd:
-    timeout: 1500
+- assertVisible: "Try again"
+- assertVisible: "Create new account"
 
-# 8. Sheet should still be open (the failed sign-in did not close it)
+# 10. Tap "Create new account" → runSignUp fires.
+- tapOn: "Create new account"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 11. The sheet must transition into the sentBox panel — proves
+#     signUp succeeded with confirmation-pending AND the sheet stayed
+#     mounted (so the relay subscription is alive).
 - assertVisible:
-    id: "auth-sheet-sign-in-cta"
-
-# ────────────────────────────────────────────────────────────────────
-# Test 2: Toggle to Create Account → CTA flips, signup succeeds with
-#         "Check your email" alert
-# ────────────────────────────────────────────────────────────────────
-
-# 9. Tap mode toggle → flip to signup. The CTA's icon + label re-render.
-- tapOn:
-    id: "auth-sheet-mode-toggle"
-- waitForAnimationToEnd:
-    timeout: 1500
-
-# 10. Re-target the email field (it should still hold the prior nope
-#     value — clear by tapping + selecting all is fragile, easier to
-#     just rely on Maestro's eraseText then inputText, but we'll just
-#     replace via tap-clear-input pattern)
-- tapOn:
-    id: "auth-sheet-email-input"
-- eraseText: 60
-- inputText: ${output.signupEmail.email}
-- tapOn:
-    id: "auth-sheet-password-input"
-- eraseText: 30
-- inputText: ${output.signupEmail.password}
-- hideKeyboard
-
-# 11. Tap the now-relabeled CTA (still same testID — it's the same
-#     button; only the visual label changed)
-- tapOn:
-    id: "auth-sheet-sign-in-cta"
-- waitForAnimationToEnd:
-    timeout: 6000
-
-# 12. "Check your email" alert is the proof that signUp succeeded with
-#     a confirmation-pending session. The alert message contains the
-#     submitted email; we just assert the title to keep this robust
-#     against copy tweaks.
+    id: "auth-sheet-sent-box"
 - assertVisible: "Check your email"
-- tapOn: "OK"
-- waitForAnimationToEnd:
-    timeout: 2000
 
-# 13. After dismissing, the sheet should still be open AND mode should
-#     have flipped back to signin (per code: setMode('signin') on
-#     successful signup). Sheet still open is implicit — testID present.
-- assertVisible:
-    id: "auth-sheet-sign-in-cta"
-
-# 14. Verify the user actually exists in Supabase auth (proves signUp
-#     wasn't a no-op). Looks up by email and asserts a user id.
+# 12. Verify the user actually exists in Supabase auth (proves signUp
+#     wasn't a no-op).
 - runScript: ../../helpers/verify_signup_user_exists.js
 
-# 15. Cleanup — delete the created auth user so the email is reusable
+# 13. Cleanup — delete the created auth user so the email is reusable.
 - runScript: ../../helpers/cleanup_signup_email.js

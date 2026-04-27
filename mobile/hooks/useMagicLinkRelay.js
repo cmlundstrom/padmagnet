@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveUserRole, getUserRole } from '../lib/storage';
+import { resolvePostLoginDestination } from '../lib/routing';
 
 /**
  * Subscribes to the magic_link_relay table for a specific nonce.
@@ -41,20 +42,17 @@ export function subscribeMagicLinkRelay(nonce, onComplete) {
 
         if (!accessToken || !refreshToken) return;
 
-        // Determine destination
-        let dest;
+        // Pull intended destination (may be null if no L1 context was stashed)
+        let intendedDest;
         try {
-          dest = await AsyncStorage.getItem('auth_return_to');
-          if (dest) await AsyncStorage.removeItem('auth_return_to');
+          intendedDest = await AsyncStorage.getItem('auth_return_to');
+          if (intendedDest) await AsyncStorage.removeItem('auth_return_to');
         } catch {}
 
-        if (!dest) {
-          const role = await getUserRole();
-          dest = role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe';
-        }
-
-        // Set owner role if returning to an owner path
-        if (dest.startsWith('/(owner)')) {
+        // Set owner role + sync to profile if returning to an owner path.
+        // (Done before setSession so the new session is immediately routed
+        // through the correct tab group.)
+        if (intendedDest?.startsWith('/(owner)')) {
           await saveUserRole('owner');
           try {
             const userId = JSON.parse(atob(accessToken.split('.')[1])).sub;
@@ -85,8 +83,24 @@ export function subscribeMagicLinkRelay(nonce, onComplete) {
           console.error('[MagicRelay] setSession error:', err.message);
         }
 
-        // Cleanup
+        // Route through the centralized resolver so renters with no
+        // display_name get the firstTime Edit Profile interposition. The
+        // prior code path navigated to intendedDest directly and silently
+        // bypassed the gate — fixed 2026-04-27 alongside the L1 redesign.
+        let dest;
+        try {
+          const { data: { session: liveSession } } = await supabase.auth.getSession();
+          dest = await resolvePostLoginDestination(liveSession, undefined, intendedDest);
+        } catch (err) {
+          console.warn('[MagicRelay] resolvePostLoginDestination failed, using fallback:', err.message);
+          const role = await getUserRole();
+          dest = intendedDest || (role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe');
+        }
+
+        // Cleanup — both keys, since the same relay channel handles both
+        // magic-link and password-signup confirmation flows.
         await AsyncStorage.removeItem('magic_link_nonce');
+        await AsyncStorage.removeItem('pending_signup_nonce');
         channel.unsubscribe();
         clearTimeout(expiry);
 
@@ -102,12 +116,17 @@ export function subscribeMagicLinkRelay(nonce, onComplete) {
       console.log('[MagicRelay] Subscription status:', status);
     });
 
-  // Auto-unsubscribe after 5 minutes (matches relay table TTL)
+  // Auto-unsubscribe after 30 minutes. Extended from 5 minutes (2026-04-27)
+  // because real users routinely take longer than 5 to check email, and the
+  // shorter window stranded them on a dead-end web page when the relay had
+  // already given up. Cold-boot re-subscribe in AuthProvider covers the
+  // killed-app case beyond this window.
   const expiry = setTimeout(() => {
     console.log('[MagicRelay] Subscription expired');
     channel.unsubscribe();
     AsyncStorage.removeItem('magic_link_nonce');
-  }, 5 * 60 * 1000);
+    AsyncStorage.removeItem('pending_signup_nonce');
+  }, 30 * 60 * 1000);
 
   return () => {
     clearTimeout(expiry);

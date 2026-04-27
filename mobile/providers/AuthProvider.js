@@ -1,8 +1,10 @@
 import { createContext, useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { getUserRole, saveUserRole, clearUserRole } from '../lib/storage';
 import { clearTokenCache, apiFetch } from '../lib/api';
+import { subscribeMagicLinkRelay } from '../hooks/useMagicLinkRelay';
 
 export const AuthContext = createContext({
   session: null,
@@ -119,6 +121,29 @@ export function AuthProvider({ children }) {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Cold-boot relay re-subscribe. If the user kicked off a magic-link or
+  // password-signup flow in a previous app session, the in-memory channel
+  // subscription died with the app. AsyncStorage persists the nonce so we
+  // can re-attach on launch and still catch the tokens when the user taps
+  // the email link. 30-min relay TTL bounds how long the table row lives;
+  // beyond that this no-ops cleanly. (Added 2026-04-27 alongside L1 redesign.)
+  useEffect(() => {
+    let cleanup;
+    (async () => {
+      try {
+        const signupNonce = await AsyncStorage.getItem('pending_signup_nonce');
+        const magicNonce = await AsyncStorage.getItem('magic_link_nonce');
+        const nonce = signupNonce || magicNonce;
+        if (!nonce) return;
+        console.log('[Auth] Cold-boot re-subscribe to relay nonce:', nonce.substring(0, 8));
+        cleanup = subscribeMagicLinkRelay(nonce);
+      } catch (err) {
+        console.warn('[Auth] Cold-boot relay re-subscribe failed:', err.message);
+      }
+    })();
+    return () => cleanup?.();
   }, []);
 
   // Real-time admin events: session invalidation + role changes

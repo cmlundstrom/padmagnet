@@ -12,7 +12,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Pressable, Modal,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -131,37 +131,56 @@ export default function EditProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* Header — close button hidden in first-time mode so the user
-              can only proceed by completing the required field. */}
-          <View style={styles.header}>
-            {isFirstTime ? (
-              <View style={styles.headerBtn} />
-            ) : (
-              <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-                <Ionicons name="close" size={22} color={COLORS.text} />
-              </TouchableOpacity>
-            )}
-            <Text style={styles.title}>
-              {isFirstTime ? 'Last Step' : 'Edit Profile'}
-            </Text>
-            <TouchableOpacity testID="edit-profile-save-header" onPress={handleSave} disabled={saving} style={styles.headerBtn}>
-              <Text style={[styles.saveText, saving && { color: COLORS.slate }]}>
-                {saving ? 'Saving...' : 'Save'}
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, isFirstTime && styles.firstTimeScrollContent]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {isFirstTime ? (
+            // First-time brand band: anchors the screen with the PadMagnet
+            // mark and a subtle warm gradient that sets it apart from
+            // settings utility chrome. No top-right Save link in this
+            // mode — the bottom magnet CTA is the single action.
+            <LinearGradient
+              colors={['rgba(232,96,60,0.18)', 'rgba(35,65,112,0.55)', 'rgba(26,51,88,0)']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.firstTimeBand}
+            >
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.firstTimeBrandLogo}
+                resizeMode="contain"
+              />
+              <Text style={[styles.title, styles.firstTimeTitle]}>Last Step</Text>
+              <Text style={[styles.introText, styles.firstTimeIntroText]}>
+                You’re in. What name should owners see? We’ll take it from there.
               </Text>
-            </TouchableOpacity>
-          </View>
+            </LinearGradient>
+          ) : (
+            <>
+              <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+                  <Ionicons name="close" size={22} color={COLORS.text} />
+                </TouchableOpacity>
+                <Text style={styles.title}>Edit Profile</Text>
+                <TouchableOpacity testID="edit-profile-save-header" onPress={handleSave} disabled={saving} style={styles.headerBtn}>
+                  <Text style={[styles.saveText, saving && { color: COLORS.slate }]}>
+                    {saving ? 'Saving...' : 'Save'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-          <Text style={styles.introText}>
-            {isFirstTime
-              ? 'Welcome to PadMagnet. Tell owners what to call you, then we’ll continue.'
-              : 'Update your display name and phone. To change your account email, use Change Email in Settings.'}
-          </Text>
+              <Text style={styles.introText}>
+                Update your display name and phone. To change your account email, use Change Email in Settings.
+              </Text>
+            </>
+          )}
 
-          {/* Display Name — required. The placeholder is the punchy hook
-              ("What should owners call you?") and the helper text below
-              explains why frivolous handles get ignored by owners. */}
-          <View style={styles.fieldCard}>
+          {/* Display Name — required. In firstTime mode the field renders
+              flat (no card chrome) so the brand band carries the visual
+              weight; in normal Edit Profile mode it stays carded so it
+              fits the rest of the settings UI. */}
+          <View style={isFirstTime ? styles.firstTimeField : styles.fieldCard}>
             <View style={styles.fieldHeader}>
               <View style={[styles.fieldIcon, { backgroundColor: COLORS.accent + '18' }]}>
                 <Ionicons name="person-outline" size={16} color={COLORS.accent} />
@@ -172,7 +191,7 @@ export default function EditProfileScreen() {
             </View>
             <TextInput
               testID="edit-profile-name-input"
-              style={styles.input}
+              style={[styles.input, isFirstTime && styles.firstTimeInput]}
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="What should owners call you?"
@@ -187,7 +206,7 @@ export default function EditProfileScreen() {
 
           {/* Phone — optional. Info icon in the label opens a tooltip
               modal explaining why providing it unlocks more value. */}
-          <View style={styles.fieldCard}>
+          <View style={isFirstTime ? styles.firstTimeField : styles.fieldCard}>
             <View style={styles.fieldHeader}>
               <View style={[styles.fieldIcon, { backgroundColor: COLORS.success + '18' }]}>
                 <Ionicons name="call-outline" size={16} color={COLORS.success} />
@@ -204,7 +223,7 @@ export default function EditProfileScreen() {
             </View>
             <TextInput
               testID="edit-profile-phone-input"
-              style={styles.input}
+              style={[styles.input, isFirstTime && styles.firstTimeInput]}
               value={phone}
               onChangeText={v => setPhone(formatPhone(v))}
               placeholder="(555) 123-4567"
@@ -217,16 +236,29 @@ export default function EditProfileScreen() {
             </Text>
           </View>
 
-          {/* Bottom Save Button */}
-          <Pressable testID="edit-profile-save-bottom" onPress={handleSave} disabled={saving} style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}>
+          {/* Bottom Save CTA. firstTime gets a beefier button (more padding,
+              larger label, magnet icon) since it's the only action on the
+              screen. Normal Edit Profile keeps the existing checkmark CTA. */}
+          <Pressable
+            testID="edit-profile-save-bottom"
+            onPress={handleSave}
+            disabled={saving}
+            style={({ pressed }) => [pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+          >
             <LinearGradient
               colors={[COLORS.logoOrange, '#D14E2F']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.bottomSaveBtn}
+              style={[styles.bottomSaveBtn, isFirstTime && styles.firstTimeBottomSaveBtn]}
             >
-              <Ionicons name="checkmark-circle" size={18} color={COLORS.white} />
-              <Text style={styles.bottomSaveText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+              <Ionicons
+                name={isFirstTime ? 'magnet' : 'checkmark-circle'}
+                size={isFirstTime ? 22 : 18}
+                color={COLORS.white}
+              />
+              <Text style={[styles.bottomSaveText, isFirstTime && styles.firstTimeBottomSaveText]}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Text>
             </LinearGradient>
           </Pressable>
 
@@ -308,6 +340,28 @@ const styles = StyleSheet.create({
     padding: LAYOUT.padding.md,
     paddingBottom: 360,
   },
+  // First-time mode pulls the brand band tight to the safe-area top
+  // and zeroes the sides so the gradient runs edge-to-edge.
+  firstTimeScrollContent: {
+    padding: 0,
+    paddingBottom: 360,
+  },
+  // Brand band: warm orange glow at the top fading into navy. Carries
+  // the logo + "Last Step" + intro copy so the whole header reads as
+  // a single anchored unit instead of a settings-screen header.
+  firstTimeBand: {
+    paddingTop: LAYOUT.padding.lg,
+    paddingBottom: LAYOUT.padding.xl,
+    paddingHorizontal: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.lg,
+    alignItems: 'center',
+  },
+  firstTimeBrandLogo: {
+    width: 72,
+    height: 72,
+    borderRadius: LAYOUT.radius.md,
+    marginBottom: LAYOUT.padding.md,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -323,6 +377,18 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     color: COLORS.text,
   },
+  // First-time mode: this is the renter's first authenticated screen,
+  // so the header carries more visual weight than a settings utility.
+  // Bump size + add letter-spacing + a subtle text-shadow for crispness
+  // against the navy backdrop. Brand accent on a corner mark would pop
+  // here too — leaving room for follow-up polish per Chris 2026-04-27.
+  firstTimeTitle: {
+    fontSize: FONT_SIZES['2xl'],
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   saveText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.md,
@@ -337,6 +403,19 @@ const styles = StyleSheet.create({
     marginBottom: LAYOUT.padding.lg,
     lineHeight: 20,
   },
+  // First-time intro: the new copy is conversational ("You're in. What
+  // name should owners see?"), so it deserves brighter color and a touch
+  // more weight than the muted settings-mode subtitle. Pulls into
+  // primary text color, ups size to md, and bumps line-height for
+  // breathing room.
+  firstTimeIntroText: {
+    fontFamily: FONTS.body.medium,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    lineHeight: 24,
+    paddingHorizontal: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.xl,
+  },
   fieldCard: {
     backgroundColor: COLORS.surface,
     borderRadius: LAYOUT.radius.lg,
@@ -349,6 +428,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
+  },
+  // First-time fields render flat — no surface bg, no border, no shadow.
+  // Drops the double-card stacking and lets the brand band carry the
+  // visual weight. The colored field icon stays so the affordance is
+  // still readable.
+  firstTimeField: {
+    paddingHorizontal: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.lg,
+  },
+  // First-time input is taller + has a softer surface tint so it pops
+  // off the flat background without the heavy bordered-card chrome.
+  firstTimeInput: {
+    backgroundColor: 'rgba(35,65,112,0.55)',
+    borderColor: 'rgba(255,255,255,0.12)',
+    paddingVertical: 16,
+    fontSize: FONT_SIZES.md,
   },
   fieldHeader: {
     flexDirection: 'row',
@@ -407,10 +502,28 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  // First-time CTA: bigger touch target, deeper glow, larger label.
+  // It's the only action on the screen (no top-right Save link), so it
+  // earns the visual weight. Magnet icon swaps in for the checkmark
+  // via the JSX so the action ties back to the brand.
+  firstTimeBottomSaveBtn: {
+    paddingVertical: 18,
+    marginHorizontal: LAYOUT.padding.md,
+    marginTop: LAYOUT.padding.sm,
+    borderRadius: LAYOUT.radius.xl,
+    gap: 10,
+    shadowOpacity: 0.55,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   bottomSaveText: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
+  },
+  firstTimeBottomSaveText: {
+    fontSize: FONT_SIZES.lg,
+    letterSpacing: 0.3,
   },
   changeEmailLink: {
     flexDirection: 'row',

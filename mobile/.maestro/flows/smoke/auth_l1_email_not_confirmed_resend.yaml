@@ -1,0 +1,95 @@
+# Smoke: L1 password flow — sign-in fails with email_not_confirmed →
+# real supabase.auth.resend() + honest "Almost there" alert (B2 fix).
+#
+# Bug being prevented: prior code claimed "We sent a confirmation link
+# to {email}" but never actually called resend. Users who tapped Sign In
+# on an unconfirmed account got a misleading alert and waited forever
+# for an email that wasn't sent.
+#
+# The fix: in handlePassword, when signIn returns "Email not confirmed"
+# we call supabase.auth.resend({ type: 'signup', email }) and surface
+# "Almost there: We just resent your confirmation link to {email}".
+#
+# What this smoke proves end-to-end:
+#   1. Signing in with an unconfirmed email + correct PW triggers the
+#      email_not_confirmed error path
+#   2. The "Almost there" alert is shown (NOT "Confirm your email" or
+#      anything resembling the old misleading copy)
+#   3. The smoke does not assert resend was actually called server-side
+#      (would need REST polling for confirmation_sent_at to advance,
+#      brittle on Supabase's side). Code-path coverage is sufficient
+#      proof for this smoke; manual round-trip with a real inbox
+#      verifies the email actually arrives.
+#
+# Precondition:
+#   - Use the wrapper run_l1_email_not_confirmed_resend.sh which seeds
+#     an unconfirmed user via REST.
+#
+# Cleanup:
+#   - The seeded user is hard-deleted via Supabase admin API.
+#
+# Last verified: 2026-04-27 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 3. Messages tab → L1 sheet.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# 4. Type the unconfirmed email + correct password.
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${PENDING_USER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${PENDING_USER_PW}
+- hideKeyboard
+
+# 5. Tap Continue → signIn fails with "Email not confirmed" → resend
+#    code path fires → "Almost there" alert.
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 6. Proof: "Almost there" alert is visible. The prior buggy code path
+#    used "Confirm your email" with misleading "we sent" language, so
+#    the new copy is the load-bearing assertion.
+- assertVisible: "Almost there"
+
+# 7. Cleanup — hard-delete the seeded user.
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 1500
+- runScript: ../../helpers/cleanup_pending_user.js

@@ -789,7 +789,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           onDismissComplete={() => { setShowL1(false); AsyncStorage.setItem(STORAGE_KEY_L1, '1'); }}
         >
           <Image
-            source={require('../../assets/images/padmagnet-icon-512-dark.png')}
+            source={require('../../assets/icon.png')}
             style={styles.l1Icon}
             contentFit="contain"
           />

@@ -11,13 +11,26 @@ export async function signIn(email, password) {
   return data;
 }
 
-export async function signUp(email, password, metadata = {}) {
+// signUp creates a new email/password account. The caller passes:
+//   - email + password
+//   - metadata: usually { role: 'tenant'|'owner' } so handle_new_user
+//     trigger sets profiles.role correctly. Default 'tenant' if absent.
+//   - nonce (optional): when provided, the confirmation email's link
+//     redirects to /auth/mobile-callback?nonce=... which relays auth
+//     tokens back to the running mobile app via Supabase Realtime.
+//     This makes password signup match magic-link's smooth one-tap UX.
+//     Without nonce, falls back to the static /email-confirmed page
+//     (used by older callers + email-change confirmations).
+export async function signUp(email, password, metadata = {}, nonce) {
+  const emailRedirectTo = nonce
+    ? `https://padmagnet.com/auth/mobile-callback?nonce=${nonce}`
+    : 'https://padmagnet.com/email-confirmed?type=signup';
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: metadata,
-      emailRedirectTo: 'https://padmagnet.com/email-confirmed?type=signup',
+      emailRedirectTo,
     },
   });
   if (error) throw error;
