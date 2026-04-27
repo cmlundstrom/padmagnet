@@ -32,6 +32,11 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
   const [loading, setLoading] = useState(null);
   const [magicSent, setMagicSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // 'signin' (default) or 'signup' — controls the password-CTA dispatch.
+  // Previously the handler auto-fell-through from signIn → signUp on
+  // "Invalid login", which silently created accounts behind the user's
+  // back AND landed them in a confirm-email limbo with no UI feedback.
+  const [mode, setMode] = useState('signin');
 
   // Cross-device magic link relay cleanup
   const relayCleanup = useRef(null);
@@ -242,23 +247,81 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
   }
 
   async function handlePassword() {
-    if (!email || !password) { alert('Missing Information', 'Please enter your email and password.'); return; }
+    if (!email || !password) {
+      alert('Missing Information', 'Please enter your email and password.');
+      return;
+    }
     setLoading('password');
     try {
-      try {
-        await signIn(email, password);
-      } catch (signInErr) {
-        if (signInErr.message?.includes('Invalid login')) {
-          await signUp(email, password);
-        } else {
-          throw signInErr;
+      if (mode === 'signin') {
+        // Sign-in only. NEVER auto-create an account here — that pattern
+        // silently registered users with the wrong password and dumped
+        // them in confirm-email limbo with no UI feedback.
+        try {
+          await signIn(email, password);
+        } catch (signInErr) {
+          const msg = signInErr.message || '';
+          if (msg.includes('Invalid login')) {
+            alert(
+              "Couldn't sign you in",
+              "That email and password didn't match an existing account. If you signed up with Magic Link, tap Magic Link below. New here? Tap “Create an account” below the form."
+            );
+          } else if (msg.toLowerCase().includes('email not confirmed')) {
+            alert(
+              'Confirm your email',
+              `We sent a confirmation link to ${email}. Tap it to finish setting up your account, then come back to sign in.`
+            );
+          } else {
+            alert('Sign In Failed', msg);
+          }
+          setLoading(null);
+          return;
         }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        resetState();
+        onClose?.();
+      } else {
+        // mode === 'signup' — explicit account creation
+        let signUpResult;
+        try {
+          signUpResult = await signUp(email, password);
+        } catch (signUpErr) {
+          const msg = signUpErr.message || '';
+          if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
+            alert(
+              'Account exists',
+              'An account with that email already exists. Switch to “Sign in” above to log in, or use Magic Link if you forgot your password.'
+            );
+          } else {
+            alert("Couldn't create account", msg);
+          }
+          setLoading(null);
+          return;
+        }
+        // Supabase signUp returns no session when email confirmation is
+        // required (the production setting). Surface this clearly so the
+        // user knows to check their inbox.
+        if (!signUpResult?.session) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          alert(
+            'Check your email',
+            `We sent a confirmation link to ${email}. Tap it to finish creating your account, then come back here to sign in.`
+          );
+          // Pre-fill email for the return trip; reset password + flip back
+          // to signin mode so the user can sign in once they confirm.
+          setPassword('');
+          setMode('signin');
+          setLoading(null);
+          return;
+        }
+        // Auto-confirm enabled or session returned synchronously — same
+        // success path as sign-in.
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        resetState();
+        onClose?.();
       }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      resetState();
-      onClose?.();
     } catch (err) {
-      alert('Sign In Failed', err.message);
+      alert('Something went wrong', err.message);
     }
     setLoading(null);
   }
@@ -271,6 +334,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     setShowPassword(false);
     setMagicSent(false);
     setLoading(null);
+    setMode('signin');
     relayCleanup.current?.();
     relayCleanup.current = null;
   }
@@ -375,8 +439,10 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
                           <ActivityIndicator color={COLORS.white} size="small" />
                         ) : (
                           <>
-                            <Ionicons name="key" size={14} color={COLORS.white} />
-                            <Text style={styles.passwordText}>Sign In</Text>
+                            <Ionicons name={mode === 'signin' ? 'key' : 'person-add'} size={14} color={COLORS.white} />
+                            <Text style={styles.passwordText}>
+                              {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                            </Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -399,6 +465,24 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
                         )}
                       </TouchableOpacity>
                     </View>
+
+                    {/* Sign-in / Create-account mode toggle. Lives just below the
+                        password buttons so it's discoverable without competing
+                        with the primary CTA. */}
+                    <TouchableOpacity
+                      testID="auth-sheet-mode-toggle"
+                      onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                      style={styles.modeToggle}
+                      hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.modeToggleText}>
+                        {mode === 'signin' ? 'New here? ' : 'Have an account? '}
+                        <Text style={styles.modeToggleLink}>
+                          {mode === 'signin' ? 'Create an account' : 'Sign in'}
+                        </Text>
+                      </Text>
+                    </TouchableOpacity>
                   </>
                 ) : (
                   <View style={styles.sentBox}>
@@ -851,6 +935,22 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
     color: '#6B5020',
+  },
+  modeToggle: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  modeToggleText: {
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: '#6B5020',
+    textAlign: 'center',
+  },
+  modeToggleLink: {
+    fontFamily: FONTS.body.bold,
+    color: COLORS.accent,
+    textDecorationLine: 'underline',
   },
 
   // ── Magic link prompt ─────────────────────────────

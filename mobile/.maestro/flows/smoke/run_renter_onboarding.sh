@@ -35,11 +35,15 @@ echo "[2/4] Re-binding dev client to Metro at ${METRO_URL}..."
 adb shell am start -W -a android.intent.action.VIEW -d "$DEV_CLIENT_DEEP_LINK" >/dev/null
 sleep 6
 
-echo "[3/4] Dismissing dev menu first-launch dialog (Continue button)..."
-# The Continue button position on a 1080x2280 device. UIAutomator dump
-# confirmed bounds [418,1937][662,2007] → tap center (540, 1972).
+echo "[3/4] Tapping the dev menu Continue button (fixed coord) twice..."
+# uiautomator dump hangs on this Compose-rendered first-launch dialog,
+# so we use a fixed-coord blind tap. (540, 1972) is the bounds-center on
+# 1080x2280 devices. Tap twice with a small gap — first to dismiss the
+# dialog, second is idempotent if the first already worked.
 adb shell input tap 540 1972 >/dev/null
-sleep 4
+sleep 3
+adb shell input tap 540 1972 >/dev/null
+sleep 5
 
 echo "[4/4] Running Maestro smoke..."
 cd "$SCRIPT_DIR/.."
