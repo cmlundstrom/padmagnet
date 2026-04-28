@@ -4,6 +4,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Pressable, ActivityIndicator, Platform, Keyboard, Dimensions, ScrollView, BackHandler,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -48,6 +49,12 @@ function generateRelayNonce() {
 
 export default function AuthBottomSheet({ visible, onClose, context, padpoints, ownerHasListings = false }) {
   const alert = useAlert();
+  // Bottom inset clears the Android system nav bar (gesture or 3-button)
+  // so the dual-CTA row doesn't get hidden under it. Without this, the
+  // "MESSAGE" L1 surface (and any other context that produces a tall
+  // sheet) bleeds the Continue/Magic Link row below the nav bar and the
+  // user can't tap them. Found 2026-04-27 on S10 listing-detail L1.
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
@@ -487,7 +494,15 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
               <View>
                 <ManilaCard label={contextCopy.tabLabel || 'Sign In'} tabAlign="right">
                   <ScrollView
-                contentContainerStyle={styles.bodyContent}
+                contentContainerStyle={[
+                  styles.bodyContent,
+                  // Top up the body's bottom padding by the system safe-area
+                  // so the dual-button row clears the Android nav bar
+                  // (gesture or 3-button). LAYOUT.padding.md is the
+                  // default bodyContent.paddingBottom; +12 keeps a
+                  // comfortable gap above the nav bar.
+                  { paddingBottom: LAYOUT.padding.md + insets.bottom + 12 },
+                ]}
                 showsVerticalScrollIndicator={false}
                 bounces={false}
                 keyboardShouldPersistTaps="handled"
