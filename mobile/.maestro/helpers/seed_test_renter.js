@@ -3,6 +3,12 @@
 // Exposes: output.seed.renter = { email, password, userId }
 //
 // Note: PadMagnet uses "Renter" in UI but `tenant` in DB — role stays `tenant`.
+//
+// display_name is set explicitly in user_metadata so the handle_new_user
+// trigger (migration 076) populates profiles.display_name and the
+// post-signin firstTime Edit Profile interposition does NOT fire. Smokes
+// that explicitly test the firstTime gate should seed a different
+// fixture (helpers/seed_archived_user.js + the noname wrapper instead).
 
 const timestamp = Date.now();
 const email = 'maestro-renter-' + timestamp + '@test.padmagnet.com';
@@ -20,7 +26,7 @@ const response = http.post(
       email: email,
       password: password,
       email_confirm: true,
-      user_metadata: { role: 'tenant' },
+      user_metadata: { role: 'tenant', display_name: 'Maestro Renter' },
     }),
   }
 );

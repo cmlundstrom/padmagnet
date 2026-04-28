@@ -227,21 +227,26 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     }
   }
 
-  // Shared post-signin nav. The L1 sheet previously just closed itself
-  // and let the user land back on whatever surface triggered it — which
-  // skipped the renter firstTime Edit Profile interposition that was
-  // already wired into auth-callback.js (magic link) and index.js
-  // (cold launch). Calling resolvePostLoginDestination here gives every
-  // L1 entry point parity: users with display_name return to their
-  // intended surface (no flicker — the resolver returns the same path),
-  // users without get sent to /settings/edit-profile?firstTime=true&next=...
-  // so they fill in name/phone before resuming.
+  // Shared post-signin nav. Only navigates when the resolver returns a
+  // firstTime Edit Profile interposition path. For normal sign-ins
+  // (display_name already set) we no-op so the user stays on the
+  // L1 surface that triggered the sheet — important for contexts like
+  // "message" where the user is on a specific listing detail and needs
+  // to remain there to continue with their message intent. The prior
+  // unconditional router.replace yanked them to getReturnPath() and
+  // broke the "stay where you were" UX (caught by the anon_upgrade
+  // smoke 2026-04-27). Magic-link / cross-device cases still navigate
+  // correctly via auth-callback.js + useMagicLinkRelay.js, which call
+  // resolvePostLoginDestination + router.replace unconditionally — they
+  // need to because the user is no longer on the L1 surface.
   async function routeAfterSignIn() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const dest = await resolvePostLoginDestination(session, undefined, getReturnPath());
-      if (dest) router.replace(dest);
+      if (dest && dest.startsWith('/settings/edit-profile')) {
+        router.replace(dest);
+      }
     } catch (err) {
       console.warn('[AuthBottomSheet] routeAfterSignIn failed:', err.message);
     }

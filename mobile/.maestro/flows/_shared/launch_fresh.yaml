@@ -1,10 +1,22 @@
-# Cold-starts PadMagnet with cleared state and waits for the welcome splash.
-# Every smoke flow should start with this subflow for a deterministic baseline.
-# Updated 2026-04-25 to assert the new welcome splash headline + dual CTAs.
+# Cold-starts PadMagnet and waits for the welcome splash.
+# Every smoke flow that needs a fresh anon session should start with this.
+#
+# CONTRACT (updated 2026-04-27): the caller wrapper script is expected to
+# `adb shell pm clear com.padmagnet.app` + re-bind the dev client to
+# Metro before invoking maestro. This subflow no longer uses
+# `clearState: true` because that wipes the dev client's cached Metro
+# URL and lands the app on the dev launcher screen instead of the
+# welcome splash. The wrapper-based pattern is the standard since
+# 2026-04-25 (see run_renter_onboarding.sh, run_l1_signin_signup_split.sh,
+# etc. for examples).
+#
+# Smokes invoked with bare `bash run.sh <yaml>` and no wrapper will
+# inherit auth/state from the prior run. That's intentional — if you
+# need fresh state, write a wrapper.
 appId: com.padmagnet.app
 ---
 - launchApp:
-    clearState: true
+    stopApp: true
 - assertVisible: "Stop Searching."
 - assertVisible: "Start Swiping Rentals"
 - assertVisible: "List Your Property"
