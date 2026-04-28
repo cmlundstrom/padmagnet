@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import DragHandle from '../ui/DragHandle';
 import ManilaCard from '../ui/ManilaCard';
+import UnlockAccountModal from './UnlockAccountModal';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -72,6 +73,11 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
   // button so we can re-fire the relay subscription. Set alongside
   // pendingState whenever we transition into the sentBox panel.
   const [pendingNonce, setPendingNonce] = useState(null);
+  // JIT signup modal — replaces the prior system "Couldn't sign you in"
+  // alert with a brand-art modal. Shown when L1 signin fails Invalid
+  // login (account doesn't exist OR wrong password). User taps "Create
+  // new account" → runSignUp; or "Try again" → dismiss.
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   // Cross-device magic link relay cleanup
   const relayCleanup = useRef(null);
@@ -342,22 +348,16 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
           return;
         }
 
-        // Invalid login → JIT signup CTA. Two-button alert:
-        //   Try again        → dismiss, user retypes their password
-        //   Create account   → explicit signup tap → runSignUp()
-        // The two-button form prevents the prior silent-signup bug
-        // because the user must consciously opt into account creation.
-        alert(
-          "Couldn't sign you in",
-          `We didn't find an existing account for ${email} with that password.`,
-          [
-            { text: 'Try again', style: 'cancel', onPress: () => setLoading(null) },
-            {
-              text: 'Create new account',
-              onPress: () => { runSignUp(); },
-            },
-          ]
-        );
+        // Invalid login → open the UnlockAccountModal (custom brand art
+        // replaced the prior system alert 2026-04-27). Modal exposes:
+        //   - "Create new account" (primary, gradient + magnet icon) →
+        //     runSignUp on tap
+        //   - "Try again" (discrete underlined link) → dismiss, parent
+        //     re-shows the form
+        // The two-button form prevents silent signup because account
+        // creation requires an explicit opt-in tap.
+        setLoading(null);
+        setShowUnlockModal(true);
         return;
       }
 
@@ -375,9 +375,9 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
   }
 
   // JIT signup, fired from the "Create new account" button in the
-  // Couldn't-sign-you-in alert. Mirrors sendMagicLink's relay machinery
-  // so the confirmation email link round-trips back to the running app
-  // via Supabase Realtime instead of dead-ending on a web page.
+  // UnlockAccountModal. Mirrors sendMagicLink's relay machinery so the
+  // confirmation email link round-trips back to the running app via
+  // Supabase Realtime instead of dead-ending on a web page.
   async function runSignUp() {
     setLoading('password');
     const nonce = generateRelayNonce();
@@ -388,6 +388,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     try {
       signUpResult = await signUp(email, password, metadata, nonce);
     } catch (signUpErr) {
+      setShowUnlockModal(false);
       alert("Couldn't create account", signUpErr.message);
       setLoading(null);
       return;
@@ -399,6 +400,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     // account already exists — don't pretend to send an email.
     const identitiesLen = signUpResult?.user?.identities?.length ?? 0;
     if (!signUpResult?.session && identitiesLen === 0) {
+      setShowUnlockModal(false);
       alert(
         'Account exists',
         `That email is already registered, but the password didn’t match. Try a different password, or use Magic Link to sign in without one.`
@@ -410,6 +412,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     // Auto-confirm enabled (rare, dev-only) — same success path as signIn.
     if (signUpResult?.session) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowUnlockModal(false);
       resetState();
       onClose?.();
       await routeAfterSignIn();
@@ -433,6 +436,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     });
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setShowUnlockModal(false);
     setPendingNonce(nonce);
     setPendingState('signup');
     setLoading(null);
@@ -472,6 +476,7 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
     setShowPassword(false);
     setPendingState(null);
     setPendingNonce(null);
+    setShowUnlockModal(false);
     setLoading(null);
     relayCleanup.current?.();
     relayCleanup.current = null;
@@ -673,6 +678,21 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
         </Pressable>
         </View>
       )}
+
+      {/* JIT signup modal — fires when L1 signin fails Invalid login.
+          Stacks above the L1 sheet (zIndex 999) since this overlay
+          itself is at zIndex 999. Same Modal API guarantees it's on
+          top of everything in the app. */}
+      <UnlockAccountModal
+        visible={showUnlockModal}
+        email={email}
+        busy={loading === 'password'}
+        onCreate={runSignUp}
+        onTryAgain={() => {
+          if (loading === 'password') return;
+          setShowUnlockModal(false);
+        }}
+      />
 
     </View>
   );

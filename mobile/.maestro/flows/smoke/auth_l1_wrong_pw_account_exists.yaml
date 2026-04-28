@@ -75,17 +75,20 @@ appId: com.padmagnet.app
 - inputText: ${EXISTING_USER_WRONG_PW}
 - hideKeyboard
 
-# 5. Tap Continue → signIn fails (wrong PW for existing email) → JIT alert.
+# 5. Tap Continue → signIn fails (wrong PW for existing email) →
+#    UnlockAccountModal opens (replaced prior system alert 2026-04-27).
 - tapOn:
     id: "auth-sheet-sign-in-cta"
 - waitForAnimationToEnd:
     timeout: 4000
-- assertVisible: "Couldn't sign you in"
-- assertVisible: "Create new account"
+- assertVisible: "Unlock Your Search"
+- assertVisible:
+    id: "unlock-account-create"
 
 # 6. Tap "Create new account" → runSignUp fires → enumeration silent
 #    (existing email) → "Account exists" alert (the new fix).
-- tapOn: "Create new account"
+- tapOn:
+    id: "unlock-account-create"
 - waitForAnimationToEnd:
     timeout: 8000
 

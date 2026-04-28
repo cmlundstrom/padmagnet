@@ -112,15 +112,18 @@ appId: com.padmagnet.app
 - waitForAnimationToEnd:
     timeout: 4000
 
-# 9. The "Couldn't sign you in" alert must show with both action labels
-#    visible (Try again + Create new account). Asserting the alert
-#    title + the two button labels.
-- assertVisible: "Couldn't sign you in"
-- assertVisible: "Try again"
-- assertVisible: "Create new account"
+# 9. The UnlockAccountModal must show — replaced the prior system
+#    alert 2026-04-27 with a brand-art modal ("Unlock Your Search"
+#    headline + magnet-icon orange-gradient CTA).
+- assertVisible: "Unlock Your Search"
+- assertVisible:
+    id: "unlock-account-create"
+- assertVisible:
+    id: "unlock-account-try-again"
 
-# 10. Tap "Create new account" → runSignUp fires.
-- tapOn: "Create new account"
+# 10. Tap the primary CTA → runSignUp fires.
+- tapOn:
+    id: "unlock-account-create"
 - waitForAnimationToEnd:
     timeout: 8000
 
