@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { getUserRole, saveUserRole, clearUserRole } from '../lib/storage';
 import { clearTokenCache, apiFetch } from '../lib/api';
+import { migrateAnonSavesIfPending } from '../lib/auth';
 import { subscribeMagicLinkRelay } from '../hooks/useMagicLinkRelay';
 
 export const AuthContext = createContext({
@@ -113,6 +114,12 @@ export function AuthProvider({ children }) {
 
       if (event === 'SIGNED_IN') {
         setTimeout(() => resolveRole(session), 0);
+        // Migrate any pre-auth swipes (saves) from the abandoned anon
+        // user_id to the new authed user_id. No-op if the L1 sheet
+        // didn't stash a previousAnonUserId (e.g., user was already
+        // authed and just refreshed their session). Soft-fails on
+        // any error — never blocks the auth flow. Fix A, 2026-04-28.
+        setTimeout(() => migrateAnonSavesIfPending(), 0);
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
         setRoles([]);

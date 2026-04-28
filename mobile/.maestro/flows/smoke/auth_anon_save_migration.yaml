@@ -1,0 +1,126 @@
+# Smoke: anon save migrates to authed user_id post-signin (Fix A).
+#
+# Pre-fix bug: anon renter heart-taps a listing → swipe row written
+# with the abandoned anon user_id → after signup, the new authed
+# user_id can't see it (RLS on swipes filters by auth.uid()).
+# Goosie's lost-saved-listing report 2026-04-27.
+#
+# Fix: AuthBottomSheet stashes the anon user_id in AsyncStorage right
+# before signIn runs (captureAnonUserIdIfPending). AuthProvider's
+# SIGNED_IN handler reads that value and POSTs to
+# /api/account/migrate-anon, which atomically UPDATEs swipes from the
+# anon user_id to the new authed user_id.
+#
+# What this smoke proves end-to-end:
+#   1. Anon renter → listing detail → tap heart → save persisted (to
+#      anon user_id at this point)
+#   2. Tap "Ask About This Rental" → L1 sheet → sign in
+#   3. Auth state transitions (anon → authed). Migration fires in the
+#      background via the SIGNED_IN event handler.
+#   4. firstTime Edit Profile loads (display_name NULL on the seeded
+#      user) — proves signin succeeded
+#   5. REST verify swipes table has >= 1 row keyed to the new authed
+#      user_id (ANONSAVE_USER_ID) — proves migration ran
+#
+# We don't need to complete firstTime + auto-message in this smoke;
+# the migration runs in onAuthStateChange BEFORE firstTime fires, so
+# the assertion at step 5 is the load-bearing proof. The Fix B smoke
+# (auth_intent_preserves_listing.yaml) covers the firstTime → auto-
+# message → conversation chain separately.
+#
+# Precondition: wrapper run_anon_save_migration.sh seeds a confirmed
+# user with display_name=NULL.
+#
+# Cleanup: hard-delete the seeded user.
+#
+# Last verified: 2026-04-28 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 3. Tap a listing card → listing detail.
+- runFlow: ../../elements/loadElements.yaml
+- assertVisible:
+    id: ${output.listings.swipeDeck.card}
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 4. THE LOAD-BEARING ANON ACTION: tap the floating heart to save.
+#    This writes a swipe row keyed to the current ANON user_id.
+- assertVisible:
+    id: "listing-detail-save-heart"
+- tapOn:
+    id: "listing-detail-save-heart"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 5. Tap Ask About → L1 sheet → sign in with seeded creds. The L1
+#    sheet's handlePassword captures the anon user_id BEFORE signIn
+#    so AuthProvider's SIGNED_IN handler can use it for migration.
+- assertVisible:
+    id: ${output.listings.detail.contactOwner}
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${ANONSAVE_USER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${ANONSAVE_USER_PW}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 6. firstTime Edit Profile fires (display_name NULL on seeded user).
+#    This proves signin succeeded AND gives the migration call time
+#    to complete in the background before we verify via REST.
+- extendedWaitUntil:
+    visible: "Last Step"
+    timeout: 8000
+
+# 7. THE LOAD-BEARING ASSERTION FOR FIX A: query swipes via service-
+#    role REST and confirm at least one right-swipe is now keyed to
+#    the seeded authed user_id. Pre-fix this would be 0 (orphaned to
+#    the abandoned anon user_id). Post-fix this is >=1 (migrated).
+- runScript: ../../helpers/verify_anon_swipes_migrated.js
+
+# 8. Cleanup — hard-delete the seeded user (cascades the migrated
+#    swipes via FK ON DELETE CASCADE).
+- runScript: ../../helpers/cleanup_anonsave_user.js

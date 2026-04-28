@@ -1,9 +1,64 @@
 import { supabase } from './supabase';
 import { clearUserRole } from './storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const PENDING_ANON_MIGRATION_KEY = 'pending_anon_migration_user_id';
+
+// Capture the current anonymous user_id (if any) BEFORE kicking off
+// signIn / signUp / magic-link. The session is replaced on successful
+// auth, so this is our only window to remember the anon identity. The
+// AuthProvider's SIGNED_IN handler then fires the migration POST.
+//
+// Safe to call when no anon session exists — silent no-op.
+export async function captureAnonUserIdIfPending() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.is_anonymous) {
+      await AsyncStorage.setItem(PENDING_ANON_MIGRATION_KEY, session.user.id);
+    }
+  } catch (err) {
+    console.warn('[Auth] captureAnonUserIdIfPending failed:', err.message);
+  }
+}
+
+// Fire the anon → authed save migration if we stashed a previous anon
+// user_id before auth kicked off. Called from AuthProvider's SIGNED_IN
+// handler so it runs once per auth transition regardless of which path
+// (signIn, signUp, magic-link relay, deep-link) ended up here.
+//
+// Soft-fails on any error — never blocks the user's auth flow. If the
+// migration fails, the user just has zero saves, which is the same UX
+// they had before the fix shipped (so no regression risk).
+export async function migrateAnonSavesIfPending() {
+  let previousAnonUserId;
+  try {
+    previousAnonUserId = await AsyncStorage.getItem(PENDING_ANON_MIGRATION_KEY);
+    if (!previousAnonUserId) return;
+    // Clear before the call so a transient failure doesn't trigger
+    // repeated retries on subsequent auth events.
+    await AsyncStorage.removeItem(PENDING_ANON_MIGRATION_KEY);
+  } catch {
+    return;
+  }
+
+  try {
+    // Lazy require to avoid cycle: api.js → supabase.js → auth.js.
+    const { apiFetch } = require('./api');
+    const result = await apiFetch('/api/account/migrate-anon', {
+      method: 'POST',
+      body: JSON.stringify({ previousAnonUserId }),
+    });
+    if (result?.migrated > 0) {
+      console.log(`[Auth] Migrated ${result.migrated} anon saves to authed user`);
+    }
+  } catch (err) {
+    console.warn('[Auth] Anon save migration failed (soft):', err.message);
+  }
+}
 
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });

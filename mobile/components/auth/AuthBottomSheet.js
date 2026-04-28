@@ -15,7 +15,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, run
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp } from '../../lib/auth';
+import { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithMagicLink, signIn, signUp, captureAnonUserIdIfPending } from '../../lib/auth';
 import { resolvePostLoginDestination } from '../../lib/routing';
 import { subscribeMagicLinkRelay } from '../../hooks/useMagicLinkRelay';
 import { useAlert } from '../../providers/AlertProvider';
@@ -48,7 +48,12 @@ function generateRelayNonce() {
   });
 }
 
-export default function AuthBottomSheet({ visible, onClose, context, padpoints, ownerHasListings = false }) {
+// `listingId` (optional) propagates through the auth round-trip for the
+// "message" context so a successful sign-in/up routes the user back to
+// the SAME listing they were trying to message about (with autoSend
+// intent), instead of dropping them on the generic /(tenant)/swipe
+// deck. Diagnosed 2026-04-27 — see project_anon_save_lost_diagnosis.md.
+export default function AuthBottomSheet({ visible, onClose, context, padpoints, ownerHasListings = false, listingId = null }) {
   const alert = useAlert();
   // Bottom inset clears the Android system nav bar (gesture or 3-button)
   // so the dual-CTA row doesn't get hidden under it. Without this, the
@@ -235,7 +240,17 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
       case 'tenant_profile': return '/(tenant)/profile';
       case 'profile_email_change': return '/settings/change-email';
       case 'messages_tab': return '/(tenant)/messages';
-      case 'message': return '/(tenant)/swipe';
+      // 'message' fires from listing/[id]'s "Ask About This Rental"
+      // CTA. Preserve the listing.id so post-auth lands the user back
+      // on the same listing detail with ?postAuthIntent=message —
+      // listing/[id]'s mount effect detects that and auto-fires
+      // sendFirstMessage(), continuing the conversation intent without
+      // requiring a second tap. Falls back to the swipe deck if the
+      // caller didn't pass listingId (defensive, shouldn't happen).
+      case 'message':
+        return listingId
+          ? `/listing/${listingId}?postAuthIntent=message`
+          : '/(tenant)/swipe';
       default: return null;
     }
   }
@@ -268,6 +283,9 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
   async function sendMagicLink() {
     if (!magicEmail) return;
     setLoading('magic');
+    // Capture anon user_id before kicking off the magic-link send so
+    // we can migrate saves post-auth (Fix A, 2026-04-28).
+    await captureAnonUserIdIfPending();
     try {
       const nonce = generateRelayNonce();
       const roleIntent = deriveRoleIntent(context);
@@ -318,6 +336,11 @@ export default function AuthBottomSheet({ visible, onClose, context, padpoints, 
       return;
     }
     setLoading('password');
+    // Capture the current anon user_id BEFORE signIn replaces the
+    // session — AuthProvider's SIGNED_IN handler will use this to
+    // migrate the user's pre-auth swipes to their new authed user_id
+    // post-signin. (Fix A, 2026-04-28.)
+    await captureAnonUserIdIfPending();
     try {
       try {
         await signIn(email, password);

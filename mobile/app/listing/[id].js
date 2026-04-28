@@ -26,7 +26,14 @@ import { LAYOUT } from '../../constants/layout';
 
 export default function ListingDetailScreen() {
   useAndroidBack();
-  const { id, context } = useLocalSearchParams();
+  // postAuthIntent is set by the L1 sheet's getReturnPath('message')
+  // when a renter signs up via "Ask About This Rental". After firstTime
+  // Edit Profile completes, the user lands here with ?postAuthIntent=
+  // message — the useEffect below detects it and auto-fires
+  // sendFirstMessage(), continuing the conversation intent that
+  // triggered auth. Without this, the user got dropped on the swipe
+  // deck post-auth and lost their original intent entirely.
+  const { id, context, postAuthIntent } = useLocalSearchParams();
   const alert = useAlert();
   const router = useRouter();
   const [listing, setListing] = useState(null);
@@ -148,6 +155,26 @@ export default function ListingDetailScreen() {
     }
   };
 
+  // Post-auth intent dispatch. When the user lands here after the L1
+  // sheet's "Ask About This Rental" → auth → firstTime Edit Profile →
+  // save flow, the URL carries ?postAuthIntent=message. We auto-fire
+  // sendFirstMessage so the user continues into the conversation they
+  // were trying to start, instead of being dropped here mid-intent.
+  // intentFired prevents double-fire on re-render or revisit.
+  const intentFired = useRef(false);
+  useEffect(() => {
+    if (intentFired.current) return;
+    if (postAuthIntent !== 'message') return;
+    if (isAnon) return; // shouldn't happen post-auth, defensive
+    if (!listing) return;
+    intentFired.current = true;
+    // Clear the URL param so a back-nav return to this screen doesn't
+    // re-fire the auto-message. router.setParams updates without a
+    // navigation event so the user's history isn't disturbed.
+    try { router.setParams({ postAuthIntent: undefined }); } catch {}
+    sendFirstMessage();
+  }, [postAuthIntent, isAnon, listing]);
+
   const handleContact = async () => {
     if (!listing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -213,7 +240,7 @@ export default function ListingDetailScreen() {
 
       {/* Floating save heart — positioned at price row level */}
       {context !== 'owner_browse' && (
-        <Pressable onPress={handleSave} style={styles.heartFab}>
+        <Pressable onPress={handleSave} style={styles.heartFab} testID="listing-detail-save-heart">
           <Animated.View style={burst0Style}>
             <FontAwesome name="heart" size={10} color={COLORS.success} />
           </Animated.View>
@@ -251,12 +278,17 @@ export default function ListingDetailScreen() {
       </View>
 
 
-      {/* Auth gate for anonymous users */}
+      {/* Auth gate for anonymous users. listingId is passed so post-auth
+          routing returns to THIS listing with ?postAuthIntent=message,
+          and the useEffect below auto-fires sendFirstMessage so the
+          user lands directly in the conversation they were trying to
+          start. See project_anon_save_lost_diagnosis.md (2026-04-27). */}
       <AuthBottomSheet
         visible={showAuth}
         onClose={() => setShowAuth(false)}
         context="message"
         padpoints={padPoints.padpoints}
+        listingId={listing?.id}
       />
 
       {/* First-time channel preference prompt */}

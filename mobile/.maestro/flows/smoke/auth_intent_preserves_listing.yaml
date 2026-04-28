@@ -1,0 +1,129 @@
+# Smoke: post-auth intent restoration for "Ask About This Rental"
+#
+# Proves Fix B (2026-04-28). Pre-fix, the user's path was:
+#   anon → listing detail → tap Ask About → L1 sheet → sign in →
+#   firstTime Edit Profile → save → ❌ swipe deck (lost intent)
+#
+# Post-fix:
+#   anon → listing detail → tap Ask About → L1 sheet → sign in →
+#   firstTime Edit Profile → save → /listing/[id]?postAuthIntent=
+#   message → useEffect auto-fires sendFirstMessage → /conversation/[id]
+#
+# What this smoke proves end-to-end:
+#   1. Tapping "Ask About This Rental" on listing detail opens L1
+#   2. Sign in with no-display_name user routes to firstTime Edit Profile
+#   3. Saving the name routes back to the SAME listing (not the swipe
+#      deck) with postAuthIntent=message
+#   4. The post-auth useEffect auto-fires sendFirstMessage()
+#   5. User lands in the conversation with the auto-generated message
+#      ("Hi, I'm interested in the listing at...") visible in the thread
+#
+# Precondition:
+#   - Use the wrapper run_auth_intent_preserves_listing.sh which seeds
+#     a confirmed user with display_name=NULL and pm-clears the device.
+#
+# Cleanup:
+#   - The seeded user is hard-deleted via Supabase admin API.
+#
+# Last verified: 2026-04-28 against dev client on S10 (RF8R51L94GR).
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch — wrapper has wiped app data + bound the dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 3. Tap the first card → listing detail.
+- runFlow: ../../elements/loadElements.yaml
+- assertVisible:
+    id: ${output.listings.swipeDeck.card}
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 4. Listing detail loaded — tap "Ask About This Rental" → L1 opens.
+- assertVisible:
+    id: ${output.listings.detail.contactOwner}
+- tapOn:
+    id: ${output.listings.detail.contactOwner}
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# 5. Type seeded creds + tap Continue → signIn succeeds → firstTime
+#    Edit Profile fires (display_name NULL).
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${INTENT_USER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${INTENT_USER_PW}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 6. firstTime Edit Profile loaded — "Last Step" header is the proof.
+- extendedWaitUntil:
+    visible: "Last Step"
+    timeout: 8000
+
+# 7. Type display name + tap Save Changes.
+- tapOn:
+    id: "edit-profile-name-input"
+- inputText: "Smoke Tester"
+- hideKeyboard
+- tapOn:
+    id: "edit-profile-save-bottom"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 8. The Saved alert pops with "You're all set. Continuing…" — tap OK.
+- extendedWaitUntil:
+    visible: "Saved"
+    timeout: 6000
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 9. THE LOAD-BEARING ASSERTION FOR FIX B: the auto-fired
+#    sendFirstMessage() should have routed the user to
+#    /conversation/[id] with the generic interest message visible.
+#    The text "Hi, I'm interested in the listing at" is the auto-
+#    generated body — its presence proves both the routing AND the
+#    conversation creation. Pre-fix, this would never appear because
+#    the user landed on /(tenant)/swipe.
+- extendedWaitUntil:
+    visible: "Hi, I'm interested in the listing at"
+    timeout: 12000
+
+# 10. Cleanup — hard-delete the seeded user.
+- runScript: ../../helpers/cleanup_intent_user.js
