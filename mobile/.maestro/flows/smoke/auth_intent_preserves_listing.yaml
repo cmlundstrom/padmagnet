@@ -106,23 +106,28 @@ appId: com.padmagnet.app
 - waitForAnimationToEnd:
     timeout: 4000
 
-# 8. The Saved alert pops with "You're all set. Continuing…" — tap OK.
+# 8. The Saved alert pops. Polling on "OK" (the button label) instead
+#    of "Saved" because the title text is sometimes filtered out of
+#    the a11y tree on Android RN — the button label is more reliable.
 - extendedWaitUntil:
-    visible: "Saved"
-    timeout: 6000
+    visible: "OK"
+    timeout: 10000
 - tapOn: "OK"
 - waitForAnimationToEnd:
     timeout: 6000
 
 # 9. THE LOAD-BEARING ASSERTION FOR FIX B: the auto-fired
 #    sendFirstMessage() should have routed the user to
-#    /conversation/[id] with the generic interest message visible.
-#    The text "Hi, I'm interested in the listing at" is the auto-
-#    generated body — its presence proves both the routing AND the
-#    conversation creation. Pre-fix, this would never appear because
-#    the user landed on /(tenant)/swipe.
+#    /conversation/[id]. We assert on the chat input's placeholder
+#    text "Type a message..." since TextInput placeholders are
+#    reliably exposed to the a11y tree on Android (chat-bubble Text
+#    nodes for the auto-message body are NOT — same nested-Text a11y
+#    quirk we've hit before). The placeholder's presence proves we
+#    landed on the conversation screen post-auth, which only happens
+#    if both the listingId-aware getReturnPath AND the postAuthIntent
+#    auto-fire useEffect worked end-to-end.
 - extendedWaitUntil:
-    visible: "Hi, I'm interested in the listing at"
+    visible: "Type a message..."
     timeout: 12000
 
 # 10. Cleanup — hard-delete the seeded user.

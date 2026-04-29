@@ -14,7 +14,7 @@ import {
   View, Text, TextInput, TouchableOpacity, Pressable, Modal,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet, Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,6 +52,13 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPhoneTooltip, setShowPhoneTooltip] = useState(false);
+  // Safe-area-bottom inset prevents the Save Changes button from
+  // extending into the Android system nav bar area, where taps get
+  // intercepted as HOME button presses (literally backgrounded the
+  // app). Diagnosed 2026-04-28 via the Fix B intent-restoration smoke
+  // — Maestro's tap at the button's vertical center landed at y=2196
+  // on a 1080x2280 screen, hitting the system nav bar.
+  const insets = useSafeAreaInsets();
 
   // Hard guard — anon users have no profile to edit. Bounce immediately.
   useEffect(() => {
@@ -129,10 +136,13 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, isFirstTime && styles.firstTimeScrollContent]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isFirstTime && styles.firstTimeScrollContent,
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           {isFirstTime ? (
@@ -342,9 +352,13 @@ const styles = StyleSheet.create({
   },
   // First-time mode pulls the brand band tight to the safe-area top
   // and zeroes the sides so the gradient runs edge-to-edge.
+  // paddingBottom is just enough breathing room for the magnet CTA;
+  // SafeAreaView edges=['top','bottom'] handles keeping the button
+  // out of the Android system nav bar zone so we don't need a giant
+  // 360px buffer (which previously scrolled the button half off-screen).
   firstTimeScrollContent: {
     padding: 0,
-    paddingBottom: 360,
+    paddingBottom: 48,
   },
   // Brand band: warm orange glow at the top fading into navy. Carries
   // the logo + "Last Step" + intro copy so the whole header reads as
