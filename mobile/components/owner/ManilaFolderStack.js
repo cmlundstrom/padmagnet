@@ -324,7 +324,7 @@ const pinStyles = StyleSheet.create({
 
 // ─── Manila folder with slide-to-corner dismiss (SVG 3.0) ─────────
 const ManilaFolder = forwardRef(function ManilaFolder(
-  { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, opaque, offsetTop, onTabPress, onDismissComplete, children },
+  { tabLabel, tabAlign, zIndex, angle, dismissCorner, enterOffset, dropShadow, opaque, offsetTop, offsetX, onTabPress, onDismissComplete, stickyFooter, children },
   ref
 ) {
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -419,7 +419,8 @@ const ManilaFolder = forwardRef(function ManilaFolder(
     <Animated.View pointerEvents="box-none" style={[
       styles.folderOuter,
       { zIndex },
-      offsetTop != null && { top: 103 + offsetTop },
+      offsetTop != null && { top: 99 + offsetTop },
+      offsetX != null && { left: 22 + offsetX, right: 12 - offsetX },
       animStyle,
     ]}
       onLayout={(e) => {
@@ -532,12 +533,21 @@ const ManilaFolder = forwardRef(function ManilaFolder(
 
         {/* Scrollable content — free from gesture interference */}
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={styles.folderScroll}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {children}
         </ScrollView>
+
+        {/* Sticky footer — primary CTA pinned outside the scroll so it
+            stays visible regardless of scroll position. Optional. */}
+        {stickyFooter && (
+          <View style={styles.stickyFooter}>
+            {stickyFooter}
+          </View>
+        )}
       </View>
     </Animated.View>
   );
@@ -675,7 +685,8 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           tabLabel="Your GPS"
           tabAlign="left"
           zIndex={10}
-          angle={-1}
+          angle={0}
+          offsetX={-2}
           dropShadow
           dismissCorner="right"
           onTabPress={showL1 ? handleBrowseNearby : undefined}
@@ -779,43 +790,106 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           tabLabel="List For Free"
           tabAlign="right"
           zIndex={20}
-          angle={1}
+          angle={0}
           enterOffset={0.3}
-          offsetTop={10}
+          offsetTop={18}
+          offsetX={3}
           opaque
           dropShadow
           dismissCorner="left"
           onTabPress={handleBrowseNearby}
           onDismissComplete={() => { setShowL1(false); AsyncStorage.setItem(STORAGE_KEY_L1, '1'); }}
+          stickyFooter={
+            // Primary CTA pinned to folder bottom so it never falls below
+            // the fold regardless of scroll. Visual treatment matches the
+            // owner profile's "List Your Property" sign-in card so the
+            // owner journey has one consistent hero-CTA scheme. Label flip
+            // (and caption) communicates dual capability: anon may be new
+            // (Create) or returning (Edit); once auth'd with listings the
+            // label flips to "Open My Listings".
+            <Pressable testID="manila-l1-primary-cta" onPress={handleCreateListing} style={styles.l1CtaWrap}>
+              <LinearGradient
+                colors={['#FF8C38', '#F97316', COLORS.logoOrange, '#DC5A2C', '#B84A1C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.l1CtaGradient}
+              >
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.l1CtaShine}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={['rgba(255,200,100,0.25)', 'transparent']}
+                  start={{ x: 0.5, y: 0.3 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.l1CtaInnerGlow}
+                  pointerEvents="none"
+                />
+                <View style={styles.l1CtaContent}>
+                  <View style={styles.l1CtaIconWrap}>
+                    <Ionicons name="key-outline" size={20} color={COLORS.white} />
+                  </View>
+                  <Text style={styles.l1CtaHeadline}>{ownerHasListings ? 'Open\nMy Listings' : 'Create or Edit\nYour Listing'}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.95)" />
+                </View>
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.15)']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.l1CtaBottomEdge}
+                  pointerEvents="none"
+                />
+              </LinearGradient>
+            </Pressable>
+          }
         >
-          <Image
-            source={require('../../assets/icon.png')}
-            style={styles.l1Icon}
-            contentFit="contain"
-          />
           <Text style={styles.l1Heading}>{'List Your Rental\nfor Free'}</Text>
+
+          {/* Decorative ornament \u2014 line, diamond, line; vintage
+              document divider feel. Sits between heading and subtitle. */}
+          <View style={styles.l1HeadingOrnament}>
+            <View style={styles.l1OrnamentLine} />
+            <View style={styles.l1OrnamentDiamond} />
+            <View style={styles.l1OrnamentLine} />
+          </View>
+
           <Text style={styles.l1Subtitle}>
             PadMagnet matches your listing with qualified South Florida renters using smart scoring.
           </Text>
 
-          {/* Feature bullets */}
+          {/* Feature bullets \u2014 stamped approval style (deep-green
+              circle with white check, like an old "APPROVED" rubber
+              stamp). Cut from 4 to 3: dropped "Smart matching sends your
+              listing to the right renters" since it overlapped with
+              bullet 1's value-prop. */}
           <View style={styles.l1Bullets}>
             {[
               'Free to list \u2014 no broker fees, no catch',
               'Average 11K+/- active listings across 5 counties',
-              'Smart matching sends your listing to the right renters',
               'One-click competitive pricing research',
             ].map((text, i) => (
               <View key={i} style={styles.l1BulletRow}>
-                <Ionicons name="checkmark-circle" size={18} color="#2D6B30" />
+                <View style={styles.l1BulletStamp}>
+                  <FontAwesome name="check" size={9} color="#FFF7E8" />
+                </View>
                 <Text style={styles.l1BulletText}>{text}</Text>
               </View>
             ))}
           </View>
 
-          {/* Competitor pricing card */}
+          {/* Competitor pricing card — riveted brass plaque with corner
+              rivets, stamped title, and a tilted FREE rubber stamp on
+              the PadMagnet row. */}
           <View style={styles.compCard}>
-            <Text style={styles.compTitle}>What others charge</Text>
+            <View style={[styles.compRivet, { top: 5, left: 5 }]} />
+            <View style={[styles.compRivet, { top: 5, right: 5 }]} />
+            <View style={[styles.compRivet, { bottom: 5, left: 5 }]} />
+            <View style={[styles.compRivet, { bottom: 5, right: 5 }]} />
+
+            <Text style={styles.compTitle}>Market Comparison</Text>
             {[
               { name: 'Zillow Premium', price: '$39.99' },
               { name: 'Apartments.com', price: '$349' },
@@ -827,21 +901,20 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
               </View>
             ))}
             <View style={[styles.compRow, styles.compHighlight]}>
-              <Text style={[styles.compName, { color: '#2D6B30', fontFamily: FONTS.body.bold }]}>PadMagnet</Text>
-              <Text style={[styles.compPrice, { color: '#2D6B30', fontFamily: FONTS.heading.bold }]}>FREE</Text>
+              <Text style={styles.compNamePM}>
+                <Text style={{ color: COLORS.white }}>Pad</Text>
+                <Text style={{ color: COLORS.deepOrange }}>Magnet</Text>
+              </Text>
+              <View style={styles.compFreeStamp}>
+                <Text style={styles.compFreeStampText}>FREE</Text>
+              </View>
             </View>
           </View>
 
-          {/* Primary CTA — label communicates dual capability before auth, exact destination after.
-              Anon users may be new (create) OR returning (edit) — "Create or Edit" covers both
-              without revealing the auth gate. Once auth'd with listings, label gets specific. */}
-          <Pressable testID="manila-l1-primary-cta" style={styles.l1Cta} onPress={handleCreateListing}>
-            <Text style={styles.l1CtaText}>{ownerHasListings ? 'Open My Listings' : 'Create or Edit Your Listing'}</Text>
-          </Pressable>
-
-          {/* Secondary CTA — dismiss L1 to expose L2 GPS ask */}
+          {/* Secondary CTA — ghost button (dashed border, transparent
+              bg) dismisses L1 to expose the L2 GPS ask underneath. */}
           <Pressable testID="manila-l1-dismiss" style={styles.l1BrowseBtn} onPress={handleBrowseNearby}>
-            <FontAwesome name="map-marker" size={14} color="#E8D8A4" />
+            <FontAwesome name="map-marker" size={14} color="#5C4A1E" />
             <Text style={styles.l1BrowseText}>Browse Nearby Rentals</Text>
           </Pressable>
 
@@ -863,7 +936,7 @@ const styles = StyleSheet.create({
     left: 22,
     right: 12,
     bottom: -20,
-    top: 103,
+    top: 99,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.6,
@@ -898,113 +971,254 @@ const styles = StyleSheet.create({
   folderScroll: {
     paddingHorizontal: LAYOUT.padding.lg,
     paddingTop: 0,
-    paddingBottom: LAYOUT.padding['2xl'] + 40,
+    paddingBottom: LAYOUT.padding.lg,
+  },
+  // Sticky footer pinned at the folder's bottom edge, outside the
+  // ScrollView. Horizontal padding matches folderScroll so the CTA
+  // aligns with body content; bottom padding clears the brass corner
+  // rivets at the bottom of the folder body.
+  stickyFooter: {
+    paddingHorizontal: LAYOUT.padding.lg,
+    paddingTop: LAYOUT.padding.sm,
+    paddingBottom: LAYOUT.padding.lg + 4,
   },
 
   // ── L1: Sales pitch ──────────────────────────────
-  l1Icon: {
-    width: 64,
-    height: 64,
-    alignSelf: 'center',
-    marginBottom: LAYOUT.padding.md,
-  },
   l1Heading: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES['2xl'],
-    color: '#3A2810',
+    color: COLORS.background,
     textAlign: 'center',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(255,250,225,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 0,
+  },
+  l1HeadingOrnament: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginBottom: LAYOUT.padding.sm,
+  },
+  l1OrnamentLine: {
+    width: 32,
+    height: 1.5,
+    backgroundColor: '#8B7035',
+  },
+  l1OrnamentDiamond: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#8B7035',
+    transform: [{ rotate: '45deg' }],
   },
   l1Subtitle: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.sm,
-    color: '#4A3520',
+    color: COLORS.background,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: LAYOUT.padding.lg,
+    fontStyle: 'italic',
+    letterSpacing: 0.3,
+    lineHeight: 18,
+    marginBottom: LAYOUT.padding.md,
   },
   l1Bullets: {
-    marginBottom: LAYOUT.padding.lg,
+    marginBottom: LAYOUT.padding.md,
   },
   l1BulletRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  l1BulletStamp: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#2D6B30',
+    borderWidth: 1.5,
+    borderColor: '#1F4D22',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   l1BulletText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: '#3A2810',
+    color: COLORS.background,
     flex: 1,
+    letterSpacing: 0.2,
   },
 
-  // ── Competitor card ───────────────────────────────
+  // ── Competitor card (riveted brass plaque) ────────
   compCard: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(58,40,16,0.08)',
     borderRadius: LAYOUT.radius.md,
     borderWidth: 1,
-    borderColor: '#A08040',
-    padding: LAYOUT.padding.md,
-    marginBottom: LAYOUT.padding.lg,
+    borderColor: '#8B7035',
+    paddingHorizontal: LAYOUT.padding.md,
+    paddingVertical: LAYOUT.padding.md,
+    marginBottom: LAYOUT.padding.md,
+    position: 'relative',
+  },
+  compRivet: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#8B7035',
+    borderWidth: 0.5,
+    borderColor: '#5C4A1E',
   },
   compTitle: {
-    fontFamily: FONTS.heading.semiBold,
+    fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.xs,
-    color: '#6B5020',
+    color: COLORS.background,
+    paddingVertical: 4,
     marginBottom: LAYOUT.padding.sm,
+    textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
+    borderTopWidth: 1,
+    borderTopColor: '#8B7035',
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B7035',
   },
   compRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 5,
+    alignItems: 'center',
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#A08040',
   },
   compHighlight: {
     borderBottomWidth: 0,
-    paddingTop: 8,
+    paddingTop: 10,
+    paddingBottom: 0,
   },
   compName: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: '#3A2810',
+    color: COLORS.background,
   },
   compPrice: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
-    color: '#3A2810',
+    color: COLORS.background,
+  },
+  compNamePM: {
+    fontFamily: FONTS.body.bold,
+    fontSize: FONT_SIZES.md,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(11,29,58,0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  compFreeStamp: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    backgroundColor: '#2D6B30',
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#1F4D22',
+    transform: [{ rotate: '-3deg' }],
+  },
+  compFreeStampText: {
+    fontFamily: FONTS.heading.bold,
+    fontSize: FONT_SIZES.md,
+    color: '#FFF7E8',
+    letterSpacing: 1.5,
+    textShadowColor: 'rgba(11,29,58,0.9)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 4,
   },
 
   // ── L1 CTAs ───────────────────────────────────────
-  l1Cta: {
-    backgroundColor: COLORS.logoOrange,
-    borderRadius: LAYOUT.radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 10,
+  // Primary CTA: mirrors the polished "List Your Property" sign-in card on
+  // the owner profile screen — 5-color diagonal orange gradient + white
+  // shine overlay + warm inner glow + dark bottom edge + 40px icon
+  // circle + 2-line text + chevron. Layered overlays create dimensional
+  // depth that reads as tactile rather than flat. See
+  // app/(owner)/profile.js:92-130 for the source pattern.
+  l1CtaWrap: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 20,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,180,80,0.4)',
   },
-  l1CtaText: {
-    fontFamily: FONTS.body.bold,
+  l1CtaGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  l1CtaShine: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: '50%',
+  },
+  l1CtaInnerGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  l1CtaBottomEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 6,
+  },
+  l1CtaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  l1CtaIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  l1CtaHeadline: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES.md,
     color: COLORS.white,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
+  // Secondary CTA: ghost button with dashed dark-brown outline on
+  // transparent bg — vintage "ALSO TRY THIS" feel that recedes behind
+  // the primary CTA.
   l1BrowseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#3A2810',
+    backgroundColor: 'rgba(255,250,225,0.55)',
     borderRadius: LAYOUT.radius.md,
-    paddingVertical: 12,
+    paddingVertical: 11,
+    borderWidth: 1.5,
+    borderColor: '#5C4A1E',
+    borderStyle: 'dashed',
     marginBottom: LAYOUT.padding.sm,
   },
   l1BrowseText: {
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.sm,
-    color: '#E8D8A4',
+    color: COLORS.background,
+    letterSpacing: 0.3,
   },
 
   // ── L2: GPS ask ───────────────────────────────────
@@ -1044,18 +1258,18 @@ const styles = StyleSheet.create({
   l2Heading: {
     fontFamily: FONTS.heading.bold,
     fontSize: FONT_SIZES['2xl'],
-    color: '#3A2810',
+    color: COLORS.background,
     textAlign: 'center',
     lineHeight: 34,
     marginBottom: LAYOUT.padding.md,
   },
   l2Highlight: {
-    color: '#2A5DB0',
+    color: COLORS.background,
   },
   l2Explain: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
-    color: '#4A3520',
+    color: COLORS.background,
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: LAYOUT.padding.lg,
@@ -1080,7 +1294,7 @@ const styles = StyleSheet.create({
   l2BenefitText: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.sm,
-    color: '#4A3520',
+    color: COLORS.background,
     flex: 1,
   },
   enableBtn: {
