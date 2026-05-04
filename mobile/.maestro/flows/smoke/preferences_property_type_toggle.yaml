@@ -1,0 +1,133 @@
+# Smoke: renter taps a Property Type chip and the selected indicator
+# appears reactively. Toggles back off and the indicator disappears.
+#
+# Targets the property-types multi-select on /settings/preferences.
+# Same JIT-testID pattern as notifications_channel_select: identify
+# one reactive UI behavior, add testIDs only for it, skip the
+# auto-save / persistence path.
+#
+# What this proves:
+#   - preferences.js mounts cleanly post-signin with no NPE on
+#     undefined preferences (form state initializes from the
+#     usePreferences hook)
+#   - Property-type chip selection is reactive (the inner
+#     `-selected` indicator View mounts/unmounts on tap)
+#   - The slug derivation ("Single Family" → "single-family") is
+#     wired through to the a11y tree
+#
+# Why "Single Family": most common rental type, listed first in the
+# PROPERTY_TYPES array. The smoke is single-chip-only — extending to
+# multi-select is a follow-up; today's testIDs cover all 7 types
+# (single-family, apartment, condo, townhouse, duplex, villa,
+# mobile-home).
+#
+# What this does NOT cover (deferred to a future smoke):
+#   - The auto-save debounce path (form change → 1.5s debounce →
+#     PATCH /api/profiles/preferences). usePreferences hook manages
+#     the debounce; verifying the save would need a REST GET after
+#     the debounce window or a saveStatus="saved" landmark.
+#   - Other preferences sections (budget, beds/baths, location
+#     zones, furnished, pets, fenced yard).
+#
+# Precondition:
+#   - Wrapper run_preferences_property_type_toggle.sh (pm-clear +
+#     dev-client rebind). Smoke seeds renter via seed_test_renter.js
+#     (display_name set so firstTime gate skips).
+#
+# Cleanup:
+#   - Hard-delete the seeded renter via cleanup_test_users.js.
+#
+# First written: 2026-05-04 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Seed renter (display_name set → firstTime gate skips).
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Sign in via Messages-tab L1.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Profile → Preferences.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "profile-preferences-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-preferences-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Preferred Property Types"
+
+# 6. Confirm Single Family is NOT pre-selected. Seeded renters start
+#    with no property_types preferences, so this should always pass.
+#    If it ever fails, the seed fixture has drifted — check
+#    seed_test_renter.js + the handle_new_user trigger defaults.
+- assertNotVisible:
+    id: "preferences-property-type-single-family-selected"
+
+# 7. Tap the chip → selected indicator should mount.
+- scrollUntilVisible:
+    element:
+      id: "preferences-property-type-single-family"
+    direction: DOWN
+- tapOn:
+    id: "preferences-property-type-single-family"
+- waitForAnimationToEnd:
+    timeout: 1000
+- assertVisible:
+    id: "preferences-property-type-single-family-selected"
+
+# 8. Tap again → deselect, indicator unmounts.
+- tapOn:
+    id: "preferences-property-type-single-family"
+- waitForAnimationToEnd:
+    timeout: 1000
+- assertNotVisible:
+    id: "preferences-property-type-single-family-selected"
+
+# 9. Cleanup.
+- runScript: ../../helpers/cleanup_test_users.js

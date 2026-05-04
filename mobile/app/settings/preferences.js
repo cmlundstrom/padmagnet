@@ -243,17 +243,39 @@ export default function PreferencesScreen() {
 
         <Text style={styles.label}>Preferred Property Types</Text>
         <View style={styles.chipRow}>
-          {PROPERTY_TYPES.map(type => (
-            <Pressable
-              key={type}
-              style={[CHIP_STYLES.chip, form.property_types.includes(type) && CHIP_STYLES.chipActive]}
-              onPress={() => toggleArrayItem('property_types', type)}
-            >
-              <Text style={[CHIP_STYLES.chipText, form.property_types.includes(type) && CHIP_STYLES.chipTextActive]}>
-                {type}
-              </Text>
-            </Pressable>
-          ))}
+          {PROPERTY_TYPES.map(type => {
+            // Slug for testID — "Single Family" → "single-family",
+            // "Mobile Home" → "mobile-home". Stable across renames
+            // since it's derived from the canonical PROPERTY_TYPES list.
+            const slug = type.toLowerCase().replace(/\s+/g, '-');
+            const selected = form.property_types.includes(type);
+            return (
+              <Pressable
+                key={type}
+                testID={`preferences-property-type-${slug}`}
+                style={[CHIP_STYLES.chip, selected && CHIP_STYLES.chipActive]}
+                onPress={() => toggleArrayItem('property_types', type)}
+              >
+                {selected && (
+                  // 1x1 invisible View — exists solely as an a11y-tree
+                  // landmark that smokes can assert on to detect the
+                  // "selected" state. RN won't surface a bare empty
+                  // View to the a11y tree without explicit dimensions
+                  // + accessible=true. Same pattern as styles.radioInner
+                  // in notifications.js, just minimal here since the
+                  // chip already has its own visual selected state.
+                  <View
+                    testID={`preferences-property-type-${slug}-selected`}
+                    accessible
+                    style={{ width: 1, height: 1 }}
+                  />
+                )}
+                <Text style={[CHIP_STYLES.chipText, selected && CHIP_STYLES.chipTextActive]}>
+                  {type}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Location */}
