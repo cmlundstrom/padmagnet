@@ -141,6 +141,7 @@ export default function SubscriptionScreen() {
               Unlock analytics, priority placement, badges, and more.
             </Text>
             <TouchableOpacity
+              testID="subscription-upgrade-cta"
               style={styles.upgradeBtn}
               onPress={() => router.push('/owner/upgrade')}
             >

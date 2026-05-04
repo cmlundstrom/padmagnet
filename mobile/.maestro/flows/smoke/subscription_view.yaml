@@ -1,0 +1,111 @@
+# Smoke: owner views the Subscription screen and the upgrade CTA is
+# present (free tier).
+#
+# Exercises /settings/subscription end-to-end as a visual mount +
+# free-tier-state assertion. Does NOT tap the upgrade CTA — that
+# triggers a route to /owner/upgrade which is its own flow's
+# responsibility (and would pull in Stripe checkout sheet UI that's
+# brittle for smokes).
+#
+# What this proves:
+#   - Owner Profile → Subscription navigates cleanly
+#   - subscription.js mounts without crashing on a fresh free-tier
+#     owner profile (TIERS.free + tierLabel resolution work)
+#   - "Your Plan" landmark renders in the plan card
+#   - For free tier, the "View Plans & Upgrade" CTA is wired with a
+#     queryable testID (subscription-upgrade-cta) so a future
+#     `subscription_upgrade_flow` smoke can extend from here
+#
+# Auth posture: seeded owner via seed_named_test_owner.js (sets
+# display_name='Maestro Owner' so the firstTime gate is correctly
+# SKIPPED — different from seed_test_owner.js which omits the name
+# for firstTime-targeted smokes). Sign-in via the OWNER PROFILE
+# L1 sheet (context='owner_profile') so post-auth lands directly
+# on Profile, no need to navigate back from /owner/create.
+#
+# Precondition:
+#   - Wrapper run_subscription_view.sh (pm-clear + dev-client rebind).
+#
+# Cleanup:
+#   - Hard-delete the seeded owner via cleanup_test_users.js.
+#
+# First written: 2026-05-04 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Seed named owner (display_name set → firstTime gate skips).
+- runScript: ../../helpers/seed_named_test_owner.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon owner role gate.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 4. Profile tab → tap the sign-in card (L1 entry, context=owner_profile
+#    so post-auth routing stays on Profile).
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "profile-sign-in-card-button"
+- tapOn:
+    id: "profile-sign-in-card-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 5. Sign in.
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.owner.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.owner.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 6. Authed on Profile tab — SETTINGS section with subscription button.
+- scrollUntilVisible:
+    element:
+      id: "profile-subscription-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-subscription-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 7. Subscription screen mounted. Header text + plan-card landmarks.
+- assertVisible: "Subscription"
+- assertVisible: "Your Plan"
+
+# 8. Free-tier owner: upgrade CTA wired + visible.
+- assertVisible:
+    id: "subscription-upgrade-cta"
+
+# 9. Cleanup.
+- runScript: ../../helpers/cleanup_test_users.js
