@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Wrapper for smart_prompt_first.yaml — anon-only, no user seeding.
-# Just wipes app data + re-binds the dev client, same pattern as the
-# other wrappers.
+# Wrapper for smart_prompts_journey.yaml. pm-clear + dev-client rebind.
+# Smoke seeds named owner via runScript inside Maestro.
 #
-# Usage: cd mobile/.maestro && ./flows/smoke/run_smart_prompt_first.sh
+# Usage: cd mobile/.maestro && ./flows/smoke/run_smart_prompts_journey.sh
 set -euo pipefail
 
 APP_ID="com.padmagnet.app"
@@ -26,4 +25,4 @@ sleep 5
 
 echo "[4/4] Running Maestro smoke..."
 cd "$SCRIPT_DIR/.."
-exec bash run.sh flows/smoke/smart_prompt_first.yaml
+exec bash run.sh flows/smoke/smart_prompts_journey.yaml

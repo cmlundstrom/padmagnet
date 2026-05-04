@@ -1,0 +1,176 @@
+# Smoke: anon renter swipes through the first 3 Smart Prompt
+# milestones (budget/3 → pets/8 → beds/15) and answers each.
+#
+# Replaces smart_prompt_first.yaml (which only covered the budget
+# prompt). Stops at beds/15 to keep total runtime under ~3 min.
+# Prompt 4 (location/25) needs GPS permission, prompt 5 (type/40)
+# and prompt 6 (features/60) require many more swipes that risk
+# deck-exhaustion in the dev environment + cumulative level-up
+# overlays. Those can be added if listing seeds + level-up handling
+# justify it.
+#
+# What this proves end-to-end:
+#   1. swipe-deck-like-button advances the deck reliably across 15
+#      consecutive taps (no off-by-one in count, no listing
+#      starvation in the dev DB)
+#   2. Each milestone (3, 8, 15) mounts the right prompt:
+#        smart-prompt-card-budget    @ swipe 3
+#        smart-prompt-card-pets      @ swipe 8
+#        smart-prompt-card-beds      @ swipe 15
+#   3. Tapping an option on each prompt dismisses the modal cleanly,
+#      so the next set of swipes can resume against the deck.
+#   4. The level-up animation that fires after some answers (15
+#      PadPoints, can hit a level threshold) does NOT block the next
+#      tap stream — verified implicitly by the next prompt's
+#      mount succeeding.
+#
+# Why anon: same as before — swipe count + prompt logic in
+# (tenant)/swipe.js runs identically for anon + authed; anon is the
+# simpler harness with no seeding overhead.
+#
+# Precondition:
+#   - Wrapper run_smart_prompts_journey.sh (pm-clear + dev-client rebind).
+#   - Dev environment must have ≥15 listings in the swipe deck.
+#
+# First written: 2026-05-04 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter → swipe deck.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertVisible:
+    id: "swipe-deck-like-button"
+
+# ── Milestone 1: BUDGET prompt @ swipe 3 ─────────────────────────
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "smart-prompt-card-budget"
+- tapOn:
+    id: "smart-prompt-option-budget-1"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertNotVisible:
+    id: "smart-prompt-card-budget"
+
+# After answering budget, the deck reshuffles (the new max-rent
+# filter narrows results). A "Deck reshuffled" modal pops up with an
+# OK button — must dismiss before continuing the swipe stream or
+# the next swipe-deck-like-button tap lands on the modal scrim
+# instead of the deck card. Optional in case a future change
+# removes/skips this modal.
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# ── Milestone 2: PETS prompt @ swipe 8 (5 more swipes) ───────────
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "smart-prompt-card-pets"
+# Tap "No pets" (index 3) — safe non-pets answer, doesn't enable
+# pet-required filter that could starve the deck.
+- tapOn:
+    id: "smart-prompt-option-pets-3"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertNotVisible:
+    id: "smart-prompt-card-pets"
+
+# Pets answer can also trigger a reshuffle if the filter narrowed.
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# ── Milestone 3: BEDS prompt @ swipe 15 (7 more swipes) ──────────
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "swipe-deck-like-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "smart-prompt-card-beds"
+# Tap "1 bed" (index 0) — minimum, no filter pressure on the deck.
+- tapOn:
+    id: "smart-prompt-option-beds-0"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertNotVisible:
+    id: "smart-prompt-card-beds"

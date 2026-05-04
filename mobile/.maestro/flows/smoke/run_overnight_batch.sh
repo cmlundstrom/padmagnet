@@ -29,7 +29,7 @@ SMOKES=(
   "flows/smoke/run_auth_intent_preserves_listing.sh|post-auth intent restoration to listing message (Fix B)"
   "flows/smoke/run_renter_onboarding.sh|renter firstTime Edit Profile end-to-end save"
   "flows/smoke/run_settings_navigation.sh|renter Profile → 4 settings sub-screens → back"
-  "flows/smoke/run_smart_prompt_first.sh|anon renter swipes 3× → budget Smart Prompt mounts + answers"
+  "flows/smoke/run_smart_prompts_journey.sh|anon renter swipes through Smart Prompts 1-3 (budget/3, pets/8, beds/15)"
   "flows/smoke/run_notifications_channel_select.sh|renter Notifications → channel radio reactivity"
   "flows/smoke/run_preferences_property_type_toggle.sh|renter Preferences → Property Type chip select/deselect"
   "flows/smoke/run_subscription_view.sh|owner Subscription screen mounts + free-tier upgrade CTA visible"
