@@ -8,16 +8,15 @@ import { supabase } from './supabase';
  *
  * Role source of truth: profiles.role (DB) → knownRole param → AsyncStorage → 'tenant'
  *
- * Renter post-auth onboarding (added 2026-04-25):
- *   When a renter authenticates and is missing display_name, interpose the
+ * First-time post-auth onboarding (added 2026-04-25 for renters, extended
+ * to owners 2026-05-03):
+ *   When an authenticated user is missing display_name, interpose the
  *   /settings/edit-profile screen with ?firstTime=true and ?next=<intended>
  *   so we capture name (required) + phone (optional) before they continue.
- *   `about-you.js` and `/onboarding` are no longer used for renters.
- *
- *   Owner-side onboarding has its own flow (different fields, different
- *   gate moments) and is NOT touched by this function — owners route
- *   straight to /(owner)/home as today. A future owner-flow trace will
- *   decide what (if anything) to interpose for owners.
+ *   Applies to BOTH renters and owners — the screen is role-aware via
+ *   useAuth() and renders contextually appropriate copy. Anonymous sessions
+ *   (either role) skip interposition since they have no profile to update.
+ *   `about-you.js` and `/onboarding` are no longer used.
  *
  * @param {object} session - Supabase auth session (may be anonymous)
  * @param {string} [knownRole] - Pre-resolved role (from AuthProvider context or login params).
@@ -59,33 +58,28 @@ export async function resolvePostLoginDestination(session, knownRole, intendedDe
     await saveUserRole(role);
   }
 
-  // Owners — straight to home today; owner-side post-auth onboarding is
-  // not in scope of the renter redesign. Don't add owner interposition
-  // here without a separate owner-flow analysis (per Chris 2026-04-25).
-  if (role === 'owner') {
-    return intendedDest || '/(owner)/home';
-  }
+  // Role-specific default destination — falls back to home/swipe when no
+  // explicit intent was stashed by the auth-trigger screen.
+  const defaultDest = role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe';
+  const finalDest = intendedDest || defaultDest;
 
-  // Renters: default destination is the swipe feed unless an intent was
-  // stashed by the auth-trigger screen (e.g. "send first message to listing X").
-  const renterDest = intendedDest || '/(tenant)/swipe';
+  // Anonymous sessions skip interposition — they have no profile to update.
+  if (session.user?.is_anonymous) return finalDest;
 
-  // Anonymous renter sessions never need name/phone — they route straight.
-  if (session.user?.is_anonymous) return renterDest;
-
-  // Authenticated renter — check display_name. If missing, interpose Edit
-  // Profile so we capture name (required) + phone (optional) before they
-  // resume their original intent.
-  return await maybeInterposeFirstTimeProfile(session.user.id, renterDest);
+  // Authenticated user (either role) — check display_name. If missing,
+  // interpose Edit Profile so we capture name (required) + phone (optional)
+  // before they resume their original intent.
+  return await maybeInterposeFirstTimeProfile(session.user.id, finalDest);
 }
 
 /**
- * Renter-only post-auth interposition: if the authenticated user has no
- * display_name on their profile, return a path to the Edit Profile screen
- * with `firstTime=true` (changes the header copy) and `next=<intendedDest>`
+ * Post-auth interposition: if the authenticated user has no display_name
+ * on their profile, return a path to the Edit Profile screen with
+ * `firstTime=true` (changes the header copy) and `next=<intendedDest>`
  * (where Edit Profile sends them after save). Otherwise return intendedDest.
  *
- * Called only for non-anonymous renter sessions.
+ * Applies to both renter and owner roles. The Edit Profile screen renders
+ * role-aware copy via useAuth().
  */
 async function maybeInterposeFirstTimeProfile(userId, intendedDest) {
   try {

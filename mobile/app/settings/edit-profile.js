@@ -44,7 +44,7 @@ export default function EditProfileScreen() {
   // Block hardware back in firstTime mode — return true means handled.
   useAndroidBack(isFirstTime ? () => true : undefined);
 
-  const { user, isAnon } = useAuth();
+  const { user, isAnon, role } = useAuth();
   const alert = useAlert();
 
   const [displayName, setDisplayName] = useState('');
@@ -163,7 +163,9 @@ export default function EditProfileScreen() {
               />
               <Text style={[styles.title, styles.firstTimeTitle]}>Last Step</Text>
               <Text style={[styles.introText, styles.firstTimeIntroText]}>
-                You’re in. What name should owners see? We’ll take it from there.
+                {role === 'owner'
+                  ? 'You’re in. What name should renters see? We’ll take it from there.'
+                  : 'You’re in. What name should owners see? We’ll take it from there.'}
               </Text>
             </LinearGradient>
           ) : (
@@ -204,13 +206,15 @@ export default function EditProfileScreen() {
               style={[styles.input, isFirstTime && styles.firstTimeInput]}
               value={displayName}
               onChangeText={setDisplayName}
-              placeholder="What should owners call you?"
+              placeholder={role === 'owner' ? 'What should renters call you?' : 'What should owners call you?'}
               placeholderTextColor={COLORS.slate}
               autoCapitalize="words"
               returnKeyType="next"
             />
             <Text style={styles.hint}>
-              Owners see this on every message. Use a real first name — most owners decline messages from handles like “User123”.
+              {role === 'owner'
+                ? 'Renters see this on every message. Use a real first name — most renters trust real names over handles like “Owner123”.'
+                : 'Owners see this on every message. Use a real first name — most owners decline messages from handles like “User123”.'}
             </Text>
           </View>
 
