@@ -33,6 +33,7 @@ SMOKES=(
   "flows/smoke/run_notifications_channel_select.sh|renter Notifications → channel radio reactivity"
   "flows/smoke/run_preferences_property_type_toggle.sh|renter Preferences → Property Type chip select/deselect"
   "flows/smoke/run_subscription_view.sh|owner Subscription screen mounts + free-tier upgrade CTA visible"
+  "flows/smoke/run_subscription_upgrade_flow.sh|owner Subscription → upgrade CTA → /owner/upgrade tier picker mounts"
 )
 
 PASS_COUNT=0

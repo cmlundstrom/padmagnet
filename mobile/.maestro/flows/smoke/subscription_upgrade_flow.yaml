@@ -1,0 +1,104 @@
+# Smoke: owner taps the Subscription upgrade CTA and lands on the
+# /owner/upgrade tier-picker screen.
+#
+# Extends subscription_view.yaml by tapping subscription-upgrade-cta
+# and asserting the tier-picker mounts (landmark "Choose Your Plan").
+# Stops there — does NOT tap a tier card or initiate Stripe checkout.
+# That's a separate flow that pulls in payment-provider UI which is
+# brittle for smokes.
+#
+# What this proves:
+#   - subscription-upgrade-cta routes to /owner/upgrade cleanly
+#     (router.push doesn't fail / no NPE on the upgrade screen mount)
+#   - /owner/upgrade renders its canonical header "Choose Your Plan"
+#
+# Auth posture: same seed_named_test_owner.js + Profile-tab L1
+# (context='owner_profile') as subscription_view.
+#
+# Precondition:
+#   - Wrapper run_subscription_upgrade_flow.sh (pm-clear + dev-client rebind).
+#
+# Cleanup:
+#   - Hard-delete the seeded owner via cleanup_test_users.js.
+#
+# First written: 2026-05-04 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Seed named owner.
+- runScript: ../../helpers/seed_named_test_owner.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon owner → Owner role gate.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 4. Profile tab → sign-in card → sign in.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "profile-sign-in-card-button"
+- tapOn:
+    id: "profile-sign-in-card-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.owner.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.owner.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Profile (authed) → Subscription.
+- scrollUntilVisible:
+    element:
+      id: "profile-subscription-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-subscription-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Subscription"
+
+# 6. Tap the upgrade CTA → /owner/upgrade.
+- assertVisible:
+    id: "subscription-upgrade-cta"
+- tapOn:
+    id: "subscription-upgrade-cta"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 7. Tier-picker mounted.
+- assertVisible: "Choose Your Plan"
+
+# 8. Cleanup.
+- runScript: ../../helpers/cleanup_test_users.js
