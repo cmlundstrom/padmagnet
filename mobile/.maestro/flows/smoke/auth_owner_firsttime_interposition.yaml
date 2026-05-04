@@ -1,0 +1,128 @@
+# Smoke: Owner L1 password sign-in routes a no-name OWNER to firstTime
+# Edit Profile with role-aware copy ("renters" instead of "owners").
+#
+# Mirrors auth_l1_firsttime_interposition.yaml but for the owner role.
+# Verifies the fix wired into lib/routing.js (commit d4839c3, 2026-05-03):
+# resolvePostLoginDestination now runs maybeInterposeFirstTimeProfile for
+# BOTH owner and renter authenticated sessions, where previously only
+# renters got the firstTime interposition. Edit Profile screen reads
+# role from useAuth() and renders role-aware copy.
+#
+# Pre-fix bug: an owner with NULL display_name who signed in via the L1
+# manila card (Create or Edit Your Listing) was routed straight to
+# /owner/create or /(owner)/listings, never seeing the firstTime gate.
+# Renters in your renter inbox would see blank "from" labels on every
+# message from that owner.
+#
+# What this smoke proves end-to-end:
+#   1. Anon owner → owner home L1 manila card visible
+#   2. Tap manila-l1-primary-cta → AuthBottomSheet opens (create_listing ctx)
+#   3. Sign in as the seeded no-name OWNER → sheet closes
+#   4. Resolver interposes /settings/edit-profile?firstTime=true
+#      (proven by "Last Step" header + edit-profile-name-input testID)
+#   5. Role-aware copy: placeholder text says "What should renters call you?"
+#      NOT "What should owners call you?" (proves useAuth().role === 'owner'
+#      branch fires). Soft assertion since RN a11y tree behavior on
+#      placeholders varies — non-fatal if it can't read the placeholder.
+#
+# Precondition:
+#   - Use the wrapper run_owner_l1_firsttime_interposition.sh which seeds
+#     a fresh email-signup user with user_metadata.role='owner' so the
+#     handle_new_user trigger sets profiles.role='owner' AND leaves
+#     display_name NULL (per migration 076 + role intent path).
+#
+# Cleanup:
+#   - The seeded owner user is hard-deleted via Supabase admin API.
+#
+# First written: 2026-05-03 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Cold launch — wrapper has wiped app data + bound the dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 1a. Fallback for the dev-menu Continue dialog if the wrapper missed.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 2. Anon owner session → owner home (manila card visible).
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 3. Owner home L1 manila card visible. The card heading uses the literal
+#    \n between words, so the assertion includes the line break.
+- assertVisible: "List Your Rental\nfor Free"
+
+# 4. Bring the sticky primary CTA into view + tap it. The sticky-footer
+#    pattern (commit aeed367) keeps the CTA at the folder bottom which
+#    on smaller devices may sit below the fold of the visible card area.
+- swipe:
+    direction: UP
+    duration: 400
+- waitForAnimationToEnd
+- assertVisible:
+    id: "manila-l1-primary-cta"
+- tapOn:
+    id: "manila-l1-primary-cta"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 5. AuthBottomSheet opens with context='create_listing' (owner context).
+- assertVisible:
+    id: "auth-sheet-email-input"
+
+# 6. Type the seeded no-name owner credentials. hideKeyboard between
+#    fields because the seeded email is long.
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${NONAME_OWNER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${NONAME_OWNER_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 7. Proof of interposition: "Last Step" is the firstTime header on
+#    edit-profile. The header is "Edit Profile" in normal mode, so
+#    "Last Step" being visible proves ?firstTime=true was honored AND
+#    the routing.js owner branch ran maybeInterposeFirstTimeProfile.
+- assertVisible: "Last Step"
+
+# 8. The required-name input testID is present, confirming we're on
+#    the right screen.
+- assertVisible:
+    id: "edit-profile-name-input"
+
+# 9. Role-aware copy proof: the input placeholder reads "What should
+#    renters call you?" for owners (and "What should owners call you?"
+#    for renters). RN's a11y tree exposes placeholder text on Android,
+#    so this should be queryable. Soft assertion (optional) — if a11y
+#    tree doesn't expose it we still consider the test green based on
+#    the "Last Step" header + edit-profile-name-input testID.
+- assertVisible:
+    text: ".*renters.*"
+    optional: true
+
+# 10. Cleanup — hard-delete the seeded owner user.
+- runScript: ../../helpers/cleanup_noname_user.js

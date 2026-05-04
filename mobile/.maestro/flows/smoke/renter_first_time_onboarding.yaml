@@ -29,8 +29,11 @@ appId: com.padmagnet.app
 
 # 1. Seed a fresh test renter via Supabase Admin. user_metadata only
 #    carries role; no display_name. With migration 076 in place the trigger
-#    inserts profile with display_name=NULL.
-- runScript: ../../helpers/seed_test_renter.js
+#    inserts profile with display_name=NULL — so the firstTime interposition
+#    fires post-signin. Use seed_noname_test_renter.js (NOT the standard
+#    seed_test_renter.js, which sets display_name='Maestro Renter' for
+#    smokes that DON'T want the firstTime gate).
+- runScript: ../../helpers/seed_noname_test_renter.js
 
 # 2. Cold launch — preserves Metro URL on dev client.
 #    PRE-REQUISITE: caller must wipe app state + re-bind the dev client
