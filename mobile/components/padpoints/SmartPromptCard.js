@@ -54,7 +54,7 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) 
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent>
-      <View style={styles.overlay}>
+      <View style={styles.overlay} testID={`smart-prompt-card-${prompt.key}`}>
         {/* Scrim backdrop — tap to skip */}
         <Pressable style={StyleSheet.absoluteFill} onPress={handleSkip} />
 
@@ -90,6 +90,7 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) 
               {prompt.options.map((option, i) => (
                 <TouchableOpacity
                   key={i}
+                  testID={`smart-prompt-option-${prompt.key}-${i}`}
                   style={styles.option}
                   onPress={() => handleAnswer(option.value)}
                   activeOpacity={0.7}
@@ -118,14 +119,24 @@ export default function SmartPromptCard({ prompt, onAnswer, onSkip, onAskPad }) 
 
             {/* Ask Pad CTA (on later prompts) */}
             {prompt.afterSwipe >= 25 && onAskPad && (
-              <TouchableOpacity style={styles.askPadButton} onPress={() => { handleSkip(); setTimeout(() => onAskPad(), 200); }} activeOpacity={0.7}>
+              <TouchableOpacity
+                testID={`smart-prompt-askpad-${prompt.key}`}
+                style={styles.askPadButton}
+                onPress={() => { handleSkip(); setTimeout(() => onAskPad(), 200); }}
+                activeOpacity={0.7}
+              >
                 <Image source={ASKPAD_ICON} style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }} />
                 <Text style={styles.askPadText}>AskPad instead</Text>
               </TouchableOpacity>
             )}
 
             {/* Skip */}
-            <TouchableOpacity style={styles.skipButton} onPress={handleSkip} activeOpacity={0.7}>
+            <TouchableOpacity
+              testID={`smart-prompt-skip-${prompt.key}`}
+              style={styles.skipButton}
+              onPress={handleSkip}
+              activeOpacity={0.7}
+            >
               <Text style={styles.skipText}>Skip for now</Text>
             </TouchableOpacity>
           </LinearGradient>
