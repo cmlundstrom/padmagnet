@@ -1,0 +1,115 @@
+# Smoke: renter taps a different notification channel and the radio
+# selection moves reactively.
+#
+# Exercises the notifications.js settings screen JIT testIDs that
+# track per-channel selected state. Limited to UI reactivity — the
+# Save → "Saved" alert path is deliberately NOT exercised here
+# because the seeded renter's smsConsent / phone state can early-
+# return handleSave on the "Phone Required" guard. A separate
+# notifications_save_persistence.yaml can verify the API path once
+# the seed fixture is understood.
+#
+# What this smoke proves:
+#   - notifications.js mounts cleanly post-signin with profile data
+#   - Channel radio selection is reactive: tapping a non-selected
+#     channel option moves the rendered selected indicator to it
+#   - The JIT testIDs (notifications-channel-{key} +
+#     notifications-channel-{key}-selected) are wired through to
+#     the a11y tree and queryable by Maestro
+#
+# Precondition:
+#   - Use the wrapper run_notifications_channel_save.sh (pm-clear +
+#     dev-client rebind). The smoke seeds a fresh renter via
+#     seed_test_renter.js (display_name set so firstTime gate skips).
+#
+# Cleanup:
+#   - Hard-delete the seeded renter via cleanup_test_users.js.
+#
+# First written: 2026-05-04 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Seed renter (display_name set → no firstTime gate).
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Sign in via Messages tab L1.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Profile tab → Notifications.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "profile-notifications-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-notifications-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Notifications"
+
+# 6. Confirm we're NOT already on email (otherwise the smoke is a no-op).
+#    The seeded renter's default preferred_channel comes from the
+#    handle_new_user trigger / schema default — historically observed
+#    as 'sms' for new accounts. We don't assert which default it is,
+#    only that it isn't already 'email'.
+- assertNotVisible:
+    id: "notifications-channel-email-selected"
+
+# 7. Switch to email channel.
+- tapOn:
+    id: "notifications-channel-email"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 8. Email is now selected. (Whichever channel was selected before
+#    is no longer — guaranteed because only one selected indicator
+#    renders at a time per the JSX conditional, and we just asserted
+#    email wasn't selected pre-tap.)
+- assertVisible:
+    id: "notifications-channel-email-selected"
+
+# 9. Cleanup the seeded renter. (No save-path assertion — see header.)
+- runScript: ../../helpers/cleanup_test_users.js

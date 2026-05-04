@@ -164,7 +164,7 @@ export default function NotificationsScreen() {
             <Ionicons name="close" size={22} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.title}>Notifications</Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.headerBtn}>
+          <TouchableOpacity testID="notifications-save" onPress={handleSave} disabled={saving} style={styles.headerBtn}>
             <Text style={[styles.saveText, saving && { color: COLORS.slate }]}>
               {saving ? 'Saving...' : 'Save'}
             </Text>
@@ -203,6 +203,7 @@ export default function NotificationsScreen() {
           {CHANNELS.map(ch => (
             <TouchableOpacity
               key={ch.key}
+              testID={`notifications-channel-${ch.key}`}
               style={[styles.channelOption, preferredChannel === ch.key && styles.channelSelected]}
               onPress={() => {
                 if (ch.key === 'sms' && !smsConsent) {
@@ -213,7 +214,9 @@ export default function NotificationsScreen() {
               }}
             >
               <View style={styles.radioOuter}>
-                {preferredChannel === ch.key && <View style={styles.radioInner} />}
+                {preferredChannel === ch.key && (
+                  <View testID={`notifications-channel-${ch.key}-selected`} style={styles.radioInner} />
+                )}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.channelLabel}>{ch.label}</Text>
