@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   card: {
     flex: 1,

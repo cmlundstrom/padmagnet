@@ -15,7 +15,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { apiFetch } from '../../../lib/api';
-import { formatCurrency } from '../../../utils/format';
+import { formatCurrency, formatBedsBaths } from '../../../utils/format';
 import { COLORS } from '../../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../../constants/fonts';
 import { LAYOUT, CHIP_STYLES } from '../../../constants/layout';
@@ -23,7 +23,7 @@ import { LAYOUT, CHIP_STYLES } from '../../../constants/layout';
 const { width: SW, height: SH } = Dimensions.get('window');
 const CARD_W = SW * 0.88;
 const CARD_H = SH * 0.75;
-const GRID_GAP = 8;
+const GRID_GAP = 12;
 const THUMB_W = (CARD_W - LAYOUT.padding.md * 2 - GRID_GAP) / 2;
 const DISMISS_THRESHOLD = 120;
 const RADIUS_OPTIONS = [2, 5, 7, 10];
@@ -273,8 +273,8 @@ function CompCard({ listing }) {
         <Text style={styles.compAddress} numberOfLines={1}>{street || '—'}</Text>
         <Text style={styles.compCity} numberOfLines={1}>{cityLine || ' '}</Text>
         <Text style={styles.compDetails} numberOfLines={1}>
-          {listing.bedrooms_total || '—'}bd · {listing.bathrooms_total || '—'}ba
-          {listing.living_area ? ` · ${Number(listing.living_area).toLocaleString()} sqft` : ''}
+          {formatBedsBaths(listing.bedrooms_total, listing.bathrooms_total)}
+          {listing.living_area ? ` • ${Number(listing.living_area).toLocaleString()} sqft` : ''}
         </Text>
       </View>
     </View>
@@ -515,13 +515,14 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   compInfo: {
-    paddingHorizontal: 7,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   compPrice: {
     fontFamily: FONTS.body.bold,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: '#3D2E0A',
+    letterSpacing: 0.2,
   },
   compPriceMo: {
     fontFamily: FONTS.body.regular,
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.semiBold,
     fontSize: FONT_SIZES.xxs,
     color: '#5C4A1E',
-    marginTop: 1,
+    marginTop: 3,
   },
   compCity: {
     fontFamily: FONTS.body.regular,

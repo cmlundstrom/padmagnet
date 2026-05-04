@@ -7,6 +7,7 @@ import { LAYOUT } from '../../constants/layout';
 
 const DEFAULT_VIEW_MODES = ['grid', 'map', 'list'];
 const VIEW_ICONS = { grid: 'th-large', map: 'map-o', list: 'list' };
+const VIEW_LABELS = { grid: 'Grid', map: 'Map', list: 'List' };
 
 /**
  * Shared branded header for all owner tab screens.
@@ -75,6 +76,14 @@ export default function OwnerHeader({ viewMode, onViewModeChange, onRefresh, min
                   size={14}
                   color={viewMode === mode ? COLORS.logoOrange : COLORS.brandOrangeMuted}
                 />
+                <Text
+                  style={[
+                    styles.toggleLabel,
+                    viewMode === mode && styles.toggleLabelActive,
+                  ]}
+                >
+                  {VIEW_LABELS[mode]}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -121,12 +130,23 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   toggleButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: LAYOUT.radius.sm - 2,
+    alignItems: 'center',
+    gap: 2,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.card,
+  },
+  toggleLabel: {
+    fontFamily: FONTS.body.medium,
+    fontSize: 9,
+    color: COLORS.brandOrangeMuted,
+    letterSpacing: 0.3,
+  },
+  toggleLabelActive: {
+    color: COLORS.logoOrange,
   },
   toggleIcon: {
     fontSize: FONT_SIZES.md,

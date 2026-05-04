@@ -24,8 +24,8 @@ export function formatDistance(miles) {
 }
 
 export function formatBedsBaths(beds, baths) {
-  const b = beds === 0 ? 'Studio' : `${beds} bed`;
-  return `${b} · ${baths} bath`;
+  const b = beds === 0 ? 'Studio' : `${beds} bd`;
+  return `${b} • ${baths} ba`;
 }
 
 /**

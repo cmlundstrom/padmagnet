@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import useNearbyRentals from '../../hooks/useNearbyRentals';
 import DragHandle from '../ui/DragHandle';
 import MapView from '../map/MapView';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, formatBedsBaths } from '../../utils/format';
 import { EqualHousingBadge } from '../ui';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
@@ -27,7 +27,7 @@ import { LAYOUT } from '../../constants/layout';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const DISMISS_THRESHOLD = 120;
-const GRID_GAP = 10;
+const GRID_GAP = 14;
 const CARD_W = (SCREEN_W - LAYOUT.padding.md * 2 - GRID_GAP) / 2;
 
 // Miami fallback — grid loads immediately while folders are on top
@@ -263,7 +263,7 @@ function BaseGrid({ listings, loading, isAnon, ownerHasListings, onShowAuth, onN
               </Text>
               {item.city && <Text style={styles.gridCity} numberOfLines={1}>{item.city}</Text>}
               <Text style={styles.gridMeta}>
-                {item.bedrooms_total || '\u2014'}bd {'\u00b7'} {item.bathrooms_total || '\u2014'}ba
+                {formatBedsBaths(item.bedrooms_total, item.bathrooms_total)}
               </Text>
             </View>
           </View>
@@ -420,7 +420,7 @@ const ManilaFolder = forwardRef(function ManilaFolder(
       styles.folderOuter,
       { zIndex },
       offsetTop != null && { top: 99 + offsetTop },
-      offsetX != null && { left: 22 + offsetX, right: 12 - offsetX },
+      offsetX != null && { left: 17 + offsetX, right: 17 - offsetX },
       animStyle,
     ]}
       onLayout={(e) => {
@@ -686,7 +686,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           tabAlign="left"
           zIndex={10}
           angle={0}
-          offsetX={-2}
+          offsetX={-4}
           dropShadow
           dismissCorner="right"
           onTabPress={showL1 ? handleBrowseNearby : undefined}
@@ -793,7 +793,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           angle={0}
           enterOffset={0.3}
           offsetTop={18}
-          offsetX={3}
+          offsetX={4}
           opaque
           dropShadow
           dismissCorner="left"
@@ -857,7 +857,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
           </View>
 
           <Text style={styles.l1Subtitle}>
-            PadMagnet matches your listing with qualified South Florida renters using smart scoring.
+            Turn your rental property into a renter magnet with smart scoring!
           </Text>
 
           {/* Feature bullets \u2014 stamped approval style (deep-green
@@ -867,7 +867,7 @@ export default function ManilaFolderStack({ isAnon, ownerHasListings, viewMode, 
               bullet 1's value-prop. */}
           <View style={styles.l1Bullets}>
             {[
-              'Free to list \u2014 no broker fees, no catch',
+              'Free to list \u2014 no broker fees',
               'Average 11K+/- active listings across 5 counties',
               'One-click competitive pricing research',
             ].map((text, i) => (
@@ -933,8 +933,8 @@ const styles = StyleSheet.create({
   // ── Folder outer ──────────────────────────────────
   folderOuter: {
     position: 'absolute',
-    left: 22,
-    right: 12,
+    left: 17,
+    right: 17,
     bottom: -20,
     top: 99,
     shadowColor: '#000',
@@ -991,9 +991,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
     letterSpacing: 0.5,
-    textShadowColor: 'rgba(255,250,225,0.6)',
+    textShadowColor: 'rgba(255,255,255,0.9)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
+    textShadowRadius: 2,
   },
   l1HeadingOrnament: {
     flexDirection: 'row',
@@ -1467,18 +1467,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gridCardInfo: {
-    padding: LAYOUT.padding.sm,
+    padding: LAYOUT.padding.md,
   },
   gridPrice: {
     fontFamily: FONTS.body.bold,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: COLORS.text,
+    letterSpacing: 0.2,
   },
   gridAddress: {
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xxs,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
   },
   gridCity: {
     fontFamily: FONTS.body.medium,

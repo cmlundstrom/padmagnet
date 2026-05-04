@@ -117,12 +117,13 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   info: {
-    padding: LAYOUT.padding.sm,
+    padding: LAYOUT.padding.md,
   },
   price: {
     fontFamily: FONTS.heading.bold,
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     color: COLORS.text,
+    letterSpacing: 0.2,
   },
   perMonth: {
     fontFamily: FONTS.body.regular,
@@ -133,10 +134,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
   },
   city: {
-    fontFamily: FONTS.body.bold,
+    fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
     marginTop: 1,
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   details: {
     fontFamily: FONTS.body.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    color: COLORS.slate,
+    marginTop: 3,
   },
 });

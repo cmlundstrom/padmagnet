@@ -441,6 +441,14 @@ export default function NearbyRentalsScreen() {
                   size={14}
                   color={viewMode === mode ? COLORS.logoOrange : COLORS.brandOrangeMuted}
                 />
+                <Text
+                  style={[
+                    styles.viewToggleLabel,
+                    viewMode === mode && styles.viewToggleLabelActive,
+                  ]}
+                >
+                  {mode === 'grid' ? 'Grid' : 'Map'}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -883,12 +891,23 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   viewToggleItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: LAYOUT.radius.sm - 2,
+    alignItems: 'center',
+    gap: 2,
   },
   viewToggleItemActive: {
     backgroundColor: COLORS.card,
+  },
+  viewToggleLabel: {
+    fontFamily: FONTS.body.medium,
+    fontSize: 9,
+    color: COLORS.brandOrangeMuted,
+    letterSpacing: 0.3,
+  },
+  viewToggleLabelActive: {
+    color: COLORS.logoOrange,
   },
 
   // Permission screen
