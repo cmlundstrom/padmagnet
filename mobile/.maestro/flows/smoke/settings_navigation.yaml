@@ -1,0 +1,165 @@
+# Smoke: Renter Profile → each settings sub-screen → back. Catches the
+# class of regressions where a settings sub-screen fails to render
+# (route mismatch, layout crash, broken auth gate, etc.) and where
+# Android hardware back fails to pop the stack cleanly.
+#
+# Mounted screens verified:
+#   - /settings/edit-profile        landmark: "Edit Profile"
+#   - /settings/change-email        landmark: "Change Email"
+#   - /settings/notifications       landmark: "Notifications"
+#   - /settings/preferences         landmark: "Preferred Property Types"
+#
+# Each sub-screen MUST expose a unique landmark text (asserted below) so
+# this smoke fails loudly if a route accidentally lands on the wrong
+# screen or a header is renamed.
+#
+# Auth posture: seeded renter via seed_test_renter.js (which sets
+# display_name='Maestro Renter' so the post-signin firstTime gate is
+# correctly SKIPPED and we land on the swipe deck — exactly the auth
+# state a real renter has when they tap Profile to access settings).
+#
+# Why we don't deep-link directly to /settings/<name>: a regression in
+# the Profile-tab MenuItem (wrong route, missing onPress, gated when
+# it shouldn't be) would still pass a deep-link smoke. Tapping the
+# MenuItem from Profile is the test surface that matches user reality.
+#
+# Precondition:
+#   - Use the wrapper run_settings_navigation.sh which wipes app data +
+#     re-binds the dev client to Metro before invoking maestro.
+#
+# Cleanup:
+#   - Hard-delete the seeded renter via cleanup_test_users.js.
+#
+# First written: 2026-05-04 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Seed a renter with display_name set (so firstTime gate is skipped
+#    post-signin). Auth state will land us on the swipe deck.
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch — wrapper has wiped app data + bound the dev client.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 2a. Fallback for the dev-menu Continue dialog.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter session.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Messages tab → L1 sign-in (anon → authed renter).
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Move to Profile tab. The renter is authed (display_name set), so
+#    the full SETTINGS section MenuItems are visible. Profile tab on
+#    S10 has a long scroll (PadScore card + TierCard + ProfileCard
+#    + SETTINGS section + ACCOUNT section + sign-out + delete +
+#    housing badge) — the edit/change-email items live below the
+#    initial fold, so we use scrollUntilVisible to surface each
+#    target before tapping.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# ── Preferences (always-visible, no scroll needed) ───────────────
+- scrollUntilVisible:
+    element:
+      id: "profile-preferences-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-preferences-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Preferred Property Types"
+- pressKey: Back
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# ── Notifications ────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "profile-notifications-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-notifications-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Notifications"
+- pressKey: Back
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# ── Edit Profile (below fold on S10) ─────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-edit-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Edit Profile"
+- pressKey: Back
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# ── Change Email (below fold on S10) ─────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "profile-change-email-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-change-email-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Change Email"
+- pressKey: Back
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Final post-back sanity: scroll back up a touch to confirm we're
+# still on the Profile screen and the menu items are reachable. If
+# any back press accidentally exited the app or the tab, this scroll
+# would no-op and the next assertion would fail.
+- scrollUntilVisible:
+    element:
+      id: "profile-preferences-button"
+    direction: UP
+
+# 6. Cleanup the seeded renter.
+- runScript: ../../helpers/cleanup_test_users.js

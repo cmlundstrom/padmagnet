@@ -28,6 +28,7 @@ SMOKES=(
   "flows/smoke/run_anon_save_migration.sh|anon swipes migrate to authed user_id (Fix A)"
   "flows/smoke/run_auth_intent_preserves_listing.sh|post-auth intent restoration to listing message (Fix B)"
   "flows/smoke/run_renter_onboarding.sh|renter firstTime Edit Profile end-to-end save"
+  "flows/smoke/run_settings_navigation.sh|renter Profile → 4 settings sub-screens → back"
 )
 
 PASS_COUNT=0
