@@ -30,6 +30,7 @@ SMOKES=(
   "flows/smoke/run_renter_onboarding.sh|renter firstTime Edit Profile end-to-end save"
   "flows/smoke/run_settings_navigation.sh|renter Profile → 4 settings sub-screens → back"
   "flows/smoke/run_smart_prompt_first.sh|anon renter swipes 3× → budget Smart Prompt mounts + answers"
+  "flows/smoke/run_notifications_channel_select.sh|renter Notifications → channel radio reactivity"
 )
 
 PASS_COUNT=0
