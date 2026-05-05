@@ -14,6 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "[1/4] Clearing app data so no auth session leaks from prior run..."
 adb shell pm clear "$APP_ID" >/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/_disable_dev_fab.sh"
 
 echo "[2/4] Re-binding dev client to Metro at ${METRO_URL}..."
 adb shell am start -W -a android.intent.action.VIEW -d "$DEV_CLIENT_DEEP_LINK" >/dev/null
