@@ -284,14 +284,14 @@ export default function MagicListingStudio() {
               }}
             />
             <View style={styles.row}>
-              <Input label="Number" value={form.street_number} onChangeText={v => update('street_number', v)} placeholder="123" style={styles.shortInput} />
+              <Input testID="owner-create-street-number-input" label="Number" value={form.street_number} onChangeText={v => update('street_number', v)} placeholder="123" style={styles.shortInput} />
               <Input testID="owner-create-address-input" label="Street Name *" value={form.street_name} onChangeText={v => update('street_name', v)} placeholder="Main St" autoCapitalize="words" style={styles.flexInput} />
             </View>
             <View style={styles.row}>
-              <Input label="City *" value={form.city} onChangeText={v => update('city', v)} placeholder="Stuart" autoCapitalize="words" style={styles.flexInput} />
-              <Input label="State *" value={form.state_or_province} onChangeText={v => update('state_or_province', v)} placeholder="FL" autoCapitalize="characters" style={styles.shortInput} />
+              <Input testID="owner-create-city-input" label="City *" value={form.city} onChangeText={v => update('city', v)} placeholder="Stuart" autoCapitalize="words" style={styles.flexInput} />
+              <Input testID="owner-create-state-input" label="State *" value={form.state_or_province} onChangeText={v => update('state_or_province', v)} placeholder="FL" autoCapitalize="characters" style={styles.shortInput} />
             </View>
-            <Input label="Zip *" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" />
+            <Input testID="owner-create-zip-input" label="Zip *" value={form.postal_code} onChangeText={v => update('postal_code', v)} placeholder="34994" keyboardType="numeric" />
           </SmartCard>
 
           {/* ── 2. Details Card ── */}
@@ -304,24 +304,31 @@ export default function MagicListingStudio() {
             <Input testID="owner-create-price-input" label="Monthly Rent *" value={form.list_price} onChangeText={v => update('list_price', v)} keyboardType="numeric" placeholder="2000" />
             <Text style={styles.label}>Property Type *</Text>
             <View style={styles.chipRow}>
-              {PROPERTY_TYPES.map(type => (
-                <Pressable
-                  key={type}
-                  style={[CHIP_STYLES.chip, form.property_sub_type === type && CHIP_STYLES.chipActive]}
-                  onPress={() => update('property_sub_type', form.property_sub_type === type ? '' : type)}
-                >
-                  <Text style={[CHIP_STYLES.chipText, form.property_sub_type === type && CHIP_STYLES.chipTextActive]}>{type}</Text>
-                </Pressable>
-              ))}
+              {PROPERTY_TYPES.map(type => {
+                // Slug for testID — "Single Family" → "single-family",
+                // "Mobile Home" → "mobile-home". Matches the convention used
+                // on preferences-property-type-* in app/settings/preferences.js.
+                const slug = type.toLowerCase().replace(/\s+/g, '-');
+                return (
+                  <Pressable
+                    key={type}
+                    testID={`owner-create-property-type-${slug}`}
+                    style={[CHIP_STYLES.chip, form.property_sub_type === type && CHIP_STYLES.chipActive]}
+                    onPress={() => update('property_sub_type', form.property_sub_type === type ? '' : type)}
+                  >
+                    <Text style={[CHIP_STYLES.chipText, form.property_sub_type === type && CHIP_STYLES.chipTextActive]}>{type}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
             <View style={styles.row}>
-              <Input label="Beds *" value={form.bedrooms_total} onChangeText={v => update('bedrooms_total', v)} keyboardType="numeric" placeholder="3" style={styles.thirdInput} />
-              <Input label="Baths *" value={form.bathrooms_total} onChangeText={v => update('bathrooms_total', v)} keyboardType="numeric" placeholder="2" style={styles.thirdInput} />
-              <Input label="Sq/Ft *" value={form.living_area} onChangeText={v => update('living_area', v)} keyboardType="numeric" placeholder="1200" style={styles.thirdInput} />
+              <Input testID="owner-create-beds-input" label="Beds *" value={form.bedrooms_total} onChangeText={v => update('bedrooms_total', v)} keyboardType="numeric" placeholder="3" style={styles.thirdInput} />
+              <Input testID="owner-create-baths-input" label="Baths *" value={form.bathrooms_total} onChangeText={v => update('bathrooms_total', v)} keyboardType="numeric" placeholder="2" style={styles.thirdInput} />
+              <Input testID="owner-create-sqft-input" label="Sq/Ft *" value={form.living_area} onChangeText={v => update('living_area', v)} keyboardType="numeric" placeholder="1200" style={styles.thirdInput} />
             </View>
-            <Input label="Year Built *" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
+            <Input testID="owner-create-year-built-input" label="Year Built *" value={form.year_built} onChangeText={v => update('year_built', v)} keyboardType="numeric" placeholder="2005" />
 
-            <Pressable style={styles.compsBtn} onPress={() => setShowComps(true)}>
+            <Pressable testID="owner-create-comps-button" style={styles.compsBtn} onPress={() => setShowComps(true)}>
               <LinearGradient
                 colors={[COLORS.accent, '#2563EB']}
                 start={{ x: 0, y: 0 }}
@@ -344,6 +351,7 @@ export default function MagicListingStudio() {
             <Text style={styles.hint}>Pitch the Pad. Pitch the Location. What makes it shine?!</Text>
             <View style={styles.aiRow}>
               <Pressable
+                testID="owner-create-ai-description-button"
                 style={[styles.aiButton, aiDescUses >= AI_DESC_LIMIT && { opacity: 0.4 }, aiLoading && { opacity: 0.6 }]}
                 onPress={async () => {
                   if (aiDescUses >= AI_DESC_LIMIT || aiLoading) return;
@@ -367,6 +375,7 @@ export default function MagicListingStudio() {
               <Text style={styles.aiUseCounter}>{AI_DESC_LIMIT - aiDescUses} left</Text>
             </View>
             <Input
+              testID="owner-create-description-input"
               label="Describe Your Rental Property"
               value={form.public_remarks}
               onChangeText={v => update('public_remarks', v.slice(0, 500))}
@@ -395,6 +404,7 @@ export default function MagicListingStudio() {
               {[{ label: '3 Months', value: '3' }, { label: '6 Months + 1 Day', value: '6' }, { label: '12 Months', value: '12' }].map(opt => (
                 <Pressable
                   key={opt.value}
+                  testID={`owner-create-lease-term-${opt.value}`}
                   style={[CHIP_STYLES.chip, form.lease_term === opt.value && CHIP_STYLES.chipActive]}
                   onPress={() => update('lease_term', opt.value)}
                 >
@@ -403,7 +413,7 @@ export default function MagicListingStudio() {
               ))}
             </View>
             <Text style={styles.fieldLabel}>Available Date</Text>
-            <Pressable style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
+            <Pressable testID="owner-create-available-date-button" style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
               <Text style={form.available_date ? styles.datePickerText : styles.datePickerPlaceholder}>
                 {form.available_date || 'Select a date'}
               </Text>
@@ -433,6 +443,7 @@ export default function MagicListingStudio() {
               {[{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }].map(opt => (
                 <Pressable
                   key={opt.value}
+                  testID={`owner-create-hoa-${opt.value}`}
                   style={[CHIP_STYLES.chip, form.hoa_fee === opt.value && CHIP_STYLES.chipActive]}
                   onPress={() => update('hoa_fee', opt.value)}
                 >
@@ -454,6 +465,7 @@ export default function MagicListingStudio() {
               {[{ label: 'Yes', value: true }, { label: 'No', value: false }].map(opt => (
                 <Pressable
                   key={String(opt.value)}
+                  testID={`owner-create-pets-allowed-${String(opt.value)}`}
                   style={[CHIP_STYLES.chip, form.pets_allowed === opt.value && CHIP_STYLES.chipActive]}
                   onPress={() => update('pets_allowed', opt.value)}
                 >
@@ -461,10 +473,10 @@ export default function MagicListingStudio() {
                 </Pressable>
               ))}
             </View>
-            <Toggle label="Fenced Yard" value={form.fenced_yard} onValueChange={v => update('fenced_yard', v)} />
-            <Toggle label="Furnished" value={form.furnished} onValueChange={v => update('furnished', v)} />
-            <Toggle label="Pool" value={form.pool} onValueChange={v => update('pool', v)} />
-            <Input label="Parking Spaces" value={form.parking_spaces} onChangeText={v => update('parking_spaces', v)} keyboardType="numeric" placeholder="2" />
+            <Toggle testID="owner-create-fenced-yard-toggle" label="Fenced Yard" value={form.fenced_yard} onValueChange={v => update('fenced_yard', v)} />
+            <Toggle testID="owner-create-furnished-toggle" label="Furnished" value={form.furnished} onValueChange={v => update('furnished', v)} />
+            <Toggle testID="owner-create-pool-toggle" label="Pool" value={form.pool} onValueChange={v => update('pool', v)} />
+            <Input testID="owner-create-parking-input" label="Parking Spaces" value={form.parking_spaces} onChangeText={v => update('parking_spaces', v)} keyboardType="numeric" placeholder="2" />
           </SmartCard>
 
           {/* ── 6. Photos Card ── */}
@@ -476,11 +488,11 @@ export default function MagicListingStudio() {
           >
             <Text style={styles.hint}>Great photos get 3x more inquiries. Add up to 10.</Text>
             <View style={styles.photoActionRow}>
-              <Pressable style={styles.photoActionBtn} onPress={pickImages} disabled={form.photos.length >= 10 || uploading}>
+              <Pressable testID="owner-create-photo-add-phone-button" style={styles.photoActionBtn} onPress={pickImages} disabled={form.photos.length >= 10 || uploading}>
                 <FontAwesome name="mobile-phone" size={22} color={COLORS.white} />
                 <Text style={styles.photoActionBtnText}>Add from Phone</Text>
               </Pressable>
-              <Pressable style={styles.photoActionBtn} onPress={handleSendUploadLink}>
+              <Pressable testID="owner-create-photo-upload-desktop-button" style={styles.photoActionBtn} onPress={handleSendUploadLink}>
                 <FontAwesome name="laptop" size={18} color={COLORS.white} />
                 <Text style={styles.photoActionBtnText}>{linkSent ? 'Resend Link' : 'Upload from Desktop'}</Text>
               </Pressable>
@@ -515,12 +527,13 @@ export default function MagicListingStudio() {
             cardRef={r => { cardRefs.current.contact = r; }}
           >
             <Text style={styles.hint}>How renters will reach you. We pre-filled from your profile — edit any field to change it.</Text>
-            <Input label="Your Name" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Your full name" autoCapitalize="words" />
+            <Input testID="owner-create-agent-name-input" label="Your Name" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Your full name" autoCapitalize="words" />
             <Text style={styles.chipLabel}>Preferred Contact Method *</Text>
             <View style={styles.chipRow}>
               {[{ key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'both', label: 'Both' }].map(opt => (
                 <Pressable
                   key={opt.key}
+                  testID={`owner-create-contact-pref-${opt.key}`}
                   style={[CHIP_STYLES.chip, contactPref === opt.key && CHIP_STYLES.chipActive]}
                   onPress={() => {
                     setContactPref(opt.key);
@@ -532,6 +545,7 @@ export default function MagicListingStudio() {
               ))}
             </View>
             <Input
+              testID="owner-create-agent-email-input"
               label="Email for Renters"
               value={form.listing_agent_email}
               onChangeText={v => update('listing_agent_email', v)}
@@ -543,6 +557,7 @@ export default function MagicListingStudio() {
             <Text style={styles.hint}>Inquiries route here. Change it to send them to a property manager or different agent.</Text>
             {(contactPref === 'phone' || contactPref === 'both') && (
               <Input
+                testID="owner-create-agent-phone-input"
                 label="Phone Number for Renters *"
                 value={form.listing_agent_phone}
                 onChangeText={v => updatePhone(v)}
@@ -551,6 +566,7 @@ export default function MagicListingStudio() {
               />
             )}
             <Input
+              testID="owner-create-contact-instructions-input"
               label="Contact Instructions"
               value={form.tenant_contact_instructions}
               onChangeText={v => update('tenant_contact_instructions', v)}
@@ -576,6 +592,7 @@ export default function MagicListingStudio() {
         </View>
         <View style={styles.floatingActions}>
           <Pressable
+            testID="owner-create-floating-orb-button"
             style={styles.floatingOrbBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

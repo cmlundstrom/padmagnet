@@ -17,7 +17,7 @@ import { LAYOUT } from '../../constants/layout';
  *   onValueChange — callback
  *   style         — optional container style override
  */
-export default function Toggle({ label, hint, value, onValueChange, style }) {
+export default function Toggle({ label, hint, value, onValueChange, style, testID }) {
   return (
     <View style={[styles.row, style]}>
       {(label || hint) && (
@@ -29,6 +29,7 @@ export default function Toggle({ label, hint, value, onValueChange, style }) {
       <View style={styles.switchWrap}>
         {value && <Text style={styles.onLabel}>ON</Text>}
         <Switch
+          testID={testID}
           value={value}
           onValueChange={onValueChange}
           trackColor={{ false: '#3A3A3C', true: COLORS.success }}
