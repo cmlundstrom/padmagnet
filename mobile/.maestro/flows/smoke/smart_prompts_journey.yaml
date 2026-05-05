@@ -1,38 +1,74 @@
-# Smoke: anon renter swipes through the first 3 Smart Prompt
-# milestones (budget/3 → pets/8 → beds/15) and answers each.
+# Smoke: anon renter swipes through ALL Smart Prompt milestones —
+# budget/3 → pets/8 → beds/15 → (skips location/25, GPS-denied) →
+# type/40 → features/60.
 #
-# Replaces smart_prompt_first.yaml (which only covered the budget
-# prompt). Stops at beds/15 to keep total runtime under ~3 min.
-# Prompt 4 (location/25) needs GPS permission, prompt 5 (type/40)
-# and prompt 6 (features/60) require many more swipes that risk
-# deck-exhaustion in the dev environment + cumulative level-up
-# overlays. Those can be added if listing seeds + level-up handling
-# justify it.
+# Why prompt 4 (location/25) is not asserted:
+#   pm clear (in the wrapper) wipes both runtime ACCESS_FINE_LOCATION
+#   and the AsyncStorage `padmagnet_location_asked` flag. The
+#   useEffect in (tenant)/swipe.js:74-93 sees `granted=false` and
+#   `asked=false` and would normally show the LocationSoftAsk modal,
+#   but the smoke immediately starts swiping and the like-button
+#   taps land on the deck regardless. Even if a tap triggers the
+#   modal's Skip path, the GPS denial cascades through:
+#   `buildLocationPrompt` returns null when no GPS, the
+#   `if (nextPrompt && nextPrompt.options.length > 0)` guard in
+#   swipe.js:204 short-circuits, and the location prompt never
+#   mounts. The deck just keeps incrementing past swipe 25 to 40.
+#
+#   We DEFENSIVELY tap-to-skip the LocationSoftAsk and the location
+#   smart-prompt card if either appears, but neither assertion is
+#   load-bearing.
 #
 # What this proves end-to-end:
-#   1. swipe-deck-like-button advances the deck reliably across 15
+#   1. swipe-deck-like-button advances the deck reliably across 60
 #      consecutive taps (no off-by-one in count, no listing
-#      starvation in the dev DB)
-#   2. Each milestone (3, 8, 15) mounts the right prompt:
+#      starvation in the dev DB at the 60-listing depth)
+#   2. Each milestone (3, 8, 15, 40, 60) mounts the right prompt:
 #        smart-prompt-card-budget    @ swipe 3
 #        smart-prompt-card-pets      @ swipe 8
 #        smart-prompt-card-beds      @ swipe 15
+#        smart-prompt-card-type      @ swipe 40
+#        smart-prompt-card-features  @ swipe 60
 #   3. Tapping an option on each prompt dismisses the modal cleanly,
 #      so the next set of swipes can resume against the deck.
-#   4. The level-up animation that fires after some answers (15
-#      PadPoints, can hit a level threshold) does NOT block the next
-#      tap stream — verified implicitly by the next prompt's
-#      mount succeeding.
+#   4. The level-up animation that fires after some answers (15-20
+#      PadPoints, can hit a level threshold by ~swipe 30) does NOT
+#      block the next tap stream — verified implicitly by the next
+#      prompt's mount succeeding.
+#
+# Choices made for deck stability through 60 swipes:
+#   - Pets answer "No pets" (index 3) — doesn't enable pet-required
+#     filter that could starve the deck.
+#   - Beds answer "1 bed" (index 0) — minimum, no filter pressure.
+#   - Type answer "Any" (index 4) — value 'any' is a no-op on the
+#     server (swipe.js:331 only upserts if value !== 'any'), so no
+#     reshuffle modal pops and the deck doesn't narrow.
+#   - Features answer "No preference" (index 4) — value 'none' has
+#     no preference-field mapping (swipe.js:338 comment), so
+#     prefUpdate stays empty, no upsert, no reshuffle.
+#   These two final choices keep the deck from reshuffling at 40
+#   and 60, which is critical: a reshuffle re-fetches with new
+#   filters AND excludes already-swiped IDs, so a narrow filter at
+#   swipe 40 could starve the remaining 20 swipes to features/60.
 #
 # Why anon: same as before — swipe count + prompt logic in
 # (tenant)/swipe.js runs identically for anon + authed; anon is the
-# simpler harness with no seeding overhead.
+# simpler harness with no seeding overhead. Note: anon `user?.id`
+# is undefined in swipe.js:344's upsert, so prompt answers DON'T
+# persist to tenant_preferences. That's fine — this smoke gates
+# the prompt-firing schedule, not the persistence path (the
+# persistence path is covered by preferences_save_persistence).
 #
 # Precondition:
-#   - Wrapper run_smart_prompts_journey.sh (pm-clear + dev-client rebind).
-#   - Dev environment must have ≥15 listings in the swipe deck.
+#   - Wrapper run_smart_prompts_journey.sh (pm-clear +
+#     _disable_dev_fab + dev-client rebind).
+#   - Dev environment must have ≥60 swipeable listings reachable
+#     by an anon-default search. If the smoke fails at the type or
+#     features assertion with a "no more listings" or empty deck
+#     state, expand the seed inventory.
 #
-# First written: 2026-05-04 against dev client on S10.
+# First written: 2026-05-04 (covered prompts 1-3 only).
+# Extended 2026-05-04 (this version) to cover prompts 5/6.
 appId: com.padmagnet.app
 ---
 
@@ -60,22 +96,33 @@ appId: com.padmagnet.app
 - runFlow: ../_shared/choose_renter.yaml
 - waitForAnimationToEnd:
     timeout: 8000
+
+# 2b. Defensive: dismiss LocationSoftAsk if it appears. After pm
+#     clear the asks-flag is false and the soft-ask MAY render
+#     before the deck. Tap "I'll search manually" to skip; the GPS
+#     stays denied which is what the rest of the smoke needs.
+- runFlow:
+    when:
+      visible: "I'll search manually"
+    commands:
+      - tapOn:
+          text: "I'll search manually"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
 - assertVisible:
     id: "swipe-deck-like-button"
 
 # ── Milestone 1: BUDGET prompt @ swipe 3 ─────────────────────────
-- tapOn:
-    id: "swipe-deck-like-button"
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: "swipe-deck-like-button"
+      - waitForAnimationToEnd:
+          timeout: 1500
 - waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 4000
+    timeout: 2500
 - assertVisible:
     id: "smart-prompt-card-budget"
 - tapOn:
@@ -86,9 +133,9 @@ appId: com.padmagnet.app
     id: "smart-prompt-card-budget"
 
 # After answering budget, the deck reshuffles (the new max-rent
-# filter narrows results). A "Deck reshuffled" modal pops up with an
-# OK button — must dismiss before continuing the swipe stream or
-# the next swipe-deck-like-button tap lands on the modal scrim
+# filter narrows results). A "Deck reshuffled" modal pops up with
+# an OK button — must dismiss before continuing the swipe stream
+# or the next swipe-deck-like-button tap lands on the modal scrim
 # instead of the deck card. Optional in case a future change
 # removes/skips this modal.
 - tapOn:
@@ -98,38 +145,26 @@ appId: com.padmagnet.app
     timeout: 4000
 
 # ── Milestone 2: PETS prompt @ swipe 8 (5 more swipes) ───────────
-- tapOn:
-    id: "swipe-deck-like-button"
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "swipe-deck-like-button"
+      - waitForAnimationToEnd:
+          timeout: 1500
 - waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 4000
+    timeout: 2500
 - assertVisible:
     id: "smart-prompt-card-pets"
-# Tap "No pets" (index 3) — safe non-pets answer, doesn't enable
-# pet-required filter that could starve the deck.
+# Tap "No pets" (index 3) — doesn't enable pet-required filter.
 - tapOn:
     id: "smart-prompt-option-pets-3"
 - waitForAnimationToEnd:
     timeout: 2000
 - assertNotVisible:
     id: "smart-prompt-card-pets"
-
-# Pets answer can also trigger a reshuffle if the filter narrowed.
+# Pets answer 'none' is a no-narrowing change — no reshuffle
+# expected, but defensive optional.
 - tapOn:
     text: "OK"
     optional: true
@@ -137,40 +172,107 @@ appId: com.padmagnet.app
     timeout: 4000
 
 # ── Milestone 3: BEDS prompt @ swipe 15 (7 more swipes) ──────────
-- tapOn:
-    id: "swipe-deck-like-button"
+- repeat:
+    times: 7
+    commands:
+      - tapOn:
+          id: "swipe-deck-like-button"
+      - waitForAnimationToEnd:
+          timeout: 1500
 - waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 1500
-- tapOn:
-    id: "swipe-deck-like-button"
-- waitForAnimationToEnd:
-    timeout: 4000
+    timeout: 2500
 - assertVisible:
     id: "smart-prompt-card-beds"
-# Tap "1 bed" (index 0) — minimum, no filter pressure on the deck.
+# Tap "1 bed" (index 0) — minimum, no filter pressure.
 - tapOn:
     id: "smart-prompt-option-beds-0"
 - waitForAnimationToEnd:
     timeout: 2000
 - assertNotVisible:
     id: "smart-prompt-card-beds"
+# Beds=1 narrows nothing meaningful for the dev deck, but a
+# reshuffle modal can still fire. Optional.
+- tapOn:
+    text: "OK"
+    optional: true
+# Generous wait — level-up animation (3s display + 3s fade + 1s
+# buffer = 7s per swipe.js:209) can be in flight by this point;
+# its overlay must clear before the next swipe-button tap.
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# ── Skip prompt 4 (LOCATION @ swipe 25): GPS is denied (pm clear
+# stripped runtime permission), so buildLocationPrompt returns null
+# and the prompt never mounts. We swipe straight through to
+# prompt 5. Defensive optional skip in case GPS somehow leaks. ────
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: "swipe-deck-like-button"
+      - waitForAnimationToEnd:
+          timeout: 1500
+# After swipe 25, the location prompt MAY have rendered if GPS
+# leaked through somehow. Skip it via the testID if so.
+- runFlow:
+    when:
+      visible:
+        id: "smart-prompt-card-location"
+    commands:
+      - tapOn:
+          id: "smart-prompt-skip-location"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# ── Milestone 5: TYPE prompt @ swipe 40 (15 more swipes) ─────────
+- repeat:
+    times: 15
+    commands:
+      - tapOn:
+          id: "swipe-deck-like-button"
+      - waitForAnimationToEnd:
+          timeout: 1500
+- waitForAnimationToEnd:
+    timeout: 2500
+- assertVisible:
+    id: "smart-prompt-card-type"
+# Tap "Any" (index 4) — value 'any' is a no-op on the server, no
+# reshuffle, deck stays at full breadth for the 20 swipes to
+# features/60.
+- tapOn:
+    id: "smart-prompt-option-type-4"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertNotVisible:
+    id: "smart-prompt-card-type"
+# 'any' answer doesn't trigger reshuffle (swipe.js:331), but
+# defensive optional anyway.
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# ── Milestone 6: FEATURES prompt @ swipe 60 (20 more swipes) ─────
+- repeat:
+    times: 20
+    commands:
+      - tapOn:
+          id: "swipe-deck-like-button"
+      - waitForAnimationToEnd:
+          timeout: 1500
+- waitForAnimationToEnd:
+    timeout: 2500
+- assertVisible:
+    id: "smart-prompt-card-features"
+# Tap "No preference" (index 4) — value 'none' maps to no
+# preference field (swipe.js:338), so prefUpdate is empty, no
+# upsert, no reshuffle.
+- tapOn:
+    id: "smart-prompt-option-features-4"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertNotVisible:
+    id: "smart-prompt-card-features"
