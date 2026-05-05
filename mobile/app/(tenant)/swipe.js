@@ -62,12 +62,31 @@ export default function SwipeScreen() {
   // ── Location soft-ask ──────────────────────────────────────
   const [showLocationAsk, setShowLocationAsk] = useState(false);
   const [locationReady, setLocationReady] = useState(false);
-  const { location: deviceLocation, requestPermission, checkExistingPermission } = useLocation();
+  const { location: deviceLocation, loading: gpsLoading, requestPermission, checkExistingPermission } = useLocation();
   const { listings, loading, error, hasMore, loadMore, refresh, removeFromDeck, prependToList } = useListings({
     deviceLat: deviceLocation?.latitude || null,
     deviceLng: deviceLocation?.longitude || null,
     locationReady,
   });
+
+  // ── Loading-phase copy for the centered spinner in CardStack/MapView/ListView.
+  // Three phases:
+  //   'gps'      → waiting on GPS lock (useLocation.loading === true)
+  //   'listings' → GPS done, waiting on the /api/listings fetch
+  //   null       → ready, deck visible
+  // 'gpsSlow' kicks in after 10s in the 'gps' phase to swap copy to a more
+  // reassuring line, since cold-start GPS on Android can spike to 30s and a
+  // static spinner with the same line for that long looks broken.
+  const loadingPhase = gpsLoading ? 'gps' : (loading && listings.length === 0 ? 'listings' : null);
+  const [gpsSlow, setGpsSlow] = useState(false);
+  useEffect(() => {
+    if (loadingPhase !== 'gps') {
+      setGpsSlow(false);
+      return;
+    }
+    const t = setTimeout(() => setGpsSlow(true), 10000);
+    return () => clearTimeout(t);
+  }, [loadingPhase]);
 
   const [locationDenied, setLocationDenied] = useState(false);
 
@@ -363,6 +382,8 @@ export default function SwipeScreen() {
             <CardStack
               listings={scoredListings}
               loading={loading}
+              loadingPhase={loadingPhase}
+              gpsSlow={gpsSlow}
               error={error}
               onSwipe={handleSwipe}
               onTapCard={handleTapCard}
@@ -376,12 +397,16 @@ export default function SwipeScreen() {
             <MapView
               listings={scoredListings}
               loading={loading}
+              loadingPhase={loadingPhase}
+              gpsSlow={gpsSlow}
             />
           )}
           {viewMode === 'list' && (
             <ListView
               listings={scoredListings}
               loading={loading}
+              loadingPhase={loadingPhase}
+              gpsSlow={gpsSlow}
               error={error}
               onRefresh={refresh}
               hasMore={hasMore}

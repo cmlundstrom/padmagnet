@@ -1,16 +1,13 @@
 import { FlatList, ActivityIndicator, View, StyleSheet } from 'react-native';
 import { EmptyState } from '../ui';
 import ListingCard from './ListingCard';
+import LoadingState from '../cards/LoadingState';
 import { COLORS } from '../../constants/colors';
 import { LAYOUT } from '../../constants/layout';
 
-export default function ListView({ listings = [], loading, error, onRefresh, hasMore, onLoadMore }) {
+export default function ListView({ listings = [], loading, loadingPhase, gpsSlow, error, onRefresh, hasMore, onLoadMore }) {
   if (loading && listings.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
+    return <LoadingState phase={loadingPhase} gpsSlow={gpsSlow} />;
   }
 
   if (error && listings.length === 0) {

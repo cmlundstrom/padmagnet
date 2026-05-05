@@ -6,6 +6,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import SwipeCard from './SwipeCard';
+import LoadingState from './LoadingState';
 import { EmptyState } from '../ui';
 import { COLORS } from '../../constants/colors';
 import { LAYOUT } from '../../constants/layout';
@@ -13,6 +14,8 @@ import { LAYOUT } from '../../constants/layout';
 export default function CardStack({
   listings,
   loading,
+  loadingPhase,
+  gpsSlow,
   error,
   onSwipe,
   onTapCard,
@@ -43,11 +46,7 @@ export default function CardStack({
   }, [listings.length, hasMore, onLoadMore]);
 
   if (loading && listings.length === 0) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
+    return <LoadingState phase={loadingPhase} gpsSlow={gpsSlow} />;
   }
 
   if (error && listings.length === 0) {
