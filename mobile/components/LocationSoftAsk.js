@@ -103,6 +103,7 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
 
             {/* CTA */}
             <Pressable
+              testID="location-soft-ask-enable-button"
               style={({ pressed }) => [styles.enableButton, pressed && { opacity: 0.85 }]}
               onPress={handleEnable}
             >
@@ -124,6 +125,7 @@ export default function LocationSoftAsk({ onEnable, onSkip }) {
 
             {/* Skip */}
             <Pressable
+              testID="location-soft-ask-skip-button"
               style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
               onPress={handleSkip}
             >

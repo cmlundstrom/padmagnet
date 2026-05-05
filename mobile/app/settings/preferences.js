@@ -213,6 +213,7 @@ export default function PreferencesScreen() {
         {/* Budget */}
         <SectionHeader icon="cash-outline" color={COLORS.success} title="Budget" />
         <Input
+          testID="preferences-budget-max-input"
           label="Max $/mo"
           value={form.budget_max}
           onChangeText={v => updateText('budget_max', v)}

@@ -1,0 +1,125 @@
+# Smoke: renter types into Max $/mo and the debounced PUT to
+# tenant_preferences persists budget_max to the DB after the 1500ms
+# debounce window.
+#
+# Companion to preferences_save_persistence (chip-tap immediateSave
+# path). This smoke gates the OTHER half of usePreferences:
+#
+#   immediateSave: chips/toggles/discrete fire on tap (covered by
+#   preferences_save_persistence.yaml)
+#
+#   scheduleSave: text inputs (budget_max, beds_min, baths_min)
+#   debounce 1500ms after last keystroke (THIS smoke)
+#
+# Both call the same updatePreferences → PUT /api/preferences →
+# upsert tenant_preferences. /api/preferences was service-role from
+# day one (see app/api/preferences/route.js); no RLS fix was needed.
+#
+# What this proves end-to-end that the chip smoke does not:
+#   1. The debounceRef.current timeout actually fires (preferences.js
+#      line 133)
+#   2. The debounced doSave call happens AFTER the user pauses
+#      typing (not on every keystroke)
+#   3. The numeric coercion from text "2750" → form.budget_max="2750"
+#      → buildPayload parseFloat → 2750 lands in the DB as a
+#      numeric, not a string
+#
+# Why 2750: not the schema default (null), not the buildPayload
+# fallback (5000 when empty per preferences.js:95), distinct from any
+# fixture default. The verify expects exactly 2750.
+#
+# Precondition:
+#   - Wrapper run_preferences_debounced_save_persistence.sh (pm-clear
+#     + _disable_dev_fab + dev-client rebind). Seed renter via
+#     seed_test_renter.js.
+#
+# Cleanup:
+#   - Hard-delete the seeded renter via cleanup_test_users.js.
+#     tenant_preferences row cascades on user delete.
+#
+# First written: 2026-05-05 against dev client on S10.
+appId: com.padmagnet.app
+---
+
+# 1. Seed renter (display_name set → firstTime gate skips).
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Sign in via Messages-tab L1.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Profile → Preferences.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "profile-preferences-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-preferences-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Budget"
+
+# 6. Tap the Max $/mo input + type 2750. Budget input is visible
+#    above the fold on mount (top of preferences.js after the intro).
+- tapOn:
+    id: "preferences-budget-max-input"
+- inputText: "2750"
+- hideKeyboard
+
+# 7. Wait past the 1500ms debounce + a generous buffer for the
+#    network roundtrip + saveStatus="saved" indicator. The debounce
+#    is preferences.js:20 TEXT_DEBOUNCE_MS=1500 — so 4500ms total
+#    is 3x the debounce window, comfortably covering serialization +
+#    PUT + commit + response render.
+- waitForAnimationToEnd:
+    timeout: 4500
+
+# 8. Load-bearing assertion: tenant_preferences.budget_max must be
+#    exactly 2750.
+- runScript: ../../helpers/verify_budget_max_2750.js
+
+# 9. Cleanup.
+- runScript: ../../helpers/cleanup_test_users.js
