@@ -25,6 +25,7 @@ try {
 } catch { /* native module not present in this build */ }
 import { FontAwesome } from '@expo/vector-icons';
 import { Header, Button, Input, Toggle } from '../../components/ui';
+import { useAuth } from '../../hooks/useAuth';
 import { apiFetch } from '../../lib/api';
 import { getCachedListing, setCachedListing } from '../../lib/listingCache';
 import { toTitleCase, toSentenceCase } from '../../utils/format';
@@ -91,6 +92,7 @@ export default function EditListingScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const alert = useAlert();
+  const { user } = useAuth();
 
   // Seed from cache synchronously so the form has real data on first render.
   // Listings tab warms the cache on fetch/focus, so tapping Edit from there
@@ -242,10 +244,6 @@ export default function EditListingScreen() {
     if (!form.living_area) missing.push('Sq/Ft');
     if (missing.length) {
       alert('Required', `Please fill in: ${missing.join(', ')}`);
-      return false;
-    }
-    if (form.listing_agent_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.listing_agent_email)) {
-      alert('Invalid Email', 'Please enter a valid email address.');
       return false;
     }
     if ((contactPref === 'phone' || contactPref === 'both') && (!form.listing_agent_phone || form.listing_agent_phone.replace(/\D/g, '').length < 10)) {
@@ -745,16 +743,12 @@ export default function EditListingScreen() {
               </Pressable>
             ))}
           </View>
-          <Input
-            label="Email for Renters"
-            value={form.listing_agent_email}
-            onChangeText={v => update('listing_agent_email', v)}
-            onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
-            placeholder="Leave blank to use your account email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <Text style={styles.hint}>Leave blank to use your account email, or override to route inquiries elsewhere (e.g. a property manager or specific agent).</Text>
+          <View style={styles.accountEmailRow}>
+            <FontAwesome name="envelope-o" size={13} color={COLORS.textSecondary} />
+            <Text style={styles.accountEmailText}>
+              Inquiries notify your account email: <Text style={styles.accountEmailBold}>{user?.email || '—'}</Text>
+            </Text>
+          </View>
           {(contactPref === 'phone' || contactPref === 'both') && (
             <Input
               label="Phone Number for Renters *"
@@ -898,6 +892,29 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     marginBottom: LAYOUT.padding.md,
     lineHeight: 20,
+  },
+  accountEmailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  accountEmailText: {
+    flex: 1,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  accountEmailBold: {
+    fontFamily: FONTS.body.semiBold,
+    color: COLORS.text,
   },
   saveWrap: {
     marginTop: 20,

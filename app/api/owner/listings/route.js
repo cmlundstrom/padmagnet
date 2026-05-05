@@ -133,10 +133,15 @@ export async function POST(request) {
       }
     }
 
-    // Default the public-facing contact email to the owner's account email
-    // when the wizard didn't collect a separate one. Owners can still override
-    // in Edit Listing; this only affects the initial create.
-    if (!listing.listing_agent_email && user.email) {
+    // Force listing_agent_email to the owner's account email regardless of
+    // what the client posts. The wizard's "Email for Renters" override was
+    // removed pre-launch — profile.email is the single source of truth for
+    // owner-listing inquiry routing. Server enforcement protects against
+    // stale clients that still post the field, drift between profile email
+    // updates and listing rows, and the dual-email mismatch class entirely.
+    // (MLS listings populate this column from the Bridge feed; this branch
+    // only affects source='owner'.)
+    if (user.email) {
       listing.listing_agent_email = user.email;
     }
 

@@ -107,6 +107,15 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
+    // Force listing_agent_email to the owner's current account email on every
+    // update. Source of truth for owner-listing inquiry routing is profile.email
+    // (wizard override removed pre-launch). This also keeps the column in sync
+    // when an owner changes their account email — the next listing edit refreshes
+    // the row. MLS listings aren't reached through this handler.
+    if (user.email) {
+      updates.listing_agent_email = user.email;
+    }
+
     // Re-geocode if any address field changed
     const addressChanged = ADDRESS_FIELDS.some(f => updates[f] !== undefined);
     if (addressChanged) {

@@ -353,9 +353,6 @@ export default function useListingStudio(draftIdParam) {
     if ((contactPref === 'phone' || contactPref === 'both') && form.listing_agent_phone && form.listing_agent_phone.replace(/\D/g, '').length < 10) {
       contMissing.push('Complete 10-digit Phone');
     }
-    if (form.listing_agent_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.listing_agent_email)) {
-      contMissing.push('Valid Email');
-    }
     if (contMissing.length) errors.contact = contMissing;
 
     return { valid: Object.keys(errors).length === 0, errors };

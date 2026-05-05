@@ -526,7 +526,7 @@ export default function MagicListingStudio() {
             completion={completionMap.contact}
             cardRef={r => { cardRefs.current.contact = r; }}
           >
-            <Text style={styles.hint}>How renters will reach you. We pre-filled from your profile — edit any field to change it.</Text>
+            <Text style={styles.hint}>How renters will reach you. Pre-filled from your profile — edit name, phone, or instructions as needed.</Text>
             <Input testID="owner-create-agent-name-input" label="Your Name" value={form.listing_agent_name} onChangeText={v => update('listing_agent_name', v)} placeholder="Your full name" autoCapitalize="words" />
             <Text style={styles.chipLabel}>Preferred Contact Method *</Text>
             <View style={styles.chipRow}>
@@ -544,17 +544,12 @@ export default function MagicListingStudio() {
                 </Pressable>
               ))}
             </View>
-            <Input
-              testID="owner-create-agent-email-input"
-              label="Email for Renters"
-              value={form.listing_agent_email}
-              onChangeText={v => update('listing_agent_email', v)}
-              onBlur={() => update('listing_agent_email', form.listing_agent_email?.trim().toLowerCase())}
-              placeholder="your@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Text style={styles.hint}>Inquiries route here. Change it to send them to a property manager or different agent.</Text>
+            <View testID="owner-create-account-email-display" style={styles.accountEmailRow}>
+              <Ionicons name="mail-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.accountEmailText}>
+                Inquiries notify your account email: <Text style={styles.accountEmailBold}>{user?.email || '—'}</Text>
+              </Text>
+            </View>
             {(contactPref === 'phone' || contactPref === 'both') && (
               <Input
                 testID="owner-create-agent-phone-input"
@@ -763,6 +758,29 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
+  },
+  accountEmailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.radius.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  accountEmailText: {
+    flex: 1,
+    fontFamily: FONTS.body.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  accountEmailBold: {
+    fontFamily: FONTS.body.semiBold,
+    color: COLORS.text,
   },
   textArea: {
     minHeight: 100,
