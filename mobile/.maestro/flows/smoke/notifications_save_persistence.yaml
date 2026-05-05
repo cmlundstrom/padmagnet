@@ -1,0 +1,116 @@
+# Smoke: renter changes preferred_channel and the API save persists
+# the new value to profiles.preferred_channel.
+#
+# Gates the fix shipped 2026-05-04 — the unified
+# /api/profiles/notifications endpoint (renamed from sms-consent)
+# that now uses service-role to bypass RLS. The previous
+# implementation did a direct mobile-side
+# `supabase.from('profiles').update({preferred_channel})` which was
+# silently blocked by RLS — UI showed "Saved" but the DB never
+# updated.
+#
+# Confirmed seed defaults (queried 2026-05-04 via service-role REST):
+#   phone=''  sms_consent=false  preferred_channel='sms'
+# So tapping email + save should:
+#   - Skip the "Phone Required" guard (smsConsent is false)
+#   - POST /api/profiles/notifications with preferred_channel='email'
+#   - Server uses service-role to write profiles.preferred_channel='email'
+#   - "Saved" alert fires (non-load-bearing — verify is below)
+#
+# What this proves end-to-end:
+#   1. UI radio reactivity (covered redundantly with channel_select)
+#   2. Save tap fires the API call cleanly
+#   3. **The API write actually persists** to profiles row (REST GET)
+#
+# Precondition:
+#   - Wrapper run_notifications_save_persistence.sh
+#
+# Cleanup:
+#   - Hard-delete the seeded renter via cleanup_test_users.js.
+#
+# First written: 2026-05-04 against dev client on S10. Initial run
+# discovered the silent-no-op bug; this version gates the fix.
+appId: com.padmagnet.app
+---
+
+- runScript: ../../helpers/seed_test_renter.js
+
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "profile-notifications-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-notifications-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Notifications"
+
+# Default channel is 'sms' per schema; tap 'email' to flip.
+- tapOn:
+    id: "notifications-channel-email"
+- waitForAnimationToEnd:
+    timeout: 1500
+- assertVisible:
+    id: "notifications-channel-email-selected"
+
+# Save tap. Wait long enough for the API roundtrip + alert to mount.
+# Tap "OK" if the alert is up; non-fatal if not (the REST verify is
+# the load-bearing check below).
+- tapOn:
+    id: "notifications-save"
+- waitForAnimationToEnd:
+    timeout: 8000
+- tapOn:
+    text: "OK"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Load-bearing assertion: profiles.preferred_channel must be 'email'.
+- runScript: ../../helpers/verify_preferred_channel_email.js
+
+- runScript: ../../helpers/cleanup_test_users.js

@@ -149,22 +149,19 @@ const NotificationPreferences = forwardRef(function NotificationPreferences(
     }
 
     try {
-      // Persist SMS consent (also sets phone + preferred_channel=sms when consent=true)
-      await apiFetch('/api/profiles/sms-consent', {
+      // Single round-trip: server uses service-role to update sms_consent +
+      // preferred_channel atomically, bypassing RLS. See
+      // /api/profiles/notifications (renamed from sms-consent 2026-05-04
+      // to handle both fields and fix the silent no-op on direct
+      // mobile-side preferred_channel updates).
+      await apiFetch('/api/profiles/notifications', {
         method: 'POST',
         body: JSON.stringify({
           consent: smsConsent,
           phone: smsConsent ? toE164(phone) : undefined,
+          preferred_channel: preferredChannel,
         }),
       });
-
-      // If channel is not SMS (or SMS was turned off), save preferred channel separately
-      if (!smsConsent || preferredChannel !== 'sms') {
-        await supabase
-          .from('profiles')
-          .update({ preferred_channel: preferredChannel })
-          .eq('id', user.id);
-      }
 
       if (onSaved) onSaved();
       return true;

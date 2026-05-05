@@ -119,22 +119,19 @@ export default function NotificationsScreen() {
 
     setSaving(true);
     try {
-      // Save SMS consent
-      await apiFetch('/api/profiles/sms-consent', {
+      // Single round-trip: server uses service-role to update sms_consent +
+      // preferred_channel atomically, bypassing RLS that previously made
+      // the mobile-side supabase.update silently no-op (see commit
+      // history for /api/profiles/notifications — renamed from
+      // sms-consent 2026-05-04 to handle both fields).
+      await apiFetch('/api/profiles/notifications', {
         method: 'POST',
         body: JSON.stringify({
           consent: smsConsent,
           phone: smsConsent ? toE164(phone) : undefined,
+          preferred_channel: preferredChannel,
         }),
       });
-
-      // Save preferred channel separately if not SMS (sms-consent endpoint auto-sets it)
-      if (!smsConsent || preferredChannel !== 'sms') {
-        await supabase
-          .from('profiles')
-          .update({ preferred_channel: preferredChannel })
-          .eq('id', user.id);
-      }
 
       alert('Saved', 'Your notification preferences have been updated.', [
         { text: 'OK', onPress: () => router.back() },
