@@ -11,6 +11,28 @@ const nextConfig = {
   // Security headers
   async headers() {
     return [
+      // Mobile App Links / Universal Links discovery files. Both must be
+      // served as application/json and reachable without auth/redirects.
+      // The AASA file has NO file extension by Apple's spec, so Next would
+      // otherwise serve it as application/octet-stream — override here.
+      // Cache-Control kept short so the post-Play-upload SHA-256 swap (see
+      // post-build-todo.md Phase 2) propagates within minutes, not days.
+      {
+        source: '/.well-known/assetlinks.json',
+        headers: [
+          { key: 'Content-Type', value: 'application/json' },
+          { key: 'Cache-Control', value: 'public, max-age=300, must-revalidate' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      {
+        source: '/.well-known/apple-app-site-association',
+        headers: [
+          { key: 'Content-Type', value: 'application/json' },
+          { key: 'Cache-Control', value: 'public, max-age=300, must-revalidate' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

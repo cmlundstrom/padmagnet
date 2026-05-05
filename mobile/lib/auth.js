@@ -112,15 +112,25 @@ export async function getSession() {
 }
 
 export async function signInWithMagicLink(email, nonce, role) {
-  // Use web intermediary page that deep-links back to the app. This works
-  // reliably because the Supabase Site URL is padmagnet.com, which is on
-  // the emailRedirectTo allowlist. A padmagnet:// direct scheme was tried
-  // (commit 962d6ae, reverted) — Supabase's email-auth allowlist is
-  // separate from the OAuth allowlist that Google/Facebook use, and the
-  // custom scheme was getting silently stripped, breaking auth entirely.
+  // emailRedirectTo stays HTTPS so the Supabase email-auth allowlist (which
+  // is separate from the OAuth allowlist) is satisfied — a padmagnet://
+  // direct scheme was tried in commit 962d6ae and reverted in f6e6fc9
+  // because Supabase silently strips unlisted custom schemes. Going HTTPS
+  // also keeps the cross-device flow working as a fallback.
   //
-  // When nonce is provided, the callback page can relay tokens back to
-  // the mobile app via Supabase Realtime (cross-device magic link support).
+  // BUT: with Android App Links + iOS Universal Links wired up
+  // (mobile/app.config.js intentFilters/associatedDomains +
+  // /.well-known/assetlinks.json + /.well-known/apple-app-site-association),
+  // the OS recognizes this URL as belonging to the app. Tapping it on a
+  // device with the app installed opens the app DIRECTLY — no browser hop,
+  // no relay-tokens roundtrip. The /auth/mobile-callback web page only
+  // renders for desktop email clients or installs where the OS hasn't
+  // verified yet, where it falls back to the relay-tokens Realtime flow.
+  //
+  // When nonce is provided, the callback page (web fallback path only)
+  // relays tokens to the mobile app via Supabase Realtime — covers the
+  // cross-device case where the user reads email on a different device
+  // than the one that initiated signin.
   //
   // When role is provided (from the AuthBottomSheet context), it's stored
   // as user_metadata so the handle_new_user DB trigger sets profiles.role

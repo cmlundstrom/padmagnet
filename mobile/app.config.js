@@ -15,6 +15,13 @@ export default ({ config }) => ({
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.padmagnet.app",
+      // Universal Links — magic-link auth (https://padmagnet.com/auth/mobile-callback*)
+      // opens the app directly when installed, instead of bouncing through Mobile Safari.
+      // Requires apple-app-site-association at https://padmagnet.com/.well-known/
+      // (currently shipped with placeholder TEAM_ID — replace before iOS launch).
+      // Same HTTPS URL stays the magic-link emailRedirectTo target, so Supabase
+      // allowlist needs no change.
+      associatedDomains: ["applinks:padmagnet.com"],
       infoPlist: {
         NSLocationWhenInUseUsageDescription:
           "PadMagnet uses your location to show nearby rental listings on the map.",
@@ -32,6 +39,31 @@ export default ({ config }) => ({
         backgroundImage: "./assets/android-icon-background.png",
         monochromeImage: "./assets/android-icon-monochrome.png",
       },
+      // Android App Links — auto-verified intent filter so tapping the magic
+      // link in any email client opens the app directly without a "Open
+      // with..." chooser. autoVerify=true triggers the OS to fetch
+      // /.well-known/assetlinks.json from padmagnet.com on first install +
+      // periodic re-checks; mismatch (or missing file) silently falls back
+      // to the existing web intermediary at /auth/mobile-callback. The
+      // assetlinks.json must list the SHA-256 of whichever cert is on the
+      // device — the EAS production keystore SHA-256 covers preview-channel
+      // installs; the Play App Signing key SHA-256 must be appended after
+      // the first AAB upload to Play Console (see post-build-todo.md
+      // Phase 2). Both fingerprints in one assetlinks.json works.
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "https",
+              host: "padmagnet.com",
+              pathPrefix: "/auth/mobile-callback",
+            },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY,

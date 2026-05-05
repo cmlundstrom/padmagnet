@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.com.padmagnet.app"],
+        "components": [
+          {
+            "/": "/auth/mobile-callback*",
+            "comment": "Magic-link auth: opens app directly when installed"
+          }
+        ]
+      }
+    ]
+  }
+}
