@@ -35,6 +35,7 @@ SMOKES=(
   "flows/smoke/run_subscription_view.sh|owner Subscription screen mounts + free-tier upgrade CTA visible"
   "flows/smoke/run_subscription_upgrade_flow.sh|owner Subscription → upgrade CTA → /owner/upgrade tier picker mounts"
   "flows/smoke/run_notifications_save_persistence.sh|renter Notifications save persists preferred_channel via /api/profiles/notifications (gates 30ba23c fix)"
+  "flows/smoke/run_preferences_save_persistence.sh|renter Preferences chip tap upserts tenant_preferences.property_types via /api/preferences PUT"
 )
 
 PASS_COUNT=0

@@ -1,0 +1,144 @@
+# Smoke: renter taps a Property Type chip and the upsert to
+# tenant_preferences persists to the DB.
+#
+# Parallel to notifications_save_persistence — that smoke gates the
+# RLS-bypass fix shipped 2026-05-04. This one does NOT gate an RLS
+# fix because /api/preferences PUT was service-role from day one
+# (see app/api/preferences/route.js). What it DOES gate:
+#
+#   1. usePreferences.updatePreferences() actually fires when a chip
+#      is toggled (immediateSave path — non-text fields don't debounce)
+#   2. The PUT roundtrip completes within the test window
+#   3. The whitelisted upsert lands the property_types array on the
+#      RIGHT row (user_id matches the JWT-decoded user)
+#   4. The form state in preferences.js stays in sync with the row
+#      that was written
+#
+# Confirmed seed defaults (queried 2026-05-04 via service-role REST):
+#   tenant_preferences row does NOT exist yet for fresh users — only
+#   created on first usePreferences.updatePreferences() call. So the
+#   first chip tap exercises the upsert insert-path, not the
+#   update-path.
+#
+# Precondition:
+#   - Wrapper run_preferences_save_persistence.sh (pm-clear +
+#     _disable_dev_fab + dev-client rebind). Smoke seeds renter via
+#     seed_test_renter.js (display_name set so firstTime gate skips).
+#
+# Cleanup:
+#   - Hard-delete the seeded renter via cleanup_test_users.js.
+#     tenant_preferences row cascades on user delete.
+#
+# What this does NOT cover (deferred):
+#   - Debounced text-input save (TEXT_DEBOUNCE_MS=1500) — budget_max,
+#     beds_min, baths_min go through scheduleSave + flushSave. Could
+#     extend by typing into Max $/mo and verifying budget_max=N after
+#     the debounce window.
+#   - Other preferences fields (location zones via ZonePicker,
+#     furnished_preferred, pets_required, fenced_yard_required,
+#     association_preferred). The chip-tap pattern generalizes; add
+#     more verify steps to extend coverage.
+#
+# First written: 2026-05-04 against dev client on S10. Mirrors
+# notifications_save_persistence in structure.
+appId: com.padmagnet.app
+---
+
+# 1. Seed renter (display_name set → firstTime gate skips).
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Sign in via Messages-tab L1.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Profile → Preferences.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "profile-preferences-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-preferences-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Preferred Property Types"
+
+# 6. Sanity: Single Family is NOT pre-selected on a fresh renter.
+- assertNotVisible:
+    id: "preferences-property-type-single-family-selected"
+
+# 7. Tap the Single Family chip → immediateSave fires (non-text fields
+#    skip the 1500ms debounce). Wait long enough for the network
+#    roundtrip to /api/preferences PUT to complete + the saveStatus
+#    "Saved" indicator to appear.
+- scrollUntilVisible:
+    element:
+      id: "preferences-property-type-single-family"
+    direction: DOWN
+- tapOn:
+    id: "preferences-property-type-single-family"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 8. Confirm UI reflects the selection (covers usePreferences.setPreferences
+#    being called with the upserted server response, NOT just local form
+#    state). This redundantly proves the round-trip completed before we
+#    check the DB directly.
+- assertVisible:
+    id: "preferences-property-type-single-family-selected"
+
+# 9. Give the network a generous tail in case the saveStatus indicator
+#    masks an in-flight PUT — `immediateSave` awaits internally but the
+#    server commit can lag a beat behind the response if PostgREST is
+#    cold. 3s is overkill but cheap.
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 10. Load-bearing assertion: tenant_preferences.property_types must
+#     include "Single Family" for the seeded user_id.
+- runScript: ../../helpers/verify_property_type_single_family.js
+
+# 11. Cleanup.
+- runScript: ../../helpers/cleanup_test_users.js
