@@ -368,7 +368,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    marginTop: LAYOUT.padding.lg,
+    // Tightened lg→md 2026-05-05 to fit both CTAs above the fold on S10/S24.
+    marginTop: LAYOUT.padding.md,
     marginBottom: LAYOUT.padding.sm,
   },
   brandLogo: {
@@ -387,7 +388,8 @@ const styles = StyleSheet.create({
   // ── Headline ───────────────────────────────────────────────────
   headlineWrap: {
     paddingHorizontal: LAYOUT.padding.lg,
-    marginTop: LAYOUT.padding.sm,
+    // Tightened sm→xs 2026-05-05 to fit both CTAs above the fold on S10/S24.
+    marginTop: LAYOUT.padding.xs,
     alignItems: 'center',
   },
   headlineLine: {
@@ -414,8 +416,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 6,
-    marginBottom: LAYOUT.padding.lg,
+    // Tightened 6→2 + lg→md 2026-05-05 to fit both CTAs above the fold.
+    marginTop: 2,
+    marginBottom: LAYOUT.padding.md,
   },
   subTaglineOrange: {
     color: COLORS.brandOrange,
