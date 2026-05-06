@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.padmagnet.app",
       "sha256_cert_fingerprints": [
-        "F0:E5:7A:37:97:85:55:28:85:B4:6B:61:C1:49:A9:FD:76:7C:E9:C9:48:6C:C5:25:EF:F8:B6:E4:85:AF:64:F3"
+        "F0:E5:7A:37:97:85:55:28:85:B4:6B:61:C1:49:A9:FD:76:7C:E9:C9:48:6C:C5:25:EF:F8:B6:E4:85:AF:64:F3",
+        "0A:DB:E3:17:58:C5:23:9E:D6:D9:B9:91:84:76:DA:8A:12:0F:03:87:13:37:A2:C4:69:F9:65:7C:10:F0:9F:30"
       ]
     }
   }
