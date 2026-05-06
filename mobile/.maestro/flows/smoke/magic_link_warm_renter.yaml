@@ -1,0 +1,99 @@
+# Smoke: WARM-LAUNCH renter via magic-link tap.
+#
+# This is the failure mode that hit Chris in production-equivalent testing
+# 2026-05-05 (commit fa2100b root cause). The user is already in the app
+# in anon state on the Messages tab with the auth bottom sheet visible.
+# They tap "Magic Link", get the email, and tap the link in their email
+# client. App receives the URL via warm-launch deep-link delivery —
+# expo-router transitions to /auth/mobile-callback while the app is
+# already running.
+#
+# Critical difference from cold-launch: Linking.getInitialURL() returns
+# null on warm-launch, addEventListener('url') attaches AFTER the URL
+# event has already fired during route transition, and the deprecated
+# useURL() hook has the same null-init hole. Only useLinkingURL()
+# (which reads native getLinkingURL synchronously in useState) catches
+# the URL on warm-launch.
+#
+# Precondition:
+#   - Wrapper run_magic_link_warm_renter.sh has:
+#     - Force-stopped the app
+#     - Minted magic-link URL via Supabase admin API
+#     - Passed MAGIC_LINK_URL + SEED_USER_ID + SEED_EMAIL + SEED_ROLE
+#
+# Cleanup:
+#   - cleanup_test_users.js
+#
+# First written: 2026-05-05.
+appId: com.padmagnet.app
+---
+
+# 1. Capture seed info into output.seed for cleanup.
+- runScript: ../../helpers/init_magic_link_seed.js
+
+# 2. Warm the app: cold-launch through welcome → choose renter → land on
+#    swipe deck as anon. Then tap Messages to navigate to the auth-required
+#    surface. AuthBottomSheet shows with auth_return_to='messages' set —
+#    that's what makes the post-auth nav land on /messages instead of the
+#    default /(tenant)/swipe.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 2b. Defensive: dismiss LocationSoftAsk if it appears.
+- runFlow:
+    when:
+      visible: "I'll search manually"
+    commands:
+      - tapOn:
+          text: "I'll search manually"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
+# 3. Navigate to Messages tab — auth bottom sheet appears, intent stash fires.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# 4. WARM-LAUNCH DEEP LINK: app is running, fire the magic-link URL via
+#    OS intent. App Links + intent filter route the URL to the app's
+#    AuthCallbackScreen at /auth/mobile-callback. useLinkingURL captures
+#    on first render of the screen → extractTokensFromUrl → setSession →
+#    resolvePostLoginDestination reads auth_return_to='messages' → routes
+#    back to Messages tab in authed state.
+- openLink: ${MAGIC_LINK_URL}
+
+# 5. Wait for the full pipeline: spinner → setSession → route back to
+#    Messages with the bottom sheet gone.
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# 6. Authed-renter on Messages assertion. The auth-sheet-sign-in-cta is
+#    the unmistakable signal of anon state — its absence means the user
+#    is signed in and Messages is showing real content (or empty state
+#    for a fresh user with no conversations).
+- assertNotVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# 7. Cleanup.
+- runScript: ../../helpers/cleanup_test_users.js

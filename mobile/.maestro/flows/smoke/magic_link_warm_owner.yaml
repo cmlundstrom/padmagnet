@@ -1,0 +1,72 @@
+# Smoke: WARM-LAUNCH owner via magic-link tap.
+#
+# Symmetric to magic_link_warm_renter.yaml. Owner is in the app in anon
+# state on the owner profile screen with the sign-in card visible.
+# Tapping the card opens the auth bottom sheet; user picks magic link;
+# the warm-launch deep-link delivery routes back to the same surface in
+# authed state.
+#
+# For owners, the auth_return_to surface is set when the owner taps
+# 'profile-sign-in-card-button' on the (owner)/profile screen. So the
+# post-auth route should land back on Profile (authed, no sign-in card).
+#
+# Wrapper: run_magic_link_warm_owner.sh.
+# First written: 2026-05-05.
+appId: com.padmagnet.app
+---
+
+- runScript: ../../helpers/init_magic_link_seed.js
+
+# Warm: cold-launch to welcome → choose owner → owner home (anon) →
+# Profile tab (anon, sign-in card visible).
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# Navigate to Profile tab where the sign-in card lives for anon owners.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "profile-sign-in-card-button"
+
+# Tap the sign-in card — opens AuthBottomSheet with context='owner_profile'
+# which sets auth_return_to so post-auth nav lands back on Profile.
+- tapOn:
+    id: "profile-sign-in-card-button"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+
+# WARM-LAUNCH DEEP LINK while the auth sheet is up.
+- openLink: ${MAGIC_LINK_URL}
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Authed-owner on Profile assertion. The sign-in card is hidden for
+# authed users — its absence + the Profile tab being mounted is the
+# signal that auth completed and the post-auth router landed back on
+# the intended return surface.
+- assertNotVisible:
+    id: "profile-sign-in-card-button"
+
+- runScript: ../../helpers/cleanup_test_users.js

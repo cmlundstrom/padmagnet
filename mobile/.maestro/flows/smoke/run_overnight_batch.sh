@@ -37,6 +37,10 @@ SMOKES=(
   "flows/smoke/run_notifications_save_persistence.sh|renter Notifications save persists preferred_channel via /api/profiles/notifications (gates 30ba23c fix)"
   "flows/smoke/run_preferences_save_persistence.sh|renter Preferences chip tap upserts tenant_preferences.property_types via /api/preferences PUT"
   "flows/smoke/run_preferences_debounced_save_persistence.sh|renter Preferences debounced text-input persists budget_max=2750 after 1500ms debounce"
+  "flows/smoke/run_magic_link_cold_renter.sh|renter cold-launch magic-link auth: openLink → AuthCallback → swipe deck"
+  "flows/smoke/run_magic_link_warm_renter.sh|renter warm-launch magic-link auth: anon Messages → openLink → authed Messages (the bug from 2026-05-05)"
+  "flows/smoke/run_magic_link_cold_owner.sh|owner cold-launch magic-link auth: openLink → AuthCallback → owner Profile authed"
+  "flows/smoke/run_magic_link_warm_owner.sh|owner warm-launch magic-link auth: anon Profile sign-in card → openLink → authed Profile"
 )
 
 PASS_COUNT=0

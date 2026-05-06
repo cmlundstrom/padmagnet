@@ -1,0 +1,32 @@
+# Smoke: COLD-LAUNCH owner via magic-link tap.
+#
+# Symmetric to magic_link_cold_renter.yaml but seeded user has role='owner'.
+# Validates that owner-side post-auth routing lands on the owner home (or
+# listings, depending on whether the owner has active listings — fresh
+# seeded users don't, so /(owner)/home is expected).
+#
+# Wrapper: run_magic_link_cold_owner.sh.
+# First written: 2026-05-05.
+appId: com.padmagnet.app
+---
+
+- runScript: ../../helpers/init_magic_link_seed.js
+
+# COLD-LAUNCH-VIA-DEEPLINK: app force-stopped by wrapper.
+- openLink: ${MAGIC_LINK_URL}
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Authed-owner assertion. The L1 manila card on owner home looks
+# similar for anon vs authed states (text rendering uses nested <Text>
+# composition that isn't reliably exposed to the a11y tree per
+# welcome.js comments) — so we navigate to the Profile tab where the
+# anon sign-in card is unmistakably absent for authed users. Tap the
+# Profile tab and assert the sign-in card testID is NOT visible.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertNotVisible:
+    id: "profile-sign-in-card-button"
+
+- runScript: ../../helpers/cleanup_test_users.js

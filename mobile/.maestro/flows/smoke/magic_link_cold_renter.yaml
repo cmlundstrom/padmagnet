@@ -1,0 +1,59 @@
+# Smoke: COLD-LAUNCH renter via magic-link tap.
+#
+# Simulates the renter receiving a magic link and tapping it from outside
+# the app (app force-stopped). Validates the entire auth pipeline:
+#   1. App Links: OS routes the HTTPS URL to the app (no Chrome hop)
+#   2. Native route /auth/mobile-callback resolves (commit 4b1812f)
+#   3. Linking.useLinkingURL() captures URL on cold-launch (commit fa2100b)
+#   4. extractTokensFromUrl pulls hash tokens (Supabase format)
+#   5. setSession succeeds with real tokens
+#   6. Post-auth navigation lands on the renter swipe deck
+#
+# Bypasses the email-tap step by minting the magic-link URL via Supabase
+# admin API in the wrapper, then firing it via maestro's openLink (which
+# under the hood does adb shell am start -a VIEW -d "<url>" — same as the
+# email client would do).
+#
+# Precondition:
+#   - Wrapper run_magic_link_cold_renter.sh has:
+#     - Force-stopped the app (so openLink triggers a true cold launch)
+#     - Created the test user via Supabase admin API
+#     - Minted the magic-link URL with tokens in hash
+#     - Passed MAGIC_LINK_URL + SEED_USER_ID + SEED_EMAIL + SEED_ROLE via -e
+#
+# Cleanup:
+#   - cleanup_test_users.js hard-deletes the seeded user.
+#
+# First written: 2026-05-05 after 3 production magic-link bugs in 24h
+# made the case for automated coverage. Spec in
+# project_magic_link_smoke_plan.md.
+appId: com.padmagnet.app
+---
+
+# 1. Capture seed info from env vars into output.seed for cleanup at end.
+- runScript: ../../helpers/init_magic_link_seed.js
+
+# 2. COLD LAUNCH VIA DEEP LINK. App is force-stopped by the wrapper. openLink
+#    fires the OS intent for the magic-link URL → App Links matches → app
+#    boots fresh and lands at /auth/mobile-callback with tokens in hash.
+- openLink: ${MAGIC_LINK_URL}
+
+# 3. Wait for the auth pipeline:
+#    - "Signing you in..." spinner (auth-callback mount)
+#    - useLinkingURL captures URL → extractTokensFromUrl → setSession
+#    - resolvePostLoginDestination navigates (no auth_return_to on cold start
+#      = role-default destination = /(tenant)/swipe for renter)
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# 4. Authed-renter assertion. The swipe-deck-like-button is the canonical
+#    landmark for "tenant tab group mounted with deck loaded". An anon
+#    renter can also see this button — but the only way to reach it from a
+#    cold force-stopped state via the magic-link URL is for the auth flow
+#    to have completed AND post-auth nav to have routed to /(tenant)/swipe.
+#    The wrapper additionally REST-verifies session existence below.
+- assertVisible:
+    id: "swipe-deck-like-button"
+
+# 5. Cleanup the seeded user.
+- runScript: ../../helpers/cleanup_test_users.js
