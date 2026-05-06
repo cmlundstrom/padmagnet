@@ -12,6 +12,13 @@ import { FONTS, FONT_SIZES } from '../constants/fonts';
 export default function AuthCallbackScreen() {
   const params = useLocalSearchParams();
   const handled = useRef(false);
+  // Reactive deep-link URL — the only way to capture the URL that triggered
+  // navigation when the app was already running. Linking.getInitialURL()
+  // returns null on warm-launch deep links; addEventListener attaches AFTER
+  // the URL event has already fired during route transition. useURL()
+  // observes both initial AND subsequent URLs, so it catches the URL whether
+  // the app was cold-started by the magic link or warm-resumed by it.
+  const deepLinkUrl = Linking.useURL();
 
   useEffect(() => {
     async function processTokens(accessToken, refreshToken, source) {
@@ -136,6 +143,46 @@ export default function AuthCallbackScreen() {
 
     return () => sub.remove();
   }, [params.access_token, params.refresh_token]);
+
+  // Method 4: Linking.useURL — reactive, captures the URL on both cold and
+  // warm-launch deep links. This is the only method that reliably catches
+  // hash-fragment tokens (Supabase magic-link format:
+  // https://padmagnet.com/auth/mobile-callback?nonce=...#access_token=...)
+  // when the magic link is tapped while the app is already running. The
+  // extract+process logic mirrors Methods 2 and 3; the handled.current
+  // guard de-dupes if multiple methods race to a result.
+  useEffect(() => {
+    if (!deepLinkUrl || handled.current) return;
+    console.log('[AuthCallback] useURL fired:', deepLinkUrl.substring(0, 80));
+    const tokens = extractTokensFromUrl(deepLinkUrl);
+    if (!tokens) return;
+    // We can't call the inner processTokens (it's scoped to the effect
+    // above). Re-implement the minimum: setSession + nav. The other effect
+    // will short-circuit on handled.current=true.
+    handled.current = true;
+    (async () => {
+      let intendedDest;
+      try {
+        intendedDest = await AsyncStorage.getItem('auth_return_to');
+        if (intendedDest) await AsyncStorage.removeItem('auth_return_to');
+      } catch {}
+      try {
+        await Promise.race([
+          supabase.auth.setSession({ access_token: tokens.at, refresh_token: tokens.rt }),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+        const { data: { session } } = await supabase.auth.getSession();
+        const role = session?.user?.user_metadata?.role || (await getUserRole());
+        const dest = await resolvePostLoginDestination(session, role, intendedDest);
+        console.log('[AuthCallback] useURL nav →', dest);
+        router.replace(dest);
+      } catch (err) {
+        console.error('[AuthCallback] useURL setSession error:', err);
+        const role = await getUserRole();
+        router.replace(role === 'owner' ? '/(owner)/home' : '/(tenant)/swipe');
+      }
+    })();
+  }, [deepLinkUrl]);
 
   // Timeout: if tokens weren't processed after 5s, check session and route back
   useEffect(() => {
