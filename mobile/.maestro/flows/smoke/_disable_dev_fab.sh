@@ -17,7 +17,23 @@
 #
 # See feedback_maestro_dev_fab_collision.md for the full diagnosis (the
 # notifications_save_persistence smoke surfaced this 2026-05-04).
+#
+# Preview/production builds are release-signed and exclude expo-dev-client
+# (commit 8201886). They have NO floating FAB AND `run-as` is rejected by
+# Android with "package not debuggable". So this entire helper is a
+# correct no-op on those builds — we detect via run-as probe and skip.
+# Discovered 2026-05-06 when the first preview-build overnight batch
+# failed 17/22 smokes here. Without this guard, every wrapper exits non-
+# zero on `set -euo pipefail` because the run-as commands fail.
 APP_ID="${APP_ID:-com.padmagnet.app}"
+
+# Probe: can we run-as this package? Release-signed builds reject with
+# stderr "package not debuggable" and exit non-zero.
+if ! adb shell "run-as $APP_ID true" 2>/dev/null; then
+  echo "  [_disable_dev_fab] skipped — package not debuggable (preview/production build, no dev-FAB to disable)"
+  return 0 2>/dev/null || exit 0
+fi
+
 adb shell "run-as $APP_ID mkdir -p shared_prefs" >/dev/null
 echo '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <map>
