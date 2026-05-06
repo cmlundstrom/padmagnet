@@ -13,12 +13,17 @@ export default function AuthCallbackScreen() {
   const params = useLocalSearchParams();
   const handled = useRef(false);
   // Reactive deep-link URL — the only way to capture the URL that triggered
-  // navigation when the app was already running. Linking.getInitialURL()
-  // returns null on warm-launch deep links; addEventListener attaches AFTER
-  // the URL event has already fired during route transition. useURL()
-  // observes both initial AND subsequent URLs, so it catches the URL whether
-  // the app was cold-started by the magic link or warm-resumed by it.
-  const deepLinkUrl = Linking.useURL();
+  // navigation when the app was already running. Three other Linking APIs
+  // all miss warm-launch deep links:
+  //   - getInitialURL() returns null on warm-launch
+  //   - addEventListener('url', ...) attaches AFTER the URL event has
+  //     already fired during expo-router's route transition
+  //   - useURL() (deprecated) inits from getInitialURL() — same null hole
+  // useLinkingURL() reads native getLinkingURL() synchronously on first
+  // render, which returns the CURRENT deep-link URL whether cold or warm.
+  // Per expo-linking 55 docs: "Always returns the initial URL immediately
+  // on reload."
+  const deepLinkUrl = Linking.useLinkingURL();
 
   useEffect(() => {
     async function processTokens(accessToken, refreshToken, source) {
