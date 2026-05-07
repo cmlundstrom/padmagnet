@@ -375,12 +375,43 @@ async function resetUser(userId, confirmEmail, requestor) {
     );
   }
 
+  // Pre-step: sever NOT-CASCADE FKs that point at conversations/messages.
+  // Without this, deleting a user with phone/SMS conversation activity
+  // fails. Discovered via the surgical pre-launch wipe 2026-05-06; same
+  // pattern lives in scripts/wipe-test-data.mjs.
+  //
+  // Four FKs without ON DELETE CASCADE:
+  //   webhook_logs.conversation_id  → conversations.id  (nullable)
+  //   webhook_logs.message_id       → messages.id        (nullable)
+  //   phone_mappings.conversation_id → conversations.id  (NOT NULL → must delete row)
+  //   conversations → messages CASCADE → webhook_logs.message_id violates again
+  // Strategy: nullify the nullable FKs and DELETE the NOT-NULL phone_mappings,
+  // covering BOTH the user's direct conversations and the cascade-from-conv → messages.
+  const { data: convs } = await supabase
+    .from('conversations')
+    .select('id')
+    .or(`tenant_user_id.eq.${userId},owner_user_id.eq.${userId}`);
+  if (convs && convs.length > 0) {
+    const convIds = convs.map(c => c.id);
+    await supabase.from('webhook_logs').update({ conversation_id: null }).in('conversation_id', convIds);
+    await supabase.from('phone_mappings').delete().in('conversation_id', convIds);
+    const { data: convMsgs } = await supabase
+      .from('messages')
+      .select('id')
+      .in('conversation_id', convIds);
+    if (convMsgs && convMsgs.length > 0) {
+      const msgIds = convMsgs.map(m => m.id);
+      await supabase.from('webhook_logs').update({ message_id: null }).in('message_id', msgIds);
+    }
+  }
+
   // Delete in dependency order. Each step ignores not-found / no-rows;
   // we only fail hard on actual SQL errors. Order: user-as-tenant rows,
   // user-as-owner rows, then auth.users (cascades the rest).
   const cleanupSteps = [
     // Tenant-side activity (mostly already CASCADE, but list explicitly
     // for tables that aren't or for clarity)
+    { table: 'phone_mappings', filters: [['user_id', userId]] },
     { table: 'messages', filters: [['sender_id', userId], ['recipient_id', userId]] },
     { table: 'conversations', filters: [['tenant_user_id', userId], ['owner_user_id', userId]] },
     { table: 'showing_requests', filters: [['tenant_user_id', userId]] },
