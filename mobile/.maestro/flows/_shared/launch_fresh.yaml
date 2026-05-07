@@ -19,4 +19,4 @@ appId: com.padmagnet.app
     stopApp: true
 - assertVisible: "Stop Searching."
 - assertVisible: "Start Swiping Rentals"
-- assertVisible: "List Your Property"
+- assertVisible: "List Your (Rental )?Property"

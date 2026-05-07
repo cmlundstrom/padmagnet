@@ -2,4 +2,4 @@
 # Precondition: welcome splash visible.
 appId: com.padmagnet.app
 ---
-- tapOn: "List Your Property"
+- tapOn: "List Your (Rental )?Property"

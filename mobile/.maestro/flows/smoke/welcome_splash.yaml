@@ -74,7 +74,7 @@ appId: com.padmagnet.app
 # Dual CTAs + subtitles
 - assertVisible: "Start Swiping Rentals"
 - assertVisible: "Swipe, match, and move faster."
-- assertVisible: "List Your Property"
+- assertVisible: "List Your (Rental )?Property"
 - assertVisible: "Reach 1000s of active renters."
 
 # Trust line + sign-in — these use the

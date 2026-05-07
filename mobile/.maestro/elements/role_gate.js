@@ -4,7 +4,7 @@
 // reference the same keys.
 output.roleGate = {
   findRental: 'Start Swiping Rentals',     // primary renter CTA
-  listProperty: 'List Your Property',      // secondary owner CTA
+  listProperty: 'List Your (Rental )?Property',      // secondary owner CTA — regex covers bundled (old) + OTA (new) labels
   signIn: 'Sign In',                       // bottom link to auth
   brandTitle: 'PadMagnet',                 // wordmark
   // Headline copy — assert one of these to confirm the welcome splash is up
