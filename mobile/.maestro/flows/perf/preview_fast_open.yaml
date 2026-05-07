@@ -6,7 +6,7 @@
 #   - "Preview as Tenant" → "Preview as Renter" copy unification
 #
 # Prereqs:
-#   - Signed in as info@floridapm.net with >=1 active listing.
+#   - Signed in as test@padmagnet.com with >=1 active listing.
 #   - Listings tab visited during this session so listingCache is warm.
 #
 # Run AFTER listings_perf_and_integrity.yaml (which implicitly warms the
@@ -56,8 +56,9 @@ tags:
 #    unconditionally, so it's a weak signal. We need something gated
 #    on display-fields hydration. "Read more" appears only when
 #    public_remarks is present AND ListingInfo's CollapsibleText
-#    rendered (config-driven). The owner Tioga listing has a real
-#    description, so this is a stable "second wave is here" probe.
+#    rendered (threshold > 120 chars in CollapsibleText). 8362 SE
+#    Magnolia has a 218-char description, so this is a stable
+#    "second wave is here" probe.
 #    "Contact" section was tried first but it's filtered out for
 #    listings without contact_instructions — too brittle.
 - extendedWaitUntil:

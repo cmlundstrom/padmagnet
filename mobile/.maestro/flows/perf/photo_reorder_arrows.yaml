@@ -6,9 +6,9 @@
 # tap.
 #
 # Prereqs:
-#   - Signed in as info@floridapm.net.
-#   - Listing 67 SE Tioga Pl (or the active listing being tested) has at
-#     least 3 photos so we can verify rows AND that arrows are wired.
+#   - Signed in as test@padmagnet.com.
+#   - Listing 8362 SE Magnolia Ave (the persistent owner test listing) has
+#     at least 3 photos so we can verify rows AND that arrows are wired.
 #
 # Coverage:
 #   - Photos tab loads with the plain FlatList.

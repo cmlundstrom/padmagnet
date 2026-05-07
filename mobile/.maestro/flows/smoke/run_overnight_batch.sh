@@ -24,7 +24,7 @@ SMOKES=(
   "flows/smoke/run_l1_email_not_confirmed_resend.sh|renter L1 email_not_confirmed resend (B2 fix)"
   "flows/smoke/run_l1_firsttime_interposition.sh|renter L1 firstTime Edit Profile interposition"
   "flows/smoke/run_welcome_back_reactivation.sh|Welcome-Back archived-user reactivation"
-  "flows/smoke/run_owner_l1_autodismiss.sh|owner L1 autodismiss with active listings (info@floridapm.net)"
+  "flows/smoke/run_owner_l1_autodismiss.sh|owner L1 autodismiss with active listings (test@padmagnet.com)"
   "flows/smoke/run_anon_save_migration.sh|anon swipes migrate to authed user_id (Fix A)"
   "flows/smoke/run_auth_intent_preserves_listing.sh|post-auth intent restoration to listing message (Fix B)"
   "flows/smoke/run_renter_onboarding.sh|renter firstTime Edit Profile end-to-end save"

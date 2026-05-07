@@ -6,10 +6,10 @@
 #  - (owner)/home.js:40-54         (auto-navigate to /(owner)/listings post-auth)
 #  - ManilaFolderStack.js:779      (CTA label flip to "Open My Listings")
 #
-# Uses a real account (info@floridapm.net) because this flow needs an owner
+# Uses a real account (test@padmagnet.com) because this flow needs an owner
 # that *already has* an active listing — something the seed_test_owner.js
 # helper doesn't produce. Credentials pulled from .env.local via run.sh:
-#   MAESTRO_OWNER_TEST_EMAIL=info@floridapm.net
+#   MAESTRO_OWNER_TEST_EMAIL=test@padmagnet.com
 #   MAESTRO_OWNER_TEST_PASSWORD=<set locally, never commit>
 #
 # Run via:
@@ -85,6 +85,6 @@ appId: com.padmagnet.app
 
 # The test ends here — the two key behaviors (auto-nav on sign-in, L1
 # stays hidden on tab back) are both verified. The device is left signed
-# in as info@floridapm.net; no cleanup helper runs because this is a
+# in as test@padmagnet.com; no cleanup helper runs because this is a
 # real account. Sign out manually if needed, or run sign_out.yaml with a
 # fresh seeded user.

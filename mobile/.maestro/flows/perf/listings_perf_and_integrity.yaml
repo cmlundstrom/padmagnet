@@ -6,7 +6,7 @@
 # any change to app/(owner)/listings.js or lib/listingCache.js.
 #
 # Prereqs:
-#   - Signed in as info@floridapm.net (has >=1 active listing).
+#   - Signed in as test@padmagnet.com (has >=1 active listing).
 #   - If not signed in, run smoke/owner_l1_autodismiss.yaml first.
 #
 # What it covers:
@@ -33,7 +33,7 @@ tags:
 - runFlow: ../../elements/loadElements.yaml
 
 # 1. Wait for cold-launch routing to settle (auth check + role gate + land
-#    on the default owner tab, typically Home for info@floridapm.net).
+#    on the default owner tab, typically Home for test@padmagnet.com).
 - waitForAnimationToEnd:
     timeout: 8000
 

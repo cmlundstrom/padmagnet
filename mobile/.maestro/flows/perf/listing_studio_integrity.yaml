@@ -46,7 +46,7 @@ tags:
     timeout: 6000
 
 # 3. Open Studio via the "Add Additional" button (visible only when
-#    the user already has an active listing, which info@floridapm.net
+#    the user already has an active listing, which test@padmagnet.com
 #    does — 8362 SE Magnolia). Fallback path uses the empty-state CTA.
 - tapOn:
     text: "Add Additional"

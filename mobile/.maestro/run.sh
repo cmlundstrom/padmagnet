@@ -32,7 +32,7 @@ SUPABASE_ANON_KEY=$(extract_env "NEXT_PUBLIC_SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_ROLE_KEY=$(extract_env "SUPABASE_SERVICE_ROLE_KEY")
 
 # Optional: credentials for real-account flows (e.g. owner_l1_autodismiss
-# uses info@floridapm.net which already owns listings). Absent for flows
+# uses test@padmagnet.com which already owns listings). Absent for flows
 # that only seed throwaway users via the Admin API.
 MAESTRO_OWNER_TEST_EMAIL=$(extract_env "MAESTRO_OWNER_TEST_EMAIL")
 MAESTRO_OWNER_TEST_PASSWORD=$(extract_env "MAESTRO_OWNER_TEST_PASSWORD")

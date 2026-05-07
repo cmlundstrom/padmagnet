@@ -1,6 +1,6 @@
 # Perf harness: Edit Listing open time.
 #
-# Assumes the app is already signed in as info@floridapm.net and on any owner
+# Assumes the app is already signed in as test@padmagnet.com and on any owner
 # tab. If not signed in, run owner_l1_autodismiss.yaml first (or sign in
 # manually), then invoke this flow.
 #
