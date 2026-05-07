@@ -44,7 +44,7 @@ import { LAYOUT } from '../../constants/layout';
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // Hero takes ~38% of screen height — tightened from 0.42 (2026-05-05) so
-// both CTAs (Start Swiping Rentals + List Your Property) sit above the fold
+// both CTAs (Start Swiping Rentals + List Your Rental Property) sit above the fold
 // on the smallest target (S10) without scroll. Original generous-hero spec
 // pushed the secondary CTA's subtitle below the bottom safe-area inset.
 const HERO_HEIGHT = Math.round(SCREEN_H * 0.38);

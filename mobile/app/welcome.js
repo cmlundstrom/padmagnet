@@ -6,7 +6,7 @@
 //   3. Headline          — "Stop Searching. / Start Matching." (huge)
 //   4. Sub-tagline       — "Powered by PadScore™"
 //   5. Primary CTA       — "Start Swiping Rentals" (orange, full pulse glow)
-//   6. Secondary CTA     — "List Your Property" (blue, subtler glow)
+//   6. Secondary CTA     — "List Your Rental Property" (blue, subtler glow)
 //   7. Trust line        — "Real listings. Real matches. No spam."
 //   8. Sign-in link      — "Already have an account? Sign In"
 //   9. FeatureBar        — 3 columns, tappable tooltips
@@ -294,7 +294,7 @@ export default function WelcomeScreen() {
           </Pressable>
         </Animated.View>
 
-        {/* 6. Secondary CTA — List Your Property */}
+        {/* 6. Secondary CTA — List Your Rental Property */}
         <Animated.View style={[styles.ctaSecondaryWrap, secondaryAnimStyle]}>
           <Pressable
             style={({ pressed }) => [styles.ctaSecondary, pressed && { opacity: 0.92 }]}
@@ -310,7 +310,7 @@ export default function WelcomeScreen() {
             </View>
             <View style={styles.ctaTextWrap}>
               <Text style={styles.ctaTitle}>
-                {loadingOwner ? 'Loading…' : 'List Your Property'}
+                {loadingOwner ? 'Loading…' : 'List Your Rental Property'}
               </Text>
               <Text style={[styles.ctaSubtitle, { color: COLORS.textSecondary }]}>
                 Reach 1000s of active renters.

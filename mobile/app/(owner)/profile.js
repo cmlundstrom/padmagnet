@@ -113,7 +113,7 @@ export default function OwnerProfileScreen() {
                   <Ionicons name="key-outline" size={20} color={COLORS.white} />
                 </View>
                 <View style={styles.signInTextWrap}>
-                  <Text style={styles.signInHeadline}>List Your Property</Text>
+                  <Text style={styles.signInHeadline}>List Your Rental Property</Text>
                   <Text style={styles.signInCaption}>
                     Connect with renters, track views and performance.
                   </Text>

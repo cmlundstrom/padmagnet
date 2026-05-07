@@ -764,7 +764,7 @@ function getContextCopy(context, padpoints) {
     case 'create_listing':
       return {
         tabLabel: 'List Property',
-        title: '\u{1F3E0} List Your Property',
+        title: '\u{1F3E0} List Your Rental Property',
         subtitle: 'Sign in to create your free rental listing and reach qualified renters.',
         dismissible: false,
       };
