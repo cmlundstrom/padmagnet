@@ -53,15 +53,22 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 });
 
 // Defensive: emails on this list are NEVER deleted, even if they somehow
-// matched the maestro domain pattern. None should actually match — but
-// defense in depth.
+// matched the maestro domain pattern. None should actually match — the
+// real filter is %@test.padmagnet.com and these emails are all on
+// @padmagnet.com / @floridapm.net / @gmail.com — but defense in depth.
+//
+// 2026-05-08: added marketing demo pair (maverick@/goose@) — separate
+// from smoke pair (privacy@/support@) which uses surname suffixes
+// "Testowner"/"Testrenter". See reference_persistent_test_fixtures.md.
 const NEVER_DELETE_EMAILS = new Set([
   'cmlundstrom@gmail.com',
   'test@padmagnet.com',
-  'privacy@padmagnet.com',
-  'support@padmagnet.com',
-  'poppylundstrom@gmail.com',
-  'info@floridapm.net',
+  'privacy@padmagnet.com',     // Smoke owner — Maverick Testowner
+  'support@padmagnet.com',     // Smoke renter — Goosie Testrenter
+  'maverick@padmagnet.com',    // Marketing owner — Maverick (Google Play video)
+  'goose@padmagnet.com',       // Marketing renter — Goose (Google Play video)
+  'poppylundstrom@gmail.com',  // Play tester — Riley
+  'info@floridapm.net',        // Legacy email pre-2026-05-06 rename; defensive
 ]);
 
 // FK-aware per-user cleanup. Mirrors scripts/wipe-test-data.mjs and

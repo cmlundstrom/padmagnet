@@ -32,19 +32,31 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// ─── Allow-list (verified 2026-05-06) ──────────────────────────────────
+// ─── Allow-list (verified 2026-05-08) ──────────────────────────────────
 // Resolved by email lookup at startup, then used as authoritative ID set.
+//
+// 2026-05-08 update: refreshed for the post-2026-05-06 fixture layout.
+//   • info@floridapm.net renamed → test@padmagnet.com (still same UUID
+//     833f53d6-…, still owns 8362 SE Magnolia)
+//   • Marketing demo pair added: maverick@ (Maverick) + goose@ (Goose)
+//     for the Google Play promo video shoot (see
+//     project_play_video_production.md).
+//   • Smoke pair display_names retagged to "Maverick Testowner" /
+//     "Goosie Testrenter" so the surname distinguishes them from the
+//     marketing pair on screen (see reference_persistent_test_fixtures.md).
 const KEEP_PROFILE_EMAILS = [
   ['cmlundstrom@gmail.com',     'super_admin'],
-  ['info@floridapm.net',        'owner'],
-  ['privacy@padmagnet.com',     'owner (Maverick fixture)'],
-  ['support@padmagnet.com',     'tenant (Goosie fixture)'],
-  ['poppylundstrom@gmail.com',  'tenant (Play tester)'],
+  ['test@padmagnet.com',        'owner (perf-flow demo, owns 8362 SE Magnolia)'],
+  ['privacy@padmagnet.com',     'owner (Maverick Testowner — smoke / auto-comms)'],
+  ['support@padmagnet.com',     'tenant (Goosie Testrenter — smoke / auto-comms)'],
+  ['maverick@padmagnet.com',    'owner (Maverick — marketing demo video)'],
+  ['goose@padmagnet.com',       'tenant (Goose — marketing demo video)'],
+  ['poppylundstrom@gmail.com',  'tenant (Riley — Play tester)'],
 ];
 
 // Full UUIDs for listings (no email lookup possible — these are stable).
 const KEEP_LISTING_IDS = [
-  ['8a0d6d7f-a33c-4b92-97c0-9056a2daa68f', '8362 SE Magnolia Ave (info@floridapm.net)'],
+  ['8a0d6d7f-a33c-4b92-97c0-9056a2daa68f', '8362 SE Magnolia Ave (test@padmagnet.com)'],
 ];
 
 const STANDALONE_LISTING_DELETES = [
