@@ -142,24 +142,14 @@ export default function ListingDetailScreen() {
   const [showChannelPrompt, setShowChannelPrompt] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
-  const handleHeaderMenu = useCallback(() => {
+  const handleReport = useCallback(() => {
     Haptics.selectionAsync();
-    alert(null, null, [
-      { text: 'Share', onPress: handleShare },
-      {
-        text: 'Report listing',
-        style: 'destructive',
-        onPress: () => {
-          if (isAnon) {
-            setShowAuth(true);
-          } else {
-            setShowReport(true);
-          }
-        },
-      },
-      { text: 'Cancel' },
-    ]);
-  }, [alert, handleShare, isAnon]);
+    if (isAnon) {
+      setShowAuth(true);
+    } else {
+      setShowReport(true);
+    }
+  }, [isAnon]);
 
   const sendFirstMessage = async () => {
     try {
@@ -243,14 +233,20 @@ export default function ListingDetailScreen() {
         title="Details"
         showBack
         rightAction={
-          <Pressable
-            onPress={handleHeaderMenu}
-            hitSlop={10}
-            style={styles.headerMenuBtn}
-            testID="listing-detail-menu"
-          >
-            <Ionicons name="ellipsis-horizontal" size={22} color={COLORS.text} />
-          </Pressable>
+          <View style={styles.headerRightWrap}>
+            <Pressable onPress={handleShare} style={styles.shareBtnWide}>
+              <FontAwesome name="share-alt" size={14} color={COLORS.background} />
+              <Text style={styles.shareBtnText}>Share</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleReport}
+              hitSlop={10}
+              style={styles.headerReportBtn}
+              testID="listing-detail-report"
+            >
+              <Ionicons name="flag-outline" size={20} color={COLORS.textSecondary} />
+            </Pressable>
+          </View>
         }
       />
 
@@ -409,7 +405,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.background,
   },
-  headerMenuBtn: {
+  headerRightWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerReportBtn: {
     width: 36,
     height: 36,
     alignItems: 'center',
