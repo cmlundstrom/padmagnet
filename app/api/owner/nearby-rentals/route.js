@@ -67,17 +67,30 @@ async function checkAccess(supabase, userId) {
 
 // GET /api/owner/nearby-rentals?listing_id=...&radius=3&beds=3&baths=2&page=1&limit=20
 // OR  /api/owner/nearby-rentals?lat=26.1&lng=-80.2&radius=3&beds=3&baths=2&page=1&limit=20
+//
+// Auth: listing_id mode requires a Bearer token (ownership check on the
+// subject row). Coordinate mode (lat/lng) is open to anon — anonymous
+// owners get value first ("see what's listed in your neighborhood"),
+// trust builds, sign-up unlocks listing-creation + ownership-tied
+// features. No PII or owner-private data is exposed by coord mode; it
+// only returns the same listing fields the renter feed already shows.
 export async function GET(request) {
   try {
-    const { user, error: authError, status } = await getAuthUser(request);
-    if (authError) {
-      return NextResponse.json({ error: authError }, { status });
-    }
-
     const { searchParams } = new URL(request.url);
     const listingId = searchParams.get('listing_id');
     const queryLat = searchParams.get('lat');
     const queryLng = searchParams.get('lng');
+
+    // Listing mode requires auth (ownership-checked); coord mode is open.
+    let user = null;
+    if (listingId) {
+      const authResult = await getAuthUser(request);
+      if (authResult.error) {
+        return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+      }
+      user = authResult.user;
+    }
+
     const radius = Math.min(Math.max(parseInt(searchParams.get('radius')) || 3, 1), 10);
     const beds = searchParams.get('beds') ? parseInt(searchParams.get('beds')) : null;
     const baths = searchParams.get('baths') ? parseInt(searchParams.get('baths')) : null;

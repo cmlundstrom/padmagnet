@@ -1,0 +1,63 @@
+# Smoke: Owner Home grid populates with at least one rental card.
+#
+# Anon path (no sign-in needed) — exercises the same nearby_rentals_search
+# RPC that powers the authed path, so an RPC regression (like the
+# bathrooms_total INTEGER vs numeric(4,2) type mismatch in migration 078
+# that shipped 2026-05-08) is caught here without credentials.
+#
+# Code under test:
+#  - app/api/owner/nearby-rentals/route.js  (allows anon coord-mode)
+#  - supabase/migrations/080                 (RPC return-type fix)
+#  - components/owner/ManilaFolderStack.js  (grid render, Miami fallback)
+#
+# Run via:
+#   cd mobile/.maestro && ./flows/smoke/run_owner_home_grid_loads.sh
+appId: com.padmagnet.app
+---
+- runFlow: ../../elements/loadElements.yaml
+
+# 1. Cold start (clears AsyncStorage so L1/L2 are not "seen" yet)
+- runFlow: ../_shared/launch_fresh.yaml
+- tapOn:
+    text: "Not now"
+    optional: true
+- waitForAnimationToEnd
+
+# 2. Role gate → owner (anon path; no auth)
+- runFlow: ../_shared/choose_owner.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 3. L1 sales pitch should be visible. Dismiss it via the "Browse Nearby
+#    Rentals" ghost CTA so we land on the L2 GPS ask, not the auth sheet.
+- assertVisible: "List Your Rental\nfor Free"
+- swipe:
+    direction: UP
+    duration: 400
+- waitForAnimationToEnd
+- tapOn:
+    id: "manila-l1-dismiss"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 4. L2 GPS ask is now in front. Skip — we want the Miami fallback coords
+#    so the grid attempts a fetch immediately. Granting GPS would also work
+#    but couples this smoke to the device's actual location.
+- assertVisible: "Skip for now"
+- tapOn: "Skip for now"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 5. Grid should populate within a few seconds. The header copy is
+#    deterministic when listings.length > 0 — assert on its stable
+#    fragment ("rentals within a"). If the RPC throws or auth blocks
+#    the fetch, we fall through to "No rentals found nearby" instead.
+- assertVisible:
+    text: "rentals within a"
+    timeout: 12000
+
+# 6. Defense in depth: assert at least one $X/mo price label is visible.
+#    Catches the case where the header rendered but cards didn't (e.g.
+#    photo enrichment crashed the renderer).
+- assertVisible:
+    text: ".*\\$[0-9,]+/mo.*"
