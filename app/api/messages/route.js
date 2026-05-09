@@ -110,6 +110,22 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Not a participant' }, { status: 403 });
     }
 
+    // UGC moderation — block check. Skip for external-agent convos
+    // (no owner_user_id means no PadMagnet user on the other side).
+    const counterpartyId = convo.tenant_user_id === user.id
+      ? convo.owner_user_id
+      : convo.tenant_user_id;
+    if (counterpartyId) {
+      const { data: blockedFlag } = await supabase
+        .rpc('is_blocked', { a: user.id, b: counterpartyId });
+      if (blockedFlag === true) {
+        return NextResponse.json(
+          { error: 'Cannot send message in this conversation.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Insert message — delivery_status starts as 'pending' until notification is sent
     const { data: message, error } = await supabase
       .from('messages')

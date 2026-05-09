@@ -27,6 +27,21 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // UGC moderation — fetch user's blocks (both directions) to filter
+    // out threads where the counterparty is in the user's blocked set OR
+    // has blocked the user. External-agent threads (owner_user_id NULL)
+    // bypass this filter — they're not user-to-user.
+    const { data: blockRows } = await supabase
+      .from('user_blocks')
+      .select('blocker_id, blocked_id')
+      .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
+
+    const blockedUserIds = new Set();
+    (blockRows || []).forEach(b => {
+      if (b.blocker_id === user.id) blockedUserIds.add(b.blocked_id);
+      if (b.blocked_id === user.id) blockedUserIds.add(b.blocker_id);
+    });
+
     // Fetch owner + tenant display names in a single profiles query.
     // Mobile can't read other users' profiles directly (RLS), so we
     // flatten both sides onto the conversation response.
@@ -62,9 +77,15 @@ export async function GET(request) {
       };
     });
 
-    // Per-user archive/unread filtering
+    // Per-user archive/unread filtering (+ block filter)
     const filtered = flattened.filter(c => {
       const isTenant = c.tenant_user_id === user.id;
+
+      // Block filter — exclude threads with blocked counterparty.
+      // External-agent threads (no owner_user_id) bypass this.
+      const counterpartyId = isTenant ? c.owner_user_id : c.tenant_user_id;
+      if (counterpartyId && blockedUserIds.has(counterpartyId)) return false;
+
       const archived = isTenant ? c.archived_by_tenant : c.archived_by_owner;
       const unreadCount = isTenant ? c.tenant_unread_count : c.owner_unread_count;
       const lastReadAt = isTenant ? c.tenant_last_read_at : c.owner_last_read_at;

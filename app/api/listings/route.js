@@ -87,6 +87,16 @@ export async function GET(request) {
       .filter(s => s.direction === 'reset')
       .map(s => s.listing_id));
 
+    // UGC moderation — fetch outgoing blocks (one-way: hide listings owned
+    // by users I've blocked; users who've blocked me still see my listings,
+    // which prevents leak about being blocked). MLS listings have no owner
+    // and bypass this filter.
+    const { data: outgoingBlocks } = await supabase
+      .from('user_blocks')
+      .select('blocked_id')
+      .eq('blocker_id', user.id);
+    const blockedOwnerIds = (outgoingBlocks || []).map(b => b.blocked_id);
+
     // Fetch core match field configs (for boost eligibility)
     const { data: coreFields } = await supabase
       .from('listing_field_configs')
@@ -131,6 +141,12 @@ export async function GET(request) {
     const validSwipedIds = filterValidUUIDs(swipedIds);
     if (validSwipedIds.length > 0) {
       query = query.not('id', 'in', `(${validSwipedIds.join(',')})`);
+    }
+
+    // Exclude listings owned by blocked users (UGC moderation).
+    const validBlockedOwnerIds = filterValidUUIDs(blockedOwnerIds);
+    if (validBlockedOwnerIds.length > 0) {
+      query = query.not('owner_user_id', 'in', `(${validBlockedOwnerIds.join(',')})`);
     }
 
     query = query.order('created_at', { ascending: false });
