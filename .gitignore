@@ -47,3 +47,4 @@ mobile/.maestro/perf-suite-*.log
 mobile/.maestro/perf-suite-*.summary
 mobile/.maestro/perf-run.live.log
 mobile/.maestro/overnight-logs-*/
+mobile/.maestro/recordings/

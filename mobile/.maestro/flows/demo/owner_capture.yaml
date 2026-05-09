@@ -1,0 +1,85 @@
+# DRAFT — DO NOT RUN WITHOUT CHRIS'S SIGN-OFF.
+#
+# S10 (Maverick — Owner). Drives the on-camera moment for Beat 2 (0:03–0:08)
+# of the 30-second storyboard:
+#   T+0s:   cold launch app (Maverick already signed in on this device)
+#   T+3s:   tap Messages tab → tap conversation with Goose
+#   T+8s:   tap message input
+#   T+9s:   type "Yes! Come tour Saturday at 2 — I'll meet you there."
+#   T+12s:  tap Send (paper-airplane button — testID conversation-send-button)
+#   T+13s+: idle, message visible in thread, hold for camera
+#
+# The matching renter capture (renter_capture.yaml) runs in parallel on the
+# S24. Goose's notification banner fires when this Send lands at ~T+12s,
+# triggering Goose's flow at her T+13–14s.
+#
+# Prereqs (one-time, manual before first take):
+#   - S10 signed in as maverick@padmagnet.com (Play-installed AAB)
+#   - Demo conversation exists (setup-demo-chat-seed.mjs ran)
+#   - State reset to baseline (run reset-demo-chat-state.mjs)
+#
+# Selectors verified 2026-05-08:
+#   - Owner Messages tab label: "Messages" (in (owner)/_layout.js Tabs)
+#   - Conversation row distinguished by listing address text
+#   - ChatInput: testID="conversation-message-input"
+#   - Send button: testID="conversation-send-button"
+
+appId: com.padmagnet.app
+tags:
+  - demo
+  - manual
+---
+- launchApp:
+    stopApp: true
+
+# T+0s — cold launch settling
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# T+3s — tap Messages tab
+- tapOn: "Messages"
+
+# T+5s — wait for the conversation row to render. ConversationItem.js
+# line 99 sets testID="conversation-row" — far more robust than waiting
+# on rendered text (which can be slow to render or truncated).
+# /api/conversations fetch + FlatList render on cold-launched Play AAB
+# can take 10-15s on the S10; 20s gives margin without bloating the take.
+- extendedWaitUntil:
+    visible:
+      id: conversation-row
+    timeout: 20000
+
+# Tap the conversation row by testID (Maverick has only one as owner —
+# the demo conversation with Goose for 1827 Riverbend Cove).
+- tapOn:
+    id: conversation-row
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# T+8s — tap message input field
+- tapOn:
+    id: conversation-message-input
+- waitForAnimationToEnd:
+    timeout: 1000
+
+# T+9s — type the on-camera message.
+# NOTE: Maestro inputText is ASCII-only per issue #146 — em-dash, curly
+# quotes, and other unicode chars are rejected. Using a plain hyphen.
+- inputText: "Yes! Come tour Saturday at 2 - I'll meet you there."
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# T+12s — tap Send
+- tapOn:
+    id: conversation-send-button
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# T+14s+ — idle for the rest of the 30-second capture window.
+# adb screenrecord on the orchestrator side runs to ~35s total, so this
+# wait covers the post-send hold for cinematic breathing room.
+- swipe:
+    direction: DOWN
+    duration: 200
+- waitForAnimationToEnd:
+    timeout: 18000

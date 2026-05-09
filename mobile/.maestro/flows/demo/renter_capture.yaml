@@ -1,0 +1,78 @@
+# DRAFT — DO NOT RUN WITHOUT CHRIS'S SIGN-OFF.
+#
+# S24 (Goose — Renter). Drives Beats 4–5 of the storyboard:
+#   T+0s:   cold launch (Goose already signed in)
+#   T+4s:   tap Saved tab — Goose is "browsing her saved listings" when
+#           the message arrives
+#   T+5s+:  idle on Saved tab. Listing tile may or may not render here
+#           depending on whether the saved-tab query respects is_demo.
+#           Either way, the screen is the resting frame for Beat 4.
+#   ~T+12-14s: Maverick's send fires (driven by owner_capture.yaml).
+#              Goose's PadMagnet receives via Supabase realtime sub.
+#              In-app notification banner slides down at top of screen.
+#   T+14–17s: tap notification banner — opens conversation
+#   T+17s+: conversation detail visible with Maverick's new message at
+#           the bottom. Hold for cinematic Beat 5.
+#
+# Selector strategy:
+#   - Tenant tabs labeled "Saved", "Messages", etc. (per (tenant)/_layout.js)
+#   - Notification banner: in-app banner driven by Supabase realtime.
+#     The banner contains the message body. We extendedWaitUntil for
+#     a substring of the message that's UNIQUE — "Come tour Saturday"
+#     won't appear anywhere else on Goose's screen at this moment.
+#
+# Resilience:
+#   - extendedWaitUntil gives 12s for the banner to appear, covering
+#     normal Twilio/Resend/Realtime delivery latency variation
+#   - If the banner never appears (e.g., realtime sub not connected),
+#     the flow times out without crashing the orchestrator — the
+#     screen recording still captures Goose's idle session
+
+appId: com.padmagnet.app
+tags:
+  - demo
+  - manual
+---
+- launchApp:
+    stopApp: true
+
+# T+0s — cold launch settling
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# T+6s — tap Saved tab (resting frame: Goose browsing her saved listings).
+# The 1827 Riverbend Cove tile is visible here from the seeded right-swipe.
+- tapOn: "Saved"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# T+9s — IDLE on Saved tab. During this window:
+#   - Maverick's flow on the S10 sends the message (~orchestrator T+17,
+#     ~renter-flow T+9 to T+12)
+#   - PadMagnet's Supabase realtime sub picks up the new message
+#   - The Messages tab badge animates from 0 → 1 (the cinematic beat)
+# Note: PadMagnet does NOT show an in-app notification banner for messages
+# arriving on a non-Messages screen — only the tab badge updates. The
+# original `extendedWaitUntil text: "Come tour Saturday"` expectation
+# was based on a misread of the app's notification model.
+- waitForAnimationToEnd:
+    timeout: 13000
+
+# T+22s — tap Messages tab. Conversation list shows Maverick's update.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# T+25s — tap into the conversation.
+- tapOn:
+    id: conversation-row
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# T+28s — Hold on the conversation thread. Maverick's "Yes! Come tour
+# Saturday at 2 - I'll meet you there." bubble is visible at the bottom.
+- swipe:
+    direction: DOWN
+    duration: 300
+- waitForAnimationToEnd:
+    timeout: 4000
