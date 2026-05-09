@@ -8,8 +8,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { MessageBubble, ChatInput } from '../../components/messaging';
 import { EqualHousingBadge } from '../../components/ui';
+import ReportSheet from '../../components/moderation/ReportSheet';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
+import { useAlert } from '../../providers/AlertProvider';
+import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/colors';
 import { FONTS, FONT_SIZES } from '../../constants/fonts';
 import { LAYOUT } from '../../constants/layout';
@@ -37,9 +40,13 @@ export default function ConversationScreen() {
   const [listingPhoto, setListingPhoto] = useState(null);
   const [viewerRole, setViewerRole] = useState(null); // 'renter' | 'owner'
   const [renterName, setRenterName] = useState(null);
+  const [counterpartyId, setCounterpartyId] = useState(null);
+  const [counterpartyName, setCounterpartyName] = useState(null);
   const [conversationCreatedAt, setConversationCreatedAt] = useState(null);
+  const [showReport, setShowReport] = useState(false);
   const flatListRef = useRef(null);
   const router = useRouter();
+  const alert = useAlert();
 
   // Get current user
   useEffect(() => {
@@ -142,6 +149,18 @@ export default function ConversationScreen() {
         // client-side profile fetch needed.
         if (convo.tenant_user_id && !isViewerRenter) {
           setRenterName(convo.tenant_display_name || 'Renter');
+        }
+
+        // UGC moderation — capture counterparty for block/report. Skip for
+        // external_agent (no PadMagnet user; agents are reachable via email).
+        if (convo.conversation_type !== 'external_agent') {
+          if (isViewerRenter) {
+            setCounterpartyId(convo.owner_user_id || null);
+            setCounterpartyName(convo.owner_display_name || 'this owner');
+          } else {
+            setCounterpartyId(convo.tenant_user_id || null);
+            setCounterpartyName(convo.tenant_display_name || 'this renter');
+          }
         }
       } catch {
         // title stays as 'Chat'
@@ -360,6 +379,57 @@ export default function ConversationScreen() {
             <Text style={styles.chatHeaderSubtitle} numberOfLines={1}>{subtitle}</Text>
           )}
         </View>
+        {/* UGC moderation — block/report kebab. Hidden for external-agent
+            threads (no PadMagnet user to block). */}
+        {counterpartyId && (
+          <Pressable
+            style={styles.chatHeaderMenu}
+            hitSlop={10}
+            testID="conversation-menu"
+            onPress={() => {
+              Haptics.selectionAsync();
+              alert(null, null, [
+                {
+                  text: `Block ${counterpartyName}`,
+                  style: 'destructive',
+                  onPress: () => {
+                    alert(
+                      `Block ${counterpartyName}?`,
+                      "You won't see their messages or listings, and they won't be able to message you. You can unblock anytime in Settings.",
+                      [
+                        { text: 'Cancel' },
+                        {
+                          text: 'Block',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await apiFetch('/api/blocks', {
+                                method: 'POST',
+                                body: JSON.stringify({ blocked_id: counterpartyId }),
+                              });
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                              router.back();
+                            } catch (err) {
+                              alert('Could not block', err.message || 'Please try again.');
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  },
+                },
+                {
+                  text: `Report ${counterpartyName}`,
+                  style: 'destructive',
+                  onPress: () => setShowReport(true),
+                },
+                { text: 'Cancel' },
+              ]);
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={22} color={COLORS.text} />
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.flex}>
@@ -502,6 +572,17 @@ export default function ConversationScreen() {
           <EqualHousingBadge style={{ paddingVertical: 6, backgroundColor: COLORS.background }} />
         </Animated.View>
       </View>
+
+      {/* UGC moderation — report sheet (Google Play UGC Policy) */}
+      {counterpartyId && (
+        <ReportSheet
+          visible={showReport}
+          onClose={() => setShowReport(false)}
+          contentType="user"
+          contentId={counterpartyId}
+          contentLabel={counterpartyName || 'this user'}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -600,6 +681,13 @@ const styles = StyleSheet.create({
   },
   chatHeaderCenter: {
     flex: 1,
+  },
+  chatHeaderMenu: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   chatHeaderTitle: {
     fontFamily: FONTS.heading.bold,

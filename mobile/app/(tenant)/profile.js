@@ -234,6 +234,14 @@ export default function TenantProfileScreen() {
               hint="Update the email address used to sign in"
               onPress={() => router.push('/settings/change-email')}
             />
+            <MenuItem
+              testID="profile-blocked-users-button"
+              icon="shield-outline"
+              iconColor={COLORS.accent}
+              label="Blocked users"
+              hint="People you've blocked from messaging or appearing in your feed"
+              onPress={() => router.push('/settings/blocked')}
+            />
           </>
         )}
 

@@ -184,6 +184,14 @@ export default function OwnerProfileScreen() {
               hint="Update the email address used to sign in"
               onPress={() => router.push('/settings/change-email')}
             />
+            <MenuItem
+              testID="profile-blocked-users-button"
+              icon="shield-outline"
+              iconColor={COLORS.accent}
+              label="Blocked users"
+              hint="People you've blocked from messaging or appearing in your feed"
+              onPress={() => router.push('/settings/blocked')}
+            />
 
             {/* Role access — single-role users see a one-tap action.
                 Multi-role users have RoleSwitcher above, so these MenuItems

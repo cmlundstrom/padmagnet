@@ -10,6 +10,7 @@ import { Header, GlossyHeart } from '../../components/ui';
 import { PhotoGallery, PadScoreBreakdown, ListingInfo, MLSDisclaimer } from '../../components/listing';
 import AuthBottomSheet from '../../components/auth/AuthBottomSheet';
 import ChannelPrompt from '../../components/messaging/ChannelPrompt';
+import ReportSheet from '../../components/moderation/ReportSheet';
 import usePreferences from '../../hooks/usePreferences';
 import useSwipe from '../../hooks/useSwipe';
 import usePadPoints from '../../hooks/usePadPoints';
@@ -139,6 +140,26 @@ export default function ListingDetailScreen() {
   const { session: authSession, isAnon } = useAuth();
 
   const [showChannelPrompt, setShowChannelPrompt] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+
+  const handleHeaderMenu = useCallback(() => {
+    Haptics.selectionAsync();
+    alert(null, null, [
+      { text: 'Share', onPress: handleShare },
+      {
+        text: 'Report listing',
+        style: 'destructive',
+        onPress: () => {
+          if (isAnon) {
+            setShowAuth(true);
+          } else {
+            setShowReport(true);
+          }
+        },
+      },
+      { text: 'Cancel' },
+    ]);
+  }, [alert, handleShare, isAnon]);
 
   const sendFirstMessage = async () => {
     try {
@@ -222,9 +243,13 @@ export default function ListingDetailScreen() {
         title="Details"
         showBack
         rightAction={
-          <Pressable onPress={handleShare} style={styles.shareBtnWide}>
-            <FontAwesome name="share-alt" size={14} color={COLORS.background} />
-            <Text style={styles.shareBtnText}>Share</Text>
+          <Pressable
+            onPress={handleHeaderMenu}
+            hitSlop={10}
+            style={styles.headerMenuBtn}
+            testID="listing-detail-menu"
+          >
+            <Ionicons name="ellipsis-horizontal" size={22} color={COLORS.text} />
           </Pressable>
         }
       />
@@ -310,6 +335,15 @@ export default function ListingDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* UGC moderation — report sheet (Google Play UGC Policy) */}
+      <ReportSheet
+        visible={showReport}
+        onClose={() => setShowReport(false)}
+        contentType="listing"
+        contentId={listing?.id}
+        contentLabel="this listing"
+      />
     </SafeAreaView>
   );
 }
@@ -374,6 +408,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading.semiBold,
     fontSize: FONT_SIZES.xs,
     color: COLORS.background,
+  },
+  headerMenuBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heartFab: {
     position: 'absolute',
