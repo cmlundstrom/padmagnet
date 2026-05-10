@@ -1,0 +1,141 @@
+# Smoke: renter taps the flag icon on a listing detail screen, picks a
+# reason in the ReportSheet, types optional free-text, and submits — the
+# success toast fires and the sheet closes.
+#
+# Exercises the Google Play UGC Policy mandatory "report content" flow,
+# wiring through:
+#   - mobile/app/listing/[id].js                     (Header rightAction with flag icon)
+#   - mobile/components/moderation/ReportSheet.js    (categorized reason form)
+#   - app/api/reports/route.js                       (POST /api/reports)
+#   - migration 081_ugc_moderation                   (content_reports + RLS + anti-flood index)
+#
+# Independent of which specific listing is at the top of the swipe deck —
+# the flow is: deck → first card → flag → reason → submit. Any active
+# listing works as a target (MLS or owner-source).
+#
+# Precondition:
+#   - Wrapper run_report_listing_submission.sh handles pm-clear + dev-client
+#     warmup. The smoke seeds a fresh authed renter via seed_test_renter.js
+#     so the API requires-auth path is satisfied.
+#
+# Cleanup:
+#   - cleanup_test_users.js wipes the seeded renter (cascades content_reports
+#     row via reporter_id ON DELETE SET NULL).
+#
+# First written: 2026-05-09 alongside the v1.0.1 UGC moderation backend.
+
+appId: com.padmagnet.app
+---
+
+# 1. Seed renter (display_name set → no firstTime gate).
+- runScript: ../../helpers/seed_test_renter.js
+
+# 2. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 3. Anon renter through L1.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 4. Sign in via Messages tab L1 so the renter is authed before reporting.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${output.seed.renter.email}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${output.seed.renter.password}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 5. Back to swipe deck — Home tab. The deck loads with at least one card.
+- tapOn: "Home"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 6. Tap the first listing card to open detail. Uses element ID instead
+#    of a coordinate tap so card-position drift doesn't flake the smoke.
+- assertVisible:
+    id: ${output.listings.swipeDeck.container}
+- tapOn:
+    id: ${output.listings.swipeDeck.card}
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 7. Listing detail mounted — flag icon must be visible in the header.
+- assertVisible:
+    id: "listing-detail-report"
+
+# 8. Tap the flag → ReportSheet opens.
+- tapOn:
+    id: "listing-detail-report"
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# 9. ReportSheet visible — pick "Spam" reason.
+- assertVisible:
+    id: "report-reason-spam"
+- tapOn:
+    id: "report-reason-spam"
+- waitForAnimationToEnd:
+    timeout: 500
+
+# 10. Add some optional free-text so the API receives both fields.
+- tapOn:
+    id: "report-free-text"
+- inputText: "Maestro smoke - automated test report"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# 11. Submit. Wait for the API + toast.
+- tapOn:
+    id: "report-submit"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 12. Success toast — the AlertProvider surfaces "Thanks for letting us know"
+#     with a friendly review-window message. Match the title fragment.
+- assertVisible: "Thanks for letting us know"
+
+# 13. Dismiss the toast (single OK button).
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 14. After toast dismiss, ReportSheet has closed (it closes BEFORE the
+#     toast in handleSubmit). We should be back on listing detail.
+- assertVisible:
+    id: "listing-detail-report"
+
+# 15. Cleanup the seeded renter. content_reports row cascades via
+#     reporter_id ON DELETE SET NULL — the row stays for admin audit
+#     but with reporter_id=null. That's fine for smoke hygiene; admin
+#     can filter null-reporter rows separately.
+- runScript: ../../helpers/cleanup_test_users.js

@@ -19,11 +19,12 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, Modal,
-  ActivityIndicator, ScrollView, Keyboard,
+  ActivityIndicator, ScrollView, Keyboard, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { apiFetch } from '../../lib/api';
 import { useAlert } from '../../providers/AlertProvider';
@@ -66,6 +67,42 @@ export default function ReportSheet({
       setSubmitting(false);
     }
   }, [visible]);
+
+  // Keyboard lift — manual translateY because KeyboardAvoidingView is
+  // broken in Modal on Android (see feedback_keyboard_lift_modal.md).
+  // Same pattern as AuthBottomSheet. Only the body lifts; the header
+  // stays anchored at top so the close button remains tappable.
+  const keyboardOffset = useSharedValue(0);
+
+  useEffect(() => {
+    if (!visible) {
+      keyboardOffset.value = 0;
+      return;
+    }
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const resolveKeyboardHeight = (evt) => {
+      const reported = evt?.endCoordinates?.height || 0;
+      if (reported > 0) return reported;
+      const diff = Dimensions.get('screen').height - Dimensions.get('window').height;
+      return diff > 0 ? diff : 320;
+    };
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const kb = resolveKeyboardHeight(e);
+      keyboardOffset.value = withTiming(-(kb - 45), { duration: 250 });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      keyboardOffset.value = withTiming(0, { duration: 200 });
+    });
+
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, [visible]);
+
+  const liftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardOffset.value }],
+  }));
 
   const handleSubmit = async () => {
     if (!selectedReason || submitting) return;
@@ -116,6 +153,7 @@ export default function ReportSheet({
           <View style={{ width: 26 }} />
         </View>
 
+        <Animated.View style={[styles.body, liftStyle]}>
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
@@ -197,6 +235,7 @@ export default function ReportSheet({
             </LinearGradient>
           </Pressable>
         </View>
+        </Animated.View>
       </SafeAreaView>
     </Modal>
   );
@@ -225,6 +264,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     color: COLORS.text,
     textAlign: 'center',
+  },
+  body: {
+    flex: 1,
   },
   scroll: {
     flex: 1,
