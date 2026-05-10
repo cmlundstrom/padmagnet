@@ -12,14 +12,24 @@ export const dynamic = 'force-dynamic';
  *
  * Actions:
  *   - dismiss          → status='dismissed', resolution_action='dismissed'
- *                        (admin determined the flag was a non-issue)
+ *                        Admin reviewed and determined the flag is invalid.
+ *                        NO mutation on listing/user.
  *   - hide_content     → status='resolved', resolution_action='content_hidden'
- *                        + listings.is_active=false (only for content_type='listing')
+ *                        Sets listings.is_active=false. Removes from EVERY
+ *                        user's swipe deck, search, and detail pages globally.
+ *                        Listing-only. Reversible via Admin > Listings.
  *   - ban_user         → status='resolved', resolution_action='user_banned'
- *                        + profiles.archived_at=now() on the target
- *                        (only for content_type='user'; super_admin protected)
+ *                        Archives the TARGET of the report (the user being
+ *                        flagged). Sets profiles.archived_at on content_id.
+ *                        User-content-type only. super_admin protected.
+ *   - ban_reporter     → status='resolved', resolution_action='reporter_banned'
+ *                        Archives the user who SUBMITTED the report (not the
+ *                        target). Use when the reporter is abusing the flag
+ *                        system (serial false-flagging, harassment via
+ *                        reports). super_admin protected.
  *   - escalate         → status='triaged', resolution_action='escalated_legal'
- *                        (no automated mutation — flag for legal review)
+ *                        Keep report in queue, flag for legal review. No
+ *                        automated mutation.
  *
  * Audit-logged via the canonical writeAuditLogBatch helper using
  * entity_type='content_report' (no separate audit table).
@@ -33,7 +43,7 @@ export async function POST(request, { params }) {
     const body = await request.json();
     const { action, notes } = body || {};
 
-    const VALID_ACTIONS = ['dismiss', 'hide_content', 'ban_user', 'escalate'];
+    const VALID_ACTIONS = ['dismiss', 'hide_content', 'ban_user', 'ban_reporter', 'escalate'];
     if (!VALID_ACTIONS.includes(action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
@@ -121,6 +131,42 @@ export async function POST(request, { params }) {
           tableName: 'profiles', rowId: report.content_id, action: 'ban_user',
           fieldChanged: 'archived_at', oldValue: target.archived_at, newValue: new Date().toISOString(),
           metadata: { reason: 'content_report', report_id: id },
+        });
+        break;
+      }
+
+      case 'ban_reporter': {
+        if (!report.reporter_id) {
+          return NextResponse.json(
+            { error: 'Cannot ban reporter — reporter_id is null (anon or deleted)' },
+            { status: 400 }
+          );
+        }
+        const { data: reporter } = await supabase
+          .from('profiles').select('id, role, archived_at').eq('id', report.reporter_id).single();
+        if (!reporter) {
+          return NextResponse.json({ error: 'Reporter profile not found' }, { status: 404 });
+        }
+        if (reporter.role === 'super_admin') {
+          return NextResponse.json(
+            { error: 'Cannot ban super_admin via this endpoint' },
+            { status: 403 }
+          );
+        }
+        const { error: banErr } = await supabase
+          .from('profiles').update({ archived_at: new Date().toISOString() }).eq('id', report.reporter_id);
+        if (banErr) {
+          return NextResponse.json({ error: banErr.message }, { status: 500 });
+        }
+        // Note: per the v1.0.1 design we use 'user_banned' resolution_action
+        // for both ban_user (target) and ban_reporter (flagger) since the DB
+        // CHECK constraint on resolution_action only enumerates those values.
+        // The audit log + metadata distinguish the actor.
+        resolutionAction = 'user_banned';
+        auditEntries.push({
+          tableName: 'profiles', rowId: report.reporter_id, action: 'ban_reporter',
+          fieldChanged: 'archived_at', oldValue: reporter.archived_at, newValue: new Date().toISOString(),
+          metadata: { reason: 'abusive_reporting', report_id: id, banned_role: 'reporter' },
         });
         break;
       }

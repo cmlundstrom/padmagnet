@@ -8,7 +8,7 @@ export default function ConfirmDialog({ message, showReason, onConfirm, onCancel
   return (
     <div className="confirm-overlay" onClick={onCancel}>
       <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
-        <p className="confirm-message">{message}</p>
+        <p className="confirm-message" style={{ whiteSpace: 'pre-line' }}>{message}</p>
         {showReason && (
           <textarea
             className="confirm-reason"

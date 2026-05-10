@@ -276,31 +276,77 @@ function ReportRow({ report, onAction }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             style={{ ...baseButton, background: COLORS.green + '22', color: COLORS.green, border: `1px solid ${COLORS.green}44` }}
-            onClick={() => onAction(report, 'dismiss', `Dismiss this report as a non-issue?`, true)}
+            title="Mark this report as reviewed with no action taken. The reported listing/user is NOT affected. Use when admin determines the flag is invalid or doesn't warrant action."
+            onClick={() => onAction(
+              report,
+              'dismiss',
+              `Dismiss this report as a NON-ISSUE?\n\n• Marks the report as reviewed with no action taken.\n• The reported ${report.content_type} is NOT affected — listing stays live, user keeps their access.\n• Use when admin reviews the flag and determines it's invalid or doesn't warrant action.\n\nReversible: un-dismiss by re-opening the report from the Dismissed filter (manual SQL for now until v1.0.2).`,
+              true
+            )}
           >
-            ✓ Dismiss (non-issue)
+            ✓ Dismiss — non-issue
           </button>
+
           {isListing && (
             <button
               style={{ ...baseButton, background: COLORS.amber + '22', color: COLORS.amber, border: `1px solid ${COLORS.amber}44` }}
-              onClick={() => onAction(report, 'hide_content', `Hide this listing? It will be set inactive and removed from the swipe deck.`, true)}
+              title="Sets listings.is_active=false. Removes the listing from EVERY user's swipe deck, search results, and detail pages across the entire platform. Reversible via Admin > Listings."
+              onClick={() => onAction(
+                report,
+                'hide_content',
+                `Hide this listing GLOBALLY?\n\n• Sets listings.is_active=false on the database.\n• The listing will disappear from EVERY user's swipe deck, EVERY search result, and EVERY listing detail page across the entire PadMagnet platform.\n• No renter will be able to view or contact this property.\n• The owner's view of their own listing in the My Listings tab is unaffected — they can re-publish from there.\n\nReversible: Admin > Listings → find the row → toggle active back on. Or the owner can re-publish from their Listings tab.`,
+                true
+              )}
             >
-              👁 Hide listing
+              👁 Hide listing globally
             </button>
           )}
+
           {isUser && (
             <button
               style={{ ...baseButton, background: COLORS.red + '22', color: COLORS.red, border: `1px solid ${COLORS.red}44` }}
-              onClick={() => onAction(report, 'ban_user', `Ban this user? Their profile will be archived. This is reversible by un-archiving.`, true)}
+              title="Archives the REPORTED user's profile platform-wide. They lose all access — cannot sign in or use the app. Super_admin protected. Reversible via Admin > Users."
+              onClick={() => onAction(
+                report,
+                'ban_user',
+                `Ban the REPORTED user (the TARGET of this flag)?\n\n• Sets profiles.archived_at on the reported user's profile (NOT the reporter).\n• They lose platform-wide access immediately — cannot sign in or use the app.\n• Their listings (if any) remain visible unless separately hidden.\n• Super_admin accounts are protected — this action will fail on them.\n\nReversible: Admin > Users → find the user → un-archive.`,
+                true
+              )}
             >
-              🚫 Ban user
+              🚫 Ban target user
             </button>
           )}
+
+          {/* Ban the user who SUBMITTED the report — distinct from ban_user.
+              Available on every open report regardless of content_type, since
+              any reporter can be abusive (serial false-flagging, harassment
+              via reports, etc.). Only hidden when reporter_id is null. */}
+          {report.reporter_id && (
+            <button
+              style={{ ...baseButton, background: COLORS.red + '22', color: COLORS.red, border: `1px dashed ${COLORS.red}66` }}
+              title="Archives the user who SUBMITTED this report (not the target). Use when the reporter is abusing the flag system: serial false-flagging, harassment via reports, etc. Super_admin protected. Reversible via Admin > Users."
+              onClick={() => onAction(
+                report,
+                'ban_reporter',
+                `Ban the REPORTER (the user who SUBMITTED this flag)?\n\n• Sets profiles.archived_at on the REPORTER (${report.reporter_email || 'this user'}), NOT the target of the report.\n• They lose platform-wide access — cannot sign in or use the app.\n• Use when the reporter is abusing the flag system: serial false-flagging, harassment via reports, weaponizing the report flow against legit listings/users.\n• The reported listing/${report.content_type === 'listing' ? 'listing' : 'user'} is NOT affected by this action — handle that separately if needed.\n• Super_admin accounts are protected.\n\nReversible: Admin > Users → find the reporter → un-archive.`,
+                true
+              )}
+            >
+              🚫 Ban reporter
+            </button>
+          )}
+
           <button
             style={{ ...baseButton, background: COLORS.surface, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, marginLeft: 'auto' }}
-            onClick={() => onAction(report, 'escalate', `Escalate to legal review? Status moves to triaged. No automated content/user mutation.`, true)}
+            title="Status moves to triaged — keeps the report alive and out of the open queue, but takes no automated action on the listing/user. Use for ambiguous cases needing legal/human judgment before action."
+            onClick={() => onAction(
+              report,
+              'escalate',
+              `Escalate this report for LEGAL REVIEW?\n\n• Status moves from 'open' to 'triaged'.\n• Report stays in the queue (filterable under the Triaged status), but is removed from the default Open view.\n• NO automated mutation on the listing/user — nothing is hidden, nobody is banned.\n• Use for ambiguous cases that need legal/human judgment before action (e.g., possible fraud requiring evidence collection, threats requiring law-enforcement coordination, defamation claims).`,
+              true
+            )}
           >
-            ⚖ Escalate
+            ⚖ Escalate to legal
           </button>
         </div>
       )}
