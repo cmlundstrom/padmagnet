@@ -10,10 +10,11 @@ import exportCSV from '../components/CSVExport';
 import FlagsSubview from './FlagsSubview';
 
 export default function SupportPanel({ onTicketChange }) {
-  // Sub-tab toggle — 'tickets' (canonical Support panel) or 'flags' (UGC
-  // moderation queue from content_reports). Flags tab is the v1.0.1 admin
-  // surface for handling user-submitted reports.
-  const [subView, setSubView] = useState('tickets');
+  // Sub-tab toggle — 'flags' (UGC moderation queue from content_reports,
+  // default) or 'tickets' (canonical Support panel). Flags is the higher-
+  // priority view for an admin landing here, since user reports need
+  // faster triage than internal bug tickets.
+  const [subView, setSubView] = useState('flags');
   const [tickets, setTickets] = useState([]);
   const [messages, setMessages] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
