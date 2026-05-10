@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { id: "padscore", label: "PadScore", icon: "🎯" },
   { id: "display-fields", label: "Display Fields", icon: "🔧" },
   { id: "disclaimers", label: "Disclaimers", icon: "⚖️" },
-  { id: "support", label: "Support", icon: "💬" },
+  { id: "support", label: "Bugs & Flags", icon: "💬" },
   { id: "messaging", label: "Messaging", icon: "📨" },
   { id: "system-health", label: "System Health", icon: "🔗" },
   { id: "templates", label: "Templates", icon: "📝" },

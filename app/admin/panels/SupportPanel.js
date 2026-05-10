@@ -7,8 +7,13 @@ import AdminTable from '../components/AdminTable';
 import AddEntryForm from '../components/AddEntryForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import exportCSV from '../components/CSVExport';
+import FlagsSubview from './FlagsSubview';
 
 export default function SupportPanel({ onTicketChange }) {
+  // Sub-tab toggle — 'tickets' (canonical Support panel) or 'flags' (UGC
+  // moderation queue from content_reports). Flags tab is the v1.0.1 admin
+  // surface for handling user-submitted reports.
+  const [subView, setSubView] = useState('tickets');
   const [tickets, setTickets] = useState([]);
   const [messages, setMessages] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -522,6 +527,34 @@ export default function SupportPanel({ onTicketChange }) {
 
   return (
     <div>
+      {/* Sub-tab toggle: Tickets (bugs/support) ↔ Flags (UGC reports) */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, padding: 4, background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`, width: "fit-content" }}>
+        <button
+          onClick={() => setSubView('tickets')}
+          style={{
+            ...baseButton,
+            background: subView === 'tickets' ? COLORS.brand + '22' : 'transparent',
+            color: subView === 'tickets' ? COLORS.brand : COLORS.textMuted,
+            border: `1px solid ${subView === 'tickets' ? COLORS.brand + '44' : 'transparent'}`,
+          }}
+        >
+          🐞 Bugs / Support tickets
+        </button>
+        <button
+          onClick={() => setSubView('flags')}
+          style={{
+            ...baseButton,
+            background: subView === 'flags' ? COLORS.brand + '22' : 'transparent',
+            color: subView === 'flags' ? COLORS.brand : COLORS.textMuted,
+            border: `1px solid ${subView === 'flags' ? COLORS.brand + '44' : 'transparent'}`,
+          }}
+        >
+          🚩 User flags (content reports)
+        </button>
+      </div>
+
+      {subView === 'flags' ? <FlagsSubview /> : (
+      <>
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
         <StatCard label="Open Tickets" value={openCount} sub={`${tickets.length} total`} accent={COLORS.green} />
@@ -641,6 +674,8 @@ export default function SupportPanel({ onTicketChange }) {
           onConfirm={(reason) => { handleSave(confirmAction.ids, { suppressed: true }); setConfirmAction(null); fetchTickets(); }}
           onCancel={() => setConfirmAction(null)}
         />
+      )}
+      </>
       )}
     </div>
   );
