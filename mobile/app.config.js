@@ -33,6 +33,11 @@ export default ({ config }) => ({
     },
     android: {
       package: "com.padmagnet.app",
+      // versionCode bumped 2026-05-09: Play Console rejects re-using
+      // the same versionCode that v1.0.0 (May 6) AAB used. eas.json
+      // switched to appVersionSource: "local" so the value here is
+      // authoritative and git-tracked. Bump on every fresh AAB build.
+      versionCode: 2,
       adaptiveIcon: {
         backgroundColor: "#E8603C",
         foregroundImage: "./assets/android-icon-foreground.png",
