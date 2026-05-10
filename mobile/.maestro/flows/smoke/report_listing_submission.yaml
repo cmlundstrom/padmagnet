@@ -27,6 +27,10 @@
 appId: com.padmagnet.app
 ---
 
+# 0. Load shared element definitions — required for ${output.listings.*}
+#    refs later in the flow. Same pattern as password_eyeball.yaml etc.
+- runFlow: ../../elements/loadElements.yaml
+
 # 1. Seed renter (display_name set → no firstTime gate).
 - runScript: ../../helpers/seed_test_renter.js
 
