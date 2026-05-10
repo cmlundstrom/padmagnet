@@ -2,7 +2,11 @@ export default ({ config }) => ({
   expo: {
     name: "PadMagnet",
     slug: "padmagnet",
-    version: "1.0.0",
+    // Bump version + versionCode TOGETHER per feedback_version_parity.md.
+    // 1.0.1 = UGC moderation (report listings/users, block from convo,
+    //        Settings > Blocked users, admin Bugs & Flags queue, alert-bar
+    //        admin email pattern).
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "dark",
