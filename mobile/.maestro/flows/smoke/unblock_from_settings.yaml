@@ -1,0 +1,113 @@
+# Smoke: renter with a pre-existing block navigates to Settings >
+# Blocked Users, taps Unblock for the blocked user, confirms — block
+# is removed from the DB and the row vanishes from the list.
+#
+# Exercises the Google Play UGC Policy mandatory "manage blocks"
+# surface, wiring through:
+#   - mobile/app/settings/blocked.js            (Blocked users screen)
+#   - mobile/app/(tenant)/profile.js            (Profile entry point)
+#   - app/api/blocks/route.js                   (GET /api/blocks)
+#   - app/api/blocks/[userId]/route.js          (DELETE /api/blocks/:id)
+#   - migration 081_ugc_moderation              (user_blocks delete)
+#
+# Uses persistent marketing fixtures. Pre-seeds a block(Goose, Maverick)
+# so the Blocked Users screen has at least one row to display + unblock.
+# Cleanup at end is idempotent (delete-if-exists) so post-smoke state
+# matches pre-smoke even if the test exits mid-flow.
+#
+# First written: 2026-05-09 alongside v1.0.1 UGC moderation rollout.
+
+appId: com.padmagnet.app
+---
+
+# 0. Pre-seed the block row. The smoke needs it to exist before login
+#    so the Blocked Users screen has something to render.
+- runScript: ../../helpers/seed_user_block.js
+
+# 1. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter L1 path.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 3. Sign in as Goose via Messages tab L1.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${BLOCKER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${BLOCKER_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 4. Profile tab → scroll → Blocked users row.
+- tapOn: "Profile"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "profile-blocked-users-button"
+    direction: DOWN
+- tapOn:
+    id: "profile-blocked-users-button"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 5. Blocked Users screen mounted. Pre-seeded row should be visible.
+#    Match by header text + presence of an Unblock button (deterministic
+#    even if multiple blocks exist).
+- assertVisible: "Blocked users"
+- assertVisible: "Unblock"
+
+# 6. Tap Unblock on the first (only) row.
+- tapOn: "Unblock"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 7. Confirmation modal opens. Title is "Unblock <name>?" — tap the
+#    Unblock button (vs Cancel).
+- assertVisible:
+    text: "Unblock.*\\?"
+- tapOn:
+    text: "^Unblock$"
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 8. Row removed from list. Either we're at empty-state ("No blocked
+#    users") OR the Unblock button is gone (if no other rows existed).
+#    Use assertNotVisible on Unblock as the deterministic signal — the
+#    seeded row was the only one, so post-action there should be no
+#    Unblock button at all.
+- assertNotVisible: "Unblock"
+
+# 9. Defensive cleanup — block should already be gone, but call delete
+#    again to make sure no state leaks if the smoke failed mid-flow.
+- runScript: ../../helpers/cleanup_user_block.js

@@ -1,0 +1,117 @@
+# Smoke: renter opens an existing conversation, taps the kebab, blocks
+# the counterparty, confirms the modal — block is persisted and the
+# user is dropped back to the Messages list.
+#
+# Exercises the Google Play UGC Policy mandatory "block 1:1 user
+# interaction" surface, wiring through:
+#   - mobile/app/conversation/[id].js         (chatHeader kebab + alert flow)
+#   - app/api/blocks/route.js                 (POST /api/blocks)
+#   - migration 081_ugc_moderation            (user_blocks insert)
+#   - app/api/conversations/route.js          (block filter on subsequent fetch)
+#
+# Uses persistent marketing fixtures (Maverick owner ↔ Goose renter)
+# since they have a real seeded conversation about 1827 Riverbend Cove.
+# Cleanup at end deletes the user_blocks row created by the smoke so
+# state doesn't bleed across runs.
+#
+# First written: 2026-05-09 alongside v1.0.1 UGC moderation rollout.
+
+appId: com.padmagnet.app
+---
+
+# 0. Pre-flight cleanup — defensive removal of any stale block from a
+#    prior failed run, so the smoke starts in a known state.
+- runScript: ../../helpers/cleanup_user_block.js
+
+# 1. Cold launch.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 6000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "PadMagnet"
+
+# 2. Anon renter L1 path.
+- swipe:
+    start: 50%, 75%
+    end: 50%, 25%
+    duration: 600
+- waitForAnimationToEnd:
+    timeout: 1000
+- runFlow: ../_shared/choose_renter.yaml
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# 3. Sign in as Goose via Messages tab L1.
+- tapOn: "Messages"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "auth-sheet-sign-in-cta"
+- tapOn:
+    id: "auth-sheet-email-input"
+- inputText: ${BLOCKER_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-password-input"
+- inputText: ${BLOCKER_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "auth-sheet-sign-in-cta"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 4. Messages tab — should now show authed state with conversation list.
+#    Persistent demo conversation (1827 Riverbend Cove with Maverick) is
+#    expected to be visible. Tap the first conversation row.
+- assertVisible: "Messages"
+- tapOn:
+    id: "conversation-row"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 5. Conversation detail mounted — kebab visible in chatHeader (right
+#    side). Hidden for external-agent threads, but Maverick is internal.
+- assertVisible:
+    id: "conversation-menu"
+- tapOn:
+    id: "conversation-menu"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 6. Action menu opens (AlertProvider modal). Tap the Block button.
+#    Button label is "Block <name>" — match the Block prefix to be
+#    name-agnostic (display_name could change without breaking the smoke).
+- assertVisible:
+    text: "Block.*"
+- tapOn:
+    text: "Block.*"
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# 7. Confirmation modal opens with "Block <name>?" title and Block /
+#    Cancel buttons. Tap the destructive Block.
+- assertVisible:
+    text: "Block.*\\?"
+- tapOn:
+    text: "^Block$"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# 8. Block fired — router.back() to Messages tab. Verify we're on
+#    Messages (tab bar) and NOT in the conversation anymore (kebab
+#    should not be visible since we navigated away).
+- assertVisible: "Messages"
+- assertNotVisible:
+    id: "conversation-menu"
+
+# 9. Cleanup — delete the user_blocks row this smoke created so the
+#    persistent fixtures stay unblocked for future runs / video shoots.
+- runScript: ../../helpers/cleanup_user_block.js

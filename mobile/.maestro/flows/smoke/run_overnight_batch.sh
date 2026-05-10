@@ -42,6 +42,9 @@ SMOKES=(
   "flows/smoke/run_magic_link_warm_renter.sh|renter warm-launch magic-link auth: anon Messages → openLink → authed Messages (the bug from 2026-05-05)"
   "flows/smoke/run_magic_link_cold_owner.sh|owner cold-launch magic-link auth: openLink → AuthCallback → owner Profile authed"
   "flows/smoke/run_magic_link_warm_owner.sh|owner warm-launch magic-link auth: anon Profile sign-in card → openLink → authed Profile"
+  "flows/smoke/run_report_listing_submission.sh|renter taps flag on listing → ReportSheet → submit categorized report (UGC Policy)"
+  "flows/smoke/run_block_user_from_conversation.sh|renter blocks owner from conversation kebab → confirm → router.back to Messages (UGC Policy)"
+  "flows/smoke/run_unblock_from_settings.sh|renter unblocks user from Settings > Blocked Users → row removed from list (UGC Policy)"
 )
 
 PASS_COUNT=0
