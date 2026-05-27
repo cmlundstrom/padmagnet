@@ -148,7 +148,10 @@ async function cmdPush(args) {
   const typeIdx = args.indexOf('--type');
   const type = typeIdx !== -1 ? args[typeIdx + 1] : 'encrypted';
   const positional = args.filter((a, i) => !a.startsWith('--') && i !== 0 && args[i - 1] !== '--type');
-  const target = allTargets ? ['production', 'preview', 'development'] : [positional[0] || 'production'];
+  // target accepts a single value or a comma-separated set, e.g. "preview,development"
+  const target = allTargets
+    ? ['production', 'preview', 'development']
+    : (positional[0] || 'production').split(',').map((t) => t.trim()).filter(Boolean);
 
   const projectId = await resolveProjectId();
 
