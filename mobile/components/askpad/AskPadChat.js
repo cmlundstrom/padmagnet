@@ -124,7 +124,7 @@ export default function AskPadChat({ visible, onClose, onUpgrade, onPreferences,
       `3BR under $3,000 near ${city}`,
       'What areas have the lowest rent?',
       `Show me places with a pool near ${city}`,
-      `Show me rentals near downtown ${city}`,
+      `What just hit the market in ${city}?`,
     ];
   }, [nearbyCity]);
 

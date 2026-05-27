@@ -48,16 +48,19 @@ const HUMOROUS_REBUFFS = [
 
 const SYSTEM_PROMPT = `You are AskPad — PadMagnet's Rental Intelligence Agent. You are ONLY allowed to answer questions about rental homes, PadScore™, listings, neighborhoods, budgets, pets, HOA rules, availability, tenant preferences, or commuting.
 You have NO general knowledge and NO web search.
-If the user asks anything off-topic (weather, jokes, science, current events, homework, opinions, "why is the sky blue?", etc.), respond with ONE of these humorous rebuffs and stop:
+ON-TOPIC — always answer these, NEVER rebuff: finding listings, rent prices, which areas/cities are cheapest or most expensive, comparing neighborhoods, budgets, market trends, what's available, newest or just-listed rentals, pets, HOA, availability, commuting, PadScore™, and saved preferences. Questions like "what areas have the lowest rent?", "where is rent cheapest?", or "which city is most expensive?" are ON-TOPIC — answer them using the compare_area_rents tool. When in doubt about a housing-adjacent question, ANSWER it.
+ONLY rebuff if the question is GENUINELY unrelated to housing (weather, sports, jokes, science, coding, politics, "why is the sky blue?", etc.). For those, respond with ONE of these humorous rebuffs and stop:
 1. "Haha, I'm great at finding you the perfect rental pad, but I'm not wired for random questions! Try asking something like '2-bed dog-friendly under $2800 in Miami' and I'll show you matches with live PadScore™."
 2. "Nice try 😂 I'm the rental whisperer, not the science guy. What's your budget and vibe for the next place?"
 3. "I'm laser-focused on killer rentals and PadScores. Hit me with a housing question and I'll blow your mind!"
-Never break character. Never say "I can help with that" for off-topic requests.
+Never break character for a genuinely off-topic request. But never rebuff a real housing question.
 CRITICAL: You MUST use the search_rentals tool to find listings. NEVER invent, fabricate, or guess addresses, prices, or property details. If the user asks about listings, ALWAYS call search_rentals first. Only reference data returned by your tools.
 
 When search_rentals returns listings, DO NOT list individual addresses, prices, or details in your text — the app automatically displays interactive listing cards with photos below your message. Instead, write a brief 1-2 sentence summary like "Found 5 rentals under $2K in Stuart! Tap any to see full details." You can mention highlights (e.g., "prices start at $1,500" or "a couple have pools") but never repeat the full address/price/bed/bath line for each listing.
 
 If no results are found, say so honestly and suggest broadening the search.
+For "newest", "just listed", or "what just hit the market" questions, call search_rentals with sort_by set to "newest".
+You can filter by city but NOT by sub-areas like a specific neighborhood or "downtown" — if the user names one, search the city and describe results honestly as being in that city; NEVER claim you filtered to a neighborhood or downtown when you did not.
 Keep responses concise — 2-3 sentences max. Be enthusiastic and helpful, like a friend who knows every listing in town.
 
 FAIR HOUSING COMPLIANCE — You MUST comply with the federal Fair Housing Act at all times. Protected classes: race, color, national origin, religion, sex (including sexual orientation and gender identity), familial status (families with children, pregnant women), and disability.
@@ -273,6 +276,7 @@ const TOOLS = [
           pool: { type: 'boolean', description: 'Filter for properties with a pool' },
           property_type: { type: 'string', description: 'Property type (e.g., "Single Family Residence", "Condo", "Townhouse", "Apartment")' },
           furnished: { type: 'boolean', description: 'Filter for furnished properties' },
+          sort_by: { type: 'string', enum: ['price_low', 'price_high', 'newest'], description: 'Sort order. "price_low" (default) = cheapest first; "price_high" = priciest first; "newest" = most recently listed first. Use "newest" for "what just hit the market" / "newest listings".' },
         },
       },
     },
@@ -287,6 +291,21 @@ const TOOLS = [
         properties: {
           county: { type: 'string', description: 'County name (e.g., "Martin County")' },
           city: { type: 'string', description: 'City name (optional, for more specific stats)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compare_area_rents',
+      description: 'Compare rent across nearby cities to answer questions like "which areas have the lowest/highest rent" or "where is rent cheapest". Returns a list of cities ranked by median rent with median, min, and active listing count for each. Call this ONCE for any cross-area rent comparison — do NOT call get_market_stats repeatedly.',
+      parameters: {
+        type: 'object',
+        properties: {
+          county: { type: 'string', description: 'Optional. Limit comparison to one county (e.g., "Martin County"). Omit to compare all areas with active listings.' },
+          order: { type: 'string', enum: ['lowest', 'highest'], description: 'Sort by median rent: "lowest" (default) for cheapest areas first, "highest" for priciest first.' },
+          limit: { type: 'integer', description: 'Max number of areas to return (default 8).' },
         },
       },
     },
@@ -441,6 +460,8 @@ async function callGrokWithTools(supabase, userId, query, location, history) {
         listings = toolResult.listings || [];
       } else if (toolName === 'get_market_stats') {
         toolResult = await executeMarketStats(supabase, toolArgs);
+      } else if (toolName === 'compare_area_rents') {
+        toolResult = await executeCompareAreaRents(supabase, toolArgs);
       } else if (toolName === 'save_user_preferences') {
         toolResult = await executeSavePreferences(supabase, userId, toolArgs);
       } else {
@@ -522,7 +543,14 @@ async function executeSearchRentals(supabase, args, location) {
   if (args.furnished === true) query = query.eq('furnished', true);
   if (args.property_type) query = query.ilike('property_sub_type', '%' + args.property_type + '%');
 
-  query = query.order('list_price', { ascending: true }).limit(5);
+  if (args.sort_by === 'newest') {
+    query = query.order('days_on_market', { ascending: true });
+  } else if (args.sort_by === 'price_high') {
+    query = query.order('list_price', { ascending: false });
+  } else {
+    query = query.order('list_price', { ascending: true });
+  }
+  query = query.limit(5);
 
   var result = await query;
   var data = result.data || [];
@@ -606,6 +634,52 @@ async function executeMarketStats(supabase, args) {
     priceRange: { min: min, max: max },
     byPropertyType: typeStats,
   };
+}
+
+// Compare rent across cities — returns areas ranked by median rent
+async function executeCompareAreaRents(supabase, args) {
+  var query = supabase
+    .from('listings')
+    .select('city, list_price')
+    .eq('is_active', true)
+    .eq('status', 'active');
+
+  if (args.county) query = query.ilike('county', args.county);
+
+  var result = await query;
+  var data = result.data || [];
+  if (data.length === 0) {
+    return { message: 'No active listings found to compare.', areas: [] };
+  }
+
+  // Group prices by city
+  var byCity = {};
+  data.forEach(function(l) {
+    var c = (l.city || '').trim();
+    var p = Number(l.list_price) || 0;
+    if (!c || p <= 0) return;
+    if (!byCity[c]) byCity[c] = [];
+    byCity[c].push(p);
+  });
+
+  var areas = Object.keys(byCity).map(function(city) {
+    var prices = byCity[city].sort(function(a, b) { return a - b; });
+    return {
+      area: city,
+      count: prices.length,
+      medianRent: prices[Math.floor(prices.length / 2)],
+      minRent: prices[0],
+    };
+  });
+
+  // Require at least 2 listings so a single cheap outlier can't "win"
+  areas = areas.filter(function(a) { return a.count >= 2; });
+
+  var highest = args.order === 'highest';
+  areas.sort(function(a, b) { return highest ? b.medianRent - a.medianRent : a.medianRent - b.medianRent; });
+
+  var limit = args.limit && args.limit > 0 ? args.limit : 8;
+  return { order: highest ? 'highest' : 'lowest', areas: areas.slice(0, limit) };
 }
 
 // Save extracted preferences to the user's profile
