@@ -17,7 +17,7 @@ import { getAuthUser } from '../../../lib/auth-helpers';
 export const dynamic = 'force-dynamic';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
-const XAI_MODEL = process.env.XAI_MODEL || 'grok-4.1-fast';
+const XAI_MODEL = process.env.XAI_MODEL || 'grok-4.20-0309-non-reasoning';
 const XAI_BASE_URL = 'https://api.x.ai/v1';
 
 // Tier query limits
@@ -323,6 +323,28 @@ const TOOLS = [
   },
 ];
 
+// Map an xAI HTTP failure to a graceful user-facing message + a loud server log.
+// 401/403/404 are configuration/access problems (bad/blocked key, model not
+// provisioned, no team credits) — these are NOT transient, so we don't tell the
+// user to "try again". We point them at the working PadScore path instead.
+function handleGrokFailure(status, body, where) {
+  console.error(
+    '[AskPad] Grok ' + where + ' failed — status=' + status +
+    ' model=' + XAI_MODEL + ' body=' + String(body || '').slice(0, 500)
+  );
+  if (status === 401 || status === 403 || status === 404) {
+    return {
+      type: 'error',
+      message: "AskPad's AI assistant is offline right now. You can still browse and swipe — your PadScore is matching listings for you in the background!",
+      unavailable: true,
+    };
+  }
+  if (status === 429) {
+    return { type: 'error', message: 'AskPad is in high demand right now. Give it a minute and try again!' };
+  }
+  return { type: 'error', message: 'AskPad hit a snag. Try again in a moment!' };
+}
+
 async function callGrokWithTools(supabase, userId, query, location, history) {
   var locationContext = '';
   if (location && location.lat && location.lng) {
@@ -388,8 +410,8 @@ async function callGrokWithTools(supabase, userId, query, location, history) {
     });
 
     if (!res.ok) {
-      console.error('Grok API error:', res.status, await res.text());
-      return { type: 'error', message: 'AskPad hit a snag. Try again in a moment!' };
+      var errBody = await res.text().catch(function () { return ''; });
+      return handleGrokFailure(res.status, errBody, 'completion');
     }
 
     var data = await res.json();
@@ -447,8 +469,8 @@ async function callGrokWithTools(supabase, userId, query, location, history) {
     });
 
     if (!res2.ok) {
-      console.error('Grok follow-up error:', res2.status);
-      return { type: 'error', message: 'AskPad hit a snag processing results.' };
+      var errBody2 = await res2.text().catch(function () { return ''; });
+      return handleGrokFailure(res2.status, errBody2, 'follow-up');
     }
 
     var data2 = await res2.json();
