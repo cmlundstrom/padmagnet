@@ -9,7 +9,7 @@ padmagnet/
 ├── app/
 │   ├── layout.js          # Root layout (fonts, metadata)
 │   ├── globals.css         # Global styles + slider styling
-│   ├── page.js             # Landing page (waitlist signup)
+│   ├── page.js             # Landing page (Google Play install + App Store coming-soon)
 │   └── admin/
 │       ├── page.js         # Admin route entry
 │       └── dashboard.js    # Full admin dashboard component
@@ -56,7 +56,7 @@ Push to your GitHub repo. Vercel auto-deploys.
 
 | Route | Description |
 |-------|-------------|
-| `/` | Landing page with waitlist signup |
+| `/` | Landing page with Google Play install CTA + App Store coming-soon |
 | `/admin` | Admin dashboard (IDX feeds, PadScore config, listings, support, billing) |
 
 ## Migrating Your Landing Page

@@ -206,51 +206,81 @@ nav.scrolled {
   max-width: 460px;
   line-height: 1.7;
 }
-.hero-form {
+/* Store install buttons (Google Play live + App Store coming soon) */
+.store-buttons {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
   max-width: 460px;
 }
-.hero-form input {
-  flex: 1;
-  padding: 16px 20px;
-  border: 2px solid var(--cream-dark);
-  border-radius: 14px;
+.store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #000;
+  color: #fff;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
-  background: var(--white);
-  color: var(--text);
-  transition: border-color 0.2s, box-shadow 0.2s;
-  outline: none;
-}
-.hero-form input::placeholder { color: #B0B5C9; }
-.hero-form input:focus {
-  border-color: var(--coral);
-  box-shadow: 0 0 0 4px var(--coral-glow);
-}
-.hero-form button {
-  padding: 16px 28px;
-  background: var(--coral);
-  color: var(--white);
-  border: none;
-  border-radius: 14px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  cursor: pointer;
+  min-width: 180px;
   transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-  white-space: nowrap;
+  position: relative;
 }
-.hero-form button:hover {
-  background: var(--coral-light);
+.store-btn-live:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(240, 100, 73, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  background: #1a1a1a;
 }
-.hero-form button:active { transform: translateY(0); }
-.hero-form button.submitted {
-  background: var(--sage);
-  pointer-events: none;
+.store-btn-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
 }
+.store-btn-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+.store-btn-small {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.78);
+  text-transform: uppercase;
+}
+.store-btn-large {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+.store-btn-soon {
+  background: #2a2a2a;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: default;
+  filter: grayscale(1);
+  opacity: 0.85;
+}
+.store-btn-soon .store-btn-small { color: rgba(255, 255, 255, 0.5); }
+.store-btn-soon .store-btn-large { color: rgba(255, 255, 255, 0.7); }
+.store-btn-soon-tag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--coral);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border-radius: 6px;
+  filter: none;
+  box-shadow: 0 4px 12px rgba(232, 96, 60, 0.4);
+}
+
 .hero-trust {
   margin-top: 20px;
   font-size: 13px;
@@ -702,7 +732,7 @@ section { padding: 100px 24px; }
   border: 1px solid var(--cream-dark);
 }
 
-/* CTA / Waitlist bottom */
+/* CTA section (bottom download) */
 .cta-section {
   background: var(--navy);
   text-align: center;
@@ -731,93 +761,9 @@ section { padding: 100px 24px; }
   margin: 0 auto 40px;
   text-align: center;
 }
-.cta-form {
-  display: flex;
-  gap: 10px;
-  max-width: 480px;
-  margin: 0 auto;
-}
-.cta-form input {
-  flex: 1;
-  padding: 16px 20px;
-  border: 2px solid var(--navy-light);
-  border-radius: 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
-  background: var(--navy-light);
-  color: var(--white);
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.cta-form input::placeholder { color: #6B7394; }
-.cta-form input:focus {
-  border-color: var(--coral);
-  box-shadow: 0 0 0 4px rgba(240, 100, 73, 0.15);
-}
-.cta-form button {
-  padding: 16px 32px;
-  background: var(--coral);
-  color: var(--white);
-  border: none;
-  border-radius: 14px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-  white-space: nowrap;
-}
-.cta-form button:hover {
-  background: var(--coral-light);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(240, 100, 73, 0.35);
-}
-.cta-form button.submitted {
-  background: var(--sage);
-  pointer-events: none;
-}
-.cta-role-select {
-  display: flex;
+.store-buttons-dark {
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.role-btn {
-  padding: 10px 24px;
-  border-radius: 50px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid var(--navy-light);
-  background: transparent;
-  color: rgba(255,255,255,0.5);
-}
-.role-btn.active {
-  border-color: var(--coral);
-  background: rgba(240, 100, 73, 0.12);
-  color: var(--coral-light);
-}
-
-/* Hero role selector (light theme) */
-.role-select-light {
-  justify-content: flex-start;
-  margin-bottom: 18px;
-}
-.role-btn-light {
-  border: 2px solid var(--cream-dark) !important;
-  background: var(--white) !important;
-  color: var(--text-muted) !important;
-  box-shadow: var(--shadow-soft);
-  font-size: 13px !important;
-  padding: 8px 20px !important;
-}
-.role-btn-light.active {
-  border-color: var(--coral) !important;
-  background: var(--white) !important;
-  color: var(--coral) !important;
-  box-shadow: 0 2px 12px rgba(240, 100, 73, 0.15);
+  margin: 0 auto;
 }
 
 /* Footer */
@@ -901,12 +847,12 @@ footer a:hover {
     gap: 48px;
   }
   .hero-sub { margin-left: auto; margin-right: auto; }
-  .hero-form {
+  .store-buttons {
     max-width: 100%;
+    justify-content: center;
     margin: 0 auto;
   }
   .hero-trust { justify-content: center; }
-  .role-select-light { justify-content: center; }
   .steps-grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
   .audience-grid { grid-template-columns: 1fr; }
   .location-grid { grid-template-columns: 1fr; }
@@ -915,11 +861,12 @@ footer a:hover {
   .logo-header-img { height: 64px; }
 }
 @media (max-width: 520px) {
-  .hero-form, .cta-form {
+  .store-buttons {
     flex-direction: column;
   }
-  .hero-form button, .cta-form button {
+  .store-btn {
     width: 100%;
+    justify-content: center;
   }
   section { padding: 72px 20px; }
   .audience-card { padding: 32px 24px; }

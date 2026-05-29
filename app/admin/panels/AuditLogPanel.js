@@ -6,7 +6,7 @@ import AdminTable from '../components/AdminTable';
 
 // Change these anytime to set what the panel shows on load.
 const AUDIT_DEFAULTS = {
-  table: "",  // "" = all tables, or "waitlist", "listings", "idx_feeds"
+  table: "",  // "" = all tables, or "tickets", "profiles", "listings", "idx_feeds"
   action: "",         // "" = all actions, or "create", "update", "delete", "suppress", "unsuppress"
   limit: 50,          // 25, 50, or 100
 };
@@ -120,7 +120,6 @@ export default function AuditLogPanel() {
       <div className="audit-panel-filters">
         <select className="audit-panel-select" value={tableFilter} onChange={e => setTableFilter(e.target.value)}>
           <option value="">All Tables</option>
-          <option value="waitlist">Waitlist</option>
           <option value="tickets">Tickets</option>
           <option value="profiles">Profiles</option>
           <option value="listings">Listings</option>

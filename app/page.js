@@ -3,83 +3,45 @@
 import { useState, useEffect, useRef } from 'react';
 
 // ============================================================
-// PADMAGNET LANDING PAGE — Exact conversion from index.html
-// Supabase waitlist connection preserved.
+// PADMAGNET LANDING PAGE
 // ============================================================
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.padmagnet.app';
 
-async function submitToWaitlist(email, role) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Prefer': 'return=minimal',
-    },
-    body: JSON.stringify({ email, role }),
-  });
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    if (res.status === 409 || errData.code === '23505') {
-      return { duplicate: true };
-    }
-    throw new Error('Signup failed');
-  }
-  return { success: true };
-}
-
-function WaitlistForm({ formId, defaultRole = 'tenant', showRoleSelector = false, theme = 'dark' }) {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState(defaultRole);
-  const [state, setState] = useState('idle');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email) return;
-    setState('loading');
-    try {
-      const result = await submitToWaitlist(email, role);
-      if (result.duplicate) {
-        setState('duplicate');
-      } else {
-        setState('success');
-        setEmail('');
-      }
-    } catch {
-      setState('error');
-    }
-    setTimeout(() => setState('idle'), 4000);
-  };
-
-  const buttonText = {
-    idle: 'Join Waitlist',
-    loading: 'Joining...',
-    success: "✓ You're in!",
-    duplicate: '✓ Already signed up',
-    error: 'Try Again',
-  };
-
+function StoreButtons({ variant = 'light' }) {
   return (
-    <div>
-      {showRoleSelector && (
-        <div className={`cta-role-select ${theme === 'light' ? 'role-select-light' : ''}`}>
-          <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'tenant' ? 'active' : ''}`} onClick={() => setRole('tenant')}>
-            🏠 I&apos;m a Tenant
-          </button>
-          <button type="button" className={`role-btn ${theme === 'light' ? 'role-btn-light' : ''} ${role === 'owner' ? 'active' : ''}`} onClick={() => setRole('owner')}>
-            🔑 I&apos;m a Property Owner
-          </button>
-        </div>
-      )}
-      <form className={formId === 'cta' ? 'cta-form' : 'hero-form'} onSubmit={handleSubmit}>
-        <input type="email" placeholder="Enter your email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        <button type="submit" disabled={state === 'loading'} className={state === 'success' || state === 'duplicate' ? 'submitted' : ''}>
-          {buttonText[state]}
-        </button>
-      </form>
+    <div className={`store-buttons ${variant === 'dark' ? 'store-buttons-dark' : ''}`}>
+      <a
+        href={PLAY_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="store-btn store-btn-live"
+        aria-label="Get PadMagnet on Google Play"
+      >
+        <svg className="store-btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3.609 1.814a1 1 0 0 0-.609.92v18.532a1 1 0 0 0 .609.92L13.792 12 3.609 1.814z" fill="#00C8DA" />
+          <path d="M16.81 8.989l-3.018 3.011 3.018 3.012 3.853-2.218a1 1 0 0 0 0-1.588L16.81 8.989z" fill="#FFCF47" />
+          <path d="M3.609 1.814l10.183 10.186 3.018-3.011L4.67 1.71a1 1 0 0 0-1.06.103z" fill="#00F076" />
+          <path d="M13.792 12L3.609 22.186a1 1 0 0 0 1.06.103l12.141-7.277L13.792 12z" fill="#FF3A44" />
+        </svg>
+        <span className="store-btn-text">
+          <span className="store-btn-small">GET IT ON</span>
+          <span className="store-btn-large">Google Play</span>
+        </span>
+      </a>
+      <div
+        className="store-btn store-btn-soon"
+        aria-label="iOS App Store coming soon"
+      >
+        <svg className="store-btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+          <path d="M17.05 12.536c-.026-2.737 2.226-4.054 2.328-4.118-1.27-1.854-3.247-2.108-3.95-2.137-1.68-.17-3.281 1.005-4.135 1.005-.866 0-2.168-.98-3.566-.953-1.834.027-3.523 1.058-4.467 2.687-1.905 3.296-.487 8.176 1.367 10.847.91 1.302 1.99 2.764 3.408 2.711 1.37-.054 1.885-.886 3.539-.886 1.642 0 2.117.886 3.55.853 1.466-.027 2.395-1.328 3.292-2.633 1.038-1.509 1.467-2.973 1.493-3.05-.033-.013-2.835-1.085-2.86-4.326zM14.38 4.456c.748-.912 1.255-2.18 1.116-3.452-1.078.046-2.397.722-3.171 1.633-.694.81-1.305 2.105-1.144 3.343 1.203.094 2.434-.61 3.198-1.524z" />
+        </svg>
+        <span className="store-btn-text">
+          <span className="store-btn-small">COMING SOON TO</span>
+          <span className="store-btn-large">App Store</span>
+        </span>
+        <span className="store-btn-soon-tag">SOON</span>
+      </div>
     </div>
   );
 }
@@ -349,7 +311,7 @@ export default function LandingPage() {
           <div className="hero-content">
             <div className="hero-badge">
               <span className="hero-badge-dot" />
-              Coming soon to Florida&apos;s Treasure and Gold Coast
+              Now live on Google Play — Florida&apos;s Treasure &amp; Gold Coast
             </div>
             <h1 className="hero-headline"><span>Swipe</span> right<svg className="swipe-arrow" viewBox="0 0 500 40" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#E8603C" stopOpacity="0.15"/><stop offset="60%" stopColor="#E8603C" stopOpacity="0.7"/><stop offset="100%" stopColor="#E8603C"/></linearGradient></defs><path d="M0 20 H450 L430 6 M450 20 L430 34" stroke="url(#arrowGrad)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg><br />on your next rental home.</h1>
             <p className="hero-sub">
@@ -358,12 +320,12 @@ export default function LandingPage() {
             <p className="hero-sub">
               Browse amazing rental homes. Swipe, match, communicate, move in. No stale listings. No broker runaround.
             </p>
-            <WaitlistForm formId="hero" defaultRole="tenant" showRoleSelector={true} theme="light" />
+            <StoreButtons variant="light" />
             <p className="hero-trust">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
-              Free for tenants. Always.
+              Free for renters. Always.
             </p>
           </div>
           <PhoneMockup />
@@ -396,9 +358,9 @@ export default function LandingPage() {
           <div className="audience-grid">
             <FadeUp>
               <div className="audience-card tenant">
-                <p className="audience-card-label">For Tenants</p>
+                <p className="audience-card-label">For Renters</p>
                 <h3>Your next home is one swipe away.</h3>
-                <p>Ditch the Craigslist chaos and the Zillow rabbit hole. PadMagnet pulls live rental data and lets you browse like a dating app — one gorgeous card at a time.</p>
+                <p>Ditch the Craigslist chaos and the Zillow rabbit hole. PadMagnet pulls live rental data and lets you browse one gorgeous card at a time.</p>
                 <ul className="audience-perks">
                   <li><span className="perk-check">✓</span> Always 100% free to use</li>
                   <li><span className="perk-check">✓</span> Real-time MLS-powered listings</li>
@@ -411,11 +373,11 @@ export default function LandingPage() {
               <div className="audience-card landlord">
                 <p className="audience-card-label">For Property Owners</p>
                 <h3>Stop paying for yard signs and praying.</h3>
-                <p>PadMagnet puts your vacancy in front of tenants who are actively searching in your area, at your price point. Less downtime. More qualified leads. No guesswork.</p>
+                <p>PadMagnet puts your vacancy in front of renters who are actively searching in your area, at your price point. Less downtime. More qualified leads. No guesswork.</p>
                 <ul className="audience-perks">
-                  <li><span className="perk-check">✓</span> Free during our launch period</li>
-                  <li><span className="perk-check">✓</span> See which tenants are interested</li>
-                  <li><span className="perk-check">✓</span> Tenant profiles with budget &amp; preferences</li>
+                  <li><span className="perk-check">✓</span> First 30 days free — pay only to renew</li>
+                  <li><span className="perk-check">✓</span> See which renters are interested</li>
+                  <li><span className="perk-check">✓</span> Renter profiles with budget &amp; preferences</li>
                   <li><span className="perk-check">✓</span> Fill vacancies faster</li>
                 </ul>
               </div>
@@ -450,12 +412,12 @@ export default function LandingPage() {
       </section>
 
       {/* BOTTOM CTA */}
-      <section className="cta-section" id="waitlist">
+      <section className="cta-section" id="download">
         <div className="section-inner">
           <FadeUp>
-            <h2 className="section-title">Don&apos;t miss your match.</h2>
-            <p className="section-sub">We&apos;re launching soon across South Florida. Get early access and be first to swipe when we go live.</p>
-            <WaitlistForm formId="cta" showRoleSelector={true} />
+            <h2 className="section-title">Your next swipe is waiting.</h2>
+            <p className="section-sub">PadMagnet is live on Android across South Florida. Download free and start matching with real rentals tonight.</p>
+            <StoreButtons variant="dark" />
           </FadeUp>
         </div>
       </section>
