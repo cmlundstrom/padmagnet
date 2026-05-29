@@ -47,116 +47,22 @@ function StoreButtons({ variant = 'light' }) {
 }
 
 function PhoneMockup() {
-  const [positions, setPositions] = useState([0, 1, 2]);
-  const [swiping, setSwiping] = useState(-1);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSwiping(positions[0]);
-      setTimeout(() => {
-        setPositions(prev => {
-          const next = [...prev];
-          next.push(next.shift());
-          return next;
-        });
-        setSwiping(-1);
-      }, 500);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [positions]);
-
-  const cards = [
-    { img: '/images/card1.jpg', alt: 'Luxury apartment with pool', score: 92, price: '$2,450', street: 'Palm Beach Gardens', city: 'FL', beds: 2, baths: 2, sqft: '1,180' },
-    { img: '/images/card2.jpg', alt: 'Mediterranean style home', score: 84, price: '$3,100', street: 'Jupiter', city: 'FL', beds: 4, baths: 3, sqft: '2,240' },
-    { img: '/images/card3.png', alt: 'Single family home with garage', score: 76, price: '$2,800', street: 'Downtown Stuart', city: 'FL', beds: 3, baths: 2, sqft: '1,820' },
-  ];
-
   return (
     <div className="hero-visual">
-      <div className="phone-frame">
-        <div className="phone-screen">
-          {/* Header */}
-          <div className="pm-header">
-            <div className="pm-header-left">
-              <div className="pm-refresh">↻</div>
-              <span className="pm-logo"><span className="pm-pad">Pad</span><span className="pm-magnet">Magnet</span></span>
-            </div>
-            <div className="pm-toggle">
-              <span className="pm-toggle-btn active">▣</span>
-              <span className="pm-toggle-btn">◎</span>
-              <span className="pm-toggle-btn">☰</span>
-            </div>
-          </div>
-
-          {/* Intro text */}
-          <div className="pm-intro">
-            Hi Sara, your <strong>PadScore™</strong> is now live! Swipe right to discover your perfect rental home.
-          </div>
-
-          {/* Swipe stack */}
-          <div className="swipe-stack">
-            {cards.map((card, i) => {
-              const pos = positions.indexOf(i);
-              return (
-                <div key={i} className={`swipe-card ${swiping === i ? 'swiping' : ''}`} data-pos={pos}>
-                  <div className="swipe-card-photo">
-                    <img src={card.img} alt={card.alt} loading="eager" />
-                    <div className="swipe-card-score">{card.score}%</div>
-                  </div>
-                  <div className="swipe-card-info">
-                    <div className="swipe-card-price">{card.price}<span className="swipe-card-mo">/mo</span></div>
-                    <div className="swipe-card-street">{card.street}, {card.city}</div>
-                    <div className="swipe-card-stats">{card.beds} bed · {card.baths} bath · {card.sqft} sqft</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Action buttons */}
-          <div className="pm-actions">
-            <div className="pm-btn pm-btn-skip">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff">
-                <path d="M3 6h18v2H3V6zm2 3h14l-1.2 13.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 9zm4 2v9h2v-9H9zm4 0v9h2v-9h-2z" />
-                <path d="M9 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9V4z" />
-              </svg>
-            </div>
-            <div className="pm-btn pm-btn-info">
-              <svg width="12" height="12" viewBox="0 0 10 24" fill="#fff">
-                <circle cx="5" cy="4" r="2" />
-                <rect x="3" y="9" width="4" height="12" rx="1" />
-              </svg>
-            </div>
-            <div className="pm-btn pm-btn-save">
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <defs>
-                  <linearGradient id="mockupHeartGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4ade80" />
-                    <stop offset="45%" stopColor="#22c55e" />
-                    <stop offset="100%" stopColor="#15803d" />
-                  </linearGradient>
-                  <linearGradient id="mockupHeartShine" x1="0.3" y1="0" x2="0.7" y2="0.5">
-                    <stop offset="0%" stopColor="#fff" stopOpacity="0.45" />
-                    <stop offset="100%" stopColor="#fff" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#mockupHeartGrad)" />
-                <path d="M7.5 4.5c-1.93 0-3.5 1.57-3.5 3.5 0 .97.4 1.84 1.03 2.5C6.5 8.5 8 6.5 10.5 5.5 9.6 4.85 8.6 4.5 7.5 4.5z" fill="url(#mockupHeartShine)" />
-              </svg>
-            </div>
-          </div>
-
-          {/* MLS footer */}
-          <div className="pm-mls">© 2026 SEFMLS. All rights reserved.</div>
-
-          {/* Tab bar — matches NativeTabs */}
-          <div className="pm-tabs">
-            <div className="pm-tab active"><span className="pm-tab-icon">⌂</span><span>Swipe</span></div>
-            <div className="pm-tab"><span className="pm-tab-icon">♡</span><span>Saved</span></div>
-            <div className="pm-tab"><span className="pm-tab-icon">✉</span><span>Messages</span></div>
-            <div className="pm-tab"><span className="pm-tab-icon">👤</span><span>Profile</span></div>
-          </div>
+      <div className="phone-glow" aria-hidden="true" />
+      <div className="phone-device">
+        <div className="phone-screen-area">
+          <img
+            src="/images/hero-app-screenshot.jpg"
+            alt="PadMagnet app — Stop searching, start matching. Browse houses, apartments, and condos with PadScore."
+            className="phone-screen-img"
+            loading="eager"
+          />
         </div>
+        <div className="phone-island" aria-hidden="true" />
+        <div className="phone-side-btn phone-side-btn-volume-up" aria-hidden="true" />
+        <div className="phone-side-btn phone-side-btn-volume-down" aria-hidden="true" />
+        <div className="phone-side-btn phone-side-btn-power" aria-hidden="true" />
       </div>
     </div>
   );
