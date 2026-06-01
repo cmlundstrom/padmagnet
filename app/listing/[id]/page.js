@@ -486,8 +486,12 @@ function MarketingCard({ listing }) {
             height={40}
             style={mktStyles.logoIcon}
           />
-          <span style={mktStyles.logoPad}>Pad</span>
-          <span style={mktStyles.logoMagnet}>Magnet</span>
+          {/* Wordmark wrapped so the flex gap only spaces the icon — "Pad" and
+              "Magnet" must stay tight: it is always "PadMagnet", one word. */}
+          <span>
+            <span style={mktStyles.logoPad}>Pad</span>
+            <span style={mktStyles.logoMagnet}>Magnet</span>
+          </span>
         </div>
 
         {/* Listing card */}
