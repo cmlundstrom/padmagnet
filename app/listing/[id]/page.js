@@ -1,5 +1,6 @@
 import { createServiceClient } from '../../../lib/supabase';
 import { notFound } from 'next/navigation';
+import StoreButtons from '../../components/StoreButtons';
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -478,6 +479,13 @@ function MarketingCard({ listing }) {
       <div style={mktStyles.container}>
         {/* Logo */}
         <div style={mktStyles.logoRow}>
+          <img
+            src="https://padmagnet.com/logo/PM_LOGO_180px180p.png"
+            alt="PadMagnet"
+            width={40}
+            height={40}
+            style={mktStyles.logoIcon}
+          />
           <span style={mktStyles.logoPad}>Pad</span>
           <span style={mktStyles.logoMagnet}>Magnet</span>
         </div>
@@ -502,22 +510,10 @@ function MarketingCard({ listing }) {
         {/* CTA */}
         <p style={mktStyles.cta}>See full details, photos, and PadScore™ in the app.</p>
 
-        {/* App store badges */}
+        {/* App store badges — shared component: Google Play (live) first,
+            App Store (coming soon) second. */}
         <div style={mktStyles.badges}>
-          <a href="https://apps.apple.com/app/padmagnet/id000000000" target="_blank" rel="noopener noreferrer">
-            <img
-              src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
-              alt="Download on the App Store"
-              style={mktStyles.badge}
-            />
-          </a>
-          <a href="https://play.google.com/store/apps/details?id=com.padmagnet.app" target="_blank" rel="noopener noreferrer">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
-              alt="Get it on Google Play"
-              style={mktStyles.badge}
-            />
-          </a>
+          <StoreButtons variant="dark" />
         </div>
 
         {/* Footer */}
@@ -541,7 +537,8 @@ const mktStyles = {
     fontFamily: "'DM Sans', sans-serif",
   },
   container: { maxWidth: 420, width: '100%', textAlign: 'center' },
-  logoRow: { marginBottom: 24, fontSize: 32, fontFamily: "'Outfit', sans-serif", fontWeight: 700 },
+  logoRow: { marginBottom: 24, fontSize: 32, fontFamily: "'Outfit', sans-serif", fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  logoIcon: { width: 40, height: 40, borderRadius: 10, display: 'block' },
   logoPad: { color: '#FFFFFF' },
   logoMagnet: { color: '#F95E0C' },
   card: { background: '#234170', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' },
