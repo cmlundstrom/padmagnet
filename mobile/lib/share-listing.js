@@ -14,8 +14,8 @@ async function getTemplate() {
     return data;
   } catch (e) {
     return {
-      subject: 'Check out this rental: {{address}}, {{city}} — {{price}}',
-      body: 'Check out this rental on PadMagnet! {{address}}, {{city}} — {{price}}\nhttps://padmagnet.com/listing/{{id}}',
+      subject: '🧲 Check out this rental: {{address}}, {{city}} — {{price}}',
+      body: '🧲 Check out this rental on PadMagnet!\n{{address}}, {{city}} — {{price}}\n👀 See it: https://padmagnet.com/listing/{{id}}\n📲 Get the free app: https://play.google.com/store/apps/details?id=com.padmagnet.app',
     };
   }
 }
