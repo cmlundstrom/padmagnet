@@ -44,6 +44,9 @@ playwright-report/
 test-results/
 playwright-run.live.log
 
+# local archive (assets, migration backups — never tracked)
+/archive/
+
 # Maestro runtime artifacts
 mobile/.maestro/perf-suite-*.log
 mobile/.maestro/perf-suite-*.summary
