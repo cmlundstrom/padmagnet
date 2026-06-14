@@ -67,6 +67,7 @@
 | `overlayWhiteLight` | `rgba(255,255,255,0.2)` | Progress bar tracks |
 | `overlayWhiteStrong` | `rgba(255,255,255,0.85)` | Progress bar fills, bright text on dark |
 | `successOverlay` | `rgba(34,197,94,0.25)` | Heart FAB background |
+| `warningOverlay` | `rgba(245,158,11,0.25)` | Warning banners / caution alert bars |
 
 ### Gradients
 | Token | Value | Use |

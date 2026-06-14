@@ -65,4 +65,5 @@ export const COLORS = {
   overlayWhiteLight: 'rgba(255,255,255,0.2)',
   overlayWhiteStrong: 'rgba(255,255,255,0.85)',
   successOverlay: 'rgba(34,197,94,0.25)',
+  warningOverlay: 'rgba(245,158,11,0.25)',
 };
