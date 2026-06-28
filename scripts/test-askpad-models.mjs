@@ -22,21 +22,13 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+import { loadEnv } from './load-env.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-// ── Load .env.local ──
-const env = {};
-for (const line of readFileSync(join(root, '.env.local'), 'utf8').split('\n')) {
-  const t = line.trim();
-  if (!t || t.startsWith('#')) continue;
-  const i = t.indexOf('=');
-  if (i === -1) continue;
-  let v = t.slice(i + 1).replace(/\r$/, '');
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-  env[t.slice(0, i)] = v;
-}
+// Env from 1Password via `op run` (process.env), or .env.local if present.
+const env = loadEnv();
 
 const XAI_API_KEY = env.XAI_API_KEY;
 const XAI_BASE_URL = 'https://api.x.ai/v1';

@@ -8,20 +8,13 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { loadEnv } from './load-env.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-// Load .env.local
-const envFile = readFileSync(join(root, '.env.local'), 'utf8');
-const env = {};
-for (const line of envFile.split('\n')) {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith('#')) continue;
-  const eqIndex = trimmed.indexOf('=');
-  if (eqIndex === -1) continue;
-  env[trimmed.slice(0, eqIndex)] = trimmed.slice(eqIndex + 1);
-}
+// Env from 1Password via `op run` (process.env), or .env.local if present.
+const env = loadEnv();
 
 // Extract project ref from Supabase URL
 const supabaseUrl = (env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/^"/, '').replace(/"$/, '');

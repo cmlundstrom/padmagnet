@@ -24,34 +24,17 @@
  *       Push to production + preview + development at once.
  */
 
-import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { loadEnv } from './load-env.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const API = 'https://api.vercel.com';
 const PROJECT_NAME = 'padmagnet';
 
-// ── Load .env.local (same parser style as run-migrations.mjs) ──
-const env = {};
-try {
-  const envFile = readFileSync(join(root, '.env.local'), 'utf8');
-  for (const line of envFile.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-    let val = trimmed.slice(eqIndex + 1);
-    // Strip a single layer of surrounding quotes if present
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    env[trimmed.slice(0, eqIndex)] = val;
-  }
-} catch (err) {
-  fail(`Could not read .env.local: ${err.message}`);
-}
+// ── Env from 1Password via `op run` (process.env), or .env.local if present ──
+const env = loadEnv();
 
 const TOKEN = process.env.VERCEL_TOKEN || env.VERCEL_TOKEN;
 if (!TOKEN) {
