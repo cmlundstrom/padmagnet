@@ -11,7 +11,7 @@ machine 1Password channel — the headless service account `fpm-sa`. No imports
 from any other repo.
 
 1P sources:
-  Dev-PadMagnet : Supabase-PadMagnet, Stripe-PadMagnet (LIVE), Twilio-PadMagnet,
+  Dev-PadMagnet : Supabase-PadMagnet, Stripe-PadMagnet-LIVE, Twilio-PadMagnet,
                   Upstash-Redis-PadMagnet, Google-Geocoding-PadMagnet,
                   PadMagnet-Platform-Secrets, Xai API Credentials,
                   Resend API Credentials (PadMagnet's OWN key, not the shared one)
@@ -56,7 +56,7 @@ def item(vault, title):
 # ---- assemble managed env from 1Password ----
 def build_env():
     sb     = item("Dev-PadMagnet", "Supabase-PadMagnet")
-    stripe = item("Dev-PadMagnet", "Stripe-PadMagnet (LIVE)")
+    stripe = item("Dev-PadMagnet", "Stripe-PadMagnet-LIVE")
     tw     = item("Dev-PadMagnet", "Twilio-PadMagnet")
     up     = item("Dev-PadMagnet", "Upstash-Redis-PadMagnet")
     geo    = item("Dev-PadMagnet", "Google-Geocoding-PadMagnet")

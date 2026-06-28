@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "op run --env-file=.env.local.op-pointers -- next dev",
     "build": "next build",
     "start": "next start",
-    "test:admin": "playwright test",
-    "test:admin:headed": "playwright test --headed",
-    "test:admin:ui": "playwright test --ui"
+    "test:admin": "op run --env-file=.env.local.op-pointers -- playwright test",
+    "test:admin:headed": "op run --env-file=.env.local.op-pointers -- playwright test --headed",
+    "test:admin:ui": "op run --env-file=.env.local.op-pointers -- playwright test --ui",
+    "op": "op run --env-file=.env.local.op-pointers --"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
