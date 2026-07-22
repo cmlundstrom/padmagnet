@@ -3,23 +3,5 @@
     "app/api/owner/photos/route.js": {
       "maxDuration": 60
     }
-  },
-  "crons": [
-    {
-      "path": "/api/bridge/sync",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/expire",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/expiry-emails",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/delivery-retry",
-      "schedule": "0 8 * * *"
-    }
-  ]
+  }
 }
