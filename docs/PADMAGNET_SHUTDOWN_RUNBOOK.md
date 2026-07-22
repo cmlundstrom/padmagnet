@@ -152,6 +152,10 @@ Order matters less here; each is independent. Export/screenshot anything you may
 - [ ] **Secrets:** revoke/rotate all PadMagnet-only keys (Stripe, Twilio, Resend, xAI, Upstash,
       Supabase service-role). **Do NOT touch the shared Bridge or Brave credentials** unless
       Stage 0 already gave tools its own — see DO-NOT-TOUCH below.
+      **Progress: ✅ xAI (both keys deleted 7/22) · ✅ Stripe (secret key expired at dashboard
+      7/22, verified 401; replacement key lives only in the dashboard, never deployed; 1PW item
+      note updated). Remaining: Twilio, Resend (PadMagnet key only — account is shared!),
+      Supabase service-role, Upstash (self-archiving).**
 
 ---
 
