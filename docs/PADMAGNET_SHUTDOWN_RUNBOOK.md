@@ -82,11 +82,19 @@ PadMagnet's teardown can touch it.
 Nothing here is permanent. This is the "go dark but recoverable" state. Sit here as long as
 you want before committing to deletion.
 
-- [ ] **Stop the crons** (so no sync/expiry/billing jobs run): disable the Vercel cron jobs
+- [x] **Stop the crons** (so no sync/expiry/billing jobs run): disable the Vercel cron jobs
       for the `padmagnet` project (IDX sync, expire sweep, delivery-retry). Vercel dashboard →
-      project → Settings → Cron Jobs → disable.
-- [ ] **Take the app down gracefully:** put padmagnet.com into a maintenance / "service ended"
+      project → Settings → Cron Jobs → disable. **✅ DONE 2026-07-22 — all 4 crons removed from
+      `vercel.json` (config-as-code, not a dashboard toggle) and confirmed via API: 0 cron
+      definitions on the live deployment. IDX sync / expire / expiry-emails / delivery-retry all dead.**
+- [x] **Take the app down gracefully:** put padmagnet.com into a maintenance / "service ended"
       state (a static notice page), OR leave it up read-only for now. Don't delete yet.
+      **✅ DONE 2026-07-22 — shutdown shutter live: `middleware.js` replaced wholesale, returns
+      HTTP 410 + noindex on every page (branded "PadMagnet has closed" notice) and 410 JSON on all
+      `/api/*`; `public/robots.txt` = Disallow all. Externally verified (410s, robots, X-Robots-Tag).
+      Full app code preserved untouched behind the middleware — REVIVAL POINT = git tag
+      `archive/2026-07-22-last-live-app` (restore crons in vercel.json + revert shutter commit
+      `c3cb588`, redeploy).**
 - [x] **Google Play:** move the app from Production to **Unpublished** (Play Console → app →
       Setup → Advanced → Unpublish). Existing installs keep working; no new installs. Reversible.
       **✅ DONE 2026-07-22 — Chris unpublished via Test and release → Setup → Advanced settings →
@@ -94,9 +102,9 @@ you want before committing to deletion.
       store listing URL = HTTP 404, Play search shows no PadMagnet. Existing testers keep installed
       copies. Reversible (re-select Published; may re-trigger review). Dev account (PadMagnet LLC)
       kept per Stage 3. No Play Publishing API existed — Console-only action (unpublish has no API).**
-- [ ] **Pause mobile builds:** no further EAS builds. (EAS/Expo project can stay; costs nothing
-      idle.)
-- [ ] Announce internally only. Hold here until you're sure.
+- [x] **Pause mobile builds:** no further EAS builds. (EAS/Expo project can stay; costs nothing
+      idle.) **✅ 2026-07-22 — no builds planned; EAS project left idle (free).**
+- [x] Announce internally only. Hold here until you're sure. **✅ N/A — no team; Chris is the decider.**
 
 ---
 
