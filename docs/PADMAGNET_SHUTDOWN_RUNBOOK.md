@@ -125,8 +125,9 @@ This is the stage that protects you. Do NOT skip if there are real users or payi
 - [ ] **Notify users** (renters + owners) by email that the service is closing, with a date and
       what happens to their data. Use the existing admin email templates (Admin → Templates) so
       it's on-brand and logged. Give owners a path to export/keep their listing info if relevant.
-- [ ] **SMS wind-down:** stop all outbound SMS. Plan to release the Twilio number + close the
-      A2P campaign in Stage 3.
+- [x] **SMS wind-down:** stop all outbound SMS. Plan to release the Twilio number + close the
+      A2P campaign in Stage 3. **✅ DONE 2026-07-22 — outbound SMS already impossible (APIs 410
+      since the shutter); number + campaign gone (see Stage 3 Twilio).**
 
 ---
 
@@ -142,8 +143,14 @@ Order matters less here; each is independent. Export/screenshot anything you may
       archiving a default price) · webhook `we_1TDcS3IpjiZxeVpLT29lpVp1` → `disabled`. Account
       kept dormant for charge records (4 lifetime charges). All reversible: reactivate products/
       prices + re-enable webhook to restore.**
-- [ ] **Twilio:** release the PadMagnet phone number, close/withdraw the A2P 10DLC campaign &
+- [x] **Twilio:** release the PadMagnet phone number, close/withdraw the A2P 10DLC campaign &
       brand. (If the number has value, port it elsewhere instead of releasing.)
+      **✅ DONE 2026-07-22 via API, read-back verified: A2P campaign QE2c6890… deregistered ·
+      number +12536003665 released (E911 address unassigned first — error 21631 blocks release
+      otherwise). Migration to SFRM's account considered and REJECTED (separate top-level accounts
+      = support-ticket transfer; 253/WA area code worthless for Stuart FL). Brand (PadMagnet LLC,
+      APPROVED) kept — no recurring fee. Account kept dormant with $16.60 prepaid balance.
+      Recurring: $0. Remaining: Chris confirms auto-recharge OFF in console billing.**
 - [ ] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
 - [ ] **Upstash Redis:** delete the PadMagnet rate-limit database. **(2026-07-13: self-resolving —
       Upstash sent a free-tier inactivity notice; with the project dormant, nothing pings it, so it
