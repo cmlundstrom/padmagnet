@@ -87,8 +87,13 @@ you want before committing to deletion.
       project → Settings → Cron Jobs → disable.
 - [ ] **Take the app down gracefully:** put padmagnet.com into a maintenance / "service ended"
       state (a static notice page), OR leave it up read-only for now. Don't delete yet.
-- [ ] **Google Play:** move the app from Production to **Unpublished** (Play Console → app →
+- [x] **Google Play:** move the app from Production to **Unpublished** (Play Console → app →
       Setup → Advanced → Unpublish). Existing installs keep working; no new installs. Reversible.
+      **✅ DONE 2026-07-22 — Chris unpublished via Test and release → Setup → Advanced settings →
+      App availability (app was on Open testing, never Production). Verified externally same day:
+      store listing URL = HTTP 404, Play search shows no PadMagnet. Existing testers keep installed
+      copies. Reversible (re-select Published; may re-trigger review). Dev account (PadMagnet LLC)
+      kept per Stage 3. No Play Publishing API existed — Console-only action (unpublish has no API).**
 - [ ] **Pause mobile builds:** no further EAS builds. (EAS/Expo project can stay; costs nothing
       idle.)
 - [ ] Announce internally only. Hold here until you're sure.
