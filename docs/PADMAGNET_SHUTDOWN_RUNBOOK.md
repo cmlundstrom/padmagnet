@@ -99,13 +99,16 @@ you want before committing to deletion.
 
 This is the stage that protects you. Do NOT skip if there are real users or paying customers.
 
-- [ ] **Pull the customer/billing picture FIRST.** Check Stripe (LIVE since 2026-03-22) for
+- [x] **Pull the customer/billing picture FIRST.** Check Stripe (LIVE since 2026-03-22) for
       **active subscriptions and recent charges**, and Supabase for active listings/users.
       Stripe Dashboard → Subscriptions (filter active). Do not delete anything until you know
-      who's paying.
-- [ ] **Cancel active Stripe subscriptions** at period end (or refund pro-rata if shutting down
+      who's paying. **✅ Stripe side DONE 2026-07-22 (via API): ZERO subscriptions ever existed —
+      both products were one-time passes. 4 lifetime charges (3/22–5/27, look like Chris's own
+      live-mode tests), 4 customers, nothing refunded/disputed. Supabase active-listings/users
+      count still to pull.**
+- [x] **Cancel active Stripe subscriptions** at period end (or refund pro-rata if shutting down
       mid-cycle — your call, but don't keep billing for a service you're closing). Disable
-      future renewals.
+      future renewals. **✅ N/A 2026-07-22 — zero subscriptions ever existed; nothing to cancel.**
 - [ ] **Notify users** (renters + owners) by email that the service is closing, with a date and
       what happens to their data. Use the existing admin email templates (Admin → Templates) so
       it's on-brand and logged. Give owners a path to export/keep their listing info if relevant.
@@ -118,9 +121,14 @@ This is the stage that protects you. Do NOT skip if there are real users or payi
 
 Order matters less here; each is independent. Export/screenshot anything you may want as a record.
 
-- [ ] **Stripe:** confirm zero active subscriptions; archive products/prices; (optionally) keep
+- [x] **Stripe:** confirm zero active subscriptions; archive products/prices; (optionally) keep
       the account for records — Stripe is fine to leave dormant at $0. Roll/disable the live
-      webhook endpoint pointing at padmagnet.com.
+      webhook endpoint pointing at padmagnet.com. **✅ DONE 2026-07-22 (via API, read-back
+      verified): 0 active subs (none ever existed) · both products (Pro Pass, Premium Pass) +
+      both one-time prices archived (`active:false`, default_price unset first — Stripe blocks
+      archiving a default price) · webhook `we_1TDcS3IpjiZxeVpLT29lpVp1` → `disabled`. Account
+      kept dormant for charge records (4 lifetime charges). All reversible: reactivate products/
+      prices + re-enable webhook to restore.**
 - [ ] **Twilio:** release the PadMagnet phone number, close/withdraw the A2P 10DLC campaign &
       brand. (If the number has value, port it elsewhere instead of releasing.)
 - [ ] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
