@@ -158,10 +158,10 @@ Order matters less here; each is independent. Export/screenshot anything you may
       padmagnet.com aliases (support@, privacy@, legal@, info@, noreply@…) died with the user.
       ~20-day restore window applies. API note: Admin SDK access via gcloud ADC was BLOCKED by
       Google org policy ("app blocked" on restricted admin scopes) — Console was the legitimate
-      path. OPEN (Chris, optional): re-add hello@/privacy@/legal@ as FREE aliases on
-      chris@floridapm.net (Users → Christopher Lundstrom → Email aliases; may need ~24h for the
-      addresses to free up) · confirm the freed license dropped off billing (auto on Flexible,
-      manual seat-reduction on Annual: admin.google.com/ac/billing/subscriptions).**
+      path. Alias question RESOLVED (Chris, 2026-07-22): NO aliases re-created — ALL padmagnet.com
+      email (hello@, privacy@, legal@, everything) intentionally dies/bounces. Remaining check:
+      confirm the freed license dropped off billing (auto on Flexible, manual seat-reduction on
+      Annual: admin.google.com/ac/billing/subscriptions).**
 - [x] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
       **✅ DONE 2026-07-22 via API, read-back verified: domains padmagnet.com + inbound.padmagnet.com
       deleted · email.received webhook deleted · PadMagnet API key ("supabase for PadMagnet.com")
