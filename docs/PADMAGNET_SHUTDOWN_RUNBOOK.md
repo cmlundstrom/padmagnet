@@ -246,7 +246,16 @@ Only after Stages 0–3 are done and you've sat in the suspended state long enou
       future sessions don't treat it as live. **✅ 2026-07-22 — MEMORY.md PadMagnet section
       rewritten to SHUT DOWN state; `reference_padmagnet_map.md` header updated (map kept as the
       revival index); `reference_email_accounts.md` marked historical earlier today.**
-- [ ] **Full Watchtower pass (Chris, 2026-07-22: do this once the PadMagnet archive is complete).**
+- [x] **✅ DONE 2026-07-23. Full Watchtower pass (Chris, 2026-07-22: do this once the PadMagnet archive is complete).**
+      **Built the "Retired" shelf on /admin/watchtower (muted, page bottom): PadMagnet card moved
+      there with its 9 connections preserved — each still opens its full dossier drawer. Retired
+      projects excluded from live grid, hero totals, spend, alerting, and probe runs; old rest-mute
+      row deactivated; all 42 dossiers regenerated (padmagnet__* carry the RETIRED banner); registry
+      sharedWith truth updated (Bridge/Brave/CL-Resend). Post-deploy canary sweep: 20/20 probes
+      GREEN, 32/33 connections green (1 amber = gus/voice-stack orb kiosk, unrelated to PadMagnet),
+      0 red, 0 stale — nothing broken by the archive. Spend now honest at $81/mo. Open follow-ups
+      → session decision list (EAS paid-plan check, shared-Vercel-token re-homing, Magnolia probe
+      trim).**
       Sweep the Watchtower registry + dossiers to match post-shutdown reality: PadMagnet's 9
       connections → retired/archived (currently just rest-muted); dossier COST lines updated —
       e.g. `christopherlundstrom__resend.md` says "Pro · $20/mo" but the shared Resend account was
