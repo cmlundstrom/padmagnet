@@ -157,8 +157,8 @@ Order matters less here; each is independent. Export/screenshot anything you may
       deleted, confirmed rejected. ⚠️ ACCOUNT KEPT — it's shared; christopherlundstrom.com domain +
       key verified intact. DNS hygiene: 7 orphaned Resend records purged from the padmagnet.com
       Vercel zone, root SPF rewritten Google-only; Google MX untouched (hello@ still receives,
-      verified). 💰 DECISION FOR CHRIS: the shared account's $20/mo Transactional Pro plan now
-      carries only CL's tiny volume — downgrade candidate at resend.com/settings/billing.**
+      verified). 💰 RESOLVED same day: Chris downgraded the shared Resend account to the FREE tier
+      (2026-07-22) — the $20/mo Transactional Pro charge is gone. CL's low-volume sending rides free.**
 - [ ] **Upstash Redis:** delete the PadMagnet rate-limit database. **(2026-07-13: self-resolving —
       Upstash sent a free-tier inactivity notice; with the project dormant, nothing pings it, so it
       will be archived by Upstash on its own. The only data is ephemeral rate-limit counters, and
@@ -202,6 +202,13 @@ Only after Stages 0–3 are done and you've sat in the suspended state long enou
       then remove the working copy if desired. GitHub still has the history.
 - [ ] **Memory hygiene:** update `~/.claude` memory — mark PadMagnet topic files as RETIRED so
       future sessions don't treat it as live.
+- [ ] **Full Watchtower pass (Chris, 2026-07-22: do this once the PadMagnet archive is complete).**
+      Sweep the Watchtower registry + dossiers to match post-shutdown reality: PadMagnet's 9
+      connections → retired/archived (currently just rest-muted); dossier COST lines updated —
+      e.g. `christopherlundstrom__resend.md` says "Pro · $20/mo" but the shared Resend account was
+      downgraded to FREE on 2026-07-22; `padmagnet__*` dossiers describe live services that no
+      longer exist (Stripe dormant, Twilio number released, Resend domains gone, xAI keys dead).
+      Also update the EAS/Expo Watchtower probe if it still pings the PadMagnet project.
 
 ---
 
