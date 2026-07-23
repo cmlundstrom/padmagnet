@@ -151,7 +151,7 @@ Order matters less here; each is independent. Export/screenshot anything you may
       otherwise). Migration to SFRM's account considered and REJECTED (separate top-level accounts
       = support-ticket transfer; 253/WA area code worthless for Stuart FL). Brand (PadMagnet LLC,
       APPROVED) kept — no recurring fee. Account kept dormant with $16.60 prepaid balance.
-      Recurring: $0. Remaining: Chris confirms auto-recharge OFF in console billing.**
+      Recurring: $0. Auto-recharge confirmed OFF by Chris 2026-07-23. TWILIO FULLY CLOSED.**
 - [x] **Google Workspace seat (added to plan 2026-07-22):** the "PadMagnet Team" user
       (hello@padmagnet.com) was the org's only PadMagnet seat (~$16.80/mo Business Standard).
       **✅ DELETED 2026-07-22 by Chris in the Admin console — full delete, Google's Archived-User
@@ -160,9 +160,8 @@ Order matters less here; each is independent. Export/screenshot anything you may
       ~20-day restore window applies. API note: Admin SDK access via gcloud ADC was BLOCKED by
       Google org policy ("app blocked" on restricted admin scopes) — Console was the legitimate
       path. Alias question RESOLVED (Chris, 2026-07-22): NO aliases re-created — ALL padmagnet.com
-      email (hello@, privacy@, legal@, everything) intentionally dies/bounces. Remaining check:
-      confirm the freed license dropped off billing (auto on Flexible, manual seat-reduction on
-      Annual: admin.google.com/ac/billing/subscriptions).**
+      email (hello@, privacy@, legal@, everything) intentionally dies/bounces. License billing drop
+      confirmed by Chris 2026-07-23. WORKSPACE FULLY CLOSED.**
 - [x] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
       **✅ DONE 2026-07-22 via API, read-back verified: domains padmagnet.com + inbound.padmagnet.com
       deleted · email.received webhook deleted · PadMagnet API key ("supabase for PadMagnet.com")
