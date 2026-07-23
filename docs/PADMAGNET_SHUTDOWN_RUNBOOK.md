@@ -9,7 +9,7 @@ domain (annual renewal) · dormant $0 accounts (Stripe, Twilio w/ $16.60 balance
 free after 8/9) · the Watchtower "Retired" shelf card with all 9 dossiers. 1PW: the project
 vault was renamed **`Dev-PadMagnet` → `Retired-PadMagnet`** (2026-07-23) with all 11 items
 preserved as the auth-path record — retirement procedure now codified in the canonical 1PW doc
-("the fable path": Dropbox `1 - Claude ProjectsPassword Setup & Conventions.md`). Note:
+("the fable path": Dropbox `1 - Claude Projects/1Password Setup & Conventions.md`). Note:
 `op://Dev-PadMagnet/...` paths in this repo's `.op-pointers`/scripts are stale by that rename.
 
 > **2026-07-22 — SHUTDOWN GREEN-LIT (Chris).** Decision made: close the project down tightly —
