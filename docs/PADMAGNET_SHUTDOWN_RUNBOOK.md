@@ -60,20 +60,21 @@ outside accounts. **Stage 0 removes that danger before anything else happens.**
 Goal: tools.floridapm.net runs on its **own** Bridge + Brave credentials, so nothing about
 PadMagnet's teardown can touch it.
 
-- [ ] **Bridge MLS:** In the Bridge Interactive developer console, mint a **second/separate
-      server token** (or a separate application) for tools.floridapm.net. Update
-      `CML-Dev\sfrm-tools\.env.local` and push to Vercel via
-      `CML-Dev\sfrm-tools\tools\push_env.py`. Redeploy tools and confirm a rent-range run +
-      Active Rentals still return live data.
-      - *If Bridge can't issue a second token on this membership:* leave the shared token in
-        place and simply **never cancel the Bridge/MLS feed** during this shutdown (see
-        Stage 4 DO-NOT-TOUCH). The feed is tied to the brokerage's MLS membership anyway.
-- [ ] **Brave Search:** Either mint a separate Brave API key for tools and push it, or note
-      that the Brave account/key must survive PadMagnet's shutdown. (Low stakes — Brave only
-      supplies *supplemental* comps; rent-range degrades gracefully without it.)
-- [ ] Verify tools.floridapm.net end-to-end one more time. **Only proceed once tools no
-      longer shares any live credential with PadMagnet** (or the survivors are explicitly on
-      the DO-NOT-TOUCH list).
+- [x] **Bridge MLS:** In the Bridge Interactive developer console, mint a **second/separate
+      server token** (or a separate application) for tools.floridapm.net.
+      **✅ RESOLVED DIFFERENTLY 2026-07-22 — no second token minted, deliberately.** The runbook
+      assumed a LIVE PadMagnet sharing the token; by execution day PadMagnet was already dark
+      (shutter + crons dead), making sfrm-tools the SOLE consumer. A new Bridge application could
+      trigger MLS data-access re-approval friction for zero benefit. Instead, the sharing itself
+      was eliminated: **all 5 stale `BRIDGE_*` env vars deleted from the padmagnet Vercel project
+      via API (read-back: none remain)**; padmagnet has no local `.env.local` (lifted to 1PW
+      2026-06-28, only the .op-pointers file remains). Bridge stays on DO-NOT-TOUCH forever —
+      brokerage-MLS-tied. 1PW `Dev-Shared/Bridge-IDX` note updated to sole-consumer.
+- [x] **Brave Search:** same treatment — **✅ stale `BRAVE_API_KEY` deleted from padmagnet Vercel
+      env 2026-07-22; sfrm-tools is sole consumer; account on DO-NOT-TOUCH. 1PW note updated.**
+- [x] Verify tools.floridapm.net end-to-end one more time. **✅ 2026-07-22 — live probes with the
+      1PW credentials: Bridge OData query returned a listing (HTTP 200), Brave search HTTP 200.
+      Tools shares no credential with any live PadMagnet surface. STAGE 0 COMPLETE.**
 
 ---
 
