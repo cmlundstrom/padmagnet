@@ -151,7 +151,14 @@ Order matters less here; each is independent. Export/screenshot anything you may
       = support-ticket transfer; 253/WA area code worthless for Stuart FL). Brand (PadMagnet LLC,
       APPROVED) kept — no recurring fee. Account kept dormant with $16.60 prepaid balance.
       Recurring: $0. Remaining: Chris confirms auto-recharge OFF in console billing.**
-- [ ] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
+- [x] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
+      **✅ DONE 2026-07-22 via API, read-back verified: domains padmagnet.com + inbound.padmagnet.com
+      deleted · email.received webhook deleted · PadMagnet API key ("supabase for PadMagnet.com")
+      deleted, confirmed rejected. ⚠️ ACCOUNT KEPT — it's shared; christopherlundstrom.com domain +
+      key verified intact. DNS hygiene: 7 orphaned Resend records purged from the padmagnet.com
+      Vercel zone, root SPF rewritten Google-only; Google MX untouched (hello@ still receives,
+      verified). 💰 DECISION FOR CHRIS: the shared account's $20/mo Transactional Pro plan now
+      carries only CL's tiny volume — downgrade candidate at resend.com/settings/billing.**
 - [ ] **Upstash Redis:** delete the PadMagnet rate-limit database. **(2026-07-13: self-resolving —
       Upstash sent a free-tier inactivity notice; with the project dormant, nothing pings it, so it
       will be archived by Upstash on its own. The only data is ephemeral rate-limit counters, and
