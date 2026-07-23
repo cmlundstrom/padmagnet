@@ -151,6 +151,17 @@ Order matters less here; each is independent. Export/screenshot anything you may
       = support-ticket transfer; 253/WA area code worthless for Stuart FL). Brand (PadMagnet LLC,
       APPROVED) kept — no recurring fee. Account kept dormant with $16.60 prepaid balance.
       Recurring: $0. Remaining: Chris confirms auto-recharge OFF in console billing.**
+- [x] **Google Workspace seat (added to plan 2026-07-22):** the "PadMagnet Team" user
+      (hello@padmagnet.com) was the org's only PadMagnet seat (~$16.80/mo Business Standard).
+      **✅ DELETED 2026-07-22 by Chris in the Admin console — full delete, Google's Archived-User
+      upsell (~$3.36/mo) explicitly declined (mailbox held 0.001 GB, nothing to retain). All
+      padmagnet.com aliases (support@, privacy@, legal@, info@, noreply@…) died with the user.
+      ~20-day restore window applies. API note: Admin SDK access via gcloud ADC was BLOCKED by
+      Google org policy ("app blocked" on restricted admin scopes) — Console was the legitimate
+      path. OPEN (Chris, optional): re-add hello@/privacy@/legal@ as FREE aliases on
+      chris@floridapm.net (Users → Christopher Lundstrom → Email aliases; may need ~24h for the
+      addresses to free up) · confirm the freed license dropped off billing (auto on Flexible,
+      manual seat-reduction on Annual: admin.google.com/ac/billing/subscriptions).**
 - [x] **Resend:** remove the padmagnet.com sending domain / API key once final user emails are sent.
       **✅ DONE 2026-07-22 via API, read-back verified: domains padmagnet.com + inbound.padmagnet.com
       deleted · email.received webhook deleted · PadMagnet API key ("supabase for PadMagnet.com")
