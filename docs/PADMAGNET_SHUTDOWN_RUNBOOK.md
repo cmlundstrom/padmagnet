@@ -215,18 +215,38 @@ Order matters less here; each is independent. Export/screenshot anything you may
 
 Only after Stages 0–3 are done and you've sat in the suspended state long enough to be certain.
 
-- [ ] **Back up the data one last time:** take a fresh Supabase backup/export of
+- [x] **Back up the data one last time:** take a fresh Supabase backup/export of
       `darizrcswflrpyvtldii` and store it in the gitignored `padmagnet\archive\` (and/or a Kopia
       snapshot). Once the project is deleted, the data is gone.
-- [ ] **Confirm the repo is fully pushed** to GitHub (`cmlundstrom/padmagnet`) so the code
-      survives as history even after local cleanup.
-- [ ] **Delete the Vercel `padmagnet` project.**
-- [ ] **Delete (or pause) the Supabase `darizrcswflrpyvtldii` project.** Deleting it stops the
+      **✅ DONE 2026-07-22 — `archive\supabase-final-2026-07-22\`: pg_dump custom-format
+      `padmagnet-full.dump` (47 MB, 72 TABLE DATA sections, schemas public+auth+storage,
+      pg_restore-verified) + readable `schema.sql` + all 41 listing photos + restore README.
+      Kopia sweeps it to X10 nightly. Notes: stored pooler URL was stale (aws-0→aws-1) and DB
+      password stale → reset via Management API; pg_dump 17.10 installed via winget (service left
+      on — Chris to run in admin PS: `Stop-Service postgresql-x64-17; Set-Service
+      postgresql-x64-17 -StartupType Disabled`).**
+- [x] **Confirm the repo is fully pushed** to GitHub (`cmlundstrom/padmagnet`) so the code
+      survives as history even after local cleanup. **✅ main pushed; revival tag
+      `archive/2026-07-22-last-live-app` pushed 2026-07-22.**
+- [x] **Delete the Vercel `padmagnet` project.** **✅ RESOLVED AS KEEP (2026-07-22): the Vercel
+      project (free Hobby) serves the live shutter + holds the domain; Chris chose to let the
+      domain ride. Deleting it would kill the tombstone page. Revisit only if the domain is ever
+      released.**
+- [x] **Delete (or pause) the Supabase `darizrcswflrpyvtldii` project.** Deleting it stops the
       Pro-plan billing. *Pausing*/downgrading first is the safer half-step if unsure.
-- [ ] **Local cleanup:** archive `C:\Users\chris\CML-Dev\padmagnet` (zip into `archive\`),
+      **✅ DELETED 2026-07-22 via Management API (Chris confirmed after backup verification).
+      Read-back: gone from org; endpoint dark. Pre-delete audit: DB was 100% PadMagnet (no vault
+      tables, no tools tenants, no pg_cron). ⚠️ BILLING NOTE: the $25/mo Pro plan is ORG-level
+      (org also holds floridapm.net/tools + christopherlundstrom.com) and STAYS for tools; the
+      deletion removes padmagnet's ~$10/mo compute line only.**
+- [x] **Local cleanup:** archive `C:\Users\chris\CML-Dev\padmagnet` (zip into `archive\`),
       then remove the working copy if desired. GitHub still has the history.
-- [ ] **Memory hygiene:** update `~/.claude` memory — mark PadMagnet topic files as RETIRED so
-      future sessions don't treat it as live.
+      **✅ RESOLVED 2026-07-22: working copy KEPT in place (three copies of everything now exist:
+      local + GitHub + Kopia/X10). No zip needed — the repo dir IS the archive.**
+- [x] **Memory hygiene:** update `~/.claude` memory — mark PadMagnet topic files as RETIRED so
+      future sessions don't treat it as live. **✅ 2026-07-22 — MEMORY.md PadMagnet section
+      rewritten to SHUT DOWN state; `reference_padmagnet_map.md` header updated (map kept as the
+      revival index); `reference_email_accounts.md` marked historical earlier today.**
 - [ ] **Full Watchtower pass (Chris, 2026-07-22: do this once the PadMagnet archive is complete).**
       Sweep the Watchtower registry + dossiers to match post-shutdown reality: PadMagnet's 9
       connections → retired/archived (currently just rest-muted); dossier COST lines updated —
