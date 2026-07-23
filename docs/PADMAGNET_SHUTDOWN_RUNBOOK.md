@@ -2,7 +2,11 @@
 
 **Created:** 2026-06-17
 **Author:** Claude (Magnolia bridge), for Chris Lundstrom
-**Status:** DRAFT — decision not yet made. This is a plan, not an executed action.
+**Status: ✅ SHUTDOWN COMPLETE — 2026-07-23.** Every stage executed and verified (all check-offs
+dated inline below). This document is now the permanent record + revival map. What remains
+running, deliberately: the free Vercel project serving the 410 shutter + the padmagnet.com
+domain (annual renewal) · dormant $0 accounts (Stripe, Twilio w/ $16.60 balance, xAI, Expo
+free after 8/9) · the Watchtower "Retired" shelf card with all 9 dossiers.
 
 > **2026-07-22 — SHUTDOWN GREEN-LIT (Chris).** Decision made: close the project down tightly —
 > stop it serving anything, make all services/APIs safe, kill the operational charges, and

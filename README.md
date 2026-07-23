@@ -1,6 +1,14 @@
 # PadMagnet
 
-Tinder-style rental matching for tenants and landlords.
+> **⚰️ SHUT DOWN 2026-07-22 — this repo is an ARCHIVE.** The app no longer serves:
+> padmagnet.com shows a 410 shutter, the Play listing is unpublished, and every external
+> service (Supabase, Stripe, Twilio, Resend, xAI, GCP, Workspace) is dead or dormant.
+> **Read `docs/PADMAGNET_SHUTDOWN_RUNBOOK.md` first** — it records every service's end-state
+> and the revival map. Revival point = git tag `archive/2026-07-22-last-live-app` +
+> `archive/supabase-final-2026-07-22/` (final DB dump + photos + restore README).
+> Everything below describes the app as it was when live.
+
+Swipe-style rental matching for renters and owners.
 
 ## Project Structure
 
