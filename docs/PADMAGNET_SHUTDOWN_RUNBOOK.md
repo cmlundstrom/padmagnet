@@ -181,6 +181,18 @@ Order matters less here; each is independent. Export/screenshot anything you may
       campaign's separate "DEV-MCC Key for Data Mining" key (same xAI account,
       `cmlundstrom@gmail.com`). The account itself stays; on revival mint fresh keys there.
       1PW: `Dev-PadMagnet / Xai API Credentials` now holds a dead value — history note added.**
+- [x] **Google Cloud — padmagnet-maps keys (added 2026-07-22):** **✅ DONE via gcloud (API-first).**
+      Both API keys deleted ("Server - Geocoding for Owner Comps Locations" + "Google Maps,
+      Geolocation, and Places"; 30-day undelete window) and **billing UNLINKED** from the project
+      (billingEnabled=false — zero charge risk forever). Live-verified: both old key values return
+      REQUEST_DENIED. **Borrowed-key audit for tools.floridapm.net came back clean:** sfrm-tools
+      (rent-range / Active Rentals / Market Pulse) runs on its OWN keys from
+      `Dev-floridapm.net/Google-SFRM-Tools-Server` (different values, different GCP project),
+      verified in local env + production Vercel env + push_env.py mapping + a full CML-Dev source
+      sweep (no hardcoded fragments). The `Dev-floridapm.net/Google-Maps-Platform` 1PW item turned
+      out to be a stale duplicate of the (now-dead) PadMagnet keys — annotated, flagged for
+      deletion. OPTIONAL: shut down the empty `padmagnet-maps` project itself (`gcloud projects
+      delete padmagnet-maps`, 30-day recovery) — pending Chris's nod.
 - [ ] **EAS / Expo:** archive or delete the `@cmlundstrom/padmagnet` project.
 - [ ] **Google Play:** once unpublished and the wind-down window has passed, you may remove the
       app. **Keep the PadMagnet LLC Play *developer account* itself** unless you also intend to
