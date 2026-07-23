@@ -190,9 +190,10 @@ Order matters less here; each is independent. Export/screenshot anything you may
       `Dev-floridapm.net/Google-SFRM-Tools-Server` (different values, different GCP project),
       verified in local env + production Vercel env + push_env.py mapping + a full CML-Dev source
       sweep (no hardcoded fragments). The `Dev-floridapm.net/Google-Maps-Platform` 1PW item turned
-      out to be a stale duplicate of the (now-dead) PadMagnet keys — annotated, flagged for
-      deletion. OPTIONAL: shut down the empty `padmagnet-maps` project itself (`gcloud projects
-      delete padmagnet-maps`, 30-day recovery) — pending Chris's nod.
+      out to be a stale duplicate of the (now-dead) PadMagnet keys — stale item DELETED from 1PW
+      same day (Chris-approved, read-back confirmed gone). Project shutdown also Chris-approved and
+      executed same day: `padmagnet-maps` is in DELETE_REQUESTED state (recoverable ~30 days via
+      `gcloud projects undelete padmagnet-maps`, then purged permanently).
 - [ ] **EAS / Expo:** archive or delete the `@cmlundstrom/padmagnet` project.
 - [ ] **Google Play:** once unpublished and the wind-down window has passed, you may remove the
       app. **Keep the PadMagnet LLC Play *developer account* itself** unless you also intend to
